@@ -176,7 +176,7 @@ def list_sourcetypes(ctx: Context) -> dict[str, Any]:
 
     try:
         # Use metadata command to retrieve sourcetypes
-        job = service.jobs.oneshot("| metadata type=sourcetypes | table sourcetype")
+        job = service.jobs.oneshot("| metadata type=sourcetypes index=_* OR index=* | table sourcetype")
 
         sourcetypes = []
         for result in ResultsReader(job):
@@ -208,7 +208,7 @@ def list_sources(ctx: Context) -> dict[str, Any]:
 
     try:
         # Use metadata command to retrieve sources
-        job = service.jobs.oneshot("| metadata type=sources | table source")
+        job = service.jobs.oneshot("| metadata type=sources index=_* OR index=* | table source")
 
         sources = []
         for result in ResultsReader(job):
