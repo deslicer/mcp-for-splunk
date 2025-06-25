@@ -62,20 +62,20 @@ services:
       # Enable Traefik for this service
       - "traefik.enable=true"
       
-      # MCP-specific router for port 8001 (SSE transport)
-      - "traefik.http.routers.mcp-server-sse.rule=PathPrefix(`/sse`)"
-      - "traefik.http.routers.mcp-server-sse.entrypoints=mcp"
-      - "traefik.http.routers.mcp-server-sse.service=mcp-server-sse"
+      # HTTP router for MCP server (Streamable HTTP transport)
+      - "traefik.http.routers.mcp-server.rule=PathPrefix(`/mcp/`)"
+      - "traefik.http.routers.mcp-server.entrypoints=mcp"
+      - "traefik.http.routers.mcp-server.service=mcp-server"
       
       # Service definition pointing to container port 8000
-      - "traefik.http.services.mcp-server-sse.loadbalancer.server.port=8000"
+      - "traefik.http.services.mcp-server.loadbalancer.server.port=8000"
       
-      # Add middleware for SSE and CORS headers
-      - "traefik.http.middlewares.mcp-headers.headers.customrequestheaders.Accept=application/json, text/event-stream"
-      - "traefik.http.middlewares.mcp-headers.headers.customresponseheaders.Access-Control-Allow-Origin=*"
-      - "traefik.http.middlewares.mcp-headers.headers.customresponseheaders.Access-Control-Allow-Methods=GET, POST, OPTIONS"
-      - "traefik.http.middlewares.mcp-headers.headers.customresponseheaders.Access-Control-Allow-Headers=Content-Type, Accept"
-      - "traefik.http.routers.mcp-server-sse.middlewares=mcp-headers"
+      # Add middleware for CORS headers (important for web clients)
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
     develop:
         watch:
           - path: ./src
