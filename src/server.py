@@ -13,6 +13,7 @@ from splunklib import client
 from splunklib.results import ResultsReader
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 import logging
 import time
 
@@ -70,7 +71,7 @@ mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
 def check_splunk_available(ctx: Context) -> tuple[bool, client.Service | None, str]:
     """
     Check if Splunk is available and return status
-    
+
     Returns:
         Tuple of (is_available, service, error_message)
     """
@@ -91,14 +92,16 @@ def health_check() -> str:
 def get_splunk_health(ctx: Context) -> dict[str, Any]:
     """
     Get Splunk connection health status
-    
+
     Returns:
         Dict containing Splunk connection status and version information
     """
     logger.info("Checking Splunk health status...")
+    ctx.info("Checking Splunk health status...")
     splunk_ctx = ctx.request_context.lifespan_context
 
     if not splunk_ctx.is_connected or not splunk_ctx.service:
+        ctx.error("Splunk service is not available. MCP server is running in degraded mode.")
         return {
             "status": "disconnected",
             "error": "Splunk service is not available",
@@ -112,10 +115,12 @@ def get_splunk_health(ctx: Context) -> dict[str, Any]:
             "version": service.info["version"],
             "server_name": service.info.get("host", "unknown")
         }
+        ctx.info(f"Health check successful: {info}")
         logger.info(f"Health check successful: {info}")
         return info
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
+        ctx.error(f"Health check failed: {str(e)}")
         return {
             "status": "error",
             "error": str(e)
@@ -125,7 +130,7 @@ def get_splunk_health(ctx: Context) -> dict[str, Any]:
 def list_indexes(ctx: Context) -> dict[str, Any]:
     """
     Retrieves a list of all accessible indexes from the configured Splunk instance.
-    
+
     Returns:
         Dict containing list of indexes and count
     """
@@ -141,6 +146,7 @@ def list_indexes(ctx: Context) -> dict[str, Any]:
 
     try:
         indexes = [index.name for index in service.indexes]
+        ctx.info(f"Indexes: {indexes}")
         return {
             "status": "success",
             "indexes": sorted(indexes),
@@ -148,6 +154,7 @@ def list_indexes(ctx: Context) -> dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Failed to list indexes: {str(e)}")
+        ctx.error(f"Failed to list indexes: {str(e)}")
         return {
             "status": "error",
             "error": str(e),
@@ -160,7 +167,7 @@ def list_sourcetypes(ctx: Context) -> dict[str, Any]:
     """
     List all available sourcetypes from the configured Splunk instance using metadata command.
     This tool returns a comprehensive list of sourcetypes present in your Splunk environment.
-    
+
     Returns:
         Dict containing list of sourcetypes and count
     """
@@ -177,12 +184,14 @@ def list_sourcetypes(ctx: Context) -> dict[str, Any]:
                 sourcetypes.append(result["sourcetype"])
 
         logger.info(f"Retrieved {len(sourcetypes)} sourcetypes")
+        ctx.info(f"Sourcetypes: {sourcetypes}")
         return {
             "sourcetypes": sorted(sourcetypes),
             "count": len(sourcetypes)
         }
     except Exception as e:
         logger.error(f"Failed to retrieve sourcetypes: {str(e)}")
+        ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")
         raise
 
 @mcp.tool()
@@ -227,20 +236,20 @@ def run_oneshot_search(
     Execute a one-shot Splunk search that returns results immediately. Use this tool for quick,
     simple searches where you need immediate results and don't need to track job progress.
     Best for simple searches that return quickly.
-    
+
     Args:
         query: The Splunk search query (SPL) to execute. The 'search' command will be automatically
             added if not present (e.g., "index=main" becomes "search index=main")
         earliest_time: Search start time (default: "-15m")
         latest_time: Search end time (default: "now")
         max_results: Maximum number of results to return (default: 100)
-    
+
     Returns:
         Dict containing:
             - results: List of search results as dictionaries
             - results_count: Number of results returned
             - query_executed: The actual query that was executed
-    
+
     Example:
         run_oneshot_search(
             query="index=_internal | stats count by log_level",
@@ -251,6 +260,7 @@ def run_oneshot_search(
     is_available, service, error_msg = check_splunk_available(ctx)
 
     if not is_available:
+        ctx.error(f"One-shot search failed: {error_msg}")
         return {
             "status": "error",
             "error": error_msg,
@@ -264,6 +274,7 @@ def run_oneshot_search(
         query = f"search {query}"
 
     logger.info(f"Executing one-shot search: {query}")
+    ctx.info(f"Executing one-shot search: {query}")
 
     try:
         kwargs = {
@@ -271,6 +282,7 @@ def run_oneshot_search(
             "latest_time": latest_time,
             "count": max_results
         }
+        ctx.info(f"One-shot search parameters: {kwargs}")
 
         start_time = time.time()
         job = service.jobs.oneshot(query, **kwargs)
@@ -297,6 +309,7 @@ def run_oneshot_search(
         }
     except Exception as e:
         logger.error(f"One-shot search failed: {str(e)}")
+        ctx.error(f"One-shot search failed: {str(e)}")
         return {
             "status": "error",
             "error": str(e),
@@ -316,13 +329,13 @@ def run_splunk_search(
     Execute a normal Splunk search job with progress tracking. Use this tool for complex or
     long-running searches where you need to track progress and get detailed job information.
     Best for complex searches that might take longer to complete.
-    
+
     Args:
         query: The Splunk search query (SPL) to execute. The 'search' command will be automatically
             added if not present (e.g., "index=main" becomes "search index=main")
         earliest_time: Search start time (default: "-24h")
         latest_time: Search end time (default: "now")
-    
+
     Returns:
         Dict containing:
             - job_id: Search job ID (sid)
@@ -334,7 +347,7 @@ def run_splunk_search(
             - query_executed: The actual query that was executed
             - duration: Search duration in seconds
             - status: Search status information
-    
+
     Example:
         run_splunk_search(
             query="index=* | stats count by source",
@@ -346,6 +359,7 @@ def run_splunk_search(
         query = f"search {query}"
 
     logger.info(f"Starting normal search with query: {query}")
+    ctx.info(f"Starting normal search with query: {query}")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -357,6 +371,7 @@ def run_splunk_search(
             earliest_time=earliest_time,
             latest_time=latest_time
         )
+        ctx.info(f"Search job created: {job.sid}")
 
         # Poll for completion
         while not job.is_done():
@@ -367,6 +382,7 @@ def run_splunk_search(
                 "scan_progress": float(stats.get('scanCount', 0)),
                 "event_progress": float(stats.get('eventCount', 0))
             }
+            ctx.report_progress(progress)
             logger.info(
                 f"Search job {job.sid} in progress... "
                 f"Progress: {progress['progress']:.1f}%, "
@@ -378,6 +394,7 @@ def run_splunk_search(
         # Get the results using ResultsReader for consistent parsing
         results = []
         result_count = 0
+        ctx.info(f"Getting results for search job: {job.sid}")
         for result in ResultsReader(job.results()):
             if isinstance(result, dict):
                 results.append(result)
@@ -406,17 +423,19 @@ def run_splunk_search(
         }
     except Exception as e:
         logger.error(f"Search failed: {str(e)}")
+        ctx.error(f"Search failed: {str(e)}")
         raise
 
 @mcp.tool()
 def list_apps(ctx: Context) -> dict[str, Any]:
     """
     List all installed Splunk apps.
-    
+
     Returns:
         Dict containing list of apps and their properties
     """
     logger.info("Retrieving list of Splunk apps")
+    ctx.info("Retrieving list of Splunk apps")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -431,23 +450,26 @@ def list_apps(ctx: Context) -> dict[str, Any]:
                 "visible": app.content.get("visible")
             })
 
+        ctx.info(f"Found {len(apps)} apps")
         return {
             "count": len(apps),
             "apps": apps
         }
     except Exception as e:
         logger.error(f"Failed to list apps: {str(e)}")
+        ctx.error(f"Failed to list apps: {str(e)}")
         raise
 
 @mcp.tool()
 def list_users(ctx: Context) -> dict[str, Any]:
     """
     List all Splunk users.
-    
+
     Returns:
         Dict containing list of users and their properties
     """
     logger.info("Retrieving list of Splunk users")
+    ctx.info("Retrieving list of Splunk users")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -462,12 +484,14 @@ def list_users(ctx: Context) -> dict[str, Any]:
                 "defaultApp": user.content.get("defaultApp")
             })
 
+        ctx.info(f"Found {len(users)} users")
         return {
             "count": len(users),
             "users": users
         }
     except Exception as e:
         logger.error(f"Failed to list users: {str(e)}")
+        ctx.error(f"Failed to list users: {str(e)}")
         raise
 
 @mcp.tool()
@@ -478,11 +502,11 @@ def list_kvstore_collections(
     """
     List all KV Store collections in Splunk. Use this tool to discover available KV Store collections
     either across all apps or within a specific app.
-    
+
     Args:
-        app: Optional app name (e.g., 'search', 'myapp'). If provided, lists collections only from 
+        app: Optional app name (e.g., 'search', 'myapp'). If provided, lists collections only from
             that specific app. If not provided, lists collections from all accessible apps.
-    
+
     Returns:
         Dict containing:
             - count: Total number of collections found
@@ -491,15 +515,16 @@ def list_kvstore_collections(
                 - fields: Field definitions
                 - accelerated_fields: Indexed fields
                 - replicated: Whether collection is replicated
-    
+
     Example:
         To list collections in 'search' app:
         list_kvstore_collections(app='search')
-        
+
         To list all collections:
         list_kvstore_collections()
     """
     logger.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
+    ctx.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -517,12 +542,14 @@ def list_kvstore_collections(
                 "replicated": collection.content.get("replicated", False)
             })
 
+        ctx.info(f"Found {len(collections)} collections")
         return {
             "count": len(collections),
             "collections": collections
         }
     except Exception as e:
         logger.error(f"Failed to list KV Store collections: {str(e)}")
+        ctx.error(f"Failed to list KV Store collections: {str(e)}")
         raise
 
 @mcp.tool()
@@ -535,44 +562,47 @@ def get_kvstore_data(
     """
     Retrieve data from a specific KV Store collection. Use this tool when you need to fetch
     documents from a KV Store collection, with optional filtering capabilities.
-    
+
     Args:
         collection: Name of the collection to retrieve data from
         app: Optional app name where the collection resides. If not provided, searches in
             default app context
         query: Optional MongoDB-style query filter (e.g., {"field": "value"}) to filter
             the documents to retrieve
-    
+
     Returns:
         Dict containing:
             - count: Number of documents retrieved
             - documents: List of documents from the collection
-    
+
     Example:
         To get all documents:
         get_collection_data(collection="mycollection", app="myapp")
-        
+
         To get filtered documents:
-        get_collection_data(collection="mycollection", app="myapp", 
+        get_collection_data(collection="mycollection", app="myapp",
                           query={"status": "active"})
     """
     logger.info(f"Retrieving data from KV Store collection: {collection}")
+    ctx.info(f"Retrieving data from KV Store collection: {collection}")
     service = ctx.request_context.lifespan_context.service
 
     try:
         if app:
-            collection = service.kvstore[app][collection]
+            collection_obj = service.kvstore[app][collection]
         else:
-            collection = service.kvstore[collection]
+            collection_obj = service.kvstore[collection]
 
-        documents = collection.data.query(query) if query else collection.data.query()
+        documents = collection_obj.data.query(query) if query else collection_obj.data.query()
 
+        ctx.info(f"Retrieved {len(documents)} documents")
         return {
             "count": len(documents),
             "documents": documents
         }
     except Exception as e:
         logger.error(f"Failed to get KV store data: {str(e)}")
+        ctx.error(f"Failed to get KV store data: {str(e)}")
         raise
 
 @mcp.tool()
@@ -587,7 +617,7 @@ def create_kvstore_collection(
     """
     Create a new KV Store collection in a specified Splunk app. Use this tool when you need
     to create a new collection for storing custom data in Splunk.
-    
+
     Args:
         app: Name of the app where the collection should be created (e.g., 'search', 'myapp').
              The app must exist and you must have permissions to create collections.
@@ -600,19 +630,19 @@ def create_kvstore_collection(
             - required: Whether the field is required (optional)
         accelerated_fields: Optional dict defining indexed fields for better query performance
         replicated: Whether the collection should be replicated across search heads (default: True)
-    
+
     Returns:
         Dict containing:
             - status: Operation status
             - collection: Details of the created collection
-    
+
     Example:
         # Create a simple collection
         create_kvstore_collection(
             app="search",
             collection="mycollection"
         )
-        
+
         # Create a structured collection
         create_kvstore_collection(
             app="search",
@@ -625,6 +655,7 @@ def create_kvstore_collection(
         )
     """
     logger.info(f"Creating new KV Store collection: {collection} in app: {app}")
+    ctx.info(f"Creating new KV Store collection: {collection} in app: {app}")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -632,8 +663,8 @@ def create_kvstore_collection(
         if not app:
             raise ValueError("App name is required")
 
-        # Validate collection name - must contain only alphanumeric characters and underscores
-        if not all(c.isalnum() or c == '_' for c in collection):
+        # Validate collection name - ensure only alphanumeric and underscores
+        if not collection.replace("_", "").isalnum():
             raise ValueError("Collection name must contain only alphanumeric characters and underscores")
 
         # URL encode the app name to handle special characters
@@ -658,6 +689,7 @@ def create_kvstore_collection(
             **collection_config
         )
 
+        ctx.info(f"Collection {collection} created successfully")
         return {
             "status": "success",
             "collection": {
@@ -670,6 +702,7 @@ def create_kvstore_collection(
 
     except Exception as e:
         logger.error(f"Failed to create KV Store collection: {str(e)}")
+        ctx.error(f"Failed to create KV Store collection: {str(e)}")
         raise ValueError(f"Failed to create collection: {str(e)}")
 
 @mcp.tool()
@@ -680,15 +713,16 @@ def get_configurations(
 ) -> dict[str, Any]:
     """
     Get Splunk configurations.
-    
+
     Args:
         conf_file: Configuration file name (e.g., 'props', 'transforms', 'inputs')
         stanza: Optional stanza name to get specific configuration
-    
+
     Returns:
         Dict containing configuration settings
     """
     logger.info(f"Retrieving configurations from {conf_file}")
+    ctx.info(f"Retrieving configurations from {conf_file}")
     service = ctx.request_context.lifespan_context.service
 
     try:
@@ -696,103 +730,72 @@ def get_configurations(
 
         if stanza:
             stanza_obj = confs[stanza]
-            return {
+            result = {
                 "stanza": stanza,
                 "settings": dict(stanza_obj.content)
             }
+            ctx.info(f"Retrieved configuration for stanza: {stanza}")
+            return result
 
         all_stanzas = {}
         for stanza_obj in confs:
             all_stanzas[stanza_obj.name] = dict(stanza_obj.content)
 
+        ctx.info(f"Retrieved {len(all_stanzas)} stanzas from {conf_file}")
         return {
             "file": conf_file,
             "stanzas": all_stanzas
         }
     except Exception as e:
         logger.error(f"Failed to get configurations: {str(e)}")
+        ctx.error(f"Failed to get configurations: {str(e)}")
         raise
 
 async def main():
-    """Main function for running the MCP server with transport selection"""
-    parser = argparse.ArgumentParser(
-        description='MCP Server for Splunk',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Run locally with stdio (default)
-  python src/server.py
-  python src/server.py --transport stdio
+    """Main function for running the MCP server"""
+    # Get the port from environment variable, default to 8000
+    port = int(os.environ.get("MCP_SERVER_PORT", 8000))
+    host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
 
-  # Run with HTTP transport
-  python src/server.py --transport streamable-http
-  python src/server.py --transport streamable-http --host 0.0.0.0 --port 8000
+    logger.info(f"Starting MCP server on {host}:{port}")
 
-  # Environment variables (useful for Docker)
-  export MCP_TRANSPORT=streamable-http
-  export MCP_HOST=0.0.0.0
-  export MCP_PORT=8000
-  python src/server.py
-        """
-    )
-
-    parser.add_argument(
-        '--transport',
-        choices=['stdio', 'streamable-http'],
-        default=os.environ.get('MCP_TRANSPORT', 'stdio'),
-        help='Transport method: stdio (local) or streamable-http (remote)'
-    )
-    parser.add_argument(
-        '--host',
-        default=os.environ.get('MCP_HOST', 'localhost'),
-        help='Host for HTTP transport (default: localhost)'
-    )
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=int(os.environ.get('MCP_PORT', 8000)),
-        help='Port for HTTP transport (default: 8000)'
-    )
-    parser.add_argument(
-        '--path',
-        default=os.environ.get('MCP_PATH', '/mcp/'),
-        help='Path for HTTP transport (default: /mcp/)'
-    )
-
-    # Parse arguments, but don't fail if none provided (for Docker compatibility)
-    if len(sys.argv) == 1:
-        # No arguments provided, use environment variables or defaults
-        args = argparse.Namespace(
-            transport=os.environ.get('MCP_TRANSPORT', 'stdio'),
-            host=os.environ.get('MCP_HOST', 'localhost'),
-            port=int(os.environ.get('MCP_PORT', 8000)),
-            path=os.environ.get('MCP_PATH', '/mcp/'),
-
-        )
-    else:
-        args = parser.parse_args()
-
-    logger.info("🚀 Starting MCP Server for Splunk")
-    logger.info(f"📡 Transport: {args.transport}")
-
-    if args.transport == "stdio":
-        logger.info("🔌 Running with STDIO transport (local mode)")
-        await mcp.run_async(transport="stdio")
-    elif args.transport == "streamable-http":
-        logger.info(f"🌐 Running with HTTP transport on {args.host}:{args.port}{args.path}")
-        await mcp.run_async(
-            transport="streamable-http",
-            host=args.host,
-            port=args.port,
-            path=args.path
-        )
+    # Use FastMCP's built-in run_async method for proper lifespan management
+    await mcp.run_async(transport="http", host=host, port=port, path="/mcp/")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MCP Server for Splunk")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "http"],
+        default="http",
+        help="Transport mode for MCP server"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind the HTTP server (only for http transport)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind the HTTP server (only for http transport)"
+    )
+    
+    args = parser.parse_args()
+    
     logger.info("Starting MCP Server for Splunk...")
+    
     try:
-        asyncio.run(main())
+        if args.transport == "stdio":
+            logger.info("Running in stdio mode for direct MCP client communication")
+            asyncio.run(mcp.run())
+        else:
+            # HTTP mode: use Streamable HTTP transport for web-based communication
+            logger.info("Running in HTTP mode with Streamable HTTP transport")
+            asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("👋 Server stopped by user")
+        logger.info("Server stopped by user")
     except Exception as e:
-        logger.error(f"❌ Fatal server error: {str(e)}", exc_info=True)
+        logger.error(f"Fatal server error: {str(e)}", exc_info=True)
         sys.exit(1)
