@@ -62,6 +62,7 @@ services:
       - HOST=0.0.0.0
       - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
     depends_on:
+      - traefik
       - mcp-server
     labels:
       # Enable Traefik for MCP Inspector
@@ -92,7 +93,6 @@ services:
     networks:
       - splunk-network
     ports:
-      - "6274:6274"       # Alternative MCP Inspector access
       - "8002:8000"       # MCP Server direct access (optional)
     environment:
       - SPLUNK_HOST=${SPLUNK_HOST:-so1}
