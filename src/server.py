@@ -32,19 +32,34 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SplunkContext:
-    service: client.Service
+    service: Optional[client.Service]
+    is_connected: bool
 
 @asynccontextmanager
 async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
     """Manage Splunk connection lifecycle"""
     logger.info("Initializing Splunk connection...")
+    service = None
+    is_connected = False
+    
     try:
-        service = get_splunk_service()
-        logger.info("Splunk connection established successfully")
-        yield SplunkContext(service=service)
+        # Import the safe version that doesn't raise exceptions
+        from src.splunk_client import get_splunk_service_safe
+        service = get_splunk_service_safe()
+        
+        if service:
+            logger.info("Splunk connection established successfully")
+            is_connected = True
+        else:
+            logger.warning("Splunk connection failed - running in degraded mode")
+            logger.warning("Some tools will not be available until Splunk connection is restored")
+        
+        yield SplunkContext(service=service, is_connected=is_connected)
+        
     except Exception as e:
-        logger.error(f"Failed to establish Splunk connection: {str(e)}")
-        raise
+        logger.error(f"Unexpected error during Splunk connection: {str(e)}")
+        # Still yield a context with no service to allow MCP server to start
+        yield SplunkContext(service=None, is_connected=False)
     finally:
         logger.info("Closing Splunk connection")
 
@@ -55,6 +70,20 @@ mcp.dependencies = [
     "splunk-mcp-server"
 ]
 
+def check_splunk_available(ctx: Context) -> tuple[bool, Optional[client.Service], str]:
+    """
+    Check if Splunk is available and return status
+    
+    Returns:
+        Tuple of (is_available, service, error_message)
+    """
+    splunk_ctx = ctx.request_context.lifespan_context
+    
+    if not splunk_ctx.is_connected or not splunk_ctx.service:
+        return False, None, "Splunk service is not available. MCP server is running in degraded mode."
+    
+    return True, splunk_ctx.service, ""
+
 # Health check endpoint for Docker
 @mcp.resource("health://status")
 def health_check() -> str:
@@ -62,7 +91,7 @@ def health_check() -> str:
     return "OK"
 
 @mcp.tool()
-def get_splunk_health() -> Dict[str, Any]:
+def get_splunk_health(ctx: Context) -> Dict[str, Any]:
     """
     Get Splunk connection health status
     
@@ -70,8 +99,17 @@ def get_splunk_health() -> Dict[str, Any]:
         Dict containing Splunk connection status and version information
     """
     logger.info("Checking Splunk health status...")
+    splunk_ctx = ctx.request_context.lifespan_context
+    
+    if not splunk_ctx.is_connected or not splunk_ctx.service:
+        return {
+            "status": "disconnected",
+            "error": "Splunk service is not available",
+            "message": "MCP server is running in degraded mode"
+        }
+    
     try:
-        service = get_splunk_service()
+        service = splunk_ctx.service
         info = {
             "status": "connected",
             "version": service.info["version"],
@@ -94,12 +132,31 @@ def list_indexes(ctx: Context) -> Dict[str, Any]:
     Returns:
         Dict containing list of indexes and count
     """
-    service = ctx.request_context.lifespan_context.service
-    indexes = [index.name for index in service.indexes]
-    return {
-        "indexes": sorted(indexes),
-        "count": len(indexes)
-    }
+    is_available, service, error_msg = check_splunk_available(ctx)
+    
+    if not is_available:
+        return {
+            "status": "error",
+            "error": error_msg,
+            "indexes": [],
+            "count": 0
+        }
+    
+    try:
+        indexes = [index.name for index in service.indexes]
+        return {
+            "status": "success",
+            "indexes": sorted(indexes),
+            "count": len(indexes)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list indexes: {str(e)}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "indexes": [],
+            "count": 0
+        }
 
 @mcp.tool()
 def list_sourcetypes(ctx: Context) -> Dict[str, Any]:
@@ -194,7 +251,16 @@ def run_oneshot_search(
             max_results=10
         )
     """
-    service = ctx.request_context.lifespan_context.service
+    is_available, service, error_msg = check_splunk_available(ctx)
+    
+    if not is_available:
+        return {
+            "status": "error",
+            "error": error_msg,
+            "results": [],
+            "results_count": 0,
+            "query_executed": query
+        }
     
     # Add 'search' command if not present and query doesn't start with a pipe
     if not query.strip().lower().startswith(('search ', '| ')):
@@ -226,6 +292,7 @@ def run_oneshot_search(
         duration = time.time() - start_time
         
         return {
+            "status": "success",
             "results": results,
             "results_count": result_count,
             "query_executed": query,
@@ -233,7 +300,13 @@ def run_oneshot_search(
         }
     except Exception as e:
         logger.error(f"One-shot search failed: {str(e)}")
-        raise
+        return {
+            "status": "error",
+            "error": str(e),
+            "results": [],
+            "results_count": 0,
+            "query_executed": query
+        }
 
 @mcp.tool()
 def run_splunk_search(

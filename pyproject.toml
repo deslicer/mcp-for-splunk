@@ -2,55 +2,44 @@
 name = "mcp-server-for-splunk"
 version = "0.1.0"
 description = "MCP server for Splunk"
+readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "MCP Server for Splunk", email = "developer@example.com"}
+]
+keywords = ["mcp", "splunk", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "mcp[cli]>=1.8.1",
+    "fastmcp>=2.3.4",
     "splunk-sdk>=1.7.0",
     "python-dotenv>=1.0.0",
-    "fastmcp>=2.3.4"
+    "httpx>=0.27.0",
+    "uvicorn[standard]>=0.32.0"
 ]
+
+[project.scripts]
+mcp-splunk-server = "src.server:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
-    "mypy>=1.0.0"
+    "mypy>=1.0.0",
+    "ruff>=0.1.0"
 ]
-
-[dependency-groups]
-dev = [
-    "coverage>=7.9.1",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=1.0.0",
-    "pytest-mock>=3.14.1",
-    "pytest-cov>=6.2.1",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_functions = "test_*"
-python_classes = "Test*"
-addopts = [
-    "-v",
-    "--tb=short",
-    "--strict-markers",
-    "--color=yes",
-    "--durations=10"
-]
-markers = [
-    "unit: Unit tests",
-    "integration: Integration tests", 
-    "slow: Slow running tests",
-    "network: Tests that require network access",
-    "splunk: Tests that require Splunk connection"
-]
-asyncio_mode = "auto"
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::UserWarning:fastmcp.*",
-    "ignore::UserWarning:splunklib.*"
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0"
 ]
 
 [build-system]
@@ -59,3 +48,76 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/pyproject.toml",
+    "/README.md"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0"
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-v",
+    "--tb=short", 
+    "--strict-markers",
+    "--disable-warnings",
+    "--asyncio-mode=auto"
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests", 
+    "unit: marks tests as unit tests"
+]
+required_plugins = [
+    "pytest-asyncio"
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "W", "F", "I", "N", "B", "UP"]
+ignore = ["E501"]  # Line too long (handled by black)
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true

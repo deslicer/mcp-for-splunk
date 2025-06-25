@@ -9,20 +9,20 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV MCP_SERVER_MODE=docker
 
-# Install system dependencies
+# Install system dependencies and uv
 RUN apt-get update && apt-get install -y \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install uv
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy dependency files first for better caching
+COPY pyproject.toml uv.lock README.md ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies using uv
+RUN uv sync --frozen --no-dev
 
 # Copy source code
 COPY src/ ./src/
-COPY pyproject.toml .
 
 # Create logs directory
 RUN mkdir -p /app/src/logs
@@ -32,5 +32,5 @@ EXPOSE 8000
 
 # Traefik will handle service discovery via other means
 
-# Run the MCP server
-CMD ["python", "src/server.py"]
+# Run the MCP server using uv
+CMD ["uv", "run", "python", "src/server.py"]
