@@ -67,10 +67,6 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
 # Initialize FastMCP server with lifespan context
 mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
 
-mcp.dependencies = [
-    "splunk-mcp-server"
-]
-
 def check_splunk_available(ctx: Context) -> tuple[bool, client.Service | None, str]:
     """
     Check if Splunk is available and return status
