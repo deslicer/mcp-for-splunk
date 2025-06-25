@@ -16,6 +16,7 @@ services:
       # Configure entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.mcp.address=:8000
+      - --entrypoints.inspector.address=:3002
       # Enable API and dashboard (optional, for debugging)
       - --api.dashboard=true
       - --api.insecure=true
@@ -25,6 +26,7 @@ services:
     ports:
       - "80:80"           # HTTP
       - "8001:8000"       # MCP Server port
+      - "3002:3002"       # MCP Inspector port
       - "8080:8080"       # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -34,6 +36,51 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
       - "traefik.http.routers.traefik.service=api@internal"
+
+  # MCP Inspector - Web-based debugging interface
+  mcp-inspector:
+    image: node:20-alpine
+    container_name: mcp-inspector
+    restart: unless-stopped
+    working_dir: /app
+    networks:
+      - splunk-network
+    ports:
+      - "3001:6274"       # Inspector UI direct access
+      - "6277:6277"       # Inspector Proxy server access
+    command: >
+      sh -c "
+        apk add --no-cache git &&
+        npm install -g @modelcontextprotocol/inspector &&
+        echo 'Starting MCP Inspector...' &&
+        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
+      "
+    environment:
+      - NODE_ENV=development
+      - DANGEROUSLY_OMIT_AUTH=true
+      # Fix binding and origin issues per MCP Inspector docs
+      - HOST=0.0.0.0
+      - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+    depends_on:
+      - mcp-server
+    labels:
+      # Enable Traefik for MCP Inspector
+      - "traefik.enable=true"
+      
+      # HTTP router for Inspector UI
+      - "traefik.http.routers.mcp-inspector.rule=Host(`inspector.localhost`) || PathPrefix(`/inspector/`)"
+      - "traefik.http.routers.mcp-inspector.entrypoints=inspector"
+      - "traefik.http.routers.mcp-inspector.service=mcp-inspector"
+      
+      # Service definition pointing to container port 6274 (MCP Inspector default)
+      - "traefik.http.services.mcp-inspector.loadbalancer.server.port=6274"
+      
+      # Add middleware for CORS
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.mcp-inspector.middlewares=inspector-cors"
 
   # MCP Server for Splunk
   mcp-server:
@@ -45,7 +92,7 @@ services:
     networks:
       - splunk-network
     ports:
-      - "6274:6274"       # MCP Inspector direct access
+      - "6274:6274"       # Alternative MCP Inspector access
       - "8002:8000"       # MCP Server direct access (optional)
     environment:
       - SPLUNK_HOST=${SPLUNK_HOST:-so1}
@@ -55,7 +102,17 @@ services:
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
       - MCP_SERVER_HOST=0.0.0.0
       - MCP_SERVER_PORT=8000
-      - MCP_HOT_RELOAD=${MCP_HOT_RELOAD:-true}
+      # Enable HTTP transport for inspector connectivity
+      - MCP_TRANSPORT=http
+      # FastMCP StreamableHTTP specific environment variables
+      - FASTMCP_STREAMABLE_HTTP_ALLOWED_ORIGINS=*
+      - STREAMABLE_HTTP_ALLOW_ALL_ORIGINS=true
+      - MCP_HTTP_ALLOWED_ORIGINS=*
+      - MCP_STREAMABLE_HTTP_ORIGINS=*
+      - FASTMCP_ALLOWED_ORIGINS=*
+      - DISABLE_ORIGIN_CHECK=true
+      - MCP_DISABLE_ORIGIN_CHECK=true
+      - STREAMABLE_HTTP_DISABLE_CORS=true
     depends_on:
       - so1
       - traefik
