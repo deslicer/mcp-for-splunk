@@ -1,4 +1,0 @@
-mcp[cli]>=1.8.1
-fastmcp>=2.3.4
-splunk-sdk>=1.7.0
-python-dotenv>=1.0.0
