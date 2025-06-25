@@ -59,9 +59,9 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │     Traefik     │    │   MCP Server    │    │  Splunk Server  │    │ MCP Inspector   │
-│   Port: 8001    │    │   Port: 8000    │    │   Port: 9000    │    │   Port: 6274    │
-│   Dashboard     │    │   (Docker)      │    │   (Docker)      │    │   (Browser)     │
-│   Port: 8080    │    │                 │    │                 │    │                 │
+│   Port: 8001    │    │   Port: 8000    │    │   Port: 9000    │    │   UI: 3001      │
+│   Dashboard     │    │   (Docker)      │    │   (Docker)      │    │   Proxy: 6277   │
+│   Port: 8080    │    │                 │    │                 │    │   (Docker)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -96,7 +96,7 @@ This will automatically:
 - 🔧 **Traefik Dashboard**: http://localhost:8080
 - 🌐 **Splunk Web UI**: http://localhost:9000 (admin/Chang3d!)
 - 🔌 **MCP Server**: http://localhost:8001/mcp/
-- 📊 **MCP Inspector**: http://localhost:6274
+- 📊 **MCP Inspector**: http://localhost:3001 (web-based testing UI)
 
 ### Option 2: Manual Setup
 
@@ -302,16 +302,65 @@ Tests require:
 
 ### MCP Inspector (Web Testing)
 
+The project includes a fully integrated MCP Inspector service for interactive testing and debugging of the Splunk MCP server.
+
+#### Docker-Integrated Inspector (Recommended)
+
+The MCP Inspector runs as a Docker service alongside the MCP server:
+
+```bash
+# Start the full stack (includes inspector)
+./scripts/build_and_run.sh
+
+# Access the inspector web UI
+open http://localhost:3001
+
+# Connect to the MCP server from inspector
+# Server URL: http://localhost:8002/mcp/
+```
+
+**Inspector Features:**
+- 🌐 **Web-based UI** at http://localhost:3001
+- 🔗 **Auto-configured** to connect to the MCP server
+- 🛡️ **CORS enabled** with proper origin handling
+- 🔐 **Authentication bypassed** for development (`DANGEROUSLY_OMIT_AUTH=true`)
+- 📊 **Real-time testing** of all Splunk tools
+- 🐳 **Docker integrated** with automatic startup
+
+#### Manual Inspector Setup
+
+For standalone testing with local server:
+
 ```bash
 # Test local stdio server
 npx @modelcontextprotocol/inspector uv run python src/server.py
 
-# Test remote HTTP server
+# Test remote HTTP server  
 npx @modelcontextprotocol/inspector http://localhost:8001/mcp/
-
-# Or use the direct access URL
-open http://localhost:6274
 ```
+
+#### Inspector Configuration
+
+The Docker service includes optimized configuration:
+
+```yaml
+# Key environment variables
+DANGEROUSLY_OMIT_AUTH=true           # Skip authentication for development
+HOST=0.0.0.0                        # Bind to all interfaces
+ALLOWED_ORIGINS=http://localhost:*   # Enable cross-origin requests
+```
+
+#### Testing Workflow with Inspector
+
+1. **Start Services**: `./scripts/build_and_run.sh`
+2. **Open Inspector**: Navigate to http://localhost:3001
+3. **Connect to Server**: Use `http://localhost:8002/mcp/` as server URL
+4. **Test Tools**: Interactively test all Splunk operations:
+   - `get_splunk_health()` - Verify connectivity
+   - `list_indexes()` - Explore available data indexes
+   - `run_oneshot_search("index=_internal | head 5")` - Execute searches
+   - `list_sourcetypes()` - Discover data source types
+   - All other Splunk MCP tools with real-time feedback
 
 ### Cursor IDE Integration
 
@@ -438,6 +487,7 @@ The HTTP mode includes full Traefik integration with:
 - 💾 **Volume persistence** for Splunk data
 - 🔍 **Health monitoring** for all services
 - 🔧 **Development mode** with file watching and auto-rebuild
+- 📊 **Integrated MCP Inspector** with web UI and CORS configuration
 
 ### Environment Configuration
 
@@ -492,6 +542,7 @@ chmod +x scripts/run_splunk.sh
 - ✅ **Splunk Integration**: Complete with 12 tools covering all major operations
 - ✅ **Local Development**: Full setup with docker-compose-splunk.yml
 - ✅ **Production Docker Stack**: Complete with Traefik load balancing
+- ✅ **MCP Inspector Integration**: Docker service with web UI at localhost:3001
 - ✅ **MCP Inspector Support**: Working with both local and remote modes
 - ✅ **Cursor IDE Integration**: Configured and tested for both modes
 - ✅ **Testing Suite**: Comprehensive tests for connections and functionality
@@ -548,7 +599,8 @@ make docker-logs
 |---------|-----|---------|
 | **MCP Server (Traefik)** | http://localhost:8001/mcp/ | Primary MCP endpoint |
 | **MCP Server (Direct)** | http://localhost:8002/mcp/ | Direct access |
-| **MCP Inspector** | http://localhost:6274 | Web-based testing |
+| **MCP Inspector** | http://localhost:3001 | Web-based testing UI |
+| **Inspector Proxy** | http://localhost:6277 | Inspector proxy server |
 | **Traefik Dashboard** | http://localhost:8080 | Load balancer monitoring |
 | **Splunk Web UI** | http://localhost:9000 | Splunk interface |
 | **Splunk Management** | https://localhost:8089 | API endpoint |
@@ -583,6 +635,21 @@ docker system prune -f
    uv sync --dev
    ```
 
+4. **MCP Inspector Issues**
+   ```bash
+   # Check inspector service status
+   docker-compose logs mcp-inspector
+   
+   # Restart inspector service
+   docker-compose restart mcp-inspector
+   
+   # Access inspector directly
+   open http://localhost:3001
+   
+   # Test inspector proxy health
+   curl http://localhost:6277/health
+   ```
+
 ## Contributing
 
 1. Fork the repository
@@ -615,7 +682,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - **Issues**: Report bugs and feature requests via GitHub Issues
 - **Documentation**: Check the `/docs` directory for detailed guides
-- **MCP Inspector**: Use http://localhost:6274 for interactive testing
+- **MCP Inspector**: Use http://localhost:3001 for interactive testing and debugging
+- **Inspector Health**: Check http://localhost:6277/health for proxy status
 - **Community**: Join discussions for help and best practices
 - **Traefik Dashboard**: Monitor load balancing at http://localhost:8080
 
