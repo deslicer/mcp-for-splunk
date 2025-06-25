@@ -227,4 +227,4 @@ class TestHelperFunctions:
         direct_data = {"status": "success", "count": 5}
         result = extract_tool_result(direct_data)
         
-        assert result == direct_data 
+        assert result == direct_data
