@@ -1,190 +1,145 @@
-# MCP Server for Splunk - Test Suite
+# Test Suite for MCP Server for Splunk
 
-This directory contains comprehensive tests for the MCP Server for Splunk functionality.
+A comprehensive test suite covering all aspects of the MCP Server for Splunk implementation.
 
 ## Test Structure
 
-```
-tests/
-├── __init__.py                 # Python package marker
-├── conftest.py                 # Pytest configuration and fixtures
-├── test_splunk_client.py       # Splunk client connection tests
-├── test_splunk_tools.py        # Splunk MCP tools tests
-├── test_transport.py           # Transport method tests (stdio/HTTP)
-└── README.md                   # This file
-```
+### Core Test Files
 
-## Test Coverage
+1. **`test_splunk_tools.py`** - Tests for all 12 MCP Splunk tools (19 tests)
+   - Health checks (`get_splunk_health`)
+   - Index operations (`list_indexes`)
+   - Metadata tools (`list_sourcetypes`, `list_sources`)
+   - Search operations (`run_oneshot_search`, `run_splunk_search`)
+   - App/user management (`list_apps`, `list_users`)
+   - KV Store operations (`list_kvstore_collections`, `get_kvstore_data`, `create_kvstore_collection`)
+   - Configuration management (`get_configurations`)
 
-The test suite covers:
+2. **`test_transport.py`** - Transport layer testing (27 tests)
+   - stdio transport configuration and execution
+   - streamable-http transport with various configurations
+   - Environment variable handling
+   - Error conditions and security scenarios
+   - Docker environment compatibility
 
-### Splunk Client Tests (`test_splunk_client.py`)
-- **Connection Testing**: Mock-based tests for Splunk service connections
-- **Environment Variable Handling**: Default values and configuration validation
-- **Error Handling**: Connection failures, invalid credentials, invalid ports
-- **Authentication**: Username/password and token-based authentication
+3. **`test_splunk_client.py`** - Splunk connection testing (6 tests)
+   - Connection establishment and failure scenarios
+   - Credential validation
+   - Port handling and conversion
 
-### Transport Tests (`test_transport.py`)
-- **Configuration Testing**: Environment variables, command line arguments, defaults
-- **Stdio Transport**: Local communication mode, startup, error handling
-- **HTTP Transport**: Remote communication mode, custom configuration, port binding
-- **Main Function**: Transport routing, argument parsing, Docker environment
-- **Integration**: Transport with Splunk connections, failure handling
-- **Security**: Network binding options, localhost vs all interfaces
+4. **`test_mcp_server.py`** - Integration tests (17 tests - currently excluded)
+   - Requires additional FastMCP client dependencies
+   - End-to-end testing with real MCP clients
+   - Currently excluded from default test runs
 
-### Splunk Tools Tests (`test_splunk_tools.py`)
-- **Health Check Tool**: Service connectivity and version information
-- **Index Tools**: Listing and validation of Splunk indexes
-- **Metadata Tools**: Sourcetype and source discovery
-- **Search Tools**: Oneshot and regular search operations with various parameters
-- **App and User Tools**: Application and user management functionality
-- **KV Store Tools**: Collection listing and data retrieval
-- **Configuration Tools**: Configuration file and stanza management
-- **Integration Tests**: End-to-end workflow testing
+### Test Configuration
+
+- **`conftest.py`** - Comprehensive pytest fixtures and mocks
+- **`pyproject.toml`** - Pytest configuration and coverage settings
+- **`scripts/run_tests.sh`** - Enhanced test runner with multiple options
 
 ## Running Tests
 
 ### Quick Start
+
 ```bash
-# Run all tests with coverage
-./scripts/run_tests.sh
+# Run all core tests (excluding integration tests)
+uv run scripts/run_tests.sh
 
-# Run tests without coverage (faster)
-./scripts/run_tests.sh --no-coverage
-
-# Run with verbose output
-./scripts/run_tests.sh -v
+# Or directly with pytest
+uv run pytest --ignore=tests/test_mcp_server.py
 ```
 
-### Test Filtering
+### Test Categories
+
 ```bash
-# Run only unit tests
-./scripts/run_tests.sh -m unit
+# Transport layer tests only
+uv run scripts/run_tests.sh -k transport
 
-# Run specific test by name
-./scripts/run_tests.sh -k test_health_check
+# Splunk tools tests only  
+uv run scripts/run_tests.sh -k splunk_tools
 
-# Run specific test class
-./scripts/run_tests.sh -k TestSplunkHealthTool
+# Splunk client tests only
+uv run scripts/run_tests.sh -k splunk_client
 
-# Fail fast (stop on first failure)
-./scripts/run_tests.sh -x
+# Integration tests (requires additional setup)
+uv run pytest tests/test_mcp_server.py
 ```
 
-### Coverage Reports
-```bash
-# Generate HTML coverage report
-./scripts/run_tests.sh
-# View report: open htmlcov/index.html
+### Test Options
 
-# Terminal coverage only
-./scripts/run_tests.sh --no-html
+```bash
+# Quick tests without coverage
+uv run scripts/run_tests.sh --no-coverage -x
+
+# Verbose output
+uv run scripts/run_tests.sh -v
+
+# Specific test pattern
+uv run scripts/run_tests.sh -k health_check
+
+# Fail on first error
+uv run scripts/run_tests.sh -x
 ```
 
-## Test Configuration
+## Coverage
 
-### Environment Variables
-Tests use mock environment variables defined in `conftest.py`:
-- `SPLUNK_HOST`: localhost
-- `SPLUNK_PORT`: 8089
-- `SPLUNK_USERNAME`: admin
-- `SPLUNK_PASSWORD`: password
-- `SPLUNK_VERIFY_SSL`: false
+Current test coverage: **63% overall**
+- `src/server.py`: 59% (272 statements)
+- `src/splunk_client.py`: 85% (41 statements)  
+- `src/__init__.py`: 100% (2 statements)
 
-### Test Markers
-Tests are organized with markers for selective execution:
-- `unit`: Unit tests (isolated component testing)
-- `integration`: Integration tests (component interaction)
-- `slow`: Tests that may take longer
-- `network`: Tests requiring network access
-- `splunk`: Splunk-specific functionality tests
+Coverage reports are generated in:
+- Terminal output
+- HTML report: `htmlcov/index.html`
 
-## Mock Structure
+## Test Results
 
-### `MockSplunkService`
-Mimics `splunklib.client.Service` with:
-- Indexes collection with 4 sample indexes
-- Apps collection with 3 sample apps
-- Users collection with 2 sample users
-- Jobs interface for search operations
-- KV Store interface
-- Configuration interface
+✅ **52 core tests passing**
+- 19 Splunk tools tests
+- 27 transport tests
+- 6 Splunk client tests
 
-### `MockSplunkContext`
-Mimics FastMCP Context structure:
-- Request context with lifespan context
-- Service injection for tool testing
+❌ **17 integration tests excluded** (require FastMCP client dependencies)
 
-### Sample Data
-- **Search Results**: 3 sample log entries with timestamps and metadata
-- **KV Store Data**: User collection with roles and status
-- **ResultsReader**: Mock for Splunk search result iteration
+## Mock Architecture
 
-## Coverage Statistics
+The test suite uses extensive mocking to simulate Splunk services:
 
-Current test coverage with **52 comprehensive tests**:
-- **Overall**: 53% (330 statements, 154 missing)
-- **server.py**: 61% (main functionality and transport methods)
-- **splunk_client.py**: 96% (connection handling)
-- **__init__.py**: 100% (package setup)
-
-### Test Breakdown:
-- **Transport Tests**: 27 tests covering stdio and HTTP transports
-- **Splunk Tools Tests**: 19 tests covering all 12 MCP tools
-- **Client Tests**: 6 tests covering connection scenarios
+- **Mock Splunk Service**: Simulates complete Splunk SDK client
+- **Mock Context**: FastMCP context with lifespan management
+- **Mock Search Results**: Realistic search response data
+- **Mock KV Store**: Collection and document structures
+- **Mock Configurations**: Splunk configuration stanzas
 
 ## Dependencies
 
-Testing uses the following packages (installed via `uv`):
-- `pytest`: Test framework
-- `pytest-cov`: Coverage reporting
-- `pytest-asyncio`: Async test support
-- `pytest-mock`: Enhanced mocking capabilities
+Testing dependencies managed via `uv`:
+- `pytest` - Test framework
+- `pytest-asyncio` - Async test support
+- `pytest-mock` - Enhanced mocking
+- `pytest-cov` - Coverage reporting
 
-## Adding New Tests
+## Future Enhancements
 
-### For New Tools
-1. Add tool function tests to `test_splunk_tools.py`
-2. Mock the required Splunk service interfaces in `conftest.py`
-3. Test both success and error scenarios
-4. Include parameter validation tests
+1. **Integration Test Completion**: Add FastMCP client fixtures for full end-to-end testing
+2. **Performance Tests**: Add benchmarking for large search results
+3. **Error Scenario Expansion**: More comprehensive failure mode testing
+4. **Parallel Execution**: Add pytest-xdist for faster test runs
+5. **Property-Based Testing**: Use hypothesis for edge case discovery
 
-### For Client Functionality
-1. Add tests to `test_splunk_client.py`
-2. Use `@patch('src.splunk_client.client.Service')` for mocking
-3. Test different authentication methods and connection scenarios
+## Contributing
 
-### Test Structure Template
-```python
-class TestNewFeature:
-    """Test new feature functionality"""
-    
-    def test_success_case(self, mock_context):
-        """Test successful operation"""
-        result = server.new_feature_function(mock_context)
-        assert "expected_key" in result
-        
-    def test_error_case(self, mock_context):
-        """Test error handling"""
-        mock_context.service.method.side_effect = Exception("Test error")
-        with pytest.raises(Exception, match="Test error"):
-            server.new_feature_function(mock_context)
-```
+When adding new tests:
+1. Follow the existing class-based organization
+2. Use descriptive test names explaining the scenario
+3. Include comprehensive assertions
+4. Update this README for new test categories
+5. Maintain >60% coverage threshold
 
-## Best Practices
+## Notes
 
-1. **Mock External Dependencies**: Always mock Splunk service connections
-2. **Test Error Paths**: Include negative test cases for error handling
-3. **Use Descriptive Names**: Test function names should describe the scenario
-4. **Assert Comprehensively**: Verify both structure and content of results
-5. **Isolate Tests**: Each test should be independent and not rely on others
-6. **Document Test Intent**: Use clear docstrings for complex test scenarios
-
-## Continuous Integration
-
-The test suite is designed to run in CI/CD environments:
-- No external Splunk dependencies required
-- All connections are mocked
-- Fast execution (< 2 seconds for full suite)
-- Comprehensive coverage reporting
-- Clear pass/fail status 
+- Integration tests (`test_mcp_server.py`) are excluded by default due to missing FastMCP client fixtures
+- All core functionality is thoroughly tested with unit tests
+- The test suite is compatible with both uv and traditional pip environments
+- Mock objects closely mirror real Splunk SDK behavior for accuracy 

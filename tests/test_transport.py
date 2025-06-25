@@ -330,24 +330,17 @@ class TestTransportIntegration:
     
     @pytest.mark.asyncio
     @patch('src.server.mcp.run_async')
-    @patch('src.server.get_splunk_service')
-    async def test_stdio_with_splunk_connection(self, mock_get_service, mock_run_async):
-        """Test stdio transport with Splunk service integration"""
-        mock_service = Mock()
-        mock_service.info = {"version": "9.0.0", "host": "localhost"}
-        mock_get_service.return_value = mock_service
+    async def test_stdio_with_splunk_connection(self, mock_run_async):
+        """Test stdio transport startup"""
         mock_run_async.return_value = None
         
-        # Test that Splunk connection works with stdio transport
-        service = server.get_splunk_service()
-        assert service.info["version"] == "9.0.0"
-        
+        # Test that stdio transport can start (Splunk connection is handled in lifespan)
         await server.mcp.run_async(transport="stdio")
         mock_run_async.assert_called_once_with(transport="stdio")
 
     @pytest.mark.asyncio
     @patch('src.server.mcp.run_async')
-    @patch('src.server.get_splunk_service')
+    @patch('src.splunk_client.get_splunk_service')
     async def test_http_with_splunk_connection(self, mock_get_service, mock_run_async):
         """Test HTTP transport with Splunk service integration"""
         mock_service = Mock()
@@ -356,7 +349,8 @@ class TestTransportIntegration:
         mock_run_async.return_value = None
         
         # Test that Splunk connection works with HTTP transport
-        service = server.get_splunk_service()
+        from src.splunk_client import get_splunk_service
+        service = get_splunk_service()
         assert service.info["version"] == "9.0.0"
         
         await server.mcp.run_async(
@@ -451,24 +445,29 @@ class TestHealthCheckTransport:
     """Test health check functionality across transports"""
     
     @pytest.mark.asyncio
-    @patch('src.server.get_splunk_service')
+    @patch('src.splunk_client.get_splunk_service')
     async def test_health_check_stdio_transport(self, mock_get_service):
         """Test health check resource works with stdio transport"""
         mock_service = Mock()
         mock_service.info = {"version": "9.0.0", "host": "localhost"}
         mock_get_service.return_value = mock_service
         
-        # Test health check resource
-        result = server.health_check()
+        # Test health check resource - access the function through .fn
+        result = server.health_check.fn()
         assert result == "OK"
         
-        # Test health tool
-        health_result = server.get_splunk_health()
+        # Test health tool - need to create a mock context
+        from tests.conftest import MockSplunkContext
+        mock_context = MockSplunkContext()
+        mock_context.request_context.lifespan_context.is_connected = True
+        mock_context.request_context.lifespan_context.service = mock_service
+        
+        health_result = server.get_splunk_health.fn(mock_context)
         assert health_result["status"] == "connected"
         assert health_result["version"] == "9.0.0"
 
     @pytest.mark.asyncio
-    @patch('src.server.get_splunk_service')
+    @patch('src.splunk_client.get_splunk_service')
     async def test_health_check_http_transport(self, mock_get_service):
         """Test health check resource works with HTTP transport"""
         mock_service = Mock()
@@ -476,10 +475,16 @@ class TestHealthCheckTransport:
         mock_get_service.return_value = mock_service
         
         # Health check should work the same regardless of transport
-        result = server.health_check()
+        result = server.health_check.fn()
         assert result == "OK"
         
-        health_result = server.get_splunk_health()
+        # Test health tool - need to create a mock context
+        from tests.conftest import MockSplunkContext
+        mock_context = MockSplunkContext()
+        mock_context.request_context.lifespan_context.is_connected = True
+        mock_context.request_context.lifespan_context.service = mock_service
+        
+        health_result = server.get_splunk_health.fn(mock_context)
         assert health_result["status"] == "connected"
 
 
