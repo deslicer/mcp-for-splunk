@@ -632,8 +632,8 @@ def create_kvstore_collection(
         if not app:
             raise ValueError("App name is required")
 
-        # Validate collection name
-        if not collection.isalnum() and '_' not in collection:
+        # Validate collection name - must contain only alphanumeric characters and underscores
+        if not all(c.isalnum() or c == '_' for c in collection):
             raise ValueError("Collection name must contain only alphanumeric characters and underscores")
 
         # URL encode the app name to handle special characters
