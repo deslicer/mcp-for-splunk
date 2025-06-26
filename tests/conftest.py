@@ -4,11 +4,22 @@ Test configuration and fixtures for MCP Server for Splunk tests.
 import pytest
 import os
 import sys
-from unittest.mock import Mock, MagicMock, patch
+import json
+import httpx
+from unittest.mock import Mock, MagicMock, patch, AsyncMock
 from typing import Dict, Any, List
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+# Import FastMCP for proper testing
+try:
+    from fastmcp import Client, Context
+    from fastmcp.server.context import set_context
+except ImportError:
+    # Create fallback if FastMCP not available
+    Context = None
+    Client = None
 
 # Mock classes that match the actual structure
 class MockSplunkService:
@@ -28,11 +39,36 @@ class MockSplunkService:
         # Mock info
         self.info = {
             "version": "9.0.0",
-            "host": "localhost"
+            "host": "so1"
         }
         
         # Mock jobs for search operations
         self.jobs = Mock()
+        
+        # Mock job creation and oneshot
+        mock_job = Mock()
+        mock_job.sid = "test_job_123"
+        mock_job.is_done.return_value = True
+        mock_job.content = {
+            "scanCount": "100",
+            "eventCount": "10",
+            "isDone": "1",
+            "isFinalized": "1",
+            "isFailed": "0",
+            "doneProgress": "1.0"
+        }
+        
+        # Mock job results
+        def mock_results():
+            return [
+                {"_time": "2024-01-01T00:00:00", "source": "/var/log/system.log", "log_level": "INFO"},
+                {"_time": "2024-01-01T00:01:00", "source": "/var/log/app.log", "log_level": "ERROR"}
+            ]
+        
+        mock_job.results.return_value = mock_results()
+        
+        self.jobs.oneshot.return_value = mock_results()
+        self.jobs.create.return_value = mock_job
         
         # Mock apps
         self.apps = [
@@ -83,13 +119,28 @@ class MockJob:
     def __iter__(self):
         return iter(self._results)
 
-class MockSplunkContext:
-    """Mock Context that matches FastMCP Context structure"""
+class MockFastMCPContext:
+    """Mock FastMCP Context that matches the actual Context interface"""
     
-    def __init__(self, service=None):
+    def __init__(self, service=None, is_connected=True):
         self.request_context = Mock()
         self.request_context.lifespan_context = Mock()
         self.request_context.lifespan_context.service = service or MockSplunkService()
+        self.request_context.lifespan_context.is_connected = is_connected
+        
+        # Mock Context methods
+        self.info = AsyncMock()
+        self.debug = AsyncMock()
+        self.warning = AsyncMock()
+        self.error = AsyncMock()
+        self.report_progress = AsyncMock()
+        self.read_resource = AsyncMock()
+        self.sample = AsyncMock()
+        
+        # Mock Context properties
+        self.request_id = "test-request-123"
+        self.client_id = "test-client-456"
+        self.session_id = "test-session-789"
 
 class MockResultsReader:
     """Mock for splunklib.results.ResultsReader"""
@@ -100,6 +151,91 @@ class MockResultsReader:
     def __iter__(self):
         return iter(self.results)
 
+class MCPTestHelpers:
+    """Helper functions for MCP testing using FastMCP patterns"""
+    
+    async def check_connection_health(self, client) -> Dict[str, Any]:
+        """Check MCP connection health and return status"""
+        try:
+            # Test basic connectivity by listing tools and resources
+            tools = await client.list_tools()
+            resources = await client.list_resources()
+            
+            # Test a simple tool call
+            health_result = await client.call_tool("get_splunk_health")
+            
+            return {
+                "ping": True,
+                "tools_count": len(tools),
+                "resources_count": len(resources),
+                "tools": [tool.name for tool in tools],
+                "resources": [resource.uri for resource in resources],
+                "health_check": health_result
+            }
+        except Exception as e:
+            return {
+                "ping": False,
+                "error": str(e),
+                "tools_count": 0,
+                "resources_count": 0,
+                "tools": [],
+                "resources": []
+            }
+
+@pytest.fixture
+async def fastmcp_client():
+    """Create FastMCP client for in-memory testing"""
+    if Client is None:
+        pytest.skip("FastMCP not available")
+    
+    # Import the actual server
+    from src.server import mcp
+    
+    # Use FastMCP's in-memory transport for testing
+    client = Client(mcp)
+    yield client
+    # Client cleanup is handled automatically
+
+@pytest.fixture
+def mcp_helpers():
+    """Create MCP test helpers"""
+    return MCPTestHelpers()
+
+@pytest.fixture
+def extract_tool_result():
+    """Helper function to extract results from MCP tool calls"""
+    def _extract(result):
+        """Extract data from MCP tool call result"""
+        if isinstance(result, dict):
+            return result
+        elif isinstance(result, list) and len(result) > 0:
+            first_item = result[0]
+            if hasattr(first_item, 'text'):
+                try:
+                    # Try to parse as JSON
+                    return json.loads(first_item.text)
+                except (json.JSONDecodeError, AttributeError):
+                    # Return as raw text if not JSON
+                    return {"raw_text": first_item.text}
+            elif isinstance(first_item, dict):
+                return first_item
+            else:
+                return {"raw_data": first_item}
+        else:
+            return {"empty_result": True}
+    
+    return _extract
+
+@pytest.fixture
+def splunk_test_query():
+    """Sample Splunk query for testing"""
+    return {
+        "query": "index=_internal | head 5",
+        "earliest_time": "-15m",
+        "latest_time": "now",
+        "max_results": 5
+    }
+
 @pytest.fixture
 def mock_splunk_service():
     """Create a mock Splunk service for testing"""
@@ -108,7 +244,12 @@ def mock_splunk_service():
 @pytest.fixture
 def mock_context(mock_splunk_service):
     """Create a mock FastMCP Context with Splunk service"""
-    return MockSplunkContext(service=mock_splunk_service)
+    return MockFastMCPContext(service=mock_splunk_service, is_connected=True)
+
+@pytest.fixture
+def mock_disconnected_context():
+    """Create a mock FastMCP Context with disconnected Splunk service"""
+    return MockFastMCPContext(service=None, is_connected=False)
 
 @pytest.fixture
 def mock_search_results():
@@ -161,6 +302,17 @@ def setup_test_environment(sample_env_vars):
 def mock_results_reader():
     """Mock for ResultsReader"""
     return MockResultsReader
+
+# Legacy fixtures for backward compatibility (will be removed eventually)
+@pytest.fixture
+async def traefik_client():
+    """Legacy fixture - use fastmcp_client instead"""
+    pytest.skip("Use fastmcp_client fixture for proper FastMCP testing")
+
+@pytest.fixture
+async def direct_client():
+    """Legacy fixture - use fastmcp_client instead"""
+    pytest.skip("Use fastmcp_client fixture for proper FastMCP testing")
 
 # Async test configuration for pytest-asyncio
 pytest_plugins = ['pytest_asyncio'] 

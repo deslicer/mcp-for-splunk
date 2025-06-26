@@ -457,8 +457,8 @@ class TestHealthCheckTransport:
         assert result == "OK"
         
         # Test health tool - need to create a mock context
-        from tests.conftest import MockSplunkContext
-        mock_context = MockSplunkContext()
+        from tests.conftest import MockFastMCPContext
+        mock_context = MockFastMCPContext()
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service = mock_service
         
@@ -479,8 +479,8 @@ class TestHealthCheckTransport:
         assert result == "OK"
         
         # Test health tool - need to create a mock context
-        from tests.conftest import MockSplunkContext
-        mock_context = MockSplunkContext()
+        from tests.conftest import MockFastMCPContext
+        mock_context = MockFastMCPContext()
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service = mock_service
         
