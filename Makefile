@@ -26,7 +26,7 @@ test-connections: ## Test only MCP connections
 	uv run pytest tests/test_mcp_server.py::TestMCPConnections -v
 
 test-health: ## Test MCP server health checks
-	uv run pytest tests/test_mcp_server.py::TestMCPConnections::test_health_resource tests/test_mcp_server.py::TestSplunkTools::test_splunk_health_check -v
+	uv run pytest tests/test_mcp_server.py::TestMCPConnections::test_health_resource tests/test_mcp_server.py::TestSplunkToolsUnit::test_splunk_health_check -v
 
 lint: ## Run linting with ruff
 	uv run ruff check src/ tests/
@@ -78,7 +78,7 @@ test-mcp: ## Test MCP connections
 	uv run pytest tests/test_mcp_server.py::TestMCPConnections -v
 
 test-splunk: ## Test Splunk tools
-	uv run pytest tests/test_mcp_server.py::TestSplunkTools -v
+	uv run pytest tests/test_mcp_server.py::TestSplunkToolsUnit -v
 
 test-apps: ## Test Splunk apps and users
 	uv run pytest tests/test_mcp_server.py::TestSplunkAppsAndUsers -v
