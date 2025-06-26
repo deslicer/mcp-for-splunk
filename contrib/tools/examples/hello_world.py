@@ -2,7 +2,7 @@
 Hello World example tool demonstrating the contribution pattern.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastmcp import Context
 
@@ -31,7 +31,7 @@ class HelloWorldTool(BaseTool):
         version="1.0.0"
     )
     
-    async def execute(self, ctx: Context, name: Optional[str] = "World") -> Dict[str, Any]:
+    async def execute(self, ctx: Context, name: str | None = "World") -> Dict[str, Any]:
         """
         Say hello to someone.
         

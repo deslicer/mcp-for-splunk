@@ -7,9 +7,10 @@ with the FastMCP server instance.
 
 import inspect
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, get_type_hints
 
 from fastmcp import FastMCP, Context
+from fastmcp.server.dependencies import get_context
 
 from .base import BaseTool, BaseResource, BasePrompt
 from .discovery import discover_tools, discover_resources, discover_prompts
@@ -28,72 +29,92 @@ class ToolLoader:
     def _create_tool_wrapper(self, tool_class: Type[BaseTool], tool_name: str):
         """Create a wrapper function for the tool that FastMCP can register."""
         
-        # Get the execute method signature
+        # Get the execute method and its type hints
         execute_method = getattr(tool_class, 'execute')
         sig = inspect.signature(execute_method)
         
-        logger.debug(f"Tool {tool_name} - Original signature: {sig}")
+        # Get the proper type hints using get_type_hints which resolves forward references
+        try:
+            type_hints = get_type_hints(execute_method)
+        except (NameError, AttributeError) as e:
+            self.logger.warning(f"Could not get type hints for {tool_name}: {e}")
+            type_hints = {}
         
-        # Build parameter list - include Context as first parameter (FastMCP dependency injection)
-        params = []
+        self.logger.debug(f"Tool {tool_name} - Original signature: {sig}")
+        self.logger.debug(f"Tool {tool_name} - Type hints: {type_hints}")
         
-        # Add Context parameter first (FastMCP will inject this automatically)
-        ctx_param = inspect.Parameter(
-            'ctx',
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            annotation=Context
-        )
-        params.append(ctx_param)
+        # Create parameters excluding 'self' and 'ctx'
+        filtered_params = []
+        for name, param in sig.parameters.items():
+            if name not in ('self', 'ctx'):
+                # Use the type hint if available, otherwise fall back to annotation
+                param_annotation = type_hints.get(name, param.annotation)
+                if param_annotation == inspect.Parameter.empty:
+                    param_annotation = Any
+                
+                # Create new parameter with proper type annotation
+                new_param = inspect.Parameter(
+                    name=name,
+                    kind=param.kind,
+                    default=param.default,
+                    annotation=param_annotation
+                )
+                filtered_params.append(new_param)
         
-        # Process all parameters from the original signature (except 'self' and 'ctx')
-        for param_name, param in sig.parameters.items():
-            if param_name in ('self', 'ctx'):
-                continue
-            
-            logger.debug(f"Tool {tool_name} - Processing param: {param_name} = {param}")
-            
-            # For other parameters, preserve their signatures but ensure proper annotations
-            # Handle union types like str | None properly
-            annotation = param.annotation if param.annotation != inspect.Parameter.empty else Any
-            
-            logger.debug(f"Tool {tool_name} - Param {param_name}: annotation={annotation}, default={param.default}")
-            
-            # Preserve the parameter with its original default value and annotation
-            new_param = inspect.Parameter(
-                param_name,
-                param.kind,
-                default=param.default,
-                annotation=annotation
-            )
-            params.append(new_param)
+        # Create the new signature
+        wrapper_sig = inspect.Signature(filtered_params)
         
-        # Create new signature for the wrapper (with ctx parameter for FastMCP injection)
-        new_sig = inspect.Signature(params)
-        logger.debug(f"Tool {tool_name} - New signature: {new_sig}")
-        
-        async def tool_wrapper(ctx: Context, **kwargs):
-            """Wrapper function that creates tool instance and calls execute."""
+        # Create the wrapper function
+        async def tool_wrapper(*args, **kwargs):
+            """Wrapper that delegates to the tool's execute method"""
             try:
                 # Create tool instance
                 tool_instance = tool_class(tool_name, "modular")
                 
-                # Call the tool's execute method with ctx and other parameters
-                result = await tool_instance.execute(ctx, **kwargs)
+                # Get the current context using FastMCP's dependency function
+                try:
+                    ctx = get_context()
+                except Exception as e:
+                    self.logger.error(f"Could not get current context for {tool_name}: {e}")
+                    raise RuntimeError(f"Tool {tool_name} can only be called within an MCP request context")
+                
+                # Bind the arguments to ensure proper parameter mapping
+                bound_args = wrapper_sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                
+                # Call the tool's execute method
+                result = await tool_instance.execute(ctx, **bound_args.arguments)
                 return result
                 
             except Exception as e:
-                logger.error(f"Tool {tool_name} execution failed: {e}")
+                self.logger.error(f"Tool {tool_name} execution failed: {e}")
+                self.logger.exception("Full traceback:")
                 return {
                     "status": "error",
                     "error": str(e)
                 }
         
-        # Apply the signature to the wrapper
-        tool_wrapper.__signature__ = new_sig
+        # Set function metadata
         tool_wrapper.__name__ = tool_name
         tool_wrapper.__doc__ = tool_class.METADATA.description
+        tool_wrapper.__signature__ = wrapper_sig
         
-        logger.debug(f"Tool {tool_name} - Final wrapper signature: {tool_wrapper.__signature__}")
+        # Set type annotations using the resolved type hints
+        tool_wrapper.__annotations__ = {}
+        for param in filtered_params:
+            if param.annotation != inspect.Parameter.empty:
+                tool_wrapper.__annotations__[param.name] = param.annotation
+        
+        # Set return annotation if present
+        return_annotation = type_hints.get('return', sig.return_annotation)
+        if return_annotation != inspect.Parameter.empty:
+            tool_wrapper.__annotations__['return'] = return_annotation
+        
+        # Ensure the function has the __module__ attribute for Pydantic
+        tool_wrapper.__module__ = execute_method.__module__
+        
+        self.logger.debug(f"Tool {tool_name} - Wrapper signature: {wrapper_sig}")
+        self.logger.debug(f"Tool {tool_name} - Wrapper annotations: {tool_wrapper.__annotations__}")
         
         return tool_wrapper
     
@@ -128,6 +149,7 @@ class ToolLoader:
                 
             except Exception as e:
                 self.logger.error(f"Failed to register tool '{tool_name}': {e}")
+                self.logger.exception("Full registration error:")
         
         self.logger.info(f"Loaded {loaded_count} tools into MCP server")
         return loaded_count

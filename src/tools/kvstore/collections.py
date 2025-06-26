@@ -2,7 +2,7 @@
 Tools for managing Splunk KV Store collections.
 """
 
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List
 from urllib.parse import quote
 
 from fastmcp import Context
@@ -27,7 +27,7 @@ class ListKvstoreCollections(BaseTool):
     async def execute(
         self, 
         ctx: Context, 
-        app: Optional[str] = None
+        app: str | None = None
     ) -> Dict[str, Any]:
         """
         List KV Store collections, optionally filtered by app.
@@ -92,8 +92,8 @@ class CreateKvstoreCollection(BaseTool):
         ctx: Context,
         app: str,
         collection: str,
-        fields: Optional[List[Dict[str, Any]]] = None,
-        accelerated_fields: Optional[Dict[str, List[List[str]]]] = None,
+        fields: List[Dict[str, Any]] | None = None,
+        accelerated_fields: Dict[str, List[List[str]]] | None = None,
         replicated: bool = True
     ) -> Dict[str, Any]:
         """

@@ -2,7 +2,7 @@
 Tool for retrieving data from Splunk KV Store collections.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastmcp import Context
 
@@ -27,8 +27,8 @@ class GetKvstoreData(BaseTool):
         self,
         ctx: Context,
         collection: str,
-        app: Optional[str] = None,
-        query: Optional[dict] = None
+        app: str | None = None,
+        query: dict | None = None
     ) -> Dict[str, Any]:
         """
         Retrieve data from a KV Store collection.
