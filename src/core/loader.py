@@ -118,42 +118,13 @@ class ResourceLoader:
     
     def load_resources(self) -> int:
         """Load all discovered resources into the MCP server."""
-        loaded_count = 0
+        self.logger.info("Resource loading is currently not implemented")
+        self.logger.info("The BaseResource interface is incompatible with FastMCP's @mcp.resource decorator system")
+        self.logger.info("Resources should be implemented using @mcp.resource decorators directly in FastMCP")
         
-        # Discover resources if not already done
-        resource_metadata_list = resource_registry.list_resources()
-        if not resource_metadata_list:
-            discover_resources()
-            resource_metadata_list = resource_registry.list_resources()
-        
-        # Use registry's private access for resource classes (this is internal framework use)
-        for resource_metadata in resource_metadata_list:
-            resource_uri = resource_metadata.uri
-            resource_class = resource_registry._resources.get(resource_uri)
-            
-            if not resource_class:
-                self.logger.error(f"Resource class not found for {resource_uri}")
-                continue
-                
-            try:
-                # Create resource instance
-                resource_instance = resource_class(resource_uri, "modular", "modular resource")
-                
-                # Create wrapper function
-                async def resource_wrapper(uri: str) -> str:
-                    return await resource_instance.read(uri)
-                
-                # Register with FastMCP
-                self.mcp_server.resource(resource_instance.get_uri_pattern())(resource_wrapper)
-                
-                loaded_count += 1
-                self.logger.info(f"Loaded resource: {resource_uri}")
-                
-            except Exception as e:
-                self.logger.error(f"Failed to register resource '{resource_uri}': {e}")
-        
-        self.logger.info(f"Loaded {loaded_count} resources into MCP server")
-        return loaded_count
+        # For now, return 0 until resource loading is properly implemented
+        # TODO: Implement proper resource loading compatible with FastMCP's resource system
+        return 0
 
 
 class PromptLoader:
@@ -165,42 +136,13 @@ class PromptLoader:
     
     def load_prompts(self) -> int:
         """Load all discovered prompts into the MCP server."""
-        loaded_count = 0
+        self.logger.info("Prompt loading is currently not implemented")
+        self.logger.info("The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system")
+        self.logger.info("Prompts should be implemented using @mcp.prompt decorators directly in FastMCP")
         
-        # Discover prompts if not already done
-        prompt_metadata_list = prompt_registry.list_prompts()
-        if not prompt_metadata_list:
-            discover_prompts()
-            prompt_metadata_list = prompt_registry.list_prompts()
-        
-        # Use registry's private access for prompt classes (this is internal framework use)
-        for prompt_metadata in prompt_metadata_list:
-            prompt_name = prompt_metadata.name
-            prompt_class = prompt_registry._prompts.get(prompt_name)
-            
-            if not prompt_class:
-                self.logger.error(f"Prompt class not found for {prompt_name}")
-                continue
-                
-            try:
-                # Create prompt instance
-                prompt_instance = prompt_class(prompt_name, "modular")
-                
-                # Create wrapper function
-                async def prompt_wrapper(arguments: Dict[str, Any]) -> str:
-                    return await prompt_instance.render(arguments)
-                
-                # Register with FastMCP
-                self.mcp_server.prompt(prompt_name)(prompt_wrapper)
-                
-                loaded_count += 1
-                self.logger.info(f"Loaded prompt: {prompt_name}")
-                
-            except Exception as e:
-                self.logger.error(f"Failed to register prompt '{prompt_name}': {e}")
-        
-        self.logger.info(f"Loaded {loaded_count} prompts into MCP server")
-        return loaded_count
+        # For now, return 0 until prompt loading is properly implemented
+        # TODO: Implement proper prompt loading compatible with FastMCP's prompt system
+        return 0
 
 
 class ComponentLoader:
