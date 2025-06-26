@@ -2,7 +2,7 @@
 Tool for retrieving data from Splunk KV Store collections.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastmcp import Context
 
@@ -27,8 +27,8 @@ class GetKvstoreData(BaseTool):
         self,
         ctx: Context,
         collection: str,
-        app: str | None = None,
-        query: dict | None = None
+        app: Optional[str] = None,
+        query: Optional[dict] = None
     ) -> Dict[str, Any]:
         """
         Retrieve data from a KV Store collection.
@@ -41,7 +41,7 @@ class GetKvstoreData(BaseTool):
         Returns:
             Dict containing retrieved documents
         """
-        log_tool_execution("get_kvstore_data", collection=collection, app=app)
+        log_tool_execution("get_kvstore_data", collection=collection, app=app, query=query)
         
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
@@ -52,19 +52,30 @@ class GetKvstoreData(BaseTool):
         ctx.info(f"Retrieving data from KV Store collection: {collection}")
 
         try:
+            # Get the collection from the appropriate app context
             if app:
-                collection_obj = service.kvstore[app][collection]
+                kvstore = service.kvstore[app]
             else:
-                collection_obj = service.kvstore[collection]
-
-            documents = collection_obj.data.query(query) if query else collection_obj.data.query()
-
-            ctx.info(f"Retrieved {len(documents)} documents")
+                kvstore = service.kvstore
+            
+            collection_obj = kvstore[collection]
+            
+            # Retrieve data with optional query filter
+            if query:
+                documents = collection_obj.data.query(**query)
+            else:
+                documents = collection_obj.data.query()
+            
+            # Convert to list for response
+            doc_list = list(documents)
+            
+            ctx.info(f"Retrieved {len(doc_list)} documents from collection {collection}")
             return self.format_success_response({
-                "count": len(documents),
-                "documents": documents
+                "count": len(doc_list),
+                "documents": doc_list
             })
+
         except Exception as e:
-            self.logger.error(f"Failed to get KV store data: {str(e)}")
-            ctx.error(f"Failed to get KV store data: {str(e)}")
+            self.logger.error(f"Failed to retrieve KV Store data: {str(e)}")
+            ctx.error(f"Failed to retrieve KV Store data: {str(e)}")
             return self.format_error_response(str(e)) 

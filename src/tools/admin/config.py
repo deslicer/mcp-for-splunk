@@ -2,7 +2,7 @@
 Tool for retrieving Splunk configurations.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastmcp import Context
 
@@ -27,7 +27,7 @@ class GetConfigurations(BaseTool):
         self, 
         ctx: Context, 
         conf_file: str,
-        stanza: str | None = None
+        stanza: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get Splunk configurations.

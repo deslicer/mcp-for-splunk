@@ -32,21 +32,44 @@ class ToolLoader:
         execute_method = getattr(tool_class, 'execute')
         sig = inspect.signature(execute_method)
         
-        # Build parameter list excluding 'self' (keep ctx for FastMCP)
+        logger.debug(f"Tool {tool_name} - Original signature: {sig}")
+        
+        # Build parameter list - include Context as first parameter (FastMCP dependency injection)
         params = []
         
-        # First add the ctx parameter with proper typing
-        ctx_param = inspect.Parameter('ctx', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=Context)
+        # Add Context parameter first (FastMCP will inject this automatically)
+        ctx_param = inspect.Parameter(
+            'ctx',
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            annotation=Context
+        )
         params.append(ctx_param)
         
-        # Then add all other parameters (excluding 'self' and 'ctx' from original)
+        # Process all parameters from the original signature (except 'self' and 'ctx')
         for param_name, param in sig.parameters.items():
             if param_name in ('self', 'ctx'):
                 continue
-            params.append(param.replace(annotation=param.annotation if param.annotation != inspect.Parameter.empty else Any))
+            
+            logger.debug(f"Tool {tool_name} - Processing param: {param_name} = {param}")
+            
+            # For other parameters, preserve their signatures but ensure proper annotations
+            # Handle union types like str | None properly
+            annotation = param.annotation if param.annotation != inspect.Parameter.empty else Any
+            
+            logger.debug(f"Tool {tool_name} - Param {param_name}: annotation={annotation}, default={param.default}")
+            
+            # Preserve the parameter with its original default value and annotation
+            new_param = inspect.Parameter(
+                param_name,
+                param.kind,
+                default=param.default,
+                annotation=annotation
+            )
+            params.append(new_param)
         
-        # Create new signature for the wrapper
+        # Create new signature for the wrapper (with ctx parameter for FastMCP injection)
         new_sig = inspect.Signature(params)
+        logger.debug(f"Tool {tool_name} - New signature: {new_sig}")
         
         async def tool_wrapper(ctx: Context, **kwargs):
             """Wrapper function that creates tool instance and calls execute."""
@@ -54,8 +77,7 @@ class ToolLoader:
                 # Create tool instance
                 tool_instance = tool_class(tool_name, "modular")
                 
-                # Call the tool's execute method directly with kwargs
-                # FastMCP will validate parameters based on our signature
+                # Call the tool's execute method with ctx and other parameters
                 result = await tool_instance.execute(ctx, **kwargs)
                 return result
                 
@@ -70,6 +92,8 @@ class ToolLoader:
         tool_wrapper.__signature__ = new_sig
         tool_wrapper.__name__ = tool_name
         tool_wrapper.__doc__ = tool_class.METADATA.description
+        
+        logger.debug(f"Tool {tool_name} - Final wrapper signature: {tool_wrapper.__signature__}")
         
         return tool_wrapper
     
