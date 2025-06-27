@@ -25,7 +25,7 @@ class HelloWorldTool(BaseTool):
     METADATA = ToolMetadata(
         name="hello_world",
         description="A simple hello world example tool for demonstrating contributions",
-        category="examples", 
+        category="examples",
         tags=["example", "tutorial", "demo"],
         requires_connection=False,  # This tool doesn't need Splunk connection
         version="1.0.0"

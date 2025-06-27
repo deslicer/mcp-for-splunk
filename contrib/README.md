@@ -2,7 +2,24 @@
 
 This directory contains community-contributed tools, resources, and prompts for the MCP Server for Splunk. We welcome and encourage contributions from the community!
 
-## Quick Start for Contributors
+## 🚀 Quick Start for Contributors
+
+**New to contributing? Use our helper scripts!**
+```bash
+# Generate a new tool interactively (recommended)
+./contrib/scripts/generate_tool.py
+
+# Browse existing tools for inspiration
+./contrib/scripts/list_tools.py
+
+# Validate your tool implementation
+./contrib/scripts/validate_tools.py
+
+# Run tests for your tools
+./contrib/scripts/test_contrib.py
+```
+
+See [`contrib/scripts/README.md`](scripts/README.md) for detailed script documentation.
 
 ### 1. Project Structure
 
@@ -10,18 +27,41 @@ Community contributions are organized by type and domain:
 
 ```
 contrib/
-├── tools/                    # Community tools
-│   ├── examples/            # Example tools for learning
-│   ├── security/            # Security-focused tools
-│   ├── devops/             # DevOps/SRE tools
-│   └── analytics/          # Business analytics tools
-├── resources/              # Community resources
-└── prompts/               # Community prompts
+├── scripts/                # Helper scripts for contributors
+│   ├── generate_tool.py    # Interactive tool generator
+│   ├── list_tools.py       # Browse existing tools
+│   ├── validate_tools.py   # Validate tool compliance
+│   ├── test_contrib.py     # Run contrib tests
+│   └── README.md           # Script documentation
+├── tools/                  # Community tools
+│   ├── examples/           # Example tools for learning
+│   ├── security/           # Security-focused tools
+│   ├── devops/            # DevOps/SRE tools
+│   └── analytics/         # Business analytics tools
+├── resources/             # Community resources
+└── prompts/              # Community prompts
 ```
 
 ### 2. Creating a New Tool
 
-Here's how to create a new tool:
+**🎯 Recommended Approach: Use the Tool Generator**
+```bash
+./contrib/scripts/generate_tool.py
+```
+This interactive script will guide you through creating a properly structured tool with all requirements.
+
+**✨ New: Splunk Search Template!**
+The generator now includes a specialized **Splunk Search Template** for creating custom Splunk search tools:
+- 🔍 **Custom SPL queries** with your specific search logic
+- ⚡ **Instant tool generation** based on your working `splunk_search.py` 
+- 🧪 **Comprehensive tests** with Splunk mocking
+- 🎯 **Perfect for**: Security tools, DevOps monitoring, Business analytics
+- 📝 **User-friendly input**: Choose single-line or multi-line input (type 'END' to finish)
+
+Select option `2` (splunk_search template) when prompted! See [`contrib/scripts/SPLUNK_SEARCH_TEMPLATE.md`](scripts/SPLUNK_SEARCH_TEMPLATE.md) for details.
+
+**Manual Approach:**
+If you prefer to create tools manually:
 
 1. **Choose the right directory** based on your tool's purpose
 2. **Create a new Python file** in the appropriate subdirectory
@@ -88,6 +128,19 @@ Tools for business intelligence, reporting, and data analysis.
 
 ### 5. Testing Your Contributions
 
+**🧪 Quick Testing with Helper Scripts:**
+```bash
+# Run all contrib tests
+./contrib/scripts/test_contrib.py
+
+# Validate your tool implementation
+./contrib/scripts/validate_tools.py contrib/tools/your_category/your_tool.py
+
+# Run tests for specific category
+./contrib/scripts/test_contrib.py your_category
+```
+
+**Manual Testing:**
 Before submitting, make sure to:
 
 1. **Run the existing test suite**: `pytest tests/`
