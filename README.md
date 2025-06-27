@@ -8,7 +8,7 @@ A **modular, community-driven** Model Context Protocol (MCP) server that provide
 - **👥 Community-Friendly** - Structured contribution system with examples and guidelines  
 - **🔌 MCP-Compliant** - Full MCP specification support using FastMCP framework
 - **🌐 Multiple Transports** - stdio (local) and HTTP (remote server) modes
-- **⚙️ Flexible Configuration** - Server environment or client-provided Splunk settings
+- **⚙️ Flexible Configuration** - Server environment, client environment, or HTTP header Splunk settings
 - **🔒 Enterprise-Ready** - Secure authentication and production deployment
 - **🐳 Containerized** - Docker setup with Traefik load balancing
 - **⚡ Fast Development** - Modern Python tooling with uv package manager
@@ -81,8 +81,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --dev
 ```
 
-#### 2. Configure Environment
+#### 2. Configure Splunk Connection
 
+You have **three ways** to provide Splunk configuration:
+
+**Option A: Server Environment Variables (Traditional)**
 ```bash
 # Copy and edit environment configuration
 cp env.example .env
@@ -94,6 +97,29 @@ SPLUNK_USERNAME=admin
 SPLUNK_PASSWORD=Chang3d!
 SPLUNK_VERIFY_SSL=false
 ```
+
+**Option B: Client Environment Variables (MCP Client)**
+```bash
+# MCP client can provide its own Splunk configuration
+export MCP_SPLUNK_HOST=prod-splunk.company.com
+export MCP_SPLUNK_PORT=8089
+export MCP_SPLUNK_USERNAME=monitoring-user
+export MCP_SPLUNK_PASSWORD=secure-password
+export MCP_SPLUNK_VERIFY_SSL=true
+```
+
+**Option C: HTTP Headers (HTTP Transport Only)**
+```bash
+# Clients can pass configuration via HTTP headers
+curl -H "X-Splunk-Host: prod-splunk.company.com" \
+     -H "X-Splunk-Port: 8089" \
+     -H "X-Splunk-Username: monitoring-user" \
+     -H "X-Splunk-Password: secure-password" \
+     -H "X-Splunk-Verify-SSL: true" \
+     http://localhost:8001/mcp/
+```
+
+> **🔒 Security Note**: HTTP headers use `X-Splunk-*` prefixes for security and are only available in HTTP transport mode.
 
 #### 3. Run the Modular Server
 
@@ -112,6 +138,50 @@ uv run python src/server.py
 docker-compose build
 docker-compose up -d
 ```
+
+## 🔧 Client Configuration Options
+
+The MCP server supports **three flexible ways** to provide Splunk connection configuration:
+
+### 1. Server Environment Variables (Traditional)
+Set environment variables on the **server side** before starting:
+```bash
+export SPLUNK_HOST=so1
+export SPLUNK_USERNAME=admin
+export SPLUNK_PASSWORD=Chang3d!
+```
+
+### 2. Client Environment Variables (MCP Client)
+Set environment variables on the **client side** with `MCP_SPLUNK_*` prefix:
+```bash
+export MCP_SPLUNK_HOST=prod-splunk.company.com
+export MCP_SPLUNK_USERNAME=monitoring-user  
+export MCP_SPLUNK_PASSWORD=secure-password
+```
+
+### 3. HTTP Headers (HTTP Transport Only)
+Pass configuration dynamically via **HTTP headers** with `X-Splunk-*` prefix:
+```javascript
+// JavaScript/Node.js example
+const response = await fetch('http://localhost:8001/mcp/', {
+  headers: {
+    'X-Splunk-Host': 'prod-splunk.company.com',
+    'X-Splunk-Username': 'monitoring-user',
+    'X-Splunk-Password': 'secure-password',
+    'X-Splunk-Verify-SSL': 'true'
+  }
+});
+```
+
+**Header Mapping:**
+- `X-Splunk-Host` → `splunk_host`
+- `X-Splunk-Port` → `splunk_port`  
+- `X-Splunk-Username` → `splunk_username`
+- `X-Splunk-Password` → `splunk_password`
+- `X-Splunk-Scheme` → `splunk_scheme`
+- `X-Splunk-Verify-SSL` → `splunk_verify_ssl`
+
+> **🎯 Use Case**: HTTP headers are perfect for **multi-tenant scenarios** where different clients need different Splunk instances, or when you want to **avoid storing credentials** in environment variables.
 
 ## 🛠️ Tool Development
 
@@ -285,9 +355,11 @@ open http://localhost:3001
 # Connect to: http://localhost:8002/mcp/
 ```
 
+> **💡 Testing HTTP Headers**: The MCP Inspector is perfect for testing the new HTTP header configuration. You can add custom `X-Splunk-*` headers in the inspector interface to test different Splunk instances dynamically.
+
 ### Cursor IDE Integration
 
-**Option 1: Server Environment Configuration**
+**Option 1: Server Environment Configuration (Traditional)**
 ```json
 {
   "mcpServers": {
@@ -309,7 +381,7 @@ open http://localhost:3001
 }
 ```
 
-**Option 2: Client-Provided Configuration (New!)**
+**Option 2: Client Environment Configuration (stdio transport)**
 ```json
 {
   "mcpServers": {
@@ -318,25 +390,50 @@ open http://localhost:3001
       "args": [
         "--directory", "/path/to/mcp-server-for-splunk/",
         "run", "python", "src/server.py"
-      ]
+      ],
+      "env": {
+        "MCP_SPLUNK_HOST": "prod-splunk.company.com",
+        "MCP_SPLUNK_USERNAME": "monitoring-user",
+        "MCP_SPLUNK_PASSWORD": "secure-password",
+        "MCP_SPLUNK_VERIFY_SSL": "true"
+      }
     }
   }
 }
 ```
 
-Then provide Splunk configuration directly in your requests:
+**Option 3: HTTP Transport with Headers (New!)**
+```json
+{
+  "mcpServers": {
+    "mcp-server-for-splunk": {
+      "transport": "http",
+      "url": "http://localhost:8001/mcp/",
+      "headers": {
+        "X-Splunk-Host": "prod-splunk.company.com",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "monitoring-user",
+        "X-Splunk-Password": "secure-password",
+        "X-Splunk-Verify-SSL": "true"
+      }
+    }
+  }
+}
 ```
-Check the health of our production Splunk:
-- splunk_host: prod-splunk.company.com
-- splunk_username: monitoring-user
-- splunk_password: secure-password
-- splunk_verify_ssl: true
-```
+
+> **🔒 Security**: HTTP headers use `X-Splunk-*` prefixes and allow dynamic per-request configuration without exposing credentials in process environment.
 
 ### Google ADK Integration
 
+**Option 1: Stdio with Client Environment**
 ```python
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+import os
+
+# Set client configuration
+os.environ['MCP_SPLUNK_HOST'] = 'prod-splunk.company.com'
+os.environ['MCP_SPLUNK_USERNAME'] = 'monitoring-user'
+os.environ['MCP_SPLUNK_PASSWORD'] = 'secure-password'
 
 splunk_agent = LlmAgent(
     model='gemini-2.0-flash',
@@ -352,6 +449,28 @@ splunk_agent = LlmAgent(
 )
 ```
 
+**Option 2: HTTP with Headers (Requires HTTP Transport)**
+```python
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, HttpServerParameters
+
+splunk_agent = LlmAgent(
+    model='gemini-2.0-flash',
+    tools=[
+        MCPToolset(
+            connection_params=HttpServerParameters(
+                url='http://localhost:8001/mcp/',
+                headers={
+                    'X-Splunk-Host': 'prod-splunk.company.com',
+                    'X-Splunk-Username': 'monitoring-user',
+                    'X-Splunk-Password': 'secure-password',
+                    'X-Splunk-Verify-SSL': 'true'
+                }
+            )
+        )
+    ]
+)
+```
+
 ## 🐳 Production Deployment
 
 ### Docker Stack Features
@@ -360,6 +479,7 @@ splunk_agent = LlmAgent(
 - **Health Monitoring** - Built-in health checks for all services
 - **Security Best Practices** - Non-root users and minimal attack surface
 - **Development Mode** - File watching and auto-rebuild support
+- **Multi-tenant Ready** - HTTP header configuration for different clients/Splunk instances
 
 ### Service URLs
 | Service | URL | Purpose |
@@ -434,6 +554,7 @@ To migrate: replace `python src/server.py` with the modular server in your deplo
 - ✅ **Documentation** - Complete guides and examples
 - ✅ **Production Deployment** - Docker stack with monitoring
 - ✅ **MCP Inspector Integration** - Web-based testing and debugging
+- ✅ **Flexible Client Configuration** - Environment variables and HTTP headers support
 
 ## 🆘 Support
 

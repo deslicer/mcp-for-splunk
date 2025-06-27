@@ -1,374 +1,249 @@
-# Client-Provided Splunk Configuration
+# Client Configuration Guide
 
-This guide explains how MCP clients can provide Splunk connection configuration directly to tools, allowing different clients to connect to different Splunk instances without modifying server configuration.
+The MCP Server for Splunk supports **flexible client configuration**, allowing MCP clients to provide their own Splunk connection settings instead of relying solely on server-side environment variables.
 
-## Overview
+## 🎯 **Key Benefits**
 
-The MCP Server for Splunk supports **two configuration modes**:
+- **Multi-environment support** - Different clients can connect to different Splunk instances
+- **Enhanced security** - Clients provide their own credentials, server doesn't store them
+- **Dynamic configuration** - No server restarts needed when switching Splunk environments
+- **Multi-tenant support** - Multiple clients can use different Splunk configurations simultaneously
 
-1. **Server Configuration** (Default) - Splunk settings from environment variables
-2. **Client Configuration** (New) - Splunk settings provided by the MCP client per request
+## 🏗️ **Supported Servers**
 
-Client configuration takes precedence when provided, with automatic fallback to server configuration.
+Both server implementations support client configuration:
 
-## Supported Configuration Parameters
+- ✅ **`src/server.py`** - Full support (HTTP headers + environment variables)
+- ✅ **`src/server_new.py`** - Full support (HTTP headers + environment variables)
 
-All tools that connect to Splunk accept these optional parameters:
+## 🔧 **Configuration Methods**
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `splunk_host` | string | Splunk server hostname | localhost |
-| `splunk_port` | integer | Splunk management port | 8089 |
-| `splunk_username` | string | Splunk username | (required) |
-| `splunk_password` | string | Splunk password | (required) |
-| `splunk_scheme` | string | Connection scheme (http/https) | https |
-| `splunk_verify_ssl` | boolean | Verify SSL certificates | false |
+### 1. MCP Client Configuration (Recommended)
 
-## Usage Examples
+Configure Splunk settings at the **MCP client level** instead of per-tool call.
 
-### 1. Cursor IDE Configuration
+#### **For Cursor IDE / Claude Desktop**
 
-**Standard Configuration (uses server environment variables):**
+Add this to your `mcp.json` or settings:
+
 ```json
 {
   "mcpServers": {
-    "mcp-server-for-splunk": {
-      "command": "uv",
-      "args": [
-        "--directory", "/path/to/mcp-server-for-splunk/",
-        "run", "python", "src/server.py"
-      ]
+    "splunk-prod": {
+      "command": "python",
+      "args": ["path/to/mcp-server-for-splunk/src/server.py"],
+      "env": {
+        "MCP_SPLUNK_HOST": "splunk-prod.company.com",
+        "MCP_SPLUNK_PORT": "8089", 
+        "MCP_SPLUNK_USERNAME": "prod_user",
+        "MCP_SPLUNK_PASSWORD": "prod_password",
+        "MCP_SPLUNK_SCHEME": "https",
+        "MCP_SPLUNK_VERIFY_SSL": "true"
+      }
+    },
+    "splunk-dev": {
+      "command": "python", 
+      "args": ["path/to/mcp-server-for-splunk/src/server.py"],
+      "env": {
+        "MCP_SPLUNK_HOST": "splunk-dev.company.com",
+        "MCP_SPLUNK_USERNAME": "dev_user", 
+        "MCP_SPLUNK_PASSWORD": "dev_password",
+        "MCP_SPLUNK_VERIFY_SSL": "false"
+      }
     }
   }
 }
 ```
 
-**Client-Specific Configuration (client provides Splunk settings):**
+#### **For Google ADK Integration**
+
+```python
+from mcp import Client
+
+config = {
+    "mcpServers": {
+        "splunk-customer-a": {
+            "command": "python",
+            "args": ["./server.py"],
+            "env": {
+                "MCP_SPLUNK_HOST": "customer-a.splunk.com",
+                "MCP_SPLUNK_USERNAME": os.getenv("CUSTOMER_A_USERNAME"),
+                "MCP_SPLUNK_PASSWORD": os.getenv("CUSTOMER_A_PASSWORD")
+            }
+        }
+    }
+}
+
+client = Client(config)
+```
+
+#### **For HTTP Transport**
+
+When using HTTP transport, pass configuration via headers:
+
+```python
+from fastmcp.client.transports import StreamableHttpTransport
+
+transport = StreamableHttpTransport(
+    url="https://your-mcp-server.com/mcp",
+    headers={
+        "X-Splunk-Host": "splunk.company.com",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "your_username", 
+        "X-Splunk-Password": "your_password",
+        "X-Splunk-Scheme": "https",
+        "X-Splunk-Verify-SSL": "true"
+    }
+)
+
+client = Client(transport)
+```
+
+### 2. Environment Variables Reference
+
+#### **MCP Client Variables** (Recommended - Higher Priority)
+```bash
+MCP_SPLUNK_HOST=splunk.company.com
+MCP_SPLUNK_PORT=8089
+MCP_SPLUNK_USERNAME=your_username
+MCP_SPLUNK_PASSWORD=your_password  
+MCP_SPLUNK_SCHEME=https
+MCP_SPLUNK_VERIFY_SSL=true
+```
+
+#### **Server Variables** (Fallback - Lower Priority)
+```bash
+SPLUNK_HOST=splunk.company.com
+SPLUNK_PORT=8089
+SPLUNK_USERNAME=default_user
+SPLUNK_PASSWORD=default_password
+SPLUNK_SCHEME=https
+SPLUNK_VERIFY_SSL=true
+```
+
+### 3. HTTP Headers (for HTTP Transport)
+
+When using HTTP transport, you can pass Splunk configuration via request headers:
+
+```
+X-Splunk-Host: splunk.company.com
+X-Splunk-Port: 8089
+X-Splunk-Username: your_username
+X-Splunk-Password: your_password
+X-Splunk-Scheme: https
+X-Splunk-Verify-SSL: true
+```
+
+## 🎯 **Configuration Priority**
+
+The server uses the following priority order (highest to lowest):
+
+1. **Tool-level parameters** - Splunk config passed directly to tool calls
+2. **HTTP headers** - X-Splunk-* headers (for HTTP transport)
+3. **MCP client environment** - MCP_SPLUNK_* variables (for stdio transport)  
+4. **Server environment** - SPLUNK_* variables (server defaults)
+
+## 📝 **Usage Examples**
+
+### Example 1: Multi-Environment Setup
+
 ```json
 {
   "mcpServers": {
-    "mcp-server-for-splunk-production": {
-      "command": "uv",
-      "args": [
-        "--directory", "/path/to/mcp-server-for-splunk/",
-        "run", "python", "src/server.py"
-      ]
+    "splunk-production": {
+      "command": "python",
+      "args": ["./server.py"],
+      "env": {
+        "MCP_SPLUNK_HOST": "prod-splunk.company.com",
+        "MCP_SPLUNK_USERNAME": "prod_analyst"
+      }
+    },
+    "splunk-staging": {
+      "command": "python", 
+      "args": ["./server.py"],
+      "env": {
+        "MCP_SPLUNK_HOST": "staging-splunk.company.com",
+        "MCP_SPLUNK_USERNAME": "staging_user"
+      }
     }
   }
 }
 ```
 
-When using tools in Cursor, you can now provide Splunk configuration:
+Once configured, all tool calls automatically use the respective environment's settings:
 
+```python
+# This automatically uses prod-splunk.company.com
+await client.call_tool("splunk-production_run_oneshot_search", {
+    "query": "index=main | head 10"
+})
+
+# This automatically uses staging-splunk.company.com  
+await client.call_tool("splunk-staging_run_oneshot_search", {
+    "query": "index=test | head 10"
+})
 ```
-Please check the health of our production Splunk instance with these parameters:
-- splunk_host: splunk-prod.company.com
-- splunk_username: monitoring-user
-- splunk_password: secure-password
-- splunk_verify_ssl: true
-```
 
-### 2. MCP Inspector Usage
+### Example 2: Customer-Specific Configuration
 
-When testing tools in MCP Inspector (http://localhost:3001):
-
-**Basic Health Check (uses server config):**
-```javascript
-{
-  "tool": "get_splunk_health",
-  "arguments": {}
+```python
+# Each customer gets their own MCP server instance
+customer_configs = {
+    "customer_123": {
+        "MCP_SPLUNK_HOST": "customer123.splunk.cloud",
+        "MCP_SPLUNK_USERNAME": "api_user_123"
+    },
+    "customer_456": {
+        "MCP_SPLUNK_HOST": "customer456.splunk.cloud", 
+        "MCP_SPLUNK_USERNAME": "api_user_456"
+    }
 }
+
+for customer_id, config in customer_configs.items():
+    client_config = {
+        "mcpServers": {
+            f"splunk-{customer_id}": {
+                "command": "python",
+                "args": ["./server.py"],
+                "env": config
+            }
+        }
+    }
+    
+    # Each client automatically connects to the right Splunk instance
+    async with Client(client_config) as client:
+        results = await client.call_tool("run_oneshot_search", {
+            "query": "index=* | stats count"
+        })
 ```
 
-**Health Check with Client Config:**
-```javascript
-{
-  "tool": "get_splunk_health",
-  "arguments": {
-    "splunk_host": "dev-splunk.company.com",
-    "splunk_port": 8089,
-    "splunk_username": "dev-user",
-    "splunk_password": "dev-password",
-    "splunk_scheme": "https",
-    "splunk_verify_ssl": false
-  }
-}
-```
+## 🔒 **Security Considerations**
 
-### 3. Google ADK Integration
+1. **Environment Variables** - Use MCP_SPLUNK_* variables for client-specific config
+2. **HTTP Headers** - X-Splunk-* headers are prefixed for security  
+3. **Credential Management** - Consider using credential managers for sensitive values
+4. **SSL Verification** - Always use `MCP_SPLUNK_VERIFY_SSL=true` in production
 
-**Basic Setup (server config):**
-```python
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+## 🚀 **Getting Started**
 
-splunk_agent = LlmAgent(
-    model='gemini-2.0-flash',
-    tools=[
-        MCPToolset(
-            connection_params=StdioServerParameters(
-                command='uv',
-                args=['--directory', '/path/to/mcp-server-for-splunk/',
-                      'run', 'python', 'src/server.py']
-            )
-        )
-    ]
-)
-```
+1. **Set up your MCP client configuration** using the examples above
+2. **Start the MCP server** - it will automatically detect and use client config
+3. **Call tools normally** - no need to pass Splunk parameters to individual tool calls
+4. **Monitor logs** - Server will log which configuration source is being used
 
-**Client-Configured Usage:**
-```python
-# Tool calls with client configuration
-await splunk_agent.execute_tool(
-    "get_splunk_health",
-    splunk_host="production-splunk.company.com",
-    splunk_username="monitoring",
-    splunk_password="secure-password",
-    splunk_verify_ssl=True
-)
+## 🔧 **Troubleshooting**
 
-await splunk_agent.execute_tool(
-    "run_oneshot_search",
-    query="index=security | head 10",
-    splunk_host="security-splunk.company.com",
-    splunk_username="security-analyst",
-    splunk_password="analyst-password"
-)
-```
+### Issue: "Splunk service is not available"
+- Check that your MCP client environment variables are set correctly
+- Verify network connectivity to the Splunk host
+- Ensure credentials are valid
 
-### 4. Direct HTTP API Calls
+### Issue: Client config not detected
+- Verify the MCP_SPLUNK_* variable naming (not SPLUNK_*)
+- Check that the MCP client is passing environment variables correctly
+- Look for "Found MCP client configuration" in server logs
 
-**POST to MCP Server with Client Config:**
-```bash
-curl -X POST http://localhost:8001/mcp/tools/get_splunk_health \
-  -H "Content-Type: application/json" \
-  -d '{
-    "splunk_host": "remote-splunk.example.com",
-    "splunk_port": 8089,
-    "splunk_username": "api-user",
-    "splunk_password": "api-password",
-    "splunk_scheme": "https",
-    "splunk_verify_ssl": true
-  }'
-```
-
-## Multi-Environment Scenarios
-
-### Development vs Production
-
-**Development Splunk:**
-```python
-dev_results = await execute_tool(
-    "list_indexes",
-    splunk_host="dev-splunk.internal",
-    splunk_username="dev-user",
-    splunk_password="dev-pass",
-    splunk_verify_ssl=False
-)
-```
-
-**Production Splunk:**
-```python
-prod_results = await execute_tool(
-    "list_indexes", 
-    splunk_host="prod-splunk.company.com",
-    splunk_username="prod-readonly",
-    splunk_password="secure-prod-pass",
-    splunk_verify_ssl=True
-)
-```
-
-### Multi-Tenant Environments
-
-**Customer A's Splunk:**
-```python
-customer_a_data = await execute_tool(
-    "run_oneshot_search",
-    query="index=customer_a_logs | head 100",
-    splunk_host="customer-a-splunk.saas.company.com",
-    splunk_username="customer-a-service",
-    splunk_password="customer-a-token"
-)
-```
-
-**Customer B's Splunk:**
-```python
-customer_b_data = await execute_tool(
-    "run_oneshot_search", 
-    query="index=customer_b_logs | head 100",
-    splunk_host="customer-b-splunk.saas.company.com",
-    splunk_username="customer-b-service",
-    splunk_password="customer-b-token"
-)
-```
-
-## Tool Compatibility
-
-### Tools Supporting Client Configuration
-
-All core tools support client configuration:
-
-- ✅ `get_splunk_health` - Health and version checks
-- ✅ `list_indexes` - Index discovery
-- ✅ `run_oneshot_search` - Quick searches
-- ✅ `run_splunk_search` - Complex searches with progress
-- ✅ `list_sourcetypes` - Data type discovery
-- ✅ `list_sources` - Data source discovery
-- ✅ `list_apps` - Application management
-- ✅ `list_users` - User management  
-- ✅ `list_kvstore_collections` - KV Store collections
-- ✅ `get_kvstore_data` - KV Store data retrieval
-- ✅ `create_kvstore_collection` - KV Store creation
-- ✅ `get_configurations` - Configuration access
-
-### Configuration Priority
-
-1. **Client-provided parameters** (highest priority)
-2. **Server environment variables** (fallback)
-3. **Built-in defaults** (last resort)
-
-## Error Handling
-
-### Configuration Validation
-
-The server validates client configuration and provides helpful error messages:
-
-```json
-{
-  "status": "error",
-  "error": "Splunk username and password must be provided via client config or environment variables",
-  "connection_source": "client_config"
-}
-```
-
-### Fallback Behavior
-
-If client configuration fails, tools automatically attempt to use server configuration:
-
-```json
-{
-  "status": "connected",
-  "version": "9.1.0",
-  "server_name": "splunk-server",
-  "connection_source": "server_config",
-  "note": "Client config failed, using server default"
-}
-```
-
-## Security Considerations
-
-### Password Security
-
-**❌ Avoid:**
-```python
-# Don't hardcode credentials in code
-await execute_tool(
-    "get_splunk_health",
-    splunk_password="hardcoded-password"  # BAD!
-)
-```
-
-**✅ Recommended:**
-```python
-import os
-
-# Use environment variables or secure vaults
-await execute_tool(
-    "get_splunk_health",
-    splunk_host=os.environ["PROD_SPLUNK_HOST"],
-    splunk_username=os.environ["PROD_SPLUNK_USER"],
-    splunk_password=os.environ["PROD_SPLUNK_PASS"]
-)
-```
-
-### SSL Verification
-
-**Production environments** should always use SSL verification:
-```python
-await execute_tool(
-    "get_splunk_health",
-    splunk_host="production.company.com",
-    splunk_verify_ssl=True  # Always verify in production
-)
-```
-
-**Development environments** may disable SSL verification:
-```python
-await execute_tool(
-    "get_splunk_health", 
-    splunk_host="dev-splunk.local",
-    splunk_verify_ssl=False  # OK for development
-)
-```
-
-## Troubleshooting
-
-### Connection Issues
-
-**Test connectivity first:**
-```python
-health_result = await execute_tool(
-    "get_splunk_health",
-    splunk_host="your-splunk-host.com",
-    splunk_username="your-username",
-    splunk_password="your-password"
-)
-
-if health_result["status"] == "connected":
-    print("Connection successful!")
-else:
-    print(f"Connection failed: {health_result['error']}")
-```
-
-### Common Issues
-
-1. **Wrong Port**: Ensure you're using the management port (default 8089), not the web port (8000)
-
-2. **SSL Issues**: Try setting `splunk_verify_ssl: false` for testing
-
-3. **Authentication**: Verify username/password work with Splunk Web UI
-
-4. **Network**: Ensure the MCP server can reach the Splunk host
-
-### Debug Logging
-
-Enable debug logging to see connection attempts:
-
-```bash
-# Set log level in environment
-export MCP_LOG_LEVEL=DEBUG
-
-# Run server
-python src/server.py
-```
-
-## Migration from Server-Only Configuration
-
-### Step 1: Test Current Setup
-```python
-# Test your current server configuration
-health = await execute_tool("get_splunk_health")
-print(f"Current server config: {health}")
-```
-
-### Step 2: Add Client Configuration Gradually
-```python
-# Start with optional client config
-health = await execute_tool(
-    "get_splunk_health",
-    splunk_host="new-splunk-server.com"  # Only override what's needed
-)
-```
-
-### Step 3: Full Client Configuration
-```python
-# Complete client configuration
-health = await execute_tool(
-    "get_splunk_health",
-    splunk_host="new-splunk-server.com",
-    splunk_username="new-user",
-    splunk_password="new-password",
-    splunk_verify_ssl=True
-)
-```
-
-This approach allows you to migrate gradually while maintaining backward compatibility with your existing setup. 
+### Issue: Wrong Splunk instance
+- Check the configuration priority order 
+- Verify that no tool-level parameters are overriding client config
+- Review server logs to see which config source is being used 

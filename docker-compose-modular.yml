@@ -140,7 +140,7 @@ services:
       # Add middleware for CORS headers (important for web clients)
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
-      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept,X-Splunk-Host,X-Splunk-Port,X-Splunk-Username,X-Splunk-Password,X-Splunk-Scheme,X-Splunk-Verify-SSL"
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolmaxage=100"
       - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
     develop:
