@@ -1,23 +1,23 @@
 """
-Tests for SplunkSearchTool.
+Tests for GetLatestFeatureHealthTool.
 """
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastmcp import Context
-from contrib.tools.examples.splunk_search import SplunkSearchTool
+from contrib.tools.examples.splunk_search import GetLatestFeatureHealthTool
 
 
-class TestSplunkSearchTool:
-    """Test cases for SplunkSearchTool."""
+class TestGetLatestFeatureHealthTool:
+    """Test cases for GetLatestFeatureHealthTool."""
     
     @pytest.fixture
     def tool(self):
         """Create a tool instance for testing."""
-        return SplunkSearchTool(
-            name="splunk_search",
-            description="This tool searches splunk health reporter to get infrastructure health indicators"
+        return GetLatestFeatureHealthTool(
+            name="get_latest_feature_health",
+            description="This tool searches the internal Splunk index to get the latest health status by feature and host"
         )
     
     @pytest.fixture
@@ -37,8 +37,8 @@ class TestSplunkSearchTool:
         mock_job = MagicMock()
         mock_results = [
             {"feature": "indexing", "status": "healthy"},
-            {"feature": "searching", "status": "degraded"},
-            {"feature": "forwarder", "status": "issues"}
+            {"feature": "searching", "status": "warning"},
+            {"feature": "forwarder", "status": "critical"}
         ]
         
         # Mock ResultsReader to return our test data
@@ -56,7 +56,7 @@ class TestSplunkSearchTool:
         with patch('contrib.tools.examples.splunk_search.ResultsReader') as mock_reader:
             mock_results = [
                 {"feature": "indexing", "status": "healthy"},
-                {"feature": "searching", "status": "degraded"}
+                {"feature": "searching", "status": "warning"}
             ]
             mock_reader.return_value = iter(mock_results)
             
@@ -71,10 +71,15 @@ class TestSplunkSearchTool:
         assert len(result["results"]) == 2
         assert "index=_internal component=PeriodicHealthReporter" in result["query_executed"]
         assert "\"green\"" in result["query_executed"]  # Verify double quotes are used
+        
+        # Verify static time parameters are used
+        call_kwargs = mock_splunk_service.jobs.oneshot.call_args[1]
+        assert call_kwargs["earliest_time"] == "-15m"
+        assert call_kwargs["latest_time"] == "now"
     
     @pytest.mark.asyncio
-    async def test_execute_with_custom_parameters(self, tool, mock_context, mock_splunk_service):
-        """Test tool execution with custom parameters."""
+    async def test_execute_with_custom_max_results(self, tool, mock_context, mock_splunk_service):
+        """Test tool execution with custom max_results parameter."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
         
         with patch('contrib.tools.examples.splunk_search.ResultsReader') as mock_reader:
@@ -83,8 +88,6 @@ class TestSplunkSearchTool:
             
             result = await tool.execute(
                 mock_context,
-                earliest_time="-1h",
-                latest_time="-30m",
                 max_results=50
             )
         
@@ -94,8 +97,9 @@ class TestSplunkSearchTool:
         # Verify that oneshot was called with correct parameters
         mock_splunk_service.jobs.oneshot.assert_called_once()
         call_args = mock_splunk_service.jobs.oneshot.call_args
-        assert call_args[1]["earliest_time"] == "-1h"
-        assert call_args[1]["latest_time"] == "-30m"
+        # Time parameters should be static
+        assert call_args[1]["earliest_time"] == "-15m"
+        assert call_args[1]["latest_time"] == "now"
         assert call_args[1]["count"] == 50
     
     @pytest.mark.asyncio
@@ -166,53 +170,63 @@ class TestSplunkSearchTool:
         with patch('contrib.tools.examples.splunk_search.ResultsReader') as mock_reader:
             mock_reader.return_value = iter([])
             
-            await tool.execute(mock_context, earliest_time="-2h", max_results=25)
+            await tool.execute(mock_context, max_results=25)
         
         # Verify context logging was called
         mock_context.info.assert_called()
         # Check that parameters were logged
         call_args = [call.args[0] for call in mock_context.info.call_args_list]
-        assert any("splunk-search operation" in arg for arg in call_args)
-        assert any("earliest_time" in arg for arg in call_args)
+        assert any("get-latest-feature-health operation" in arg for arg in call_args)
+        assert any("Get-latest-feature-health parameters" in arg for arg in call_args)
     
     def test_metadata(self, tool):
         """Test tool metadata."""
-        metadata = SplunkSearchTool.METADATA
+        metadata = GetLatestFeatureHealthTool.METADATA
         
-        assert metadata.name == "splunk_search"
-        assert metadata.description == "This tool searches splunk health reporter to get infrastructure health indicators"
+        assert metadata.name == "get_latest_feature_health"
+        assert metadata.description == "This tool searches the internal Splunk index to get the latest health status by feature and host"
         assert metadata.category == "examples"
         assert metadata.requires_connection is True
-        assert "example" in metadata.tags
-        assert "tutorial" in metadata.tags
+        assert "health" in metadata.tags
+        assert "monitoring" in metadata.tags
         assert metadata.version == "1.0.0"
     
     def test_tool_initialization(self, tool):
         """Test tool initialization."""
-        assert tool.name == "splunk_search"
-        assert tool.description == "This tool searches splunk health reporter to get infrastructure health indicators"
+        assert tool.name == "get_latest_feature_health"
+        assert tool.description == "This tool searches the internal Splunk index to get the latest health status by feature and host"
         assert hasattr(tool, 'logger')
     
     @pytest.mark.asyncio
-    async def test_parameter_validation(self, tool, mock_context, mock_splunk_service):
-        """Test parameter handling and validation."""
+    async def test_health_status_mapping(self, tool, mock_context, mock_splunk_service):
+        """Test that health status mapping uses correct terminology."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
         
         with patch('contrib.tools.examples.splunk_search.ResultsReader') as mock_reader:
             mock_reader.return_value = iter([])
             
-            # Test with various parameter types
-            result = await tool.execute(
-                mock_context,
-                earliest_time="-24h",
-                latest_time="now",
-                max_results=1000
-            )
+            result = await tool.execute(mock_context)
         
         assert result["status"] == "success"
         
-        # Verify parameters were passed correctly to Splunk
+        # Verify the query contains the updated health status mapping
+        query = result["query_executed"]
+        assert "\"healthy\"" in query  # green -> healthy
+        assert "\"warning\"" in query  # yellow -> warning
+        assert "\"critical\"" in query  # red -> critical
+    
+    @pytest.mark.asyncio
+    async def test_static_time_range(self, tool, mock_context, mock_splunk_service):
+        """Test that the tool uses static time range values."""
+        tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
+        
+        with patch('contrib.tools.examples.splunk_search.ResultsReader') as mock_reader:
+            mock_reader.return_value = iter([])
+            
+            await tool.execute(mock_context, max_results=100)
+        
+        # Verify static time parameters are always used
         call_kwargs = mock_splunk_service.jobs.oneshot.call_args[1]
-        assert call_kwargs["earliest_time"] == "-24h"
+        assert call_kwargs["earliest_time"] == "-15m"
         assert call_kwargs["latest_time"] == "now"
-        assert call_kwargs["count"] == 1000
+        assert call_kwargs["count"] == 100
