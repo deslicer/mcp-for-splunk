@@ -12,13 +12,11 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -55,30 +53,30 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
     ASGI middleware that captures HTTP headers and stores them in a context variable
     so they can be accessed by MCP middleware downstream.
     """
-    
+
     async def dispatch(self, request: Request, call_next):
         """Capture headers and store in context variable before processing request."""
         logger.info(f"HeaderCaptureMiddleware: Processing request to {request.url.path}")
-        
+
         try:
             # Convert headers to dict (case-insensitive)
             headers = dict(request.headers)
-            
+
             # Store headers in context variable
             http_headers_context.set(headers)
-            
+
             # Log header extraction for debugging
             splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith('x-splunk-')}
             if splunk_headers:
                 logger.info(f"Captured Splunk headers: {list(splunk_headers.keys())}")
             else:
                 logger.debug(f"No Splunk headers found. Available headers: {list(headers.keys())}")
-            
+
         except Exception as e:
             logger.error(f"Error capturing HTTP headers: {e}")
             # Set empty dict as fallback
             http_headers_context.set({})
-        
+
         # Continue processing the request
         response = await call_next(request)
         return response
@@ -227,26 +225,26 @@ class ClientConfigMiddleware(Middleware):
 
     async def on_request(self, context: MiddlewareContext, call_next):
         """Handle all MCP requests and extract client configuration from headers if available."""
-        
+
         # Log context information for debugging
         logger.debug(f"Processing request: {context.method}")
-        
+
         client_config = None
 
         # Try to access HTTP headers from context variable (set by ASGI middleware)
         try:
             headers = http_headers_context.get({})
-            
+
             if headers:
                 logger.debug(f"Found HTTP headers from context: {list(headers.keys())}")
-                
+
                 # Extract client config from headers
                 client_config = extract_client_config_from_headers(headers)
-                
+
                 if client_config:
                     logger.info("Successfully extracted MCP client configuration from HTTP headers")
                     logger.info(f"Client config extracted: {list(client_config.keys())}")
-                    
+
                     # Cache the config for this session
                     session_id = getattr(context, 'session_id', 'default')
                     self.client_config_cache[session_id] = client_config
@@ -254,7 +252,7 @@ class ClientConfigMiddleware(Middleware):
                     logger.debug("No Splunk headers found in HTTP request")
             else:
                 logger.debug("No HTTP headers found in context variable")
-            
+
             # If we didn't extract config from headers, check if we have cached config
             if not client_config:
                 session_id = getattr(context, 'session_id', 'default')
@@ -272,24 +270,24 @@ class ClientConfigMiddleware(Middleware):
                 # Store in the context as a custom attribute
                 context.splunk_client_config = client_config
                 logger.debug("Stored client config in context")
-                
+
                 # Also try to update the lifespan context if available
-                if (hasattr(context, 'fastmcp_context') and 
-                    context.fastmcp_context and 
+                if (hasattr(context, 'fastmcp_context') and
+                    context.fastmcp_context and
                     hasattr(context.fastmcp_context, 'lifespan_context')):
-                    
+
                     # Update the lifespan context with client config
                     lifespan_ctx = context.fastmcp_context.lifespan_context
                     if hasattr(lifespan_ctx, 'client_config'):
                         lifespan_ctx.client_config = client_config
                         logger.debug("Updated lifespan context with client config")
-                    
+
             except Exception as e:
                 logger.error(f"Error storing client config in context: {e}")
 
         # Continue with the request
         result = await call_next(context)
-        
+
         return result
 
 # Add the middleware to the server
@@ -313,14 +311,14 @@ async def main():
 
     # Create custom ASGI middleware list to capture HTTP headers
     from starlette.middleware import Middleware as StarletteMiddleware
-    
+
     custom_middleware = [
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
     # Use FastMCP's http_app method with custom middleware
     app = mcp.http_app(path="/mcp/", middleware=custom_middleware)
-    
+
     # Import uvicorn to run the server
     try:
         import uvicorn

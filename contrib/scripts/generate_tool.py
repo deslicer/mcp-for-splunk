@@ -61,9 +61,9 @@ def get_multiline_input(prompt: str, required: bool = True) -> str:
     print("  | sort -count")
     print("  END")
     print()
-    
+
     lines = []
-    
+
     try:
         while True:
             line = input("> ")
@@ -75,12 +75,12 @@ def get_multiline_input(prompt: str, required: bool = True) -> str:
             print("\nInput required. Please try again.")
             return get_multiline_input(prompt, required)
         return ""
-    
+
     result = '\n'.join(lines).strip()
     if required and not result:
         print("This field is required. Please try again.")
         return get_multiline_input(prompt, required)
-    
+
     return result
 
 
@@ -126,7 +126,7 @@ def get_tool_info() -> dict[str, str]:
             print("Please enter a valid number")
 
     # Get category
-    print(f"\n2. Tool Category")
+    print("\n2. Tool Category")
     category_list = list(TOOL_CATEGORIES.items())
     for i, (cat, desc) in enumerate(category_list, 1):
         print(f"   {i}. {cat}: {desc}")
@@ -143,20 +143,20 @@ def get_tool_info() -> dict[str, str]:
             print("Please enter a valid number")
 
     # Get basic info
-    print(f"\n3. Tool Details")
+    print("\n3. Tool Details")
     name = get_user_input("Tool name (e.g., 'threat hunter', 'log analyzer')", required=True)
     description = get_user_input("Description (brief summary of what the tool does)", required=True)
 
     # Template-specific inputs
     template_data = {}
     if template == "splunk_search":
-        print(f"\n4. Splunk Search Configuration")
-        
+        print("\n4. Splunk Search Configuration")
+
         # Get SPL query
         print("\nSplunk Search Query (SPL) Input:")
         print("   1. Multi-line input (for complex queries)")
         print("   2. Single-line input (for simple queries)")
-        
+
         while True:
             try:
                 choice = int(get_user_input("Select input method (1-2)", required=True))
@@ -172,21 +172,21 @@ def get_tool_info() -> dict[str, str]:
                     print("Please enter 1 or 2")
             except ValueError:
                 print("Please enter a valid number")
-        
+
         # Get query description
         query_description = get_user_input("Query description (what does this search do?)", required=True)
-        
+
         # Get default parameters
-        print(f"\n5. Default Search Parameters")
+        print("\n5. Default Search Parameters")
         default_earliest = get_user_input("Default earliest time (e.g., '-1h', '-24h')", required=False) or "-15m"
         default_latest = get_user_input("Default latest time (e.g., 'now', '-30m')", required=False) or "now"
         default_max_results = get_user_input("Default max results (number)", required=False) or "100"
-        
+
         # Additional search parameters
         print("\nAdd custom search parameters?")
         print("   1. Yes")
         print("   2. No")
-        
+
         while True:
             try:
                 choice = int(get_user_input("Select option (1-2)", required=True))
@@ -201,9 +201,9 @@ def get_tool_info() -> dict[str, str]:
             except ValueError:
                 print("Please enter a valid number")
         custom_params = []
-        
+
         if use_custom_params:
-            print(f"\n6. Custom Parameters")
+            print("\n6. Custom Parameters")
             print("Add custom parameters for your search (press Enter with empty name to finish):")
             while True:
                 param_name = get_user_input("Parameter name (snake_case)", required=False)
@@ -214,7 +214,7 @@ def get_tool_info() -> dict[str, str]:
                 print("   2. int")
                 print("   3. bool")
                 print("   4. float")
-                
+
                 type_options = ["str", "int", "bool", "float"]
                 while True:
                     try:
@@ -228,14 +228,14 @@ def get_tool_info() -> dict[str, str]:
                         print("Please enter a valid number")
                 param_desc = get_user_input(f"Description for {param_name}", required=True)
                 param_default = get_user_input(f"Default value for {param_name} (optional)", required=False)
-                
+
                 custom_params.append({
                     "name": param_name,
                     "type": param_type,
                     "description": param_desc,
                     "default": param_default
                 })
-        
+
         template_data = {
             "spl_query": spl_query,
             "query_description": query_description,
@@ -248,14 +248,14 @@ def get_tool_info() -> dict[str, str]:
     # Get additional details
     section_num = 7 if template == "splunk_search" and template_data.get("custom_params") else 5 if template == "splunk_search" else 4
     print(f"\n{section_num}. Additional Configuration")
-    
+
     if template == "splunk_search":
         requires_connection = True
     else:
         print("Requires Splunk connection?")
         print("   1. Yes")
         print("   2. No")
-        
+
         while True:
             try:
                 choice = int(get_user_input("Select option (1-2)", required=True))
@@ -274,7 +274,7 @@ def get_tool_info() -> dict[str, str]:
     default_tags = CATEGORY_TAGS[category].copy()
     if template == "splunk_search":
         default_tags.extend(["splunk", "search", "spl"])
-    
+
     print(f"\nDefault tags for {category}: {', '.join(default_tags)}")
     custom_tags = get_user_input("Additional tags (comma-separated, optional)", required=False)
 
@@ -301,43 +301,43 @@ def get_tool_info() -> dict[str, str]:
 
 def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
     """Generate a Splunk search tool Python file content."""
-    
+
     tags_str = ', '.join(f'"{tag}"' for tag in info["tags"])
-    
+
     # Format the SPL query for Python string
     spl_query = info["spl_query"].replace('"', '\\"').replace('\n', ' ').strip()
-    
+
     # Generate custom parameters
     custom_params_str = ""
     custom_params_docstring = ""
     custom_params_logging = ""
-    
+
     if info.get("custom_params"):
         param_parts = []
         doc_parts = []
         log_parts = []
-        
+
         for param in info["custom_params"]:
             param_name = param["name"]
             param_type = param["type"]
             param_default = param["default"] if param["default"] else {
                 "str": '""',
-                "int": "0", 
+                "int": "0",
                 "bool": "False",
                 "float": "0.0"
             }[param_type]
-            
+
             type_hint = {
                 "str": "str",
-                "int": "int", 
+                "int": "int",
                 "bool": "bool",
                 "float": "float"
             }[param_type]
-            
+
             param_parts.append(f"{param_name}: {type_hint} = {param_default}")
             doc_parts.append(f"            {param_name}: {param['description']}")
             log_parts.append(param_name)
-        
+
         custom_params_str = ", " + ", ".join(param_parts)
         custom_params_docstring = "\n" + "\n".join(doc_parts)
         custom_params_logging = ", " + "=".join([f"{p}={p}" for p in log_parts])
@@ -360,14 +360,14 @@ from src.core.utils import log_tool_execution, sanitize_search_query
 class {info["class_name"]}(BaseTool):
     """
     {info["description"]}
-    
+
     This tool executes the following Splunk search:
     {info["query_description"]}
-    
+
     SPL Query:
     {info["spl_query"]}
     """
-    
+
     METADATA = ToolMetadata(
         name="{info["snake_name"]}",
         description="{info["description"]}",
@@ -376,7 +376,7 @@ class {info["class_name"]}(BaseTool):
         requires_connection={info["requires_connection"]},
         version="1.0.0"
     )
-    
+
     async def execute(
         self,
         ctx: Context,
@@ -386,12 +386,12 @@ class {info["class_name"]}(BaseTool):
     ) -> Dict[str, Any]:
         """
         Execute the {info["name"]} Splunk search.
-        
+
         Args:
             earliest_time: Search start time (default: "{info["default_earliest"]}")
             latest_time: Search end time (default: "{info["default_latest"]}")
             max_results: Maximum number of results to return (default: {info["default_max_results"]}){custom_params_docstring}
-            
+
         Returns:
             Dict containing:
                 - results: List of search results as dictionaries
@@ -400,10 +400,10 @@ class {info["class_name"]}(BaseTool):
                 - duration: Search execution time in seconds
         """
         log_tool_execution("{info["snake_name"]}", earliest_time=earliest_time, latest_time=latest_time, max_results=max_results{custom_params_logging})
-        
+
         self.logger.info(f"Executing {info["name"]} search")
         ctx.info(f"Running {info["name"]} search operation")
-        
+
         try:
             is_available, service, error_msg = self.check_splunk_available(ctx)
             if not is_available:
@@ -418,7 +418,7 @@ class {info["class_name"]}(BaseTool):
 
             # The SPL query for this tool
             query = "{spl_query}"
-            
+
             # Sanitize and prepare the query
             query = sanitize_search_query(query)
             start_time = time.time()
@@ -447,16 +447,16 @@ class {info["class_name"]}(BaseTool):
             ctx.error(f"Failed to execute {info["name"]} search: {{str(e)}}")
             return self.format_error_response(str(e))
 '''
-    
+
     return template
 
 
 def generate_tool_file(info: dict[str, str]) -> str:
     """Generate the tool Python file content based on template."""
-    
+
     if info["template"] == "splunk_search":
         return generate_splunk_search_tool_file(info)
-    
+
     # Default basic template (existing functionality)
     tags_str = ', '.join(f'"{tag}"' for tag in info["tags"])
 
@@ -475,13 +475,13 @@ from src.core.utils import log_tool_execution
 class {info["class_name"]}(BaseTool):
     """
     {info["description"]}
-    
+
     This tool provides functionality for:
     - TODO: Add specific functionality descriptions
     - TODO: Add use cases
     - TODO: Add examples
     """
-    
+
     METADATA = ToolMetadata(
         name="{info["snake_name"]}",
         description="{info["description"]}",
@@ -490,28 +490,28 @@ class {info["class_name"]}(BaseTool):
         requires_connection={info["requires_connection"]},
         version="1.0.0"
     )
-    
+
     async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
         """
         Execute the {info["name"]} functionality.
-        
+
         Args:
             **kwargs: Tool-specific parameters
-            
+
         Returns:
             Dict containing the tool results
-            
+
         Example:
             {info["snake_name"]}() -> {{"result": "TODO: Add example result"}}
         """
         log_tool_execution("{info["snake_name"]}", **kwargs)
-        
+
         self.logger.info(f"Executing {info["name"]} tool")
         ctx.info(f"Running {info["name"]} operation")
-        
+
         try:
             # TODO: Implement tool functionality here
-            # 
+            #
             # If this tool requires Splunk connection:
             # is_available, service, error_msg = self.check_splunk_available(ctx)
             # if not is_available:
@@ -523,21 +523,21 @@ class {info["class_name"]}(BaseTool):
                 "tool": "{info["snake_name"]}",
                 "parameters": kwargs
             }}
-            
+
             return self.format_success_response(result)
-            
+
         except Exception as e:
             self.logger.error(f"Failed to execute {info["name"]}: {{str(e)}}")
             ctx.error(f"Failed to execute {info["name"]}: {{str(e)}}")
             return self.format_error_response(str(e))
 '''
-    
+
     return template
 
 
 def generate_splunk_search_test_file(info: dict[str, str]) -> str:
     """Generate test file for Splunk search tools."""
-    
+
     template = f'''"""
 Tests for {info["class_name"]}.
 """
@@ -551,7 +551,7 @@ from contrib.tools.{info["category"]}.{info["snake_name"]} import {info["class_n
 
 class Test{info["class_name"]}:
     """Test cases for {info["class_name"]}."""
-    
+
     @pytest.fixture
     def tool(self):
         """Create a tool instance for testing."""
@@ -559,7 +559,7 @@ class Test{info["class_name"]}:
             name="{info["snake_name"]}",
             description="{info["description"]}"
         )
-    
+
     @pytest.fixture
     def mock_context(self):
         """Create a mock context for testing."""
@@ -567,7 +567,7 @@ class Test{info["class_name"]}:
         ctx.info = MagicMock()
         ctx.error = MagicMock()
         return ctx
-    
+
     @pytest.fixture
     def mock_splunk_service(self):
         """Create a mock Splunk service."""
@@ -577,79 +577,79 @@ class Test{info["class_name"]}:
             {{"field1": "value1", "count": 10}},
             {{"field1": "value2", "count": 5}}
         ]
-        
+
         with patch('contrib.tools.{info["category"]}.{info["snake_name"]}.ResultsReader') as mock_reader:
             mock_reader.return_value = iter(mock_results)
             service.jobs.oneshot.return_value = mock_job
             yield service
-    
+
     @pytest.mark.asyncio
     async def test_execute_success_default_params(self, tool, mock_context, mock_splunk_service):
         """Test successful execution with default parameters."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
-        
+
         with patch('contrib.tools.{info["category"]}.{info["snake_name"]}.ResultsReader') as mock_reader:
             mock_results = [{{"field1": "test", "count": 1}}]
             mock_reader.return_value = iter(mock_results)
-            
+
             result = await tool.execute(mock_context)
-        
+
         assert result["status"] == "success"
         assert "results" in result
         assert "results_count" in result
         assert "query_executed" in result
         assert "duration" in result
         assert result["results_count"] == 1
-    
+
     @pytest.mark.asyncio
     async def test_execute_with_custom_parameters(self, tool, mock_context, mock_splunk_service):
         """Test execution with custom time parameters."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
-        
+
         with patch('contrib.tools.{info["category"]}.{info["snake_name"]}.ResultsReader') as mock_reader:
             mock_reader.return_value = iter([])
-            
+
             result = await tool.execute(
                 mock_context,
                 earliest_time="-1h",
                 latest_time="-30m",
                 max_results=50
             )
-        
+
         assert result["status"] == "success"
-        
+
         # Verify search parameters
         call_kwargs = mock_splunk_service.jobs.oneshot.call_args[1]
         assert call_kwargs["earliest_time"] == "-1h"
         assert call_kwargs["latest_time"] == "-30m"
         assert call_kwargs["count"] == 50
-    
+
     @pytest.mark.asyncio
     async def test_execute_splunk_unavailable(self, tool, mock_context):
         """Test execution when Splunk is unavailable."""
         error_msg = "Splunk service is not available"
         tool.check_splunk_available = MagicMock(return_value=(False, None, error_msg))
-        
+
         result = await tool.execute(mock_context)
-        
+
         assert result["status"] == "error"
         assert result["error"] == error_msg
-    
+
     @pytest.mark.asyncio
     async def test_execute_search_exception(self, tool, mock_context, mock_splunk_service):
         """Test error handling when search fails."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
         mock_splunk_service.jobs.oneshot.side_effect = Exception("Search failed")
-        
+
         result = await tool.execute(mock_context)
-        
+
         assert result["status"] == "error"
         assert "Search failed" in result["error"]
-    
+
     def test_metadata(self, tool):
         """Test tool metadata."""
         metadata = {info["class_name"]}.METADATA
-        
+
         assert metadata.name == "{info["snake_name"]}"
         assert metadata.description == "{info["description"]}"
         assert metadata.category == "{info["category"]}"
@@ -657,23 +657,23 @@ class Test{info["class_name"]}:
         assert "splunk" in metadata.tags
         assert "search" in metadata.tags
         assert metadata.version == "1.0.0"
-    
+
     def test_tool_initialization(self, tool):
         """Test tool initialization."""
         assert tool.name == "{info["snake_name"]}"
         assert tool.description == "{info["description"]}"
         assert hasattr(tool, 'logger')
 '''
-    
+
     return template
 
 
 def generate_test_file(info: dict[str, str]) -> str:
     """Generate the test file content based on template."""
-    
+
     if info["template"] == "splunk_search":
         return generate_splunk_search_test_file(info)
-    
+
     # Default basic template
     template = f'''"""
 Tests for {info["class_name"]}.
@@ -688,7 +688,7 @@ from contrib.tools.{info["category"]}.{info["snake_name"]} import {info["class_n
 
 class Test{info["class_name"]}:
     """Test cases for {info["class_name"]}."""
-    
+
     @pytest.fixture
     def tool(self):
         """Create a tool instance for testing."""
@@ -696,7 +696,7 @@ class Test{info["class_name"]}:
             name="{info["snake_name"]}",
             description="{info["description"]}"
         )
-    
+
     @pytest.fixture
     def mock_context(self):
         """Create a mock context for testing."""
@@ -704,42 +704,42 @@ class Test{info["class_name"]}:
         ctx.info = MagicMock()
         ctx.error = MagicMock()
         return ctx
-    
+
     @pytest.mark.asyncio
     async def test_execute_success(self, tool, mock_context):
         """Test successful tool execution."""
         # TODO: Implement test for successful execution
         result = await tool.execute(mock_context)
-        
+
         assert result["status"] == "success"
         assert "tool" in result
         assert result["tool"] == "{info["snake_name"]}"
-    
+
     @pytest.mark.asyncio
     async def test_execute_with_parameters(self, tool, mock_context):
         """Test tool execution with parameters."""
         # TODO: Add test with specific parameters
         test_params = {{"param1": "value1"}}
-        
+
         result = await tool.execute(mock_context, **test_params)
-        
+
         assert result["status"] == "success"
         # TODO: Add assertions for parameter handling
-    
+
     @pytest.mark.asyncio
     async def test_metadata(self, tool):
         """Test tool metadata."""
         metadata = {info["class_name"]}.METADATA
-        
+
         assert metadata.name == "{info["snake_name"]}"
         assert metadata.description == "{info["description"]}"
         assert metadata.category == "{info["category"]}"
         assert metadata.requires_connection == {info["requires_connection"]}
         assert len(metadata.tags) > 0
-    
+
     # TODO: Add more specific tests based on tool functionality
     # - Test error handling
-    # - Test edge cases  
+    # - Test edge cases
     # - Test Splunk connection requirements (if applicable)
     # - Test parameter validation
 '''
@@ -770,7 +770,7 @@ def create_files(info: dict[str, str]) -> None:
         print(f"\nFile {tool_file} already exists. Overwrite?")
         print("   1. Yes")
         print("   2. No")
-        
+
         while True:
             try:
                 choice = int(get_user_input("Select option (1-2)", required=True))
@@ -793,7 +793,7 @@ def create_files(info: dict[str, str]) -> None:
     print("\nCreate test file?")
     print("   1. Yes")
     print("   2. No")
-    
+
     while True:
         try:
             choice = int(get_user_input("Select option (1-2)", required=True))
@@ -846,22 +846,22 @@ def main():
         print(f"Description: {info['description']}")
         print(f"Requires Connection: {info['requires_connection']}")
         print(f"Tags: {', '.join(info['tags'])}")
-        
+
         if info['template'] == 'splunk_search':
-            print(f"\nSplunk Search Details:")
+            print("\nSplunk Search Details:")
             print(f"Query Description: {info['query_description']}")
             print(f"Default Time Range: {info['default_earliest']} to {info['default_latest']}")
             print(f"Default Max Results: {info['default_max_results']}")
             if info.get('custom_params'):
                 print(f"Custom Parameters: {len(info['custom_params'])} parameters")
-            print(f"\nSPL Query:")
+            print("\nSPL Query:")
             print(f"  {info['spl_query']}")
 
         # Confirm creation
         print("\nCreate this tool?")
         print("   1. Yes")
         print("   2. No")
-        
+
         while True:
             try:
                 choice = int(get_user_input("Select option (1-2)", required=True))

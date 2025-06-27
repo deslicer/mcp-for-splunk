@@ -2,7 +2,7 @@
 Tool for listing Splunk indexes.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 
@@ -14,7 +14,7 @@ class ListIndexes(BaseTool):
     """
     Retrieves a list of all accessible indexes from the configured Splunk instance.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_indexes",
         description="Retrieves a list of all accessible indexes from the configured Splunk instance",
@@ -22,16 +22,16 @@ class ListIndexes(BaseTool):
         tags=["indexes", "metadata", "discovery"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context) -> Dict[str, Any]:
+
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
         List all accessible indexes.
-        
+
         Returns:
             Dict containing list of indexes and count
         """
         log_tool_execution("list_indexes")
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -55,4 +55,4 @@ class ListIndexes(BaseTool):
                 str(e),
                 indexes=[],
                 count=0
-            ) 
+            )

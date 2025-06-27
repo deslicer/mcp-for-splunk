@@ -5,10 +5,11 @@ SPL Query: Searches the internal index and counts events by component
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
+
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
 
@@ -16,15 +17,15 @@ from src.core.utils import log_tool_execution, sanitize_search_query
 class TestSearchTemplateTool(BaseTool):
     """
     testing search template functionality
-    
+
     This tool executes the following Splunk search:
     Searches the internal index and counts events by component
-    
+
     SPL Query:
-    index=_internal 
+    index=_internal
 | stats count by component
     """
-    
+
     METADATA = ToolMetadata(
         name="test_search_template",
         description="testing search template functionality",
@@ -33,22 +34,22 @@ class TestSearchTemplateTool(BaseTool):
         requires_connection=True,
         version="1.0.0"
     )
-    
+
     async def execute(
         self,
         ctx: Context,
         earliest_time: str = "-15m",
         latest_time: str = "now",
         max_results: int = 100
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute the test search template Splunk search.
-        
+
         Args:
             earliest_time: Search start time (default: "-15m")
             latest_time: Search end time (default: "now")
             max_results: Maximum number of results to return (default: 100)
-            
+
         Returns:
             Dict containing:
                 - results: List of search results as dictionaries
@@ -57,10 +58,10 @@ class TestSearchTemplateTool(BaseTool):
                 - duration: Search execution time in seconds
         """
         log_tool_execution("test_search_template", earliest_time=earliest_time, latest_time=latest_time, max_results=max_results)
-        
-        self.logger.info(f"Executing test search template search")
-        ctx.info(f"Running test search template search operation")
-        
+
+        self.logger.info("Executing test search template search")
+        ctx.info("Running test search template search operation")
+
         try:
             is_available, service, error_msg = self.check_splunk_available(ctx)
             if not is_available:
@@ -75,7 +76,7 @@ class TestSearchTemplateTool(BaseTool):
 
             # The SPL query for this tool
             query = "index=_internal  | stats count by component"
-            
+
             # Sanitize and prepare the query
             query = sanitize_search_query(query)
             start_time = time.time()

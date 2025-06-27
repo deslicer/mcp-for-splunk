@@ -1,1 +1,1 @@
-# Tests package for MCP Server for Splunk 
+# Tests package for MCP Server for Splunk

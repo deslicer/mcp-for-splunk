@@ -70,7 +70,7 @@ class ToolValidator:
             ('fastmcp', 'Context'),
             ('src.core.base', 'BaseTool and ToolMetadata')
         ]
-        
+
         for module, description in import_checks:
             if f'from {module} import' not in content and f'import {module}' not in content:
                 self.errors.append(f"Missing required import from {module} ({description})")

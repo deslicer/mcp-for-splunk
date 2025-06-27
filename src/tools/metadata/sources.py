@@ -2,7 +2,7 @@
 Tool for listing Splunk data sources.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
@@ -16,7 +16,7 @@ class ListSources(BaseTool):
     List all available data sources from the configured Splunk instance using metadata command.
     This tool provides a comprehensive inventory of data sources in your Splunk environment.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_sources",
         description="List all available data sources from the configured Splunk instance",
@@ -24,16 +24,16 @@ class ListSources(BaseTool):
         tags=["sources", "metadata", "discovery"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context) -> Dict[str, Any]:
+
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
         List all data sources.
-        
+
         Returns:
             Dict containing list of sources and count
         """
         log_tool_execution("list_sources")
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -57,4 +57,4 @@ class ListSources(BaseTool):
             })
         except Exception as e:
             self.logger.error(f"Failed to retrieve sources: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

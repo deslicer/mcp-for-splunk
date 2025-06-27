@@ -2,7 +2,7 @@
 Tool for listing Splunk sourcetypes.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
@@ -16,7 +16,7 @@ class ListSourcetypes(BaseTool):
     List all available sourcetypes from the configured Splunk instance using metadata command.
     This tool returns a comprehensive list of sourcetypes present in your Splunk environment.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_sourcetypes",
         description="List all available sourcetypes from the configured Splunk instance",
@@ -24,16 +24,16 @@ class ListSourcetypes(BaseTool):
         tags=["sourcetypes", "metadata", "discovery"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context) -> Dict[str, Any]:
+
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
         List all sourcetypes.
-        
+
         Returns:
             Dict containing list of sourcetypes and count
         """
         log_tool_execution("list_sourcetypes")
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -59,4 +59,4 @@ class ListSourcetypes(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to retrieve sourcetypes: {str(e)}")
             ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

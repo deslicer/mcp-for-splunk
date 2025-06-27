@@ -2,7 +2,7 @@
 Tool for listing Splunk users.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 
@@ -14,7 +14,7 @@ class ListUsers(BaseTool):
     """
     List all Splunk users.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_users",
         description="List all Splunk users and their properties",
@@ -22,16 +22,16 @@ class ListUsers(BaseTool):
         tags=["users", "administration", "management"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context) -> Dict[str, Any]:
+
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
         List all Splunk users.
-        
+
         Returns:
             Dict containing list of users and their properties
         """
         log_tool_execution("list_users")
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -60,4 +60,4 @@ class ListUsers(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to list users: {str(e)}")
             ctx.error(f"Failed to list users: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

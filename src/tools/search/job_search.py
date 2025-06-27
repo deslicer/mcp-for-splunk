@@ -3,13 +3,13 @@ Job-based search tool for complex Splunk searches with progress tracking.
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.utils import sanitize_search_query, log_tool_execution
+from src.core.utils import log_tool_execution, sanitize_search_query
 
 
 class JobSearch(BaseTool):
@@ -18,7 +18,7 @@ class JobSearch(BaseTool):
     long-running searches where you need to track progress and get detailed job information.
     Best for complex searches that might take longer to complete.
     """
-    
+
     METADATA = ToolMetadata(
         name="run_splunk_search",
         description="Execute a normal Splunk search job with progress tracking",
@@ -26,17 +26,17 @@ class JobSearch(BaseTool):
         tags=["search", "job", "tracking", "complex"],
         requires_connection=True
     )
-    
+
     async def execute(
         self,
         ctx: Context,
         query: str,
         earliest_time: str = "-24h",
         latest_time: str = "now"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute a Splunk search job with progress tracking.
-        
+
         Args:
             query: The Splunk search query (SPL) to execute. The 'search' command will be automatically
                 added if not present (e.g., "index=main" becomes "search index=main")
@@ -62,7 +62,7 @@ class JobSearch(BaseTool):
             )
         """
         log_tool_execution("run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time)
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -134,8 +134,8 @@ class JobSearch(BaseTool):
                     "is_failed": stats.get('isFailed', '0') == '1'
                 }
             })
-            
+
         except Exception as e:
             self.logger.error(f"Search failed: {str(e)}")
             ctx.error(f"Search failed: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

@@ -3,10 +3,11 @@ This tool searches the internal Splunk index to identify features with health is
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
+
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
 
@@ -14,13 +15,13 @@ from src.core.utils import log_tool_execution, sanitize_search_query
 class GetLatestFeatureHealthTool(BaseTool):
     """
     This tool searches the internal Splunk index (index=_internal) and returns only features with health issues.
-    
+
     The tool filters for features that require attention:
     - warning (yellow): Feature has minor issues or degraded performance
     - critical (red): Feature has serious issues requiring immediate attention
-    
+
     Features with healthy (green) status are excluded from results to focus on actionable items.
-    
+
     This tool provides functionality for:
     - Identifying Splunk features that currently have issues requiring attention
     - Troubleshooting infrastructure problems by focusing on degraded/critical features
@@ -38,7 +39,7 @@ class GetLatestFeatureHealthTool(BaseTool):
         version="1.0.0"
     )
 
-    async def execute(self, ctx: Context, max_results: int = 100) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, max_results: int = 100) -> dict[str, Any]:
         """
         Execute the get-latest-feature-health functionality to identify features with health issues.
 
@@ -62,13 +63,13 @@ class GetLatestFeatureHealthTool(BaseTool):
                 "query_executed": "index=_internal...",
                 "duration": 1.234
             }
-            
+
             Note: Healthy features are excluded from results to focus on actionable issues.
         """
         log_tool_execution("get_latest_feature_health", max_results=max_results)
 
-        self.logger.info(f"Executing get-latest-feature-health tool")
-        ctx.info(f"Running get-latest-feature-health operation")
+        self.logger.info("Executing get-latest-feature-health tool")
+        ctx.info("Running get-latest-feature-health operation")
 
         try:
             is_available, service, error_msg = self.check_splunk_available(ctx)
@@ -84,12 +85,12 @@ class GetLatestFeatureHealthTool(BaseTool):
             ctx.info(f"Get-latest-feature-health parameters: {kwargs}")
 
             # Updated query with more common health status terms
-            query = """index=_internal component=PeriodicHealthReporter 
+            query = """index=_internal component=PeriodicHealthReporter
                       | stats latest(color) as status by host feature
                       | where status != "green"
                       | eval status = case(
-                          status like "green", "healthy", 
-                          status like "yellow", "warning", 
+                          status like "green", "healthy",
+                          status like "yellow", "warning",
                           true(), "critical"
                       )"""
 

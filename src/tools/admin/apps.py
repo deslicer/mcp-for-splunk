@@ -2,7 +2,7 @@
 Tool for listing Splunk applications.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 
@@ -14,7 +14,7 @@ class ListApps(BaseTool):
     """
     List all installed Splunk apps.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_apps",
         description="List all installed Splunk apps and their properties",
@@ -22,16 +22,16 @@ class ListApps(BaseTool):
         tags=["apps", "administration", "management"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context) -> Dict[str, Any]:
+
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
         List all Splunk applications.
-        
+
         Returns:
             Dict containing list of apps and their properties
         """
         log_tool_execution("list_apps")
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -60,4 +60,4 @@ class ListApps(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to list apps: {str(e)}")
             ctx.error(f"Failed to list apps: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

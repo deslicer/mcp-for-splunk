@@ -3,13 +3,13 @@ One-shot search tool for immediate Splunk search execution.
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.utils import sanitize_search_query, log_tool_execution
+from src.core.utils import log_tool_execution, sanitize_search_query
 
 
 class OneshotSearch(BaseTool):
@@ -18,7 +18,7 @@ class OneshotSearch(BaseTool):
     simple searches where you need immediate results and don't need to track job progress.
     Best for simple searches that return quickly.
     """
-    
+
     METADATA = ToolMetadata(
         name="run_oneshot_search",
         description="Execute a one-shot Splunk search that returns results immediately",
@@ -26,7 +26,7 @@ class OneshotSearch(BaseTool):
         tags=["search", "oneshot", "quick"],
         requires_connection=True
     )
-    
+
     async def execute(
         self,
         ctx: Context,
@@ -34,10 +34,10 @@ class OneshotSearch(BaseTool):
         earliest_time: str = "-15m",
         latest_time: str = "now",
         max_results: int = 100
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute a one-shot Splunk search.
-        
+
         Args:
             query: The Splunk search query (SPL) to execute. The 'search' command will be automatically
                 added if not present (e.g., "index=main" becomes "search index=main")
@@ -59,7 +59,7 @@ class OneshotSearch(BaseTool):
             )
         """
         log_tool_execution("run_oneshot_search", query=query, earliest_time=earliest_time, latest_time=latest_time)
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -107,7 +107,7 @@ class OneshotSearch(BaseTool):
                 "query_executed": query,
                 "duration": round(duration, 3)
             })
-            
+
         except Exception as e:
             self.logger.error(f"One-shot search failed: {str(e)}")
             ctx.error(f"One-shot search failed: {str(e)}")
@@ -116,4 +116,4 @@ class OneshotSearch(BaseTool):
                 results=[],
                 results_count=0,
                 query_executed=query
-            ) 
+            )

@@ -1,13 +1,13 @@
 """
 Test configuration and fixtures for MCP Server for Splunk tests.
 """
-import pytest
+import json
 import os
 import sys
-import json
-import httpx
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
-from typing import Dict, Any, List
+from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -24,7 +24,7 @@ except ImportError:
 # Mock classes that match the actual structure
 class MockSplunkService:
     """Mock Splunk service that mimics splunklib.client.Service"""
-    
+
     def __init__(self):
         # Mock indexes
         self.indexes = [
@@ -35,16 +35,16 @@ class MockSplunkService:
         ]
         for idx in self.indexes:
             idx.name = idx._mock_name
-        
+
         # Mock info
         self.info = {
             "version": "9.0.0",
             "host": "so1"
         }
-        
+
         # Mock jobs for search operations
         self.jobs = Mock()
-        
+
         # Mock job creation and oneshot
         mock_job = Mock()
         mock_job.sid = "test_job_123"
@@ -57,19 +57,19 @@ class MockSplunkService:
             "isFailed": "0",
             "doneProgress": "1.0"
         }
-        
+
         # Mock job results
         def mock_results():
             return [
                 {"_time": "2024-01-01T00:00:00", "source": "/var/log/system.log", "log_level": "INFO"},
                 {"_time": "2024-01-01T00:01:00", "source": "/var/log/app.log", "log_level": "ERROR"}
             ]
-        
+
         mock_job.results.return_value = mock_results()
-        
+
         self.jobs.oneshot.return_value = mock_results()
         self.jobs.create.return_value = mock_job
-        
+
         # Mock apps
         self.apps = [
             Mock(name="search"),
@@ -79,7 +79,7 @@ class MockSplunkService:
         for app in self.apps:
             app.name = app._mock_name
             app.content = {"version": "1.0", "visible": True}
-        
+
         # Mock users
         self.users = [
             Mock(name="admin"),
@@ -88,22 +88,22 @@ class MockSplunkService:
         for user in self.users:
             user.name = user._mock_name
             user.content = {
-                "roles": ["admin"], 
+                "roles": ["admin"],
                 "email": "admin@example.com",
                 "realname": user._mock_name,
                 "type": "Splunk",
                 "defaultApp": "search"
             }
-        
+
         # Mock KV Store
         self.kvstore = {}
-        
+
         # Mock configurations
         self.confs = {}
 
 class MockJob:
     """Mock search job object"""
-    
+
     def __init__(self, is_done=True, results=None):
         self._is_done = is_done
         self._results = results or []
@@ -112,22 +112,22 @@ class MockJob:
             "eventCount": len(self._results),
             "duration": 0.123
         }
-    
+
     def is_done(self):
         return self._is_done
-    
+
     def __iter__(self):
         return iter(self._results)
 
 class MockFastMCPContext:
     """Mock FastMCP Context that matches the actual Context interface"""
-    
+
     def __init__(self, service=None, is_connected=True):
         self.request_context = Mock()
         self.request_context.lifespan_context = Mock()
         self.request_context.lifespan_context.service = service or MockSplunkService()
         self.request_context.lifespan_context.is_connected = is_connected
-        
+
         # Mock Context methods
         self.info = AsyncMock()
         self.debug = AsyncMock()
@@ -136,7 +136,7 @@ class MockFastMCPContext:
         self.report_progress = AsyncMock()
         self.read_resource = AsyncMock()
         self.sample = AsyncMock()
-        
+
         # Mock Context properties
         self.request_id = "test-request-123"
         self.client_id = "test-client-456"
@@ -144,26 +144,26 @@ class MockFastMCPContext:
 
 class MockResultsReader:
     """Mock for splunklib.results.ResultsReader"""
-    
+
     def __init__(self, results):
         self.results = results
-    
+
     def __iter__(self):
         return iter(self.results)
 
 class MCPTestHelpers:
     """Helper functions for MCP testing using FastMCP patterns"""
-    
-    async def check_connection_health(self, client) -> Dict[str, Any]:
+
+    async def check_connection_health(self, client) -> dict[str, Any]:
         """Check MCP connection health and return status"""
         try:
             # Test basic connectivity by listing tools and resources
             tools = await client.list_tools()
             resources = await client.list_resources()
-            
+
             # Test a simple tool call
             health_result = await client.call_tool("get_splunk_health")
-            
+
             return {
                 "ping": True,
                 "tools_count": len(tools),
@@ -187,10 +187,10 @@ async def fastmcp_client():
     """Create FastMCP client for in-memory testing"""
     if Client is None:
         pytest.skip("FastMCP not available")
-    
+
     # Import the actual server
     from src.server import mcp
-    
+
     # Use FastMCP's in-memory transport for testing
     client = Client(mcp)
     yield client
@@ -223,7 +223,7 @@ def extract_tool_result():
                 return {"raw_data": first_item}
         else:
             return {"empty_result": True}
-    
+
     return _extract
 
 @pytest.fixture
@@ -315,4 +315,4 @@ async def direct_client():
     pytest.skip("Use fastmcp_client fixture for proper FastMCP testing")
 
 # Async test configuration for pytest-asyncio
-pytest_plugins = ['pytest_asyncio'] 
+pytest_plugins = ['pytest_asyncio']

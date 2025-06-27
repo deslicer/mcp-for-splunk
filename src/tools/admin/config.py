@@ -2,7 +2,7 @@
 Tool for retrieving Splunk configurations.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 
@@ -14,7 +14,7 @@ class GetConfigurations(BaseTool):
     """
     Get Splunk configurations.
     """
-    
+
     METADATA = ToolMetadata(
         name="get_configurations",
         description="Get Splunk configurations from specified conf files",
@@ -22,25 +22,25 @@ class GetConfigurations(BaseTool):
         tags=["configuration", "settings", "administration"],
         requires_connection=True
     )
-    
+
     async def execute(
-        self, 
-        ctx: Context, 
+        self,
+        ctx: Context,
         conf_file: str,
         stanza: str | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get Splunk configurations.
-        
+
         Args:
             conf_file: Configuration file name (e.g., 'props', 'transforms', 'inputs')
             stanza: Optional stanza name to get specific configuration
-            
+
         Returns:
             Dict containing configuration settings
         """
         log_tool_execution("get_configurations", conf_file=conf_file, stanza=stanza)
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -73,4 +73,4 @@ class GetConfigurations(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to get configurations: {str(e)}")
             ctx.error(f"Failed to get configurations: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

@@ -2,7 +2,7 @@
 Tools for managing Splunk KV Store collections.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import quote
 
 from fastmcp import Context
@@ -15,7 +15,7 @@ class ListKvstoreCollections(BaseTool):
     """
     List all KV Store collections in Splunk.
     """
-    
+
     METADATA = ToolMetadata(
         name="list_kvstore_collections",
         description="List all KV Store collections with optional app filtering",
@@ -23,23 +23,23 @@ class ListKvstoreCollections(BaseTool):
         tags=["kvstore", "collections", "storage"],
         requires_connection=True
     )
-    
+
     async def execute(
-        self, 
-        ctx: Context, 
+        self,
+        ctx: Context,
         app: str | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List KV Store collections, optionally filtered by app.
-        
+
         Args:
             app: Optional app name to filter collections
-            
+
         Returns:
             Dict containing collections and their properties
         """
         log_tool_execution("list_kvstore_collections", app=app)
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -78,7 +78,7 @@ class CreateKvstoreCollection(BaseTool):
     """
     Create a new KV Store collection in a specified Splunk app.
     """
-    
+
     METADATA = ToolMetadata(
         name="create_kvstore_collection",
         description="Create a new KV Store collection with optional field definitions",
@@ -86,31 +86,31 @@ class CreateKvstoreCollection(BaseTool):
         tags=["kvstore", "collections", "create", "storage"],
         requires_connection=True
     )
-    
+
     async def execute(
         self,
         ctx: Context,
         app: str,
         collection: str,
-        fields: List[Dict[str, Any]] | None = None,
-        accelerated_fields: Dict[str, List[List[str]]] | None = None,
+        fields: list[dict[str, Any]] | None = None,
+        accelerated_fields: dict[str, list[list[str]]] | None = None,
         replicated: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new KV Store collection.
-        
+
         Args:
             app: Name of the app where the collection should be created
             collection: Name for the new collection
             fields: Optional list of field definitions
             accelerated_fields: Optional dict defining indexed fields
             replicated: Whether the collection should be replicated (default: True)
-            
+
         Returns:
             Dict containing creation status and collection details
         """
         log_tool_execution("create_kvstore_collection", app=app, collection=collection)
-        
+
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
@@ -163,4 +163,4 @@ class CreateKvstoreCollection(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to create KV Store collection: {str(e)}")
             ctx.error(f"Failed to create KV Store collection: {str(e)}")
-            return self.format_error_response(f"Failed to create collection: {str(e)}") 
+            return self.format_error_response(f"Failed to create collection: {str(e)}")
