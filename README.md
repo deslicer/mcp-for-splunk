@@ -652,6 +652,26 @@ docker system prune -f
 
 ## Contributing
 
+**🚀 New Contributors?** Use our helper scripts in [`contrib/`](contrib/) to get started quickly:
+
+```bash
+# Generate new tools interactively
+./contrib/scripts/generate_tool.py
+
+# Browse existing tools
+./contrib/scripts/list_tools.py
+
+# Validate your implementations  
+./contrib/scripts/validate_tools.py
+
+# Run focused tests
+./contrib/scripts/test_contrib.py
+```
+
+See [`contrib/README.md`](contrib/README.md) for the full contributor guide.
+
+**For Core Development:**
+
 1. Fork the repository
 2. Create a feature branch
 3. Follow the development setup (Option 1 or 2)

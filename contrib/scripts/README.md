@@ -33,7 +33,7 @@ python contrib/scripts/generate_tool.py
 **Templates Available:**
 - `basic`: Standard tool template with TODO placeholders
 - `splunk_search`: **NEW!** Specialized template for Splunk search tools
-  - Custom SPL query embedding
+  - Custom SPL query embedding with user-friendly input (single-line or multi-line)
   - Time range and result limit parameters
   - Comprehensive Splunk mocking in tests
   - Based on your working `splunk_search.py` tool
