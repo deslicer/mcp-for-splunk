@@ -26,12 +26,13 @@ class GetLatestFeatureHealthTool(BaseTool):
     - Troubleshooting infrastructure problems by focusing on degraded/critical features
     - Getting a prioritized list of features that need immediate investigation
     - Monitoring for operational issues without noise from healthy features
+    - No results are returned if there are no issues
     """
 
     METADATA = ToolMetadata(
         name="get_latest_feature_health",
         description="This tool identifies Splunk features with health issues (warning/critical status) requiring attention",
-        category="examples",
+        category="health",
         tags=["health", "monitoring", "infrastructure", "troubleshooting", "issues"],
         requires_connection=True,
         version="1.0.0"
