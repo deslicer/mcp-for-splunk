@@ -8,6 +8,7 @@ A **modular, community-driven** Model Context Protocol (MCP) server that provide
 - **👥 Community-Friendly** - Structured contribution system with examples and guidelines  
 - **🔌 MCP-Compliant** - Full MCP specification support using FastMCP framework
 - **🌐 Multiple Transports** - stdio (local) and HTTP (remote server) modes
+- **⚙️ Flexible Configuration** - Server environment or client-provided Splunk settings
 - **🔒 Enterprise-Ready** - Secure authentication and production deployment
 - **🐳 Containerized** - Docker setup with Traefik load balancing
 - **⚡ Fast Development** - Modern Python tooling with uv package manager
@@ -286,6 +287,7 @@ open http://localhost:3001
 
 ### Cursor IDE Integration
 
+**Option 1: Server Environment Configuration**
 ```json
 {
   "mcpServers": {
@@ -305,6 +307,30 @@ open http://localhost:3001
     }
   }
 }
+```
+
+**Option 2: Client-Provided Configuration (New!)**
+```json
+{
+  "mcpServers": {
+    "mcp-server-for-splunk": {
+      "command": "uv",
+      "args": [
+        "--directory", "/path/to/mcp-server-for-splunk/",
+        "run", "python", "src/server.py"
+      ]
+    }
+  }
+}
+```
+
+Then provide Splunk configuration directly in your requests:
+```
+Check the health of our production Splunk:
+- splunk_host: prod-splunk.company.com
+- splunk_username: monitoring-user
+- splunk_password: secure-password
+- splunk_verify_ssl: true
 ```
 
 ### Google ADK Integration

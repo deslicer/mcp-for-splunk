@@ -34,6 +34,59 @@ class BaseTool(ABC):
         self.description = description
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     
+    def extract_client_config(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract Splunk configuration from tool parameters.
+        
+        Looks for parameters that start with 'splunk_' and returns them as a dict.
+        Also removes them from kwargs to prevent passing to tool logic.
+        
+        Args:
+            kwargs: Tool parameters that may contain Splunk config
+            
+        Returns:
+            Dict containing extracted Splunk configuration
+        """
+        client_config = {}
+        splunk_keys = [key for key in kwargs.keys() if key.startswith('splunk_')]
+        
+        for key in splunk_keys:
+            client_config[key] = kwargs.pop(key)
+            
+        return client_config if client_config else None
+
+    async def get_splunk_service(self, ctx: Context, client_config: Optional[Dict[str, Any]] = None) -> client.Service:
+        """
+        Get Splunk service connection using client config or fallback to server default.
+        
+        Args:
+            ctx: MCP context
+            client_config: Optional client-provided Splunk configuration
+            
+        Returns:
+            Splunk service connection
+            
+        Raises:
+            Exception: If no connection available and client config doesn't work
+        """
+        # Try client-provided configuration first
+        if client_config:
+            try:
+                from src.client.splunk_client import get_splunk_service
+                self.logger.info("Using client-provided Splunk configuration")
+                return get_splunk_service(client_config)
+            except Exception as e:
+                self.logger.warning(f"Failed to connect with client config: {e}")
+                # Fall through to try server default
+        
+        # Fall back to server default connection
+        is_available, service, error = self.check_splunk_available(ctx)
+        
+        if not is_available:
+            raise Exception(f"Splunk connection not available: {error}")
+            
+        return service
+    
     def check_splunk_available(self, ctx: Context) -> tuple[bool, client.Service | None, str]:
         """
         Check if Splunk is available and return status.
