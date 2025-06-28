@@ -1,0 +1,369 @@
+"""
+Modular MCP Server for Splunk
+
+This is the new modular version that uses the core framework for
+automatic discovery and loading of tools, resources, and prompts.
+"""
+
+import argparse
+import asyncio
+import os
+import sys
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
+
+from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware, MiddlewareContext
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+# Add the project root to the path for imports
+project_root = os.path.dirname(os.path.dirname(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import logging
+
+# Create logs directory if it doesn't exist
+log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+os.makedirs(log_dir, exist_ok=True)
+
+# Enhanced logging configuration
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(log_dir, 'mcp_splunk_server.log')),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Import the core framework components
+from src.core.base import SplunkContext
+from src.core.loader import ComponentLoader
+
+# Context variable to store HTTP headers for MCP middleware access
+http_headers_context: ContextVar[dict] = ContextVar('http_headers', default={})
+
+# ASGI Middleware to capture HTTP headers
+class HeaderCaptureMiddleware(BaseHTTPMiddleware):
+    """
+    ASGI middleware that captures HTTP headers and stores them in a context variable
+    so they can be accessed by MCP middleware downstream.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        """Capture headers and store in context variable before processing request."""
+        logger.info(f"HeaderCaptureMiddleware: Processing request to {request.url.path}")
+
+        try:
+            # Convert headers to dict (case-insensitive)
+            headers = dict(request.headers)
+
+            # Store headers in context variable
+            http_headers_context.set(headers)
+
+            # Log header extraction for debugging
+            splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith('x-splunk-')}
+            if splunk_headers:
+                logger.info(f"Captured Splunk headers: {list(splunk_headers.keys())}")
+            else:
+                logger.debug(f"No Splunk headers found. Available headers: {list(headers.keys())}")
+
+        except Exception as e:
+            logger.error(f"Error capturing HTTP headers: {e}")
+            # Set empty dict as fallback
+            http_headers_context.set({})
+
+        # Continue processing the request
+        response = await call_next(request)
+        return response
+
+
+def extract_client_config_from_headers(headers: dict) -> dict | None:
+    """
+    Extract Splunk configuration from HTTP headers.
+
+    Headers should be prefixed with 'X-Splunk-' for security.
+
+    Args:
+        headers: HTTP request headers
+
+    Returns:
+        Dict with Splunk configuration or None
+    """
+    client_config = {}
+
+    # Mapping of header names to config keys
+    header_mapping = {
+        'X-Splunk-Host': 'splunk_host',
+        'X-Splunk-Port': 'splunk_port',
+        'X-Splunk-Username': 'splunk_username',
+        'X-Splunk-Password': 'splunk_password',
+        'X-Splunk-Scheme': 'splunk_scheme',
+        'X-Splunk-Verify-SSL': 'splunk_verify_ssl'
+    }
+
+    for header_name, config_key in header_mapping.items():
+        header_value = headers.get(header_name) or headers.get(header_name.lower())
+        if header_value:
+            # Handle type conversions
+            if config_key == 'splunk_port':
+                client_config[config_key] = int(header_value)
+            elif config_key == 'splunk_verify_ssl':
+                client_config[config_key] = header_value.lower() == 'true'
+            else:
+                client_config[config_key] = header_value
+
+    return client_config if client_config else None
+
+
+def extract_client_config_from_env() -> dict | None:
+    """
+    Extract Splunk configuration from MCP client environment variables.
+
+    These are separate from server environment variables and allow
+    MCP clients to provide their own Splunk connection settings.
+
+    Returns:
+        Dict with Splunk configuration from client environment
+    """
+    client_config = {}
+
+    # Check for MCP client-specific environment variables
+    env_mapping = {
+        'MCP_SPLUNK_HOST': 'splunk_host',
+        'MCP_SPLUNK_PORT': 'splunk_port',
+        'MCP_SPLUNK_USERNAME': 'splunk_username',
+        'MCP_SPLUNK_PASSWORD': 'splunk_password',
+        'MCP_SPLUNK_SCHEME': 'splunk_scheme',
+        'MCP_SPLUNK_VERIFY_SSL': 'splunk_verify_ssl'
+    }
+
+    for env_var, config_key in env_mapping.items():
+        env_value = os.getenv(env_var)
+        if env_value:
+            # Handle type conversions
+            if config_key == 'splunk_port':
+                client_config[config_key] = int(env_value)
+            elif config_key == 'splunk_verify_ssl':
+                client_config[config_key] = env_value.lower() == 'true'
+            else:
+                client_config[config_key] = env_value
+
+    return client_config if client_config else None
+
+
+@asynccontextmanager
+async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
+    """Manage Splunk connection lifecycle with client configuration support"""
+    logger.info("Initializing Splunk connection with client configuration support...")
+    service = None
+    is_connected = False
+    client_config = None
+
+    try:
+        # Check for MCP client configuration from environment (for stdio transport)
+        client_config = extract_client_config_from_env()
+
+        if client_config:
+            logger.info("Found MCP client configuration in environment variables")
+            logger.info(f"Client config keys: {list(client_config.keys())}")
+
+        # Import the safe version that doesn't raise exceptions
+        from src.client.splunk_client import get_splunk_service_safe
+        service = get_splunk_service_safe(client_config)
+
+        if service:
+            config_source = "client environment" if client_config else "server environment"
+            logger.info(f"Splunk connection established successfully using {config_source}")
+            is_connected = True
+        else:
+            logger.warning("Splunk connection failed - running in degraded mode")
+            logger.warning("Some tools will not be available until Splunk connection is restored")
+
+        # Create the context with client configuration
+        context = SplunkContext(service=service, is_connected=is_connected, client_config=client_config)
+
+        # Load all components using the modular framework
+        logger.info("Loading MCP components...")
+        component_loader = ComponentLoader(server)
+        results = component_loader.load_all_components()
+
+        logger.info(f"Successfully loaded components: {results}")
+
+        yield context
+
+    except Exception as e:
+        logger.error(f"Unexpected error during server initialization: {str(e)}")
+        logger.exception("Full traceback:")
+        # Still yield a context with no service to allow MCP server to start
+        yield SplunkContext(service=None, is_connected=False, client_config=client_config)
+    finally:
+        logger.info("Shutting down Splunk connection")
+
+
+# Initialize FastMCP server with lifespan context
+mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
+
+
+# Middleware to extract client configuration from HTTP headers
+class ClientConfigMiddleware(Middleware):
+    """
+    Middleware to extract client configuration from HTTP headers for tools to use.
+
+    This middleware allows MCP clients to provide Splunk configuration
+    via HTTP headers instead of environment variables.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.client_config_cache = {}
+        logger.info("ClientConfigMiddleware initialized")
+
+    async def on_request(self, context: MiddlewareContext, call_next):
+        """Handle all MCP requests and extract client configuration from headers if available."""
+
+        # Log context information for debugging
+        logger.debug(f"Processing request: {context.method}")
+
+        client_config = None
+
+        # Try to access HTTP headers from context variable (set by ASGI middleware)
+        try:
+            headers = http_headers_context.get({})
+
+            if headers:
+                logger.debug(f"Found HTTP headers from context: {list(headers.keys())}")
+
+                # Extract client config from headers
+                client_config = extract_client_config_from_headers(headers)
+
+                if client_config:
+                    logger.info("Successfully extracted MCP client configuration from HTTP headers")
+                    logger.info(f"Client config extracted: {list(client_config.keys())}")
+
+                    # Cache the config for this session
+                    session_id = getattr(context, 'session_id', 'default')
+                    self.client_config_cache[session_id] = client_config
+                else:
+                    logger.debug("No Splunk headers found in HTTP request")
+            else:
+                logger.debug("No HTTP headers found in context variable")
+
+            # If we didn't extract config from headers, check if we have cached config
+            if not client_config:
+                session_id = getattr(context, 'session_id', 'default')
+                client_config = self.client_config_cache.get(session_id)
+                if client_config:
+                    logger.debug(f"Using cached client config for session {session_id}")
+
+        except Exception as e:
+            logger.error(f"Error extracting client config from headers: {e}")
+            logger.exception("Full traceback:")
+
+        # Store client config in the context for tools to access
+        if client_config:
+            try:
+                # Store in the context as a custom attribute
+                context.splunk_client_config = client_config
+                logger.debug("Stored client config in context")
+
+                # Also try to update the lifespan context if available
+                if (hasattr(context, 'fastmcp_context') and
+                    context.fastmcp_context and
+                    hasattr(context.fastmcp_context, 'lifespan_context')):
+
+                    # Update the lifespan context with client config
+                    lifespan_ctx = context.fastmcp_context.lifespan_context
+                    if hasattr(lifespan_ctx, 'client_config'):
+                        lifespan_ctx.client_config = client_config
+                        logger.debug("Updated lifespan context with client config")
+
+            except Exception as e:
+                logger.error(f"Error storing client config in context: {e}")
+
+        # Continue with the request
+        result = await call_next(context)
+
+        return result
+
+# Add the middleware to the server
+mcp.add_middleware(ClientConfigMiddleware())
+
+
+# Health check endpoint for Docker
+@mcp.resource("health://status")
+def health_check() -> str:
+    """Health check endpoint for Docker and load balancers"""
+    return "OK"
+
+
+async def main():
+    """Main function for running the MCP server"""
+    # Get the port from environment variable, default to 8000
+    port = int(os.environ.get("MCP_SERVER_PORT", 8000))
+    host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+
+    logger.info(f"Starting modular MCP server on {host}:{port}")
+
+    # Create custom ASGI middleware list to capture HTTP headers
+    from starlette.middleware import Middleware as StarletteMiddleware
+
+    custom_middleware = [
+        StarletteMiddleware(HeaderCaptureMiddleware),
+    ]
+
+    # Use FastMCP's http_app method with custom middleware
+    app = mcp.http_app(path="/mcp/", middleware=custom_middleware)
+
+    # Import uvicorn to run the server
+    try:
+        import uvicorn
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        server = uvicorn.Server(config)
+        await server.serve()
+    except ImportError:
+        logger.error("uvicorn is required for HTTP transport. Install with: pip install uvicorn")
+        raise
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Modular MCP Server for Splunk")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "http"],
+        default="http",
+        help="Transport mode for MCP server"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind the HTTP server (only for http transport)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind the HTTP server (only for http transport)"
+    )
+
+    args = parser.parse_args()
+
+    logger.info("Starting Modular MCP Server for Splunk...")
+
+    try:
+        if args.transport == "stdio":
+            logger.info("Running in stdio mode for direct MCP client communication")
+            asyncio.run(mcp.run())
+        else:
+            # HTTP mode: use Streamable HTTP transport for web-based communication
+            logger.info("Running in HTTP mode with Streamable HTTP transport")
+            asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal server error: {str(e)}", exc_info=True)
+        sys.exit(1)

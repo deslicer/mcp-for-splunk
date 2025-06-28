@@ -1,71 +1,47 @@
 # MCP Server for Splunk
 
-A Model Context Protocol (MCP) server that provides seamless integration between Large Language Models (LLMs), AI agents, and Splunk instances (Enterprise/Cloud). This server exposes Splunk's powerful search and data management capabilities through standardized MCP tools.
+A **modular, community-driven** Model Context Protocol (MCP) server that provides seamless integration between Large Language Models (LLMs), AI agents, and Splunk instances (Enterprise/Cloud). This server exposes Splunk's powerful search and data management capabilities through standardized MCP tools with an extensible architecture designed for community contributions.
 
-## Features
+## ✨ Key Features
 
-- **MCP-compliant server** using FastMCP framework
-- **Multiple transport modes**: stdio (local) and HTTP (remote server)
-- **Comprehensive Splunk integration** with secure authentication
-- **Production-ready deployment** with Docker containerization and Traefik load balancing
-- **Health monitoring** and automatic service discovery
-- **Real-time communication** with MCP clients
-- **Extensive tool set** for Splunk data operations
-- **Modern Python tooling** with uv package manager for fast dependency management
+- **🏗️ Modular Architecture** - Core framework with automatic tool discovery and loading
+- **👥 Community-Friendly** - Structured contribution system with examples and guidelines  
+- **🔌 MCP-Compliant** - Full MCP specification support using FastMCP framework
+- **🌐 Multiple Transports** - stdio (local) and HTTP (remote server) modes
+- **⚙️ Flexible Configuration** - Server environment, client environment, or HTTP header Splunk settings
+- **🔒 Enterprise-Ready** - Secure authentication and production deployment
+- **🐳 Containerized** - Docker setup with Traefik load balancing
+- **⚡ Fast Development** - Modern Python tooling with uv package manager
+- **🧪 Comprehensive Testing** - Automated testing for core and community tools
 
-## Available Tools
+## 🏗️ Architecture Overview
 
-### Core Tools
-- `get_splunk_health` - Check Splunk connection status and version information
-- `list_indexes` - List all accessible Splunk indexes with count
-- `run_oneshot_search` - Execute quick Splunk searches with immediate results (best for simple queries)
-- `run_splunk_search` - Execute complex searches with progress tracking and detailed job information
+### Modular Design
+The server is built on a modular architecture that separates core functionality from community contributions:
 
-### Data Discovery Tools
-- `list_sourcetypes` - List all available sourcetypes using metadata command
-- `list_sources` - List all data sources using metadata command
-- `list_apps` - List installed Splunk apps with properties (name, version, author, etc.)
-- `list_users` - List Splunk users and their properties (roles, email, default app, etc.)
-
-### KV Store Tools
-- `list_kvstore_collections` - List KV Store collections (all apps or specific app)
-- `get_kvstore_data` - Retrieve data from KV Store collections with optional MongoDB-style queries
-- `create_kvstore_collection` - Create new KV Store collections with field definitions and indexing
-
-### Configuration Tools
-- `get_configurations` - Retrieve Splunk configuration settings from .conf files
-
-## Architecture
-
-### Local MCP Server (stdio mode)
 ```
-┌─────────────────┐    stdio     ┌─────────────────┐    HTTPS/REST    ┌─────────────────┐
-│   MCP Client    │◄────────────►│   MCP Server    │◄───────────────►│  Splunk Server  │
-│ (Cursor/Claude) │              │   (stdio mode)  │                 │   Port: 8089    │
-│                 │              │   server.py     │                 │                 │
-└─────────────────┘              └─────────────────┘                 └─────────────────┘
+📦 Core Framework (src/core/)     - Base classes, discovery, registry
+🔧 Core Tools (src/tools/)        - Essential Splunk operations  
+🌟 Community Tools (contrib/)     - Community-contributed extensions
+🔌 Plugin System (plugins/)       - External packages (future)
 ```
 
-### Remote MCP Server (HTTP mode) - ✅ **FULLY IMPLEMENTED**
-```
-┌─────────────────┐    HTTP/SSE   ┌─────────────────┐    Docker   ┌─────────────────┐    ┌─────────────────┐
-│   MCP Client    │◄─────────────►│     Traefik     │◄───────────►│   MCP Server    │◄──►│  Splunk Server  │
-│  (Web Agents)   │               │  Load Balancer  │             │   (HTTP mode)   │    │   Port: 8089    │
-│                 │               │   Port: 8001    │             │   Port: 8000    │    │                 │
-└─────────────────┘               └─────────────────┘             └─────────────────┘    └─────────────────┘
-```
+### Tool Categories
 
-### Production Docker Stack
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│     Traefik     │    │   MCP Server    │    │  Splunk Server  │    │ MCP Inspector   │
-│   Port: 8001    │    │   Port: 8000    │    │   Port: 9000    │    │   UI: 3001      │
-│   Dashboard     │    │   (Docker)      │    │   (Docker)      │    │   Proxy: 6277   │
-│   Port: 8080    │    │                 │    │                 │    │   (Docker)      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+#### Core Tools (Maintained by Project)
+- **🏥 Health & Monitoring** - Connection status, system health
+- **🔍 Search Operations** - Oneshot and job-based searches  
+- **📊 Metadata Discovery** - Indexes, sourcetypes, data sources
+- **👥 Administration** - Apps, users, configurations
+- **🗃️ KV Store Management** - Collections, data, creation
 
-## Quick Start
+#### Community Tools (contrib/)
+- **🔐 Security Tools** - Threat hunting, incident response
+- **⚙️ DevOps Tools** - Monitoring, alerting, operations
+- **📈 Analytics Tools** - Business intelligence, reporting
+- **💡 Examples** - Learning templates and patterns
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -85,43 +61,31 @@ cd mcp-server-for-splunk
 ./scripts/build_and_run.sh
 ```
 
-This will automatically:
-- ✅ Check Docker dependencies
-- ✅ Create `.env` from template
-- ✅ Build MCP server with uv
-- ✅ Start Splunk + Traefik + MCP server
-- ✅ Show all service URLs
+This automatically sets up the complete stack with the new modular server.
 
 **Access URLs after setup:**
 - 🔧 **Traefik Dashboard**: http://localhost:8080
 - 🌐 **Splunk Web UI**: http://localhost:9000 (admin/Chang3d!)
 - 🔌 **MCP Server**: http://localhost:8001/mcp/
-- 📊 **MCP Inspector**: http://localhost:3001 (web-based testing UI)
+- 📊 **MCP Inspector**: http://localhost:3001
 
-### Option 2: Manual Setup
+### Option 2: Manual Development Setup
 
-#### 1. Install uv Package Manager
+#### 1. Install Dependencies
 
 ```bash
 # Install uv (fast Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or using homebrew on macOS
-brew install uv
-```
-
-#### 2. Setup Python Environment
-
-```bash
-# Create virtual environment and install all dependencies
-uv sync
-
-# Add development dependencies (optional)
+# Create environment and install dependencies
 uv sync --dev
 ```
 
-#### 3. Configure Environment
+#### 2. Configure Splunk Connection
 
+You have **three ways** to provide Splunk configuration:
+
+**Option A: Server Environment Variables (Traditional)**
 ```bash
 # Copy and edit environment configuration
 cp env.example .env
@@ -134,255 +98,281 @@ SPLUNK_PASSWORD=Chang3d!
 SPLUNK_VERIFY_SSL=false
 ```
 
-#### 4. Start Services
-
-**For HTTP/Production Mode (Recommended):**
+**Option B: Client Environment Variables (MCP Client)**
 ```bash
-# Build and start full Docker stack with Traefik
-docker-compose build
-docker-compose up -d
-
-# Check status
-docker-compose ps
-docker-compose logs -f mcp-server
+# MCP client can provide its own Splunk configuration
+export MCP_SPLUNK_HOST=prod-splunk.company.com
+export MCP_SPLUNK_PORT=8089
+export MCP_SPLUNK_USERNAME=monitoring-user
+export MCP_SPLUNK_PASSWORD=secure-password
+export MCP_SPLUNK_VERIFY_SSL=true
 ```
 
-**For Local Development (stdio mode):**
+**Option C: HTTP Headers (HTTP Transport Only)**
 ```bash
-# Start only Splunk
+# Clients can pass configuration via HTTP headers
+curl -H "X-Splunk-Host: prod-splunk.company.com" \
+     -H "X-Splunk-Port: 8089" \
+     -H "X-Splunk-Username: monitoring-user" \
+     -H "X-Splunk-Password: secure-password" \
+     -H "X-Splunk-Verify-SSL: true" \
+     http://localhost:8001/mcp/
+```
+
+> **🔒 Security Note**: HTTP headers use `X-Splunk-*` prefixes for security and are only available in HTTP transport mode.
+
+#### 3. Run the Modular Server
+
+**Local Development (stdio mode):**
+```bash
+# Start Splunk in Docker
 docker-compose -f docker-compose-splunk.yml up -d
 
-# Run MCP server locally
+# Run modular MCP server locally
 uv run python src/server.py
 ```
 
-## Development Workflows
+**Production Mode (HTTP with Docker stack):**
+```bash
+# Build and start full stack
+docker-compose build
+docker-compose up -d
+```
+
+## 🔧 Client Configuration Options
+
+The MCP server supports **three flexible ways** to provide Splunk connection configuration:
+
+### 1. Server Environment Variables (Traditional)
+Set environment variables on the **server side** before starting:
+```bash
+export SPLUNK_HOST=so1
+export SPLUNK_USERNAME=admin
+export SPLUNK_PASSWORD=Chang3d!
+```
+
+### 2. Client Environment Variables (MCP Client)
+Set environment variables on the **client side** with `MCP_SPLUNK_*` prefix:
+```bash
+export MCP_SPLUNK_HOST=prod-splunk.company.com
+export MCP_SPLUNK_USERNAME=monitoring-user  
+export MCP_SPLUNK_PASSWORD=secure-password
+```
+
+### 3. HTTP Headers (HTTP Transport Only)
+Pass configuration dynamically via **HTTP headers** with `X-Splunk-*` prefix:
+```javascript
+// JavaScript/Node.js example
+const response = await fetch('http://localhost:8001/mcp/', {
+  headers: {
+    'X-Splunk-Host': 'prod-splunk.company.com',
+    'X-Splunk-Username': 'monitoring-user',
+    'X-Splunk-Password': 'secure-password',
+    'X-Splunk-Verify-SSL': 'true'
+  }
+});
+```
+
+**Header Mapping:**
+- `X-Splunk-Host` → `splunk_host`
+- `X-Splunk-Port` → `splunk_port`  
+- `X-Splunk-Username` → `splunk_username`
+- `X-Splunk-Password` → `splunk_password`
+- `X-Splunk-Scheme` → `splunk_scheme`
+- `X-Splunk-Verify-SSL` → `splunk_verify_ssl`
+
+> **🎯 Use Case**: HTTP headers are perfect for **multi-tenant scenarios** where different clients need different Splunk instances, or when you want to **avoid storing credentials** in environment variables.
+
+## 🛠️ Tool Development
+
+### Creating New Tools
+
+The modular architecture makes it easy to create custom tools:
+
+```bash
+# Use the interactive tool generator
+./contrib/scripts/generate_tool.py
+
+# Browse existing tools for inspiration  
+./contrib/scripts/list_tools.py --interactive
+
+# Validate your implementation
+./contrib/scripts/validate_tools.py
+```
+
+### Tool Development Workflow
+
+1. **Choose Category** - Select from examples, security, devops, or analytics
+2. **Create Tool Class** - Inherit from `BaseTool` with required metadata
+3. **Implement Logic** - Add your Splunk operations in the `execute` method
+4. **Add Tests** - Create comprehensive tests with mocks
+5. **Validate** - Use validation scripts to ensure compliance
+
+### Example: Custom Tool
+
+```python
+# contrib/tools/security/threat_hunting.py
+
+from src.core.base import BaseTool, ToolMetadata
+from fastmcp import Context
+
+class ThreatHuntingTool(BaseTool):
+    """Advanced threat hunting with custom SPL queries."""
+    
+    METADATA = ToolMetadata(
+        name="threat_hunting",
+        description="Hunt for security threats using custom SPL",
+        category="security",
+        tags=["security", "threat", "hunting"],
+        requires_connection=True
+    )
+    
+    async def execute(self, ctx: Context, query: str, timerange: str = "-24h") -> dict:
+        """Execute threat hunting search."""
+        # Your custom logic here
+        results = await self.search_splunk(query, timerange)
+        return self.format_success_response({"threats": results})
+```
+
+The tool is **automatically discovered** and loaded - no manual registration needed!
+
+## 📦 Available Tools
+
+### Core Tools (12 tools)
+- `get_splunk_health` - Check connection status and version
+- `list_indexes` - List accessible Splunk indexes  
+- `run_oneshot_search` - Quick searches with immediate results
+- `run_splunk_search` - Complex searches with progress tracking
+- `list_sourcetypes` - Discover all sourcetypes
+- `list_sources` - List data sources
+- `list_apps` - Show installed Splunk apps
+- `list_users` - List Splunk users and properties
+- `list_kvstore_collections` - KV Store collection management
+- `get_kvstore_data` - Retrieve KV Store data with queries
+- `create_kvstore_collection` - Create new collections
+- `get_configurations` - Access Splunk configuration files
+
+### Community Tools
+See `contrib/tools/` for community-contributed tools organized by category.
+
+## 🏛️ Architecture Deep Dive
+
+### Core Framework (`src/core/`)
+- **Base Classes** - `BaseTool`, `BaseResource`, `BasePrompt` for consistent interfaces
+- **Discovery System** - Automatic scanning and loading of tools
+- **Registry** - Centralized component management  
+- **Context Management** - Shared state and connection handling
+- **Utilities** - Common functions for error handling and validation
+
+### Tool Organization (`src/tools/`)
+Core tools are organized by functional domain:
+- `search/` - Search operations and job management
+- `metadata/` - Data discovery and catalog operations  
+- `health/` - System monitoring and diagnostics
+- `admin/` - Administrative and configuration tools
+- `kvstore/` - KV Store operations and management
+
+### Community Framework (`contrib/`)
+Structured system for community contributions:
+- `tools/` - Community tools by category (security, devops, analytics)
+- `resources/` - Shared resources and data
+- `prompts/` - Custom prompt templates
+- `scripts/` - Development and validation tools
+
+## 🔧 Development Workflows
 
 ### Using the Makefile
-
-The project includes a comprehensive Makefile with uv integration:
 
 ```bash
 # Development setup
 make install          # Install dependencies with uv
-make dev-setup        # Complete development environment setup
+make dev-setup        # Complete development environment
 
-# Testing
+# Testing  
 make test             # Run all tests
-make test-connections # Test MCP connections specifically
-make test-fast        # Quick tests (excluding slow ones)
-make test-all         # Comprehensive test suite with coverage
+make test-contrib     # Test community tools specifically
+make test-fast        # Quick tests only
 
 # Code quality
-make lint             # Run linting (ruff + mypy)
-make format           # Format code (black + ruff)
+make lint             # Run linting  
+make format           # Format code
 
 # Docker operations
-make docker-up        # Start Docker services
-make docker-down      # Stop Docker services  
-make docker-rebuild   # Rebuild and restart MCP server
-make docker-logs      # Show MCP server logs
-
-# Development workflow
-make dev-test         # Quick development tests (fast tests + linting)
-make ci-test          # Full CI test suite
+make docker-up        # Start services
+make docker-rebuild   # Rebuild modular server
+make docker-logs      # Show logs
 ```
 
-### Package Management with uv
-
-This project uses [uv](https://github.com/astral-sh/uv) for ultra-fast Python package management:
+### Community Development
 
 ```bash
-# Install dependencies (faster than pip)
-uv sync                    # Install all dependencies
-uv sync --dev             # Include development dependencies
-uv sync --frozen          # Use exact versions from uv.lock
+# Generate new tool interactively
+./contrib/scripts/generate_tool.py
 
-# Dependency management
-uv add requests           # Add new dependency
-uv add --dev pytest       # Add development dependency
-uv remove requests        # Remove dependency
-uv lock --upgrade         # Update dependencies
+# Validate contributions
+./contrib/scripts/validate_tools.py contrib/tools/your_category/
 
-# Running commands
-uv run python src/server.py    # Run with proper environment
-uv run pytest tests/           # Run tests
-uv run black src/              # Format code
+# Test community tools
+./contrib/scripts/test_contrib.py your_category
 
-# Environment information
-uv tree                   # Show dependency tree
-uv show                   # Show project information
+# List and explore existing tools
+./contrib/scripts/list_tools.py --interactive
 ```
 
-**Key uv Files:**
-- `pyproject.toml` - Project configuration and dependencies
-- `uv.lock` - Locked dependency versions for reproducible builds
-- `.python-version` - Python version specification
+## 🧪 Testing
 
-### Docker Development
-
-#### Full Stack Development
-
-```bash
-# Build and start everything
-./scripts/build_and_run.sh
-
-# Or manually:
-docker-compose build mcp-server
-docker-compose up -d
-
-# Development with auto-rebuild
-docker-compose up --build mcp-server
-
-# Check logs
-make docker-logs
-# or
-docker-compose logs -f mcp-server
-```
-
-#### Local MCP + Docker Splunk
-
-```bash
-# Start only Splunk in Docker
-docker-compose -f docker-compose-splunk.yml up -d
-
-# Run MCP server locally for faster development
-uv run python src/server.py
-
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector uv run python src/server.py
-```
-
-## Testing
+### Test Architecture
+- **Core Tests** - Framework and core tool validation (52+ tests)
+- **Community Tests** - Automatic testing for contrib tools
+- **Integration Tests** - End-to-end MCP client testing  
+- **Mock Framework** - Comprehensive Splunk service mocking
 
 ### Running Tests
 
 ```bash
-# Quick test commands
-make test-connections     # Test MCP connections
-make test-health         # Test health endpoints
-make test-fast           # Fast tests only
-make test-all            # Full test suite with coverage
+# Quick test workflows
+make test-fast        # Fast tests + linting
+make test-contrib     # Community tools only
+make test-all         # Full suite with coverage
 
-# Detailed pytest commands
+# Detailed testing
 uv run pytest tests/ -v                    # All tests
-uv run pytest tests/ -k "connection" -v    # Connection tests only
-uv run pytest tests/ --cov=src            # With coverage
+uv run pytest tests/contrib/ -k security   # Category-specific
+uv run pytest --cov=src                   # With coverage
 ```
 
-### Test Architecture
-
-The project includes comprehensive tests for:
-
-1. **MCP Connection Tests**
-   - ✅ Traefik-proxied connections (http://localhost:8001/mcp/)
-   - ✅ Direct connections (http://localhost:8002/mcp/)
-   - ✅ Health resource endpoints
-
-2. **Splunk Integration Tests**
-   - ✅ Health checks and connectivity
-   - ✅ Index and data source discovery
-   - ✅ Search operations
-   - ✅ KV Store operations
-   - ✅ Configuration management
-
-3. **Error Handling Tests**
-   - ✅ Connection failures
-   - ✅ Invalid parameters
-   - ✅ Timeout scenarios
-
-### Test Environment
-
-Tests require:
-- **Docker containers running** (MCP server, Traefik, Splunk)
-- **Network connectivity** to localhost:8001 and localhost:8002
-- **Healthy Splunk instance** with default data
-
-## Integration Examples
+## 🌐 Integration Examples
 
 ### MCP Inspector (Web Testing)
 
-The project includes a fully integrated MCP Inspector service for interactive testing and debugging of the Splunk MCP server.
-
-#### Docker-Integrated Inspector (Recommended)
-
-The MCP Inspector runs as a Docker service alongside the MCP server:
-
 ```bash
-# Start the full stack (includes inspector)
+# Start full stack with integrated inspector
 ./scripts/build_and_run.sh
 
-# Access the inspector web UI
+# Access web-based testing UI
 open http://localhost:3001
 
-# Connect to the MCP server from inspector
-# Server URL: http://localhost:8002/mcp/
+# Connect to: http://localhost:8002/mcp/
 ```
 
-**Inspector Features:**
-- 🌐 **Web-based UI** at http://localhost:3001
-- 🔗 **Auto-configured** to connect to the MCP server
-- 🛡️ **CORS enabled** with proper origin handling
-- 🔐 **Authentication bypassed** for development (`DANGEROUSLY_OMIT_AUTH=true`)
-- 📊 **Real-time testing** of all Splunk tools
-- 🐳 **Docker integrated** with automatic startup
-
-#### Manual Inspector Setup
-
-For standalone testing with local server:
-
-```bash
-# Test local stdio server
-npx @modelcontextprotocol/inspector uv run python src/server.py
-
-# Test remote HTTP server  
-npx @modelcontextprotocol/inspector http://localhost:8001/mcp/
-```
-
-#### Inspector Configuration
-
-The Docker service includes optimized configuration:
-
-```yaml
-# Key environment variables
-DANGEROUSLY_OMIT_AUTH=true           # Skip authentication for development
-HOST=0.0.0.0                        # Bind to all interfaces
-ALLOWED_ORIGINS=http://localhost:*   # Enable cross-origin requests
-```
-
-#### Testing Workflow with Inspector
-
-1. **Start Services**: `./scripts/build_and_run.sh`
-2. **Open Inspector**: Navigate to http://localhost:3001
-3. **Connect to Server**: Use `http://localhost:8002/mcp/` as server URL
-4. **Test Tools**: Interactively test all Splunk operations:
-   - `get_splunk_health()` - Verify connectivity
-   - `list_indexes()` - Explore available data indexes
-   - `run_oneshot_search("index=_internal | head 5")` - Execute searches
-   - `list_sourcetypes()` - Discover data source types
-   - All other Splunk MCP tools with real-time feedback
+> **💡 Testing HTTP Headers**: The MCP Inspector is perfect for testing the new HTTP header configuration. You can add custom `X-Splunk-*` headers in the inspector interface to test different Splunk instances dynamically.
 
 ### Cursor IDE Integration
 
-Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
-
-**For Local Development (stdio):**
+**Option 1: Server Environment Configuration (Traditional)**
 ```json
 {
   "mcpServers": {
     "mcp-server-for-splunk": {
       "command": "uv",
       "args": [
-        "--directory",
-        "/path/to/mcp-server-for-splunk/",
-        "run",
-        "python",
-        "src/server.py"
+        "--directory", "/path/to/mcp-server-for-splunk/",
+        "run", "python", "src/server.py"
       ],
       "env": {
         "SPLUNK_HOST": "localhost",
-        "SPLUNK_PORT": "8089", 
-        "SPLUNK_USERNAME": "admin",
+        "SPLUNK_PORT": "8089",
+        "SPLUNK_USERNAME": "admin", 
         "SPLUNK_PASSWORD": "Chang3d!",
         "SPLUNK_VERIFY_SSL": "false"
       }
@@ -391,48 +381,89 @@ Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
 }
 ```
 
-**For Remote HTTP Server:**
+**Option 2: Client Environment Configuration (stdio transport)**
 ```json
 {
   "mcpServers": {
-    "mcp-server-for-splunk-http": {
-      "command": "npx",
+    "mcp-server-for-splunk": {
+      "command": "uv",
       "args": [
-        "@modelcontextprotocol/inspector",
-        "http://localhost:8001/mcp/"
-      ]
+        "--directory", "/path/to/mcp-server-for-splunk/",
+        "run", "python", "src/server.py"
+      ],
+      "env": {
+        "MCP_SPLUNK_HOST": "prod-splunk.company.com",
+        "MCP_SPLUNK_USERNAME": "monitoring-user",
+        "MCP_SPLUNK_PASSWORD": "secure-password",
+        "MCP_SPLUNK_VERIFY_SSL": "true"
+      }
     }
   }
 }
 ```
 
+**Option 3: HTTP Transport with Headers (New!)**
+```json
+{
+  "mcpServers": {
+    "mcp-server-for-splunk": {
+      "transport": "http",
+      "url": "http://localhost:8001/mcp/",
+      "headers": {
+        "X-Splunk-Host": "prod-splunk.company.com",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "monitoring-user",
+        "X-Splunk-Password": "secure-password",
+        "X-Splunk-Verify-SSL": "true"
+      }
+    }
+  }
+}
+```
+
+> **🔒 Security**: HTTP headers use `X-Splunk-*` prefixes and allow dynamic per-request configuration without exposing credentials in process environment.
+
 ### Google ADK Integration
 
-Based on the [Google ADK MCP documentation](https://google.github.io/adk-docs/tools/mcp-tools/#mcptoolset-class):
-
-#### Local stdio Mode
+**Option 1: Stdio with Client Environment**
 ```python
-from google.adk.agents.llm_agent import LlmAgent
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+import os
+
+# Set client configuration
+os.environ['MCP_SPLUNK_HOST'] = 'prod-splunk.company.com'
+os.environ['MCP_SPLUNK_USERNAME'] = 'monitoring-user'
+os.environ['MCP_SPLUNK_PASSWORD'] = 'secure-password'
 
 splunk_agent = LlmAgent(
     model='gemini-2.0-flash',
-    name='splunk_assistant',
-    instruction="""You are a Splunk expert assistant. Use the available Splunk tools to analyze data, check system health, and manage Splunk resources.""",
     tools=[
         MCPToolset(
             connection_params=StdioServerParameters(
                 command='uv',
-                args=[
-                    '--directory', '/path/to/mcp-server-for-splunk/',
-                    'run', 'python', 'src/server.py'
-                ],
-                env={
-                    'SPLUNK_HOST': 'localhost',
-                    'SPLUNK_PORT': '8089',
-                    'SPLUNK_USERNAME': 'admin',
-                    'SPLUNK_PASSWORD': 'Chang3d!',
-                    'SPLUNK_VERIFY_SSL': 'false'
+                args=['--directory', '/path/to/mcp-server-for-splunk/',
+                      'run', 'python', 'src/server.py']
+            )
+        )
+    ]
+)
+```
+
+**Option 2: HTTP with Headers (Requires HTTP Transport)**
+```python
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, HttpServerParameters
+
+splunk_agent = LlmAgent(
+    model='gemini-2.0-flash',
+    tools=[
+        MCPToolset(
+            connection_params=HttpServerParameters(
+                url='http://localhost:8001/mcp/',
+                headers={
+                    'X-Splunk-Host': 'prod-splunk.company.com',
+                    'X-Splunk-Username': 'monitoring-user',
+                    'X-Splunk-Password': 'secure-password',
+                    'X-Splunk-Verify-SSL': 'true'
                 }
             )
         )
@@ -440,253 +471,102 @@ splunk_agent = LlmAgent(
 )
 ```
 
-#### Remote HTTP Mode
-```python
-from google.adk.tools.mcp_tool.mcp_toolset import SseServerParams
+## 🐳 Production Deployment
 
-# For HTTP server integration
-MCPToolset(
-    connection_params=SseServerParams(
-        url="http://localhost:8001/mcp/",
-        headers={"Authorization": "Bearer your-token"}  # Optional
-    ),
-    tool_filter=[
-        'get_splunk_health',
-        'run_oneshot_search', 
-        'list_indexes',
-        'list_sourcetypes'
-    ]
-)
-```
+### Docker Stack Features
+- **Traefik Load Balancer** - Automatic service discovery and routing
+- **Multi-stage Builds** - Optimized with uv for fast dependency management
+- **Health Monitoring** - Built-in health checks for all services
+- **Security Best Practices** - Non-root users and minimal attack surface
+- **Development Mode** - File watching and auto-rebuild support
+- **Multi-tenant Ready** - HTTP header configuration for different clients/Splunk instances
 
-## Production Deployment
-
-### Traefik Configuration
-
-The HTTP mode includes full Traefik integration with:
-
-- ✅ **Load balancing** and service discovery
-- ✅ **CORS headers** for web client compatibility
-- ✅ **Health checks** and monitoring
-- ✅ **Path-based routing** (`/mcp/` prefix)
-- ✅ **Dashboard** for monitoring (http://localhost:8080)
-
-### Docker Configuration
-
-**Dockerfile Features:**
-- 🚀 **Multi-stage build** with uv for fast dependency installation
-- 📦 **Optimized layers** for better caching
-- 🔒 **Security best practices** with non-root user and minimal image
-- 📊 **Health checks** built-in
-- 🏗️ **uv integration** for reproducible builds
-
-**docker-compose.yml Features:**
-- 🌐 **Traefik reverse proxy** with automatic service discovery
-- 🔄 **Auto-restart policies** for production reliability
-- 📡 **Network isolation** with dedicated networks
-- 💾 **Volume persistence** for Splunk data
-- 🔍 **Health monitoring** for all services
-- 🔧 **Development mode** with file watching and auto-rebuild
-- 📊 **Integrated MCP Inspector** with web UI and CORS configuration
-
-### Environment Configuration
-
-```bash
-# Production environment variables
-SPLUNK_HOST=production-splunk.company.com
-SPLUNK_PORT=8089
-SPLUNK_USERNAME=service-account
-SPLUNK_PASSWORD=secure-password
-SPLUNK_VERIFY_SSL=true
-MCP_SERVER_HOST=0.0.0.0
-MCP_SERVER_PORT=8000
-MCP_SERVER_MODE=docker
-```
-
-## Available Scripts and Automation
-
-### Automated Build Script
-
-```bash
-# One-command setup
-./scripts/build_and_run.sh
-
-# Features:
-# ✅ Dependency checking (Docker, docker-compose)
-# ✅ Environment setup (.env creation)
-# ✅ Docker build with uv
-# ✅ Service startup and health checks
-# ✅ URL display and status reporting
-```
-
-### Splunk Development Script
-
-```bash
-# Start Splunk development environment
-chmod +x scripts/run_splunk.sh
-./scripts/run_splunk.sh
-
-# Features:
-# ✅ ARM64/Apple Silicon compatibility
-# ✅ Health monitoring and wait logic
-# ✅ Color-coded status output
-# ✅ Connection info and helpful commands
-```
-
-## Project Documentation
-
-### Implementation Status
-
-- ✅ **stdio MCP Server**: Fully implemented and tested
-- ✅ **HTTP MCP Server**: Fully implemented with Traefik integration
-- ✅ **Splunk Integration**: Complete with 12 tools covering all major operations
-- ✅ **Local Development**: Full setup with docker-compose-splunk.yml
-- ✅ **Production Docker Stack**: Complete with Traefik load balancing
-- ✅ **MCP Inspector Integration**: Docker service with web UI at localhost:3001
-- ✅ **MCP Inspector Support**: Working with both local and remote modes
-- ✅ **Cursor IDE Integration**: Configured and tested for both modes
-- ✅ **Testing Suite**: Comprehensive tests for connections and functionality
-- ✅ **uv Package Management**: Fast dependency management and builds
-- ✅ **Automated Setup**: One-command deployment scripts
-- ✅ **Google ADK Integration**: Documented with examples for both modes
-- ✅ **Production Deployment**: Docker setup with monitoring and health checks
-
-### Configuration Files
-
-- **pyproject.toml**: Python project configuration with uv package management
-- **uv.lock**: Locked dependency versions for reproducible builds
-- **docker-compose.yml**: Full production stack with Traefik load balancing
-- **docker-compose-splunk.yml**: Standalone Splunk development environment
-- **Dockerfile**: Multi-stage build with uv integration
-- **.env**: Environment variables for Splunk connection and server configuration
-- **Makefile**: Development workflow automation with uv commands
-- **scripts/build_and_run.sh**: Automated setup and deployment script
-
-### Documentation Structure
-
-```
-docs/
-├── business-case.md           # Business justification and use cases
-├── DOCKER.md                  # Docker setup and configuration guide
-├── TESTING.md                 # Testing setup and procedures
-└── prds/
-    ├── main-prd-mcp-server-for-splunk.md  # Main product requirements
-    └── mvp-prd.md             # MVP specifications
-```
-
-## Monitoring and Troubleshooting
-
-### Health Checks
-
-```bash
-# MCP server health (HTTP mode)
-curl http://localhost:8001/mcp/resources/health%3A%2F%2Fstatus
-
-# MCP server health (direct)
-curl http://localhost:8002/mcp/resources/health%3A%2F%2Fstatus
-
-# Splunk connection
-uv run python -c "from src.splunk_client import get_splunk_service; print(get_splunk_service().info)"
-
-# Docker services
-docker-compose ps
-make docker-logs
-```
-
-### Service URLs Summary
-
+### Service URLs
 | Service | URL | Purpose |
 |---------|-----|---------|
 | **MCP Server (Traefik)** | http://localhost:8001/mcp/ | Primary MCP endpoint |
 | **MCP Server (Direct)** | http://localhost:8002/mcp/ | Direct access |
-| **MCP Inspector** | http://localhost:3001 | Web-based testing UI |
-| **Inspector Proxy** | http://localhost:6277 | Inspector proxy server |
+| **MCP Inspector** | http://localhost:3001 | Web testing UI |
 | **Traefik Dashboard** | http://localhost:8080 | Load balancer monitoring |
 | **Splunk Web UI** | http://localhost:9000 | Splunk interface |
-| **Splunk Management** | https://localhost:8089 | API endpoint |
 
-### Common Issues and Solutions
+## 👥 Contributing
 
-1. **Build Failures**
-   ```bash
-   # Clean and rebuild
-docker-compose down
-docker system prune -f
-./scripts/build_and_run.sh
-   ```
+**🚀 New Contributors? Get started quickly:**
 
-2. **Connection Issues** 
-   ```bash
-   # Check service status
-   make docker-logs
-   docker-compose ps
-   
-   # Test connections
-   make test-connections
-   ```
+```bash
+# Interactive tool creation
+./contrib/scripts/generate_tool.py
 
-3. **uv Issues**
-   ```bash
-   # Update uv
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   
-   # Refresh lock file
-   uv lock --upgrade
-   uv sync --dev
-   ```
+# Explore existing tools  
+./contrib/scripts/list_tools.py
 
-4. **MCP Inspector Issues**
-   ```bash
-   # Check inspector service status
-   docker-compose logs mcp-inspector
-   
-   # Restart inspector service
-   docker-compose restart mcp-inspector
-   
-   # Access inspector directly
-   open http://localhost:3001
-   
-   # Test inspector proxy health
-   curl http://localhost:6277/health
-   ```
+# Validate your work
+./contrib/scripts/validate_tools.py
 
-## Contributing
+# Test your contributions
+./contrib/scripts/test_contrib.py
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Follow the development setup (Option 1 or 2)
-4. Use `make dev-test` for quick validation
-5. Add tests for new functionality
-6. Run full test suite with `make ci-test`
-7. Update documentation
-8. Submit a pull request
+**For detailed contribution guidelines**, see:
+- 📖 [`contrib/README.md`](contrib/README.md) - Complete contribution guide
+- 🛠️ [`contrib/scripts/README.md`](contrib/scripts/README.md) - Helper script documentation  
+- 🏗️ [`ARCHITECTURE.md`](ARCHITECTURE.md) - Architecture deep dive
+- 📋 [`docs/contrib/`](docs/contrib/) - Detailed development guides
 
 ### Development Best Practices
 
 ```bash
 # Before committing
 make format          # Format code
-make lint           # Check code quality  
-make test-fast      # Quick test validation
-make dev-test       # Complete dev workflow
+make lint           # Check quality
+make test-fast      # Quick validation
 
-# Before pushing
+# Before pushing  
 make ci-test        # Full CI validation
 ```
 
-## License
+## 📚 Documentation
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+- **[Architecture Guide](ARCHITECTURE.md)** - Detailed architecture overview
+- **[Refactoring Summary](REFACTORING_SUMMARY.md)** - Migration from monolithic to modular
+- **[Contribution Guide](contrib/README.md)** - Community contribution process
+- **[Testing Guide](TESTING.md)** - Comprehensive testing documentation
+- **[Docker Guide](DOCKER.md)** - Container deployment and configuration
 
-## Support
+## 🔄 Migration from Monolithic Version
 
-- **Issues**: Report bugs and feature requests via GitHub Issues
-- **Documentation**: Check the `/docs` directory for detailed guides
-- **MCP Inspector**: Use http://localhost:3001 for interactive testing and debugging
-- **Inspector Health**: Check http://localhost:6277/health for proxy status
-- **Community**: Join discussions for help and best practices
-- **Traefik Dashboard**: Monitor load balancing at http://localhost:8080
+The project maintains backward compatibility:
+- **Original server** (`server.py`) remains functional
+- **New modular server** provides identical API and functionality
+- **Gradual migration** is supported
+- **All existing integrations** continue to work
+
+To migrate: replace `python src/server.py` with the modular server in your deployment scripts.
+
+## 📊 Project Status
+
+- ✅ **Modular Architecture** - Complete with automatic discovery
+- ✅ **Core Tools** - 12 essential Splunk tools implemented
+- ✅ **Community Framework** - Contribution system with examples
+- ✅ **Development Tools** - Interactive generators and validators
+- ✅ **Testing Suite** - Comprehensive test coverage (63%+)
+- ✅ **Documentation** - Complete guides and examples
+- ✅ **Production Deployment** - Docker stack with monitoring
+- ✅ **MCP Inspector Integration** - Web-based testing and debugging
+- ✅ **Flexible Client Configuration** - Environment variables and HTTP headers support
+
+## 🆘 Support
+
+- **🐛 Issues**: Report bugs via GitHub Issues
+- **📖 Documentation**: Check `/docs` directory for guides
+- **🔧 Interactive Testing**: Use MCP Inspector at http://localhost:3001
+- **💬 Community**: Join GitHub Discussions for help
+- **📊 Monitoring**: Traefik Dashboard at http://localhost:8080
 
 ---
 
-**🚀 Ready to use!** Start with `./scripts/build_and_run.sh` for immediate setup, or choose your preferred development workflow above.
+**🚀 Ready to start?** 
+- **Quick Setup**: `./scripts/build_and_run.sh`
+- **Create Tools**: `./contrib/scripts/generate_tool.py`  
+- **Explore**: `./contrib/scripts/list_tools.py --interactive`

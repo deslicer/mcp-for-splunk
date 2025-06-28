@@ -1,0 +1,3 @@
+"""
+Contrib examples tests
+"""

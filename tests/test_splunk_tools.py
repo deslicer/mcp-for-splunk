@@ -1,38 +1,38 @@
 """
 Tests for Splunk tools functionality.
 """
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 from src import server
 
 
 class TestSplunkHealthTool:
     """Test the health check functionality"""
-    
+
     def test_health_check_success(self, mock_context):
         """Test successful health check"""
         # Set up the mock context
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service = Mock()
         mock_context.request_context.lifespan_context.service.info = {
-            "version": "9.0.0", 
+            "version": "9.0.0",
             "host": "localhost"
         }
-        
+
         result = server.get_splunk_health.fn(mock_context)
-        
+
         assert result["status"] == "connected"
         assert result["version"] == "9.0.0"
         assert result["server_name"] == "localhost"
-    
+
     def test_health_check_failure(self, mock_context):
         """Test health check failure"""
         # Simulate disconnected state
         mock_context.request_context.lifespan_context.is_connected = False
         mock_context.request_context.lifespan_context.service = None
-        
+
         result = server.get_splunk_health.fn(mock_context)
-        
+
         assert result["status"] == "disconnected"
         assert "Splunk service is not available" in result["error"]
 
@@ -43,9 +43,9 @@ class TestSplunkHealthTool:
         mock_context.request_context.lifespan_context.service.info = {
             "version": "9.0.0"  # Missing host
         }
-        
+
         result = server.get_splunk_health.fn(mock_context)
-        
+
         assert result["status"] == "connected"
         assert result["version"] == "9.0.0"
         assert result["server_name"] == "unknown"
@@ -53,11 +53,11 @@ class TestSplunkHealthTool:
 
 class TestIndexTools:
     """Test index-related tools"""
-    
+
     def test_list_indexes_success(self, mock_context):
         """Test successful index listing"""
         result = server.list_indexes.fn(mock_context)
-        
+
         assert "indexes" in result
         assert "count" in result
         assert result["count"] == 4
@@ -67,13 +67,13 @@ class TestIndexTools:
 
 class TestMetadataTools:
     """Test metadata tools (sourcetypes and sources)"""
-    
+
     def test_list_sourcetypes_success(self, mock_context, mock_results_reader):
         """Test successful sourcetype listing"""
         with patch('src.server.ResultsReader', mock_results_reader):
             # Mock the oneshot job
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
-            
+
             # Mock ResultsReader with sourcetype data
             sourcetype_results = [
                 {"sourcetype": "access_combined"},
@@ -82,9 +82,9 @@ class TestMetadataTools:
             ]
             with patch('src.server.ResultsReader') as mock_reader:
                 mock_reader.return_value = iter(sourcetype_results)
-                
+
                 result = server.list_sourcetypes.fn(mock_context)
-                
+
                 assert "sourcetypes" in result
                 assert "count" in result
                 assert result["count"] == 3
@@ -95,15 +95,15 @@ class TestMetadataTools:
         """Test successful source listing"""
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
-            
+
             source_results = [
                 {"source": "/var/log/system.log"},
                 {"source": "/var/log/app.log"}
             ]
             mock_reader.return_value = iter(source_results)
-            
+
             result = server.list_sources.fn(mock_context)
-            
+
             assert "sources" in result
             assert "count" in result
             assert result["count"] == 2
@@ -117,7 +117,7 @@ class TestSearchTools:
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
-            
+
             result = server.run_oneshot_search.fn(
                 mock_context,
                 query="index=main",
@@ -125,7 +125,7 @@ class TestSearchTools:
                 latest_time="now",
                 max_results=10
             )
-            
+
             assert "results" in result
             assert "results_count" in result
             assert "query_executed" in result
@@ -137,12 +137,12 @@ class TestSearchTools:
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
-            
+
             result = server.run_oneshot_search.fn(
                 mock_context,
                 query="| stats count by log_level"
             )
-            
+
             assert result["query_executed"] == "| stats count by log_level"
 
     def test_run_oneshot_search_with_search_prefix(self, mock_context, mock_search_results):
@@ -150,28 +150,28 @@ class TestSearchTools:
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
-            
+
             result = server.run_oneshot_search.fn(
                 mock_context,
                 query="search index=main"
             )
-            
+
             assert result["query_executed"] == "search index=main"
 
     def test_run_oneshot_search_max_results_limit(self, mock_context):
         """Test oneshot search with max results limiting"""
         large_results = [{"result": i} for i in range(150)]
-        
+
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(large_results)
-            
+
             result = server.run_oneshot_search.fn(
                 mock_context,
                 query="index=main",
                 max_results=100
             )
-            
+
             assert result["results_count"] == 100
 
     def test_run_oneshot_search_error(self, mock_context):
@@ -179,20 +179,20 @@ class TestSearchTools:
         # Simulate disconnected state which causes error response instead of exception
         mock_context.request_context.lifespan_context.is_connected = False
         mock_context.request_context.lifespan_context.service = None
-        
+
         result = server.run_oneshot_search.fn(mock_context, query="index=main")
-        
+
         assert result["status"] == "error"
         assert "Splunk service is not available" in result["error"]
 
 
 class TestAppAndUserTools:
     """Test app and user management tools"""
-    
+
     def test_list_apps_success(self, mock_context):
         """Test successful app listing"""
         result = server.list_apps.fn(mock_context)
-        
+
         assert "apps" in result
         assert "count" in result
         assert result["count"] == 3
@@ -203,7 +203,7 @@ class TestAppAndUserTools:
     def test_list_users_success(self, mock_context):
         """Test successful user listing"""
         result = server.list_users.fn(mock_context)
-        
+
         assert "users" in result
         assert "count" in result
         assert result["count"] == 2
@@ -214,7 +214,7 @@ class TestAppAndUserTools:
 
 class TestKVStoreTools:
     """Test KV Store tools"""
-    
+
     def test_list_kvstore_collections_specific_app(self, mock_context):
         """Test listing KV Store collections for specific app"""
         # Mock the kvstore structure
@@ -223,9 +223,9 @@ class TestKVStoreTools:
         mock_collection.name = "test_collection"
         mock_kvstore.__iter__ = Mock(return_value=iter([mock_collection]))
         mock_context.request_context.lifespan_context.service.kvstore = {"search": mock_kvstore}
-        
+
         result = server.list_kvstore_collections.fn(mock_context, app="search")
-        
+
         assert "collections" in result
         assert "count" in result
 
@@ -237,16 +237,16 @@ class TestKVStoreTools:
         mock_kvstore = Mock()
         mock_kvstore.__getitem__ = Mock(return_value=mock_collection)
         mock_context.request_context.lifespan_context.service.kvstore = {"search": mock_kvstore}
-        
+
         result = server.get_kvstore_data.fn(mock_context, collection="users", app="search")
-        
+
         assert "documents" in result
         assert "count" in result
 
 
 class TestConfigurationTools:
     """Test configuration management tools"""
-    
+
     def test_get_configurations_all_stanzas(self, mock_context):
         """Test getting all configuration stanzas"""
         # Mock configuration data
@@ -256,9 +256,9 @@ class TestConfigurationTools:
         mock_conf = Mock()
         mock_conf.__iter__ = Mock(return_value=iter([mock_stanza]))
         mock_context.request_context.lifespan_context.service.confs = {"props": mock_conf}
-        
+
         result = server.get_configurations.fn(mock_context, conf_file="props")
-        
+
         assert "file" in result
         assert "stanzas" in result
         assert result["file"] == "props"
@@ -273,9 +273,9 @@ class TestConfigurationTools:
         mock_stanza.content = {"setting1": "value1"}
         mock_conf.__getitem__ = Mock(return_value=mock_stanza)
         mock_context.request_context.lifespan_context.service.confs = {"props": mock_conf}
-        
+
         result = server.get_configurations.fn(mock_context, conf_file="props", stanza="default")
-        
+
         assert "stanza" in result
         assert "settings" in result
         assert result["stanza"] == "default"
@@ -284,20 +284,20 @@ class TestConfigurationTools:
 
 class TestToolIntegration:
     """Test integration between multiple tools"""
-    
+
     def test_health_check_before_operations(self, mock_context):
         """Test health check workflow before operations"""
         # First check health
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service = Mock()
         mock_context.request_context.lifespan_context.service.info = {
-            "version": "9.0.0", 
+            "version": "9.0.0",
             "host": "localhost"
         }
-        
+
         health_result = server.get_splunk_health.fn(mock_context)
         assert health_result["status"] == "connected"
-        
+
         # Then perform operation
         indexes_result = server.list_indexes.fn(mock_context)
         assert "indexes" in indexes_result
@@ -307,16 +307,16 @@ class TestToolIntegration:
         # First list indexes
         indexes_result = server.list_indexes.fn(mock_context)
         assert "indexes" in indexes_result
-        
+
         # Then perform search
         with patch('src.server.ResultsReader') as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
-            
+
             search_result = server.run_oneshot_search.fn(
                 mock_context,
                 query="index=main | head 5"
             )
-            
+
             assert "results" in search_result
-            assert search_result["results_count"] > 0 
+            assert search_result["results_count"] > 0
