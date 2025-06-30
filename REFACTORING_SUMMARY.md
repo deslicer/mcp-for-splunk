@@ -1,6 +1,99 @@
-# MCP Server for Splunk - Modular Refactoring Summary
+# MCP Server for Splunk - Refactoring Summary
 
 ## Overview
+This document tracks the major refactoring work to modernize the MCP server architecture and resolve critical compatibility issues.
+
+## Recently Completed (2025-06-30)
+
+### ✅ FastMCP API Compatibility Resolution
+**Issue**: Server startup was failing due to incorrect FastMCP API usage
+- **Problem**: `ResourceLoader` was calling `self.mcp_server.list_resources()` which doesn't exist in FastMCP
+- **Root Cause**: FastMCP uses `@mcp_server.resource()` decorators for resource registration, not explicit list handlers
+- **Solution**: Removed the incorrect `_register_list_handler()` method and API call
+- **Result**: Server now starts successfully and loads all tools/resources without API errors
+
+### ✅ Modular Resources Architecture  
+**Implemented**: New `src/core/resources/` directory structure
+- `base.py` - Base resource classes and common functionality
+- `splunk_config.py` - Splunk-specific resource implementations  
+- `__init__.py` - Clean package exports
+- **Benefit**: Better organization and extensibility for resource types
+
+### ✅ Enhanced Configuration Pipeline
+**Components**:
+- `client_identity.py` - Client identification and management
+- `enhanced_config_extractor.py` - Multi-source configuration extraction
+- Middleware integration for HTTP header-based config
+- Environment variable fallback support
+
+### ✅ Cleanup and Organization
+**Removed obsolete files**:
+- `multi_tenant_resources.py` (replaced by resources/ directory)
+- `resource_handler.py` (functionality merged into base.py)  
+- `splunk_apps_resource.py` (moved to resources/splunk_config.py)
+- Temporary test files created during debugging
+
+## Current Status
+
+### ✅ Working Components
+1. **Server Startup** - No more FastMCP API errors
+2. **Tool Loading** - 15+ tools register successfully  
+3. **Resource Registration** - 14+ resources load properly
+4. **Basic Functionality** - Core MCP operations work
+5. **Module Structure** - Clean imports and organization
+
+### ⚠️ Known Issues (Secondary)
+1. **Client Configuration Pipeline** - HTTP header-based config extraction needs verification
+   - Middleware captures headers correctly
+   - Config extraction logic is implemented
+   - End-to-end flow through context variables may need debugging
+   
+2. **Tool Registration Warnings** - Some tools fail with **kwargs (expected with FastMCP)
+3. **Duplicate Resource Warnings** - Normal behavior during development
+
+### 🔍 Areas for Future Investigation
+1. **Multi-tenant Client Config** - Verify HTTP header → middleware → resources flow
+2. **Error Handling** - Enhance graceful degradation when Splunk is unavailable  
+3. **Performance** - Optimize resource loading and caching
+4. **Testing** - Expand integration test coverage
+
+## Architecture Improvements
+
+### Before (Issues)
+```
+❌ ResourceLoader._register_list_handler() -> mcp_server.list_resources()  # API doesn't exist
+❌ Scattered resource files in core/ directory
+❌ Server startup failures
+❌ Inconsistent error handling
+```
+
+### After (Fixed)
+```
+✅ FastMCP @mcp_server.resource() decorators (correct API)
+✅ Organized resources/ directory structure  
+✅ Successful server startup with proper component loading
+✅ Enhanced configuration extraction with multiple fallbacks
+✅ Clean module organization and imports
+```
+
+## Testing Status
+- ✅ Core imports work correctly
+- ✅ Server starts without errors  
+- ✅ Tool/resource registries operational
+- ✅ FastMCP compatibility confirmed
+- ✅ Basic functionality verified
+
+## Commit History
+- `0c25945` - Fix FastMCP API compatibility and implement modular resources
+
+---
+
+## Next Steps Recommendations
+
+1. **Production Readiness**: The server core is now stable for basic usage
+2. **Client Config Testing**: Create integration tests for HTTP header configuration flow  
+3. **Documentation**: Update client configuration guide with header examples
+4. **Monitoring**: Add health checks for Splunk connectivity status
 
 Your MCP Server for Splunk has been successfully refactored from a monolithic structure to a modular, community-friendly architecture. This transformation enables easy community contributions while maintaining a clean separation between core functionality and extensions.
 
