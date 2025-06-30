@@ -6,6 +6,7 @@ Provides secure client identification, connection pooling, and resource isolatio
 
 import hashlib
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from uuid import uuid4
@@ -97,6 +98,14 @@ class ClientConnectionManager:
             SecurityError: If client validation fails
             ConnectionError: If Splunk connection fails
         """
+        # Check if this is a server default configuration
+        is_default_config = client_config.get('_is_default', False)
+        
+        if is_default_config:
+            # For default server config, use a special approach
+            return await self._get_default_connection(ctx, client_config)
+        
+        # Regular client-specific connection handling
         identity = self.create_client_identity(ctx, client_config)
         
         # Check for existing connection
@@ -127,6 +136,130 @@ class ClientConnectionManager:
         except Exception as e:
             self.logger.error(f"Failed to create connection for client {identity.client_id}: {e}")
             raise ConnectionError(f"Failed to connect to Splunk: {str(e)}")
+    
+    async def _get_default_connection(self, ctx: Context, client_config: Dict[str, Any]) -> tuple[ClientIdentity, client.Service]:
+        """
+        Get or create connection using server default configuration.
+        
+        This method handles the case where no client-specific configuration is provided
+        and falls back to the server's default Splunk connection.
+        
+        Args:
+            ctx: MCP context
+            client_config: Server default configuration
+            
+        Returns:
+            Tuple of (ClientIdentity, Splunk Service)
+        """
+        # Create a special identity for default connections
+        session_id = self._extract_session_id(ctx)
+        default_client_id = f"default_server_{session_id[:8]}"
+        
+        # Check if we have an error in the default config
+        if '_error' in client_config:
+            self.logger.error(f"Server default config has errors: {client_config['_error']}")
+            # Try to use the server's lifespan connection instead
+            return await self._try_lifespan_connection(ctx, default_client_id)
+        
+        identity = ClientIdentity(
+            client_id=default_client_id,
+            session_id=session_id,
+            config_hash="default_server",
+            splunk_host=client_config.get('splunk_host', 'server_default'),
+            created_at=time.time()
+        )
+        
+        # Check for existing default connection
+        if default_client_id in self._connections:
+            try:
+                service = self._connections[default_client_id]
+                service.info()  # Validate connection
+                self.logger.debug(f"Reusing default server connection")
+                return identity, service
+            except Exception as e:
+                self.logger.warning(f"Stale default connection: {e}")
+                del self._connections[default_client_id]
+        
+        # Try to create connection with default config
+        try:
+            # Use more lenient validation for default config
+            self._validate_default_config(client_config)
+            service = get_splunk_service(client_config)
+            
+            # Store connection
+            self._connections[default_client_id] = service
+            self._client_identities[default_client_id] = identity
+            
+            self.logger.info(f"Established default Splunk connection for session: {session_id}")
+            return identity, service
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to create default connection: {e}")
+            # Fallback to lifespan connection
+            return await self._try_lifespan_connection(ctx, default_client_id)
+    
+    async def _try_lifespan_connection(self, ctx: Context, client_id: str) -> tuple[ClientIdentity, client.Service]:
+        """
+        Try to use the server's lifespan Splunk connection as a fallback.
+        
+        Args:
+            ctx: MCP context
+            client_id: Client identifier
+            
+        Returns:
+            Tuple of (ClientIdentity, Splunk Service)
+        """
+        try:
+            # Try to access the lifespan context service
+            from src.client.splunk_client import get_splunk_service_safe
+            service = get_splunk_service_safe(None)
+            
+            if service:
+                session_id = self._extract_session_id(ctx)
+                identity = ClientIdentity(
+                    client_id=client_id,
+                    session_id=session_id,
+                    config_hash="lifespan_server",
+                    splunk_host="server_lifespan",
+                    created_at=time.time()
+                )
+                
+                # Don't store this connection as it's managed by the server lifespan
+                self._client_identities[client_id] = identity
+                
+                self.logger.info(f"Using server lifespan connection for default access")
+                return identity, service
+            else:
+                raise ConnectionError("No server lifespan connection available")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to access lifespan connection: {e}")
+            raise ConnectionError(f"No Splunk connection available (default or lifespan): {str(e)}")
+    
+    def _validate_default_config(self, config: Dict[str, Any]):
+        """
+        Validate default server configuration with more lenient rules.
+        
+        Args:
+            config: Server default configuration
+            
+        Raises:
+            SecurityError: If configuration is critically invalid
+        """
+        # For default config, we're more lenient since it's server-controlled
+        # Check for minimum required fields
+        if not config.get('splunk_host'):
+            raise SecurityError("Default config missing Splunk host")
+        
+        # Basic format validation
+        host = config['splunk_host']
+        if not isinstance(host, str) or len(host.strip()) == 0:
+            raise SecurityError("Invalid default Splunk host format")
+        
+        # Port validation (if specified)
+        port = config.get('splunk_port', 8089)
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            raise SecurityError("Invalid default port number")
     
     def _normalize_config_for_hash(self, config: Dict[str, Any]) -> str:
         """
@@ -226,7 +359,4 @@ _client_manager = ClientConnectionManager()
 
 def get_client_manager() -> ClientConnectionManager:
     """Get the global client connection manager"""
-    return _client_manager
-
-
-import time 
+    return _client_manager 

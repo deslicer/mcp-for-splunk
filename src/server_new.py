@@ -314,6 +314,79 @@ def health_check() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
 
+# Add more test resources for MCP Inspector testing
+@mcp.resource("info://server")
+def server_info() -> dict:
+    """Server information and capabilities"""
+    return {
+        "name": "MCP Server for Splunk",
+        "version": "2.0.0",
+        "transport": "http",
+        "capabilities": [
+            "tools",
+            "resources", 
+            "prompts"
+        ],
+        "description": "Modular MCP Server providing Splunk integration",
+        "status": "running"
+    }
+
+@mcp.resource("test://greeting/{name}")
+def personalized_greeting(name: str) -> str:
+    """Generate a personalized greeting message"""
+    return f"Hello, {name}! Welcome to the MCP Server for Splunk."
+
+@mcp.resource("test://data")
+def sample_data() -> dict:
+    """Sample data for testing resource functionality"""
+    return {
+        "timestamp": "2025-01-21T00:00:00Z",
+        "data": [
+            {"id": 1, "name": "Sample Item 1", "value": 100},
+            {"id": 2, "name": "Sample Item 2", "value": 200}, 
+            {"id": 3, "name": "Sample Item 3", "value": 300}
+        ],
+        "metadata": {
+            "source": "test_generator",
+            "count": 3,
+            "format": "json"
+        }
+    }
+
+@mcp.resource("splunk://simple-status")
+def simple_splunk_status() -> dict:
+    """Simple Splunk connection status without client config requirements"""
+    try:
+        from src.client.splunk_client import get_splunk_service_safe
+        service = get_splunk_service_safe(None)
+        
+        if service:
+            try:
+                info = service.info()
+                return {
+                    "status": "connected",
+                    "version": info.get("version", "unknown"),
+                    "server_name": info.get("serverName", "unknown"),
+                    "build": info.get("build", "unknown")
+                }
+            except Exception as e:
+                return {
+                    "status": "connection_error",
+                    "error": str(e),
+                    "message": "Connected to Splunk but failed to get info"
+                }
+        else:
+            return {
+                "status": "not_connected",
+                "message": "No Splunk connection available",
+                "note": "Check SPLUNK_HOST, SPLUNK_USERNAME, SPLUNK_PASSWORD environment variables"
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to check Splunk connection"
+        }
 
 async def main():
     """Main function for running the MCP server"""

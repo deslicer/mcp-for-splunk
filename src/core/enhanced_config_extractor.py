@@ -88,8 +88,10 @@ class EnhancedConfigExtractor:
             except Exception as e:
                 self.logger.debug(f"Failed to extract config using {method_name}: {e}")
         
-        self.logger.info("No client configuration found in any source")
-        return None
+        # NEW: If no client configuration found, return server default configuration
+        # This allows resources to work with the default Splunk connection
+        self.logger.info("No client configuration found - using server default configuration")
+        return self._get_server_default_config()
     
     def _extract_from_tool_params(self, tool_params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Extract config from tool parameters (highest priority)"""
@@ -489,6 +491,65 @@ class EnhancedConfigExtractor:
         except Exception as e:
             self.logger.error(f"Failed to save client config: {e}")
             return False
+    
+    def _get_server_default_config(self) -> Dict[str, Any]:
+        """
+        Get server default configuration from environment variables.
+        
+        This serves as a fallback when no client-specific configuration is provided,
+        allowing resources to use the default Splunk connection configured for the server.
+        
+        Returns:
+            Server default configuration dict
+        """
+        try:
+            # Extract from standard server environment variables
+            default_config = {}
+            
+            # Standard server environment variables
+            env_mapping = {
+                'SPLUNK_HOST': 'splunk_host',
+                'SPLUNK_PORT': 'splunk_port', 
+                'SPLUNK_USERNAME': 'splunk_username',
+                'SPLUNK_PASSWORD': 'splunk_password',
+                'SPLUNK_SCHEME': 'splunk_scheme',
+                'SPLUNK_VERIFY_SSL': 'splunk_verify_ssl'
+            }
+            
+            for env_var, config_key in env_mapping.items():
+                env_value = os.getenv(env_var)
+                if env_value:
+                    # Handle type conversions
+                    if config_key == 'splunk_port':
+                        default_config[config_key] = int(env_value)
+                    elif config_key == 'splunk_verify_ssl':
+                        default_config[config_key] = env_value.lower() in ('true', '1', 'yes', 'on')
+                    else:
+                        default_config[config_key] = env_value
+            
+            # Set reasonable defaults if not specified
+            if 'splunk_port' not in default_config:
+                default_config['splunk_port'] = 8089
+            if 'splunk_scheme' not in default_config:
+                default_config['splunk_scheme'] = 'https'
+            if 'splunk_verify_ssl' not in default_config:
+                default_config['splunk_verify_ssl'] = False
+            
+            # Mark this as server default config for identification
+            default_config['_config_source'] = 'server_default'
+            default_config['_is_default'] = True
+            
+            self.logger.info(f"Server default config keys: {list(default_config.keys())}")
+            return default_config
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get server default config: {e}")
+            # Return minimal fallback config
+            return {
+                '_config_source': 'server_default',
+                '_is_default': True,
+                '_error': str(e)
+            }
 
 
 # Global instance

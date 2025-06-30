@@ -57,10 +57,11 @@ class SplunkConfigResource(BaseResource):
             ValueError: If configuration not found
         """
         try:
-            # Extract client configuration
+            # Extract client configuration (now includes fallback to server default)
             client_config = await self.config_extractor.extract_client_config(ctx)
             if not client_config:
-                raise PermissionError("No client configuration found")
+                # This should rarely happen now due to fallback, but handle gracefully
+                return self._create_error_response("No Splunk configuration available")
             
             # Get client identity and connection
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
@@ -68,7 +69,7 @@ class SplunkConfigResource(BaseResource):
             # Extract config file from URI
             config_file = self._extract_config_file_from_uri(self.uri)
             if not config_file:
-                raise ValueError(f"Could not determine config file from URI: {self.uri}")
+                return self._create_error_response(f"Could not determine config file from URI: {self.uri}")
             
             # Get configuration content from Splunk
             config_content = await self._get_config_content(service, config_file, identity)
@@ -76,9 +77,12 @@ class SplunkConfigResource(BaseResource):
             self.logger.info(f"Retrieved config {config_file} for client {identity.client_id}")
             return config_content
             
+        except ConnectionError as e:
+            self.logger.warning(f"Splunk connection error for {self.uri}: {e}")
+            return self._create_error_response(f"Splunk connection failed: {str(e)}")
         except Exception as e:
             self.logger.error(f"Failed to get config content for {self.uri}: {e}")
-            raise
+            return self._create_error_response(f"Error retrieving configuration: {str(e)}")
     
     def _extract_config_file_from_uri(self, uri: str) -> str | None:
         """Extract config file name from URI"""
@@ -133,6 +137,24 @@ class SplunkConfigResource(BaseResource):
                 "error": str(e),
                 "available_configs": list(service.confs.keys()) if hasattr(service, 'confs') else []
             }, indent=2)
+    
+    def _create_error_response(self, error_message: str) -> str:
+        """Create a helpful error response for configuration issues"""
+        return f"""# Configuration Error
+# URI: {self.uri}
+# Error: {error_message}
+# 
+# To access Splunk configurations, provide credentials via HTTP headers:
+#   X-Splunk-Host: your-splunk-host
+#   X-Splunk-Username: your-username  
+#   X-Splunk-Password: your-password
+#   X-Splunk-Port: 8089 (optional)
+#   X-Splunk-Scheme: https (optional)
+#   X-Splunk-Verify-SSL: false (optional)
+#
+# Or ensure server environment variables are set:
+#   SPLUNK_HOST, SPLUNK_USERNAME, SPLUNK_PASSWORD
+"""
 
 
 class SplunkHealthResource(BaseResource):
@@ -155,10 +177,11 @@ class SplunkHealthResource(BaseResource):
     async def get_content(self, ctx: Context) -> str:
         """Get health status information"""
         try:
-            # Extract client configuration
+            # Extract client configuration (now includes fallback to server default)
             client_config = await self.config_extractor.extract_client_config(ctx)
             if not client_config:
-                raise PermissionError("No client configuration found")
+                # Fallback to error response with helpful info
+                return self._create_health_error_response("No Splunk configuration available")
             
             # Get client identity and connection
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
@@ -168,14 +191,38 @@ class SplunkHealthResource(BaseResource):
             
             return json.dumps(health_data, indent=2)
             
+        except ConnectionError as e:
+            self.logger.warning(f"Splunk connection error for health check: {e}")
+            return self._create_health_error_response(f"Splunk connection failed: {str(e)}")
         except Exception as e:
             self.logger.error(f"Failed to get health data: {e}")
-            error_response = {
-                "error": str(e),
-                "status": "error",
-                "timestamp": "N/A"
+            return self._create_health_error_response(f"Health check error: {str(e)}")
+    
+    def _create_health_error_response(self, error_message: str) -> str:
+        """Create a helpful JSON error response for health check issues"""
+        error_response = {
+            "status": "error",
+            "error": error_message,
+            "timestamp": "N/A",
+            "uri": self.uri,
+            "help": {
+                "message": "To access Splunk health information, provide credentials via HTTP headers or environment variables",
+                "http_headers": {
+                    "X-Splunk-Host": "your-splunk-host",
+                    "X-Splunk-Username": "your-username",
+                    "X-Splunk-Password": "your-password",
+                    "X-Splunk-Port": "8089",
+                    "X-Splunk-Scheme": "https",
+                    "X-Splunk-Verify-SSL": "false"
+                },
+                "environment_variables": [
+                    "SPLUNK_HOST",
+                    "SPLUNK_USERNAME", 
+                    "SPLUNK_PASSWORD"
+                ]
             }
-            return json.dumps(error_response, indent=2)
+        }
+        return json.dumps(error_response, indent=2)
     
     async def _get_health_data(self, service, identity) -> Dict[str, Any]:
         """Get comprehensive health data from Splunk"""
@@ -243,10 +290,11 @@ class SplunkAppsResource(BaseResource):
     async def get_content(self, ctx: Context) -> str:
         """Get installed applications information with detailed analysis"""
         try:
-            # Extract client configuration
+            # Extract client configuration (now includes fallback to server default)
             client_config = await self.config_extractor.extract_client_config(ctx)
             if not client_config:
-                raise PermissionError("No client configuration found")
+                # Fallback to error response with helpful info
+                return self._create_apps_error_response("No Splunk configuration available")
             
             # Get client identity and connection
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
@@ -256,14 +304,35 @@ class SplunkAppsResource(BaseResource):
             
             return json.dumps(apps_data, indent=2)
             
+        except ConnectionError as e:
+            self.logger.warning(f"Splunk connection error for apps: {e}")
+            return self._create_apps_error_response(f"Splunk connection failed: {str(e)}")
         except Exception as e:
             self.logger.error(f"Failed to get apps data: {e}")
-            error_response = {
-                "error": str(e),
-                "status": "error",
-                "apps": []
+            return self._create_apps_error_response(f"Apps retrieval error: {str(e)}")
+    
+    def _create_apps_error_response(self, error_message: str) -> str:
+        """Create a helpful JSON error response for apps retrieval issues"""
+        error_response = {
+            "status": "error",
+            "error": error_message,
+            "uri": self.uri,
+            "apps": [],
+            "help": {
+                "message": "To access Splunk apps information, provide credentials via HTTP headers or environment variables",
+                "http_headers": {
+                    "X-Splunk-Host": "your-splunk-host",
+                    "X-Splunk-Username": "your-username",
+                    "X-Splunk-Password": "your-password"
+                },
+                "environment_variables": [
+                    "SPLUNK_HOST",
+                    "SPLUNK_USERNAME", 
+                    "SPLUNK_PASSWORD"
+                ]
             }
-            return json.dumps(error_response, indent=2)
+        }
+        return json.dumps(error_response, indent=2)
     
     async def _get_comprehensive_apps_data(self, service, identity) -> Dict[str, Any]:
         """Get comprehensive apps data with capability analysis"""
@@ -547,10 +616,11 @@ class SplunkSearchResultsResource(BaseResource):
     async def get_content(self, ctx: Context) -> str:
         """Get recent search results"""
         try:
-            # Extract client configuration
+            # Extract client configuration (now includes fallback to server default)
             client_config = await self.config_extractor.extract_client_config(ctx)
             if not client_config:
-                raise PermissionError("No client configuration found")
+                # Fallback to error response with helpful info
+                return self._create_search_error_response("No Splunk configuration available")
             
             # Get client identity and connection
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
@@ -560,18 +630,42 @@ class SplunkSearchResultsResource(BaseResource):
             
             return json.dumps(search_data, indent=2)
             
+        except ConnectionError as e:
+            self.logger.warning(f"Splunk connection error for search results: {e}")
+            return self._create_search_error_response(f"Splunk connection failed: {str(e)}")
         except Exception as e:
             self.logger.error(f"Failed to get search results: {e}")
-            error_response = {
-                "error": str(e),
-                "status": "error",
-                "results": []
+            return self._create_search_error_response(f"Search results error: {str(e)}")
+    
+    def _create_search_error_response(self, error_message: str) -> str:
+        """Create a helpful JSON error response for search results issues"""
+        error_response = {
+            "status": "error",
+            "error": error_message,
+            "uri": self.uri,
+            "results": [],
+            "recent_searches": [],
+            "help": {
+                "message": "To access Splunk search results, provide credentials via HTTP headers or environment variables",
+                "http_headers": {
+                    "X-Splunk-Host": "your-splunk-host",
+                    "X-Splunk-Username": "your-username",
+                    "X-Splunk-Password": "your-password"
+                },
+                "environment_variables": [
+                    "SPLUNK_HOST",
+                    "SPLUNK_USERNAME", 
+                    "SPLUNK_PASSWORD"
+                ]
             }
-            return json.dumps(error_response, indent=2)
+        }
+        return json.dumps(error_response, indent=2)
     
     async def _get_search_results(self, service, identity) -> Dict[str, Any]:
         """Get recent search results from Splunk"""
         try:
+            import time
+            
             # Get recent jobs
             jobs = service.jobs
             recent_results = []
