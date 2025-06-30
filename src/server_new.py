@@ -192,6 +192,20 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
         component_loader = ComponentLoader(server)
         results = component_loader.load_all_components()
 
+        # Register our multi-tenant resource handlers
+        logger.info("Registering multi-tenant resource handlers...")
+        # Load resources through ResourceLoader (which uses ResourceRegistry)
+        try:
+            from src.core.loader import ResourceLoader
+            resource_loader = ResourceLoader(server)
+            resources_loaded = resource_loader.load_resources()
+            logger.info(f"Successfully loaded {resources_loaded} resources through ResourceRegistry")
+            results["resources"] = resources_loaded
+        except Exception as e:
+            logger.error(f"Failed to load resources through ResourceLoader: {e}")
+            logger.exception("Resource loader error:")
+            results["resources"] = 0
+
         logger.info(f"Successfully loaded components: {results}")
 
         yield context
