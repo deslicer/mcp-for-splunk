@@ -7,6 +7,7 @@ with the FastMCP server instance.
 
 import inspect
 import logging
+import uuid
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -46,7 +47,7 @@ class ToolLoader:
         # Create parameters excluding 'self' and 'ctx'
         filtered_params = []
         for name, param in sig.parameters.items():
-            if name not in ('self', 'ctx'):
+            if name not in ("self", "ctx"):
                 # Use the type hint if available, otherwise fall back to annotation
                 param_annotation = type_hints.get(name, param.annotation)
                 if param_annotation == inspect.Parameter.empty:
@@ -54,10 +55,7 @@ class ToolLoader:
 
                 # Create new parameter with proper type annotation
                 new_param = inspect.Parameter(
-                    name=name,
-                    kind=param.kind,
-                    default=param.default,
-                    annotation=param_annotation
+                    name=name, kind=param.kind, default=param.default, annotation=param_annotation
                 )
                 filtered_params.append(new_param)
 
@@ -76,7 +74,9 @@ class ToolLoader:
                     ctx = get_context()
                 except Exception as e:
                     self.logger.error(f"Could not get current context for {tool_name}: {e}")
-                    raise RuntimeError(f"Tool {tool_name} can only be called within an MCP request context")
+                    raise RuntimeError(
+                        f"Tool {tool_name} can only be called within an MCP request context"
+                    )
 
                 # Bind the arguments to ensure proper parameter mapping
                 bound_args = wrapper_sig.bind(*args, **kwargs)
@@ -89,10 +89,7 @@ class ToolLoader:
             except Exception as e:
                 self.logger.error(f"Tool {tool_name} execution failed: {e}")
                 self.logger.exception("Full traceback:")
-                return {
-                    "status": "error",
-                    "error": str(e)
-                }
+                return {"status": "error", "error": str(e)}
 
         # Set function metadata
         tool_wrapper.__name__ = tool_name
@@ -106,9 +103,9 @@ class ToolLoader:
                 tool_wrapper.__annotations__[param.name] = param.annotation
 
         # Set return annotation if present
-        return_annotation = type_hints.get('return', sig.return_annotation)
+        return_annotation = type_hints.get("return", sig.return_annotation)
         if return_annotation != inspect.Parameter.empty:
-            tool_wrapper.__annotations__['return'] = return_annotation
+            tool_wrapper.__annotations__["return"] = return_annotation
 
         # Ensure the function has the __module__ attribute for Pydantic
         tool_wrapper.__module__ = execute_method.__module__
@@ -182,7 +179,9 @@ class ResourceLoader:
 
         # Check if resources are already loaded to prevent duplicates
         if len(self._registered_resources) > 0:
-            self.logger.info(f"Resources already loaded ({len(self._registered_resources)} resources), skipping reload")
+            self.logger.info(
+                f"Resources already loaded ({len(self._registered_resources)} resources), skipping reload"
+            )
             return len(self._registered_resources)
 
         # Discover resources if not already done
@@ -229,7 +228,7 @@ class ResourceLoader:
                     "class": SplunkConfigResource,
                     "template": True,
                     "pattern": "splunk://config/{config_file}",
-                    "uris": []  # Template resources don't need predefined URIs
+                    "uris": [],  # Template resources don't need predefined URIs
                 },
                 {
                     "class": SplunkHealthResource,
@@ -239,7 +238,7 @@ class ResourceLoader:
                         # "splunk://health/search",
                         # "splunk://health/forwarder"
                     ],
-                    "name": "Splunk Health Status"
+                    "name": "Splunk Health Status",
                 },
                 {
                     "class": SplunkAppsResource,
@@ -247,27 +246,14 @@ class ResourceLoader:
                         "splunk://apps/installed",
                         # "splunk://apps/enabled",
                         # "splunk://apps/disabled"
-                    ]
+                    ],
                 },
-                {
-                    "class": SplunkIndexesResource,
-                    "uris": [
-                        "splunk://indexes/list"
-                    ]
-                },
-                {
-                    "class": SplunkSavedSearchesResource,
-                    "uris": [
-                        "splunk://savedsearches/list"
-                    ]
-                },
+                {"class": SplunkIndexesResource, "uris": ["splunk://indexes/list"]},
+                {"class": SplunkSavedSearchesResource, "uris": ["splunk://savedsearches/list"]},
                 {
                     "class": SplunkSearchResultsResource,
-                    "uris": [
-                        "splunk://search/results/recent",
-                        "splunk://search/results/completed"
-                    ]
-                }
+                    "uris": ["splunk://search/results/recent", "splunk://search/results/completed"],
+                },
             ]
 
             # Load each resource type
@@ -283,7 +269,9 @@ class ResourceLoader:
 
                         # Skip if already registered
                         if pattern in self._registered_resources:
-                            self.logger.debug(f"Splunk template resource {pattern} already loaded, skipping")
+                            self.logger.debug(
+                                f"Splunk template resource {pattern} already loaded, skipping"
+                            )
                             continue
 
                         # Register template with ResourceRegistry using the pattern
@@ -292,7 +280,9 @@ class ResourceLoader:
                         # Register template with FastMCP server
                         self._register_template_resource(resource_class, pattern)
 
-                        self._registered_resources[pattern] = f"{resource_class.__name__} (template)"
+                        self._registered_resources[pattern] = (
+                            f"{resource_class.__name__} (template)"
+                        )
                         loaded_count += 1
                         self.logger.debug(f"Loaded Splunk template resource: {pattern}")
 
@@ -315,7 +305,7 @@ class ResourceLoader:
                                 description=f"{base_metadata.description} ({uri})",
                                 mime_type=base_metadata.mime_type,
                                 category=base_metadata.category,
-                                tags=base_metadata.tags
+                                tags=base_metadata.tags,
                             )
 
                             # Register with ResourceRegistry
@@ -368,25 +358,31 @@ class ResourceLoader:
         """Register template resource with FastMCP that handles dynamic URIs"""
         # For config template, register a catch-all pattern
         if "config" in pattern:
+
             @self.mcp_server.resource("splunk://config/{config_file}", name="get_config_resource")
-            async def get_config_template(config_file: str) -> str:
+            async def get_config_template(
+                config_file: str,
+                captured_pattern: str = pattern,
+                captured_resource_class=resource_class,
+            ) -> str:  # Fix closure bug with default parameters
                 """Get Splunk configuration resource (template)"""
                 try:
                     from .registry import resource_registry
+
                     ctx = get_context()
 
                     # Create the actual URI from the template
                     uri = f"splunk://config/{config_file}"
 
                     # Get resource instance from registry using the pattern
-                    resource = resource_registry.get_resource(pattern)
+                    resource = resource_registry.get_resource(captured_pattern)
                     if not resource:
                         # Create instance directly if not in registry
-                        resource = resource_class(
-                            uri=pattern,
-                            name=resource_class.METADATA.name,
-                            description=resource_class.METADATA.description,
-                            mime_type=resource_class.METADATA.mime_type
+                        resource = captured_resource_class(
+                            uri=captured_pattern,
+                            name=captured_resource_class.METADATA.name,
+                            description=captured_resource_class.METADATA.description,
+                            mime_type=captured_resource_class.METADATA.mime_type,
                         )
 
                     # Call with the specific URI
@@ -420,192 +416,213 @@ class ResourceLoader:
     def _register_config_resource(self, resource_class, uri: str, metadata):
         """Register configuration resource with FastMCP"""
         config_file = self._extract_config_file_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://config/{config_file}/{hash(uri) % 10000}"
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://config/{config_file}/{uuid.uuid4().hex[:8]}"
 
-        # Use metadata for proper naming
-        resource_name = f"splunk_config_{config_file.replace('.conf', '').replace('/', '_')}"
+        # Use metadata.name consistently like other registration methods
+        resource_name = metadata.name
         resource_description = f"{metadata.description} - {config_file}"
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_config_resource() -> str:
+        async def get_config_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk configuration resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading config resource {uri}: {e}")
+                self.logger.error(f"Error reading config resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read config: {str(e)}")
 
     def _register_health_resource(self, resource_class, uri: str, metadata):
         """Register health resource with FastMCP"""
         component = self._extract_component_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://health/{component}/{hash(uri) % 10000}"
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://health/{component}/{uuid.uuid4().hex[:8]}"
 
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_health_resource() -> str:
+        async def get_health_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk health resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading health resource {uri}: {e}")
+                self.logger.error(f"Error reading health resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read health: {str(e)}")
 
     def _register_apps_resource(self, resource_class, uri: str, metadata):
         """Register apps resource with FastMCP"""
         app_type = self._extract_app_type_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://apps/{app_type}/{hash(uri) % 10000}"
-        
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://apps/{app_type}/{uuid.uuid4().hex[:8]}"
+
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_apps_resource() -> str:
+        async def get_apps_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk apps resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading apps resource {uri}: {e}")
+                self.logger.error(f"Error reading apps resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read apps: {str(e)}")
 
     def _register_search_resource(self, resource_class, uri: str, metadata):
         """Register search resource with FastMCP"""
         search_type = self._extract_search_type_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://search/{search_type}/{hash(uri) % 10000}"
-        
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://search/{search_type}/{uuid.uuid4().hex[:8]}"
+
         # Use metadata for proper naming and description
         resource_name = f"Splunk Search {search_type.replace('/', ' ').title()}"
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_search_resource() -> str:
+        async def get_search_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk search resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading search resource {uri}: {e}")
+                self.logger.error(f"Error reading search resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read search: {str(e)}")
 
     def _register_generic_resource(self, resource_class, uri: str, metadata):
         """Register generic resource with FastMCP"""
         # Use metadata for proper naming and description
-        resource_name = f"splunk_resource_{hash(uri) % 10000}"
+        resource_name = f"splunk_resource_{uuid.uuid4().hex[:8]}"  # Use UUID instead of hash to prevent collisions
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
-        async def get_generic_resource() -> str:
+        async def get_generic_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get generic resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading resource {uri}: {e}")
+                self.logger.error(f"Error reading resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read resource: {str(e)}")
 
     def _get_resource_name_from_uri(self, uri: str) -> str:
         """Extract a human-readable name from URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         if len(parts) > 0:
-            return parts[-1].replace('.conf', '').replace('_', ' ').title()
+            return parts[-1].replace(".conf", "").replace("_", " ").title()
         return "Unknown"
 
     def _extract_config_file_from_uri(self, uri: str) -> str:
         """Extract config file name from URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         return parts[-1] if parts else "unknown.conf"
 
     def _extract_component_from_uri(self, uri: str) -> str:
         """Extract component name from health URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         return parts[-1] if parts else "status"
 
     def _extract_app_type_from_uri(self, uri: str) -> str:
         """Extract app type from apps URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         return parts[-1] if parts else "installed"
 
     def _extract_search_type_from_uri(self, uri: str) -> str:
         """Extract search type from search URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         if len(parts) >= 2:
             return f"{parts[-2]}/{parts[-1]}"  # e.g., "results/recent"
         return parts[-1] if parts else "recent"
 
     def _register_indexes_resource(self, resource_class, uri: str, metadata):
         """Register indexes resource with FastMCP"""
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://indexes/list/{hash(uri) % 10000}"
-        
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://indexes/list/{uuid.uuid4().hex[:8]}"
+
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_indexes_resource() -> str:
+        async def get_indexes_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk indexes resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading indexes resource {uri}: {e}")
+                self.logger.error(f"Error reading indexes resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read indexes: {str(e)}")
 
     def _register_saved_searches_resource(self, resource_class, uri: str, metadata):
         """Register saved searches resource with FastMCP"""
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://savedsearches/list/{hash(uri) % 10000}"
-        
+        # Create unique resource URI to avoid conflicts - use UUID instead of hash to prevent collisions
+        unique_uri = f"splunk://savedsearches/list/{uuid.uuid4().hex[:8]}"
+
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
+
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
-        async def get_saved_searches_resource() -> str:
+        async def get_saved_searches_resource(
+            captured_uri: str = uri,
+        ) -> str:  # Fix closure bug with default parameter
             """Get Splunk saved searches resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
-                resource = resource_registry.get_resource(uri)
+                resource = resource_registry.get_resource(captured_uri)
                 if not resource:
-                    raise ValueError(f"Resource not found: {uri}")
+                    raise ValueError(f"Resource not found: {captured_uri}")
                 return await resource.get_content(ctx)
             except Exception as e:
-                self.logger.error(f"Error reading saved searches resource {uri}: {e}")
+                self.logger.error(f"Error reading saved searches resource {captured_uri}: {e}")
                 raise RuntimeError(f"Failed to read saved searches: {str(e)}")
 
 
@@ -619,8 +636,12 @@ class PromptLoader:
     def load_prompts(self) -> int:
         """Load all discovered prompts into the MCP server."""
         self.logger.info("Prompt loading is currently not implemented")
-        self.logger.info("The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system")
-        self.logger.info("Prompts should be implemented using @mcp.prompt decorators directly in FastMCP")
+        self.logger.info(
+            "The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system"
+        )
+        self.logger.info(
+            "Prompts should be implemented using @mcp.prompt decorators directly in FastMCP"
+        )
 
         # For now, return 0 until prompt loading is properly implemented
         # TODO: Implement proper prompt loading compatible with FastMCP's prompt system
@@ -651,11 +672,7 @@ class ComponentLoader:
         resources_loaded = self.resource_loader.load_resources()
         prompts_loaded = self.prompt_loader.load_prompts()
 
-        results = {
-            "tools": tools_loaded,
-            "resources": resources_loaded,
-            "prompts": prompts_loaded
-        }
+        results = {"tools": tools_loaded, "resources": resources_loaded, "prompts": prompts_loaded}
 
         total_loaded = sum(results.values())
         self.logger.info(f"Loaded {total_loaded} total components: {results}")

@@ -43,9 +43,7 @@ logger = logging.getLogger(__name__)
 # Import the core framework components
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
-
-# Context variable to store HTTP headers for MCP middleware access
-http_headers_context: ContextVar[dict] = ContextVar('http_headers', default={})
+from src.core.shared_context import http_headers_context
 
 # ASGI Middleware to capture HTTP headers
 class HeaderCaptureMiddleware(BaseHTTPMiddleware):

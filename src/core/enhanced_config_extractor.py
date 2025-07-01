@@ -22,12 +22,8 @@ from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
-# Try to import the context variable from the server module
-try:
-    from src.server_new import http_headers_context
-except ImportError:
-    # Fallback if import fails
-    http_headers_context: ContextVar[dict] = ContextVar('http_headers', default={})
+# Import the shared context variable to avoid circular imports
+from .shared_context import http_headers_context
 
 
 class EnhancedConfigExtractor:
