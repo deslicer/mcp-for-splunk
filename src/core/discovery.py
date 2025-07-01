@@ -60,8 +60,9 @@ def discover_resources(search_paths: list[str] | None = None) -> int:
     """
     if search_paths is None:
         search_paths = [
-            "src.resources",      # Core resources
-            "contrib.resources"   # Community resources
+            "src.core.resources",  # Core resources (actual location)
+            "src.resources",       # Legacy core resources (if exists)
+            "contrib.resources"    # Community resources
         ]
 
     discovered_count = 0
