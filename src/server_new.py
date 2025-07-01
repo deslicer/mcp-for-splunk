@@ -353,41 +353,6 @@ def sample_data() -> dict:
         }
     }
 
-@mcp.resource("splunk://simple-status")
-def simple_splunk_status() -> dict:
-    """Simple Splunk connection status without client config requirements"""
-    try:
-        from src.client.splunk_client import get_splunk_service_safe
-        service = get_splunk_service_safe(None)
-        
-        if service:
-            try:
-                info = service.info()
-                return {
-                    "status": "connected",
-                    "version": info.get("version", "unknown"),
-                    "server_name": info.get("serverName", "unknown"),
-                    "build": info.get("build", "unknown")
-                }
-            except Exception as e:
-                return {
-                    "status": "connection_error",
-                    "error": str(e),
-                    "message": "Connected to Splunk but failed to get info"
-                }
-        else:
-            return {
-                "status": "not_connected",
-                "message": "No Splunk connection available",
-                "note": "Check SPLUNK_HOST, SPLUNK_USERNAME, SPLUNK_PASSWORD environment variables"
-            }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "message": "Failed to check Splunk connection"
-        }
-
 async def main():
     """Main function for running the MCP server"""
     # Get the port from environment variable, default to 8000

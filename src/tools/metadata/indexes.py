@@ -7,7 +7,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.utils import log_tool_execution
+from src.core.utils import filter_customer_indexes, log_tool_execution
 
 
 class ListIndexes(BaseTool):
@@ -42,11 +42,15 @@ class ListIndexes(BaseTool):
             )
 
         try:
-            indexes = [index.name for index in service.indexes]
-            ctx.info(f"Indexes: {indexes}")
+            # Filter out internal indexes for better performance and relevance
+            customer_indexes = filter_customer_indexes(service.indexes)
+            index_names = [index.name for index in customer_indexes]
+
+            ctx.info(f"Customer indexes: {index_names}")
             return self.format_success_response({
-                "indexes": sorted(indexes),
-                "count": len(indexes)
+                "indexes": sorted(index_names),
+                "count": len(index_names),
+                "total_count_including_internal": len(list(service.indexes))
             })
         except Exception as e:
             self.logger.error(f"Failed to list indexes: {str(e)}")

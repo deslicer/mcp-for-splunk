@@ -126,6 +126,43 @@ def log_tool_execution(tool_name: str, **kwargs):
         logger.debug(f"Tool parameters: {kwargs}")
 
 
+def filter_customer_indexes(indexes):
+    """
+    Filter out internal Splunk indexes from the collection to improve performance
+    and focus on customer-defined indexes.
+
+    Internal indexes typically start with underscore (_) and include:
+    - _internal: Splunk's internal logs
+    - _audit: Audit logs
+    - _introspection: Performance monitoring
+    - _thefishbucket: Internal tracking
+    - _telemetry: Usage data
+
+    Args:
+        indexes: Splunk indexes collection or list
+
+    Returns:
+        List of customer-defined indexes only
+    """
+    # Handle both iterables and individual index objects
+    customer_indexes = []
+
+    try:
+        for idx in indexes:
+            # Handle both index objects with .name attribute and string names
+            index_name = idx.name if hasattr(idx, 'name') else str(idx)
+
+            # Skip any index that starts with underscore (Splunk internal convention)
+            if not index_name.startswith('_'):
+                customer_indexes.append(idx)
+    except (AttributeError, TypeError) as e:
+        logger.warning(f"Error filtering indexes: {e}")
+        # If filtering fails, return original collection as fallback
+        return list(indexes) if indexes else []
+
+    return customer_indexes
+
+
 def truncate_large_response(data: Any, max_items: int = 1000) -> tuple[Any, bool]:
     """
     Truncate large responses to prevent overwhelming the client.

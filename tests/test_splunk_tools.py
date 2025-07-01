@@ -55,13 +55,15 @@ class TestIndexTools:
     """Test index-related tools"""
 
     def test_list_indexes_success(self, mock_context):
-        """Test successful index listing"""
+        """Test successful index listing (excludes internal indexes)"""
         result = server.list_indexes.fn(mock_context)
 
         assert "indexes" in result
         assert "count" in result
-        assert result["count"] == 4
-        expected_indexes = ["_internal", "main", "security", "test"]
+        assert "total_count_including_internal" in result
+        assert result["count"] == 3  # Only customer indexes
+        assert result["total_count_including_internal"] == 4  # All indexes including internal
+        expected_indexes = ["main", "security", "test"]  # Excludes _internal
         assert sorted(result["indexes"]) == expected_indexes
 
 
