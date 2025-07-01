@@ -29,7 +29,7 @@ class SplunkConfigResource(BaseResource):
     # Metadata for resource registry (template pattern)
     METADATA = ResourceMetadata(
         uri="splunk://config/{config_file}",
-        name="get_conf_resource",
+        name="Splunk Configuration Files",
         description="Access to Splunk configuration files (indexes.conf, props.conf, transforms.conf, etc.) with client isolation",
         mime_type="text/plain",
         category="configuration",
@@ -203,7 +203,7 @@ class SplunkHealthResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://health/status",
-        name="get_health_resource",
+        name="Splunk Health Status",
         description="Real-time health monitoring for Splunk components (includes filtered customer indexes)",
         mime_type="application/json",
         category="monitoring",
@@ -332,7 +332,7 @@ class SplunkAppsResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://apps/installed",
-        name="splunk_apps_installed",
+        name="Installed Splunk Apps",
         description="Information about installed Splunk applications and add-ons with capability analysis",
         mime_type="application/json",
         category="applications",
@@ -685,7 +685,7 @@ class SplunkSearchResultsResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://search/results/recent",
-        name="get_search_results_resource",
+        name="Recent Search Results",
         description="Recent search results from client's Splunk instance",
         mime_type="application/json",
         category="search",
@@ -800,7 +800,7 @@ class SplunkIndexesResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://indexes/list",
-        name="list_splunk_indexes",
+        name="Splunk Indexes",
         description="List of accessible Splunk indexes (excluding internal indexes)",
         mime_type="application/json",
         category="metadata",
@@ -933,7 +933,7 @@ class SplunkSavedSearchesResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://savedsearches/list",
-        name="list_saved_searches",
+        name="Saved Searches",
         description="List of accessible Splunk saved searches",
         mime_type="application/json",
         category="search",

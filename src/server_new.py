@@ -192,20 +192,6 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
         component_loader = ComponentLoader(server)
         results = component_loader.load_all_components()
 
-        # Register our multi-tenant resource handlers
-        logger.info("Registering multi-tenant resource handlers...")
-        # Load resources through ResourceLoader (which uses ResourceRegistry)
-        try:
-            from src.core.loader import ResourceLoader
-            resource_loader = ResourceLoader(server)
-            resources_loaded = resource_loader.load_resources()
-            logger.info(f"Successfully loaded {resources_loaded} resources through ResourceRegistry")
-            results["resources"] = resources_loaded
-        except Exception as e:
-            logger.error(f"Failed to load resources through ResourceLoader: {e}")
-            logger.exception("Resource loader error:")
-            results["resources"] = 0
-
         logger.info(f"Successfully loaded components: {results}")
 
         yield context
@@ -336,22 +322,6 @@ def personalized_greeting(name: str) -> str:
     """Generate a personalized greeting message"""
     return f"Hello, {name}! Welcome to the MCP Server for Splunk."
 
-@mcp.resource("test://data")
-def sample_data() -> dict:
-    """Sample data for testing resource functionality"""
-    return {
-        "timestamp": "2025-01-21T00:00:00Z",
-        "data": [
-            {"id": 1, "name": "Sample Item 1", "value": 100},
-            {"id": 2, "name": "Sample Item 2", "value": 200}, 
-            {"id": 3, "name": "Sample Item 3", "value": 300}
-        ],
-        "metadata": {
-            "source": "test_generator",
-            "count": 3,
-            "format": "json"
-        }
-    }
 
 async def main():
     """Main function for running the MCP server"""
