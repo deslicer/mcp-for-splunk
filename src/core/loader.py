@@ -496,7 +496,7 @@ class ResourceLoader:
         unique_uri = f"splunk://search/{search_type}/{hash(uri) % 10000}"
         
         # Use metadata for proper naming and description
-        resource_name = f"splunk_search_{search_type.replace('/', '_')}"
+        resource_name = f"Splunk Search {search_type.replace('/', ' ').title()}"
         resource_description = metadata.description
         
         @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)

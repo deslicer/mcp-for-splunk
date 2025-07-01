@@ -332,7 +332,7 @@ class SplunkAppsResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://apps/installed",
-        name="Installed Splunk Apps",
+        name="Splunk Apps Installed",
         description="Information about installed Splunk applications and add-ons with capability analysis",
         mime_type="application/json",
         category="applications",
@@ -933,7 +933,7 @@ class SplunkSavedSearchesResource(BaseResource):
 
     METADATA = ResourceMetadata(
         uri="splunk://savedsearches/list",
-        name="Saved Searches",
+        name="Splunk Saved Searches",
         description="List of accessible Splunk saved searches",
         mime_type="application/json",
         category="search",
