@@ -12,7 +12,6 @@ from splunklib import client
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class SplunkContext:
     """Context for Splunk operations"""

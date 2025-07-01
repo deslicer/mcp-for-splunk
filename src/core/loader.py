@@ -7,6 +7,7 @@ with the FastMCP server instance.
 
 import inspect
 import logging
+import uuid
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -46,7 +47,7 @@ class ToolLoader:
         # Create parameters excluding 'self' and 'ctx'
         filtered_params = []
         for name, param in sig.parameters.items():
-            if name not in ('self', 'ctx'):
+            if name not in ("self", "ctx"):
                 # Use the type hint if available, otherwise fall back to annotation
                 param_annotation = type_hints.get(name, param.annotation)
                 if param_annotation == inspect.Parameter.empty:
@@ -54,10 +55,7 @@ class ToolLoader:
 
                 # Create new parameter with proper type annotation
                 new_param = inspect.Parameter(
-                    name=name,
-                    kind=param.kind,
-                    default=param.default,
-                    annotation=param_annotation
+                    name=name, kind=param.kind, default=param.default, annotation=param_annotation
                 )
                 filtered_params.append(new_param)
 
@@ -76,7 +74,9 @@ class ToolLoader:
                     ctx = get_context()
                 except Exception as e:
                     self.logger.error(f"Could not get current context for {tool_name}: {e}")
-                    raise RuntimeError(f"Tool {tool_name} can only be called within an MCP request context")
+                    raise RuntimeError(
+                        f"Tool {tool_name} can only be called within an MCP request context"
+                    )
 
                 # Bind the arguments to ensure proper parameter mapping
                 bound_args = wrapper_sig.bind(*args, **kwargs)
@@ -89,10 +89,7 @@ class ToolLoader:
             except Exception as e:
                 self.logger.error(f"Tool {tool_name} execution failed: {e}")
                 self.logger.exception("Full traceback:")
-                return {
-                    "status": "error",
-                    "error": str(e)
-                }
+                return {"status": "error", "error": str(e)}
 
         # Set function metadata
         tool_wrapper.__name__ = tool_name
@@ -106,9 +103,9 @@ class ToolLoader:
                 tool_wrapper.__annotations__[param.name] = param.annotation
 
         # Set return annotation if present
-        return_annotation = type_hints.get('return', sig.return_annotation)
+        return_annotation = type_hints.get("return", sig.return_annotation)
         if return_annotation != inspect.Parameter.empty:
-            tool_wrapper.__annotations__['return'] = return_annotation
+            tool_wrapper.__annotations__["return"] = return_annotation
 
         # Ensure the function has the __module__ attribute for Pydantic
         tool_wrapper.__module__ = execute_method.__module__
@@ -182,19 +179,21 @@ class ResourceLoader:
 
         # Check if resources are already loaded to prevent duplicates
         if len(self._registered_resources) > 0:
-            self.logger.info(f"Resources already loaded ({len(self._registered_resources)} resources), skipping reload")
+            self.logger.info(
+                f"Resources already loaded ({len(self._registered_resources)} resources), skipping reload"
+            )
             return len(self._registered_resources)
 
-        # Discover resources if not already done
+        # First, pre-register our Splunk resources to ensure they're available
+        self._load_manual_splunk_resources()
+
+        # Discover additional resources if needed
         resource_metadata_list = resource_registry.list_resources()
         if not resource_metadata_list:
             discover_resources()
             resource_metadata_list = resource_registry.list_resources()
 
-        # Also load our Splunk-specific resources
-        loaded_count += self._load_splunk_resources()
-
-        # Load resources from registry
+        # Load all resources from registry (both manual and discovered)
         for metadata in resource_metadata_list:
             try:
                 loaded_count += self._load_single_resource(metadata)
@@ -207,8 +206,8 @@ class ResourceLoader:
         self.logger.info(f"Successfully loaded {loaded_count} resources")
         return loaded_count
 
-    def _load_splunk_resources(self) -> int:
-        """Load Splunk-specific resources into the registry and FastMCP"""
+    def _load_manual_splunk_resources(self) -> None:
+        """Pre-register Splunk-specific resources with the discovery registry"""
         try:
             from .base import ResourceMetadata
             from .registry import resource_registry
@@ -221,122 +220,48 @@ class ResourceLoader:
                 SplunkSearchResultsResource,
             )
 
-            loaded_count = 0
-
-            # Define resource configurations
-            resource_configs = [
-                {
-                    "class": SplunkConfigResource,
-                    "template": True,
-                    "pattern": "splunk://config/{config_file}",
-                    "uris": []  # Template resources don't need predefined URIs
-                },
-                {
-                    "class": SplunkHealthResource,
-                    "uris": [
-                        "splunk://health/status",
-                        # "splunk://health/indexer",
-                        # "splunk://health/search",
-                        # "splunk://health/forwarder"
-                    ],
-                    "name": "Splunk Health Status"
-                },
-                {
-                    "class": SplunkAppsResource,
-                    "uris": [
-                        "splunk://apps/installed",
-                        # "splunk://apps/enabled",
-                        # "splunk://apps/disabled"
-                    ]
-                },
-                {
-                    "class": SplunkIndexesResource,
-                    "uris": [
-                        "splunk://indexes/list"
-                    ]
-                },
-                {
-                    "class": SplunkSavedSearchesResource,
-                    "uris": [
-                        "splunk://savedsearches/list"
-                    ]
-                },
-                {
-                    "class": SplunkSearchResultsResource,
-                    "uris": [
-                        "splunk://search/results/recent",
-                        "splunk://search/results/completed"
-                    ]
-                }
+            # Manually register these resources with the discovery registry
+            # This ensures they're available for the normal discovery and loading process
+            splunk_resources = [
+                (SplunkConfigResource, "splunk://config/{config_file}"),  # Template
+                (SplunkHealthResource, "splunk://health/status"),
+                (SplunkAppsResource, "splunk://apps/installed"),
+                (SplunkIndexesResource, "splunk://indexes/list"),
+                (SplunkSavedSearchesResource, "splunk://savedsearches/list"),
+                # (SplunkSearchResultsResource, "splunk://search/results/recent"),
+                (SplunkSearchResultsResource, "splunk://search/results/completed"),
             ]
 
-            # Load each resource type
-            for config in resource_configs:
-                resource_class = config["class"]
-                is_template = config.get("template", False)
-                uris = config["uris"]
+            for resource_class, uri in splunk_resources:
+                if hasattr(resource_class, "METADATA"):
+                    # Create specific metadata for this URI
+                    base_metadata = resource_class.METADATA
+                    metadata = ResourceMetadata(
+                        uri=uri,
+                        name=base_metadata.name,
+                        description=base_metadata.description,
+                        mime_type=base_metadata.mime_type,
+                        category=base_metadata.category,
+                        tags=base_metadata.tags or [],
+                    )
 
-                if is_template:
-                    # Handle template resources
+                    # Register with the discovery registry
                     try:
-                        pattern = config.get("pattern", resource_class.METADATA.uri)
-
-                        # Skip if already registered
-                        if pattern in self._registered_resources:
-                            self.logger.debug(f"Splunk template resource {pattern} already loaded, skipping")
-                            continue
-
-                        # Register template with ResourceRegistry using the pattern
-                        resource_registry.register(resource_class, resource_class.METADATA)
-
-                        # Register template with FastMCP server
-                        self._register_template_resource(resource_class, pattern)
-
-                        self._registered_resources[pattern] = f"{resource_class.__name__} (template)"
-                        loaded_count += 1
-                        self.logger.debug(f"Loaded Splunk template resource: {pattern}")
-
+                        resource_registry.register(resource_class, metadata)
+                        self.logger.debug(
+                            f"Registered {resource_class.__name__} ({uri}) with discovery registry"
+                        )
                     except Exception as e:
-                        self.logger.error(f"Failed to load Splunk template resource {pattern}: {e}")
-                else:
-                    # Handle regular resources with specific URIs
-                    for uri in uris:
-                        try:
-                            # Skip if already registered
-                            if uri in self._registered_resources:
-                                self.logger.debug(f"Splunk resource {uri} already loaded, skipping")
-                                continue
+                        self.logger.warning(
+                            f"Could not register {resource_class.__name__} with discovery: {e}"
+                        )
 
-                            # Create metadata for this specific URI
-                            base_metadata = resource_class.METADATA
-                            metadata = ResourceMetadata(
-                                uri=uri,
-                                name=base_metadata.name,
-                                description=f"{base_metadata.description} ({uri})",
-                                mime_type=base_metadata.mime_type,
-                                category=base_metadata.category,
-                                tags=base_metadata.tags
-                            )
-
-                            # Register with ResourceRegistry
-                            resource_registry.register(resource_class, metadata)
-
-                            # Register with FastMCP server
-                            self._register_with_fastmcp(resource_class, uri, metadata)
-
-                            self._registered_resources[uri] = resource_class.__name__
-                            loaded_count += 1
-                            self.logger.debug(f"Loaded Splunk resource: {uri}")
-                            self.logger.info(f"Loaded Splunk resource: {metadata.name}")
-
-                        except Exception as e:
-                            self.logger.error(f"Failed to load Splunk resource {uri}: {e}")
-
-            return loaded_count
+            self.logger.info(
+                f"Pre-registered {len(splunk_resources)} Splunk resources with discovery system"
+            )
 
         except ImportError as e:
             self.logger.warning(f"Could not import Splunk resources: {e}")
-            return 0
 
     def _load_single_resource(self, metadata) -> int:
         """Load a single resource from registry into FastMCP"""
@@ -353,11 +278,18 @@ class ResourceLoader:
                 self.logger.warning(f"No resource class found for URI: {metadata.uri}")
                 return 0
 
-            # Register with FastMCP
-            self._register_with_fastmcp(resource_class, metadata.uri, metadata)
-            self._registered_resources[metadata.uri] = resource_class.__name__
+            # Check if this is a template resource
+            if "{" in metadata.uri and "}" in metadata.uri:
+                # Template resource - register with special handling
+                self._register_template_resource(resource_class, metadata.uri)
+                self._registered_resources[metadata.uri] = f"{resource_class.__name__} (template)"
+                self.logger.debug(f"Loaded template resource: {metadata.uri}")
+            else:
+                # Regular resource - register with FastMCP
+                self._register_with_fastmcp(resource_class, metadata.uri, metadata)
+                self._registered_resources[metadata.uri] = resource_class.__name__
+                self.logger.debug(f"Loaded registry resource: {metadata.uri}")
 
-            self.logger.debug(f"Loaded registry resource: {metadata.uri}")
             return 1
 
         except Exception as e:
@@ -368,25 +300,31 @@ class ResourceLoader:
         """Register template resource with FastMCP that handles dynamic URIs"""
         # For config template, register a catch-all pattern
         if "config" in pattern:
+
             @self.mcp_server.resource("splunk://config/{config_file}", name="get_config_resource")
-            async def get_config_template(config_file: str) -> str:
+            async def get_config_template(
+                config_file: str,
+                captured_pattern: str = pattern,
+                captured_resource_class=resource_class,
+            ) -> str:  # Fix closure bug with default parameters
                 """Get Splunk configuration resource (template)"""
                 try:
                     from .registry import resource_registry
+
                     ctx = get_context()
 
                     # Create the actual URI from the template
                     uri = f"splunk://config/{config_file}"
 
                     # Get resource instance from registry using the pattern
-                    resource = resource_registry.get_resource(pattern)
+                    resource = resource_registry.get_resource(captured_pattern)
                     if not resource:
                         # Create instance directly if not in registry
-                        resource = resource_class(
-                            uri=pattern,
-                            name=resource_class.METADATA.name,
-                            description=resource_class.METADATA.description,
-                            mime_type=resource_class.METADATA.mime_type
+                        resource = captured_resource_class(
+                            uri=captured_pattern,
+                            name=captured_resource_class.METADATA.name,
+                            description=captured_resource_class.METADATA.description,
+                            mime_type=captured_resource_class.METADATA.mime_type,
                         )
 
                     # Call with the specific URI
@@ -419,19 +357,17 @@ class ResourceLoader:
 
     def _register_config_resource(self, resource_class, uri: str, metadata):
         """Register configuration resource with FastMCP"""
-        config_file = self._extract_config_file_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://config/{config_file}/{hash(uri) % 10000}"
+        # Use metadata for proper naming and description
+        resource_name = metadata.name
+        resource_description = metadata.description
 
-        # Use metadata for proper naming
-        resource_name = f"splunk_config_{config_file.replace('.conf', '').replace('/', '_')}"
-        resource_description = f"{metadata.description} - {config_file}"
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_config_resource() -> str:
             """Get Splunk configuration resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -443,19 +379,17 @@ class ResourceLoader:
 
     def _register_health_resource(self, resource_class, uri: str, metadata):
         """Register health resource with FastMCP"""
-        component = self._extract_component_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://health/{component}/{hash(uri) % 10000}"
-
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_health_resource() -> str:
             """Get Splunk health resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -467,19 +401,17 @@ class ResourceLoader:
 
     def _register_apps_resource(self, resource_class, uri: str, metadata):
         """Register apps resource with FastMCP"""
-        app_type = self._extract_app_type_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://apps/{app_type}/{hash(uri) % 10000}"
-        
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_apps_resource() -> str:
             """Get Splunk apps resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -491,19 +423,17 @@ class ResourceLoader:
 
     def _register_search_resource(self, resource_class, uri: str, metadata):
         """Register search resource with FastMCP"""
-        search_type = self._extract_search_type_from_uri(uri)
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://search/{search_type}/{hash(uri) % 10000}"
-        
         # Use metadata for proper naming and description
-        resource_name = f"Splunk Search {search_type.replace('/', ' ').title()}"
+        resource_name = metadata.name
         resource_description = metadata.description
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_search_resource() -> str:
             """Get Splunk search resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -516,14 +446,16 @@ class ResourceLoader:
     def _register_generic_resource(self, resource_class, uri: str, metadata):
         """Register generic resource with FastMCP"""
         # Use metadata for proper naming and description
-        resource_name = f"splunk_resource_{hash(uri) % 10000}"
+        resource_name = metadata.name
         resource_description = metadata.description
-        
+
+        # Create a closure to capture the URI - static resources have no function parameters
         @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_generic_resource() -> str:
             """Get generic resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -535,47 +467,24 @@ class ResourceLoader:
 
     def _get_resource_name_from_uri(self, uri: str) -> str:
         """Extract a human-readable name from URI"""
-        parts = uri.split('/')
+        parts = uri.split("/")
         if len(parts) > 0:
-            return parts[-1].replace('.conf', '').replace('_', ' ').title()
+            return parts[-1].replace(".conf", "").replace("_", " ").title()
         return "Unknown"
-
-    def _extract_config_file_from_uri(self, uri: str) -> str:
-        """Extract config file name from URI"""
-        parts = uri.split('/')
-        return parts[-1] if parts else "unknown.conf"
-
-    def _extract_component_from_uri(self, uri: str) -> str:
-        """Extract component name from health URI"""
-        parts = uri.split('/')
-        return parts[-1] if parts else "status"
-
-    def _extract_app_type_from_uri(self, uri: str) -> str:
-        """Extract app type from apps URI"""
-        parts = uri.split('/')
-        return parts[-1] if parts else "installed"
-
-    def _extract_search_type_from_uri(self, uri: str) -> str:
-        """Extract search type from search URI"""
-        parts = uri.split('/')
-        if len(parts) >= 2:
-            return f"{parts[-2]}/{parts[-1]}"  # e.g., "results/recent"
-        return parts[-1] if parts else "recent"
 
     def _register_indexes_resource(self, resource_class, uri: str, metadata):
         """Register indexes resource with FastMCP"""
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://indexes/list/{hash(uri) % 10000}"
-        
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_indexes_resource() -> str:
             """Get Splunk indexes resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -587,18 +496,17 @@ class ResourceLoader:
 
     def _register_saved_searches_resource(self, resource_class, uri: str, metadata):
         """Register saved searches resource with FastMCP"""
-        # Create unique resource URI to avoid conflicts
-        unique_uri = f"splunk://savedsearches/list/{hash(uri) % 10000}"
-        
         # Use metadata for proper naming and description
         resource_name = metadata.name
         resource_description = metadata.description
-        
-        @self.mcp_server.resource(unique_uri, name=resource_name, description=resource_description)
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
         async def get_saved_searches_resource() -> str:
             """Get Splunk saved searches resource"""
             try:
                 from .registry import resource_registry
+
                 ctx = get_context()
                 resource = resource_registry.get_resource(uri)
                 if not resource:
@@ -619,8 +527,12 @@ class PromptLoader:
     def load_prompts(self) -> int:
         """Load all discovered prompts into the MCP server."""
         self.logger.info("Prompt loading is currently not implemented")
-        self.logger.info("The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system")
-        self.logger.info("Prompts should be implemented using @mcp.prompt decorators directly in FastMCP")
+        self.logger.info(
+            "The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system"
+        )
+        self.logger.info(
+            "Prompts should be implemented using @mcp.prompt decorators directly in FastMCP"
+        )
 
         # For now, return 0 until prompt loading is properly implemented
         # TODO: Implement proper prompt loading compatible with FastMCP's prompt system
@@ -651,11 +563,7 @@ class ComponentLoader:
         resources_loaded = self.resource_loader.load_resources()
         prompts_loaded = self.prompt_loader.load_prompts()
 
-        results = {
-            "tools": tools_loaded,
-            "resources": resources_loaded,
-            "prompts": prompts_loaded
-        }
+        results = {"tools": tools_loaded, "resources": resources_loaded, "prompts": prompts_loaded}
 
         total_loaded = sum(results.values())
         self.logger.info(f"Loaded {total_loaded} total components: {results}")
