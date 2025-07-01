@@ -15,6 +15,12 @@ __all__ = [
     # Search tools
     "OneshotSearch",
     "JobSearch",
+    "ListSavedSearches",
+    "ExecuteSavedSearch",
+    "CreateSavedSearch",
+    "UpdateSavedSearch",
+    "DeleteSavedSearch",
+    "GetSavedSearchDetails",
 
     # Metadata tools
     "ListIndexes",
