@@ -463,7 +463,7 @@ class SPLCommandResource(SplunkDocsResource):
             norm_version = self.normalize_version(self.version)
             # help.splunk.com uses lowercase command names and different URL structure
             command_lower = self.command.lower()
-            url = f"{self.SPLUNK_DOCS_BASE}/en/splunk-enterprise/search/{norm_version}/commands/{command_lower}"
+            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/search/spl-search-reference/{norm_version}/search-commands/{command_lower}"
 
             content = await self.fetch_doc_content(url)
 
@@ -514,7 +514,7 @@ class AdminGuideResource(SplunkDocsResource):
             norm_version = self.normalize_version(self.version)
             # help.splunk.com uses hyphenated topic names and different URL structure
             topic_url = self.topic.replace("_", "-").lower()
-            url = f"{self.SPLUNK_DOCS_BASE}/en/splunk-enterprise/administer/{norm_version}/{topic_url}"
+            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/{topic_url}"
 
             content = await self.fetch_doc_content(url)
 
