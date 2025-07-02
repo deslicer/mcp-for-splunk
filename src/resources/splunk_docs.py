@@ -72,7 +72,7 @@ _doc_cache = DocumentationCache()
 class SplunkDocsResource(BaseResource):
     """Base class for Splunk documentation resources."""
 
-    SPLUNK_DOCS_BASE = "https://help.splunk.com"
+    SPLUNK_DOCS_BASE = "https://docs.splunk.com"
     SPLUNK_HELP_BASE = "https://help.splunk.com"
     VERSION_MAPPING = {
         "9.4.0": "9.4",
@@ -149,7 +149,7 @@ pip install httpx
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             
-            async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=30.0, headers=headers, follow_redirects=True) as client:
                 logger.debug(f"Fetching documentation from: {url}")
                 response = await client.get(url)
                 response.raise_for_status()
