@@ -64,6 +64,7 @@ class GetSplunkHealth(BaseTool):
             # Try to get Splunk service with client config or fallback to server default
             service = await self.get_splunk_service(ctx, client_config)
 
+            
             # If we got here, we have a working connection
             info = {
                 "status": "connected",
@@ -71,6 +72,9 @@ class GetSplunkHealth(BaseTool):
                 "server_name": service.info.get("host", "unknown"),
                 "connection_source": "client_config" if client_config else "server_config",
             }
+
+            host_wide = await service.get("/services/server/status/resource-usage/hostwide")
+            self.logger.info(f"Host wide: {host_wide}")
 
             ctx.info(f"Health check successful: {info}")
             self.logger.info(f"Health check successful: {info}")

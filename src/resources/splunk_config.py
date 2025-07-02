@@ -10,10 +10,10 @@ from typing import Any
 
 from fastmcp.server.context import Context
 
-from ..base import BaseResource, ResourceMetadata
-from ..client_identity import get_client_manager
-from ..enhanced_config_extractor import EnhancedConfigExtractor
-from ..utils import filter_customer_indexes
+from ..core.base import BaseResource, ResourceMetadata
+from ..core.client_identity import get_client_manager
+from ..core.enhanced_config_extractor import EnhancedConfigExtractor
+from ..core.utils import filter_customer_indexes
 
 logger = logging.getLogger(__name__)
 

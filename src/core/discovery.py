@@ -58,8 +58,7 @@ def discover_resources(search_paths: list[str] | None = None) -> int:
     """
     if search_paths is None:
         search_paths = [
-            "src.core.resources",  # Core resources (actual location)
-            "src.resources",  # New resources directory (Splunk docs, etc.)
+            "src.resources",  # Core and documentation resources
             "contrib.resources",  # Community resources
         ]
 

@@ -11,8 +11,8 @@ from typing import Any
 from fastmcp import Context
 from splunklib import client
 
-from ..base import BaseResource
-from ..client_identity import ClientIdentity, SecurityError, get_client_manager
+from ..core.base import BaseResource
+from ..core.client_identity import ClientIdentity, SecurityError, get_client_manager
 
 logger = logging.getLogger(__name__)
 

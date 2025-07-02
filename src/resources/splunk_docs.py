@@ -223,38 +223,11 @@ class SplunkCheatSheetResource(SplunkDocsResource):
         """Get Splunk cheat sheet content."""
 
         async def fetch_cheat_sheet():
+            # Use the custom processor that returns the complete cheat sheet content
             url = "https://www.splunk.com/en_us/blog/learn/splunk-cheat-sheet-query-spl-regex-commands.html"
-            content = await self.fetch_doc_content(url)
-
-            return f"""# Splunk Cheat Sheet: Query, SPL, RegEx, & Commands
-
-**Source**: Splunk Official Blog
-**Category**: Quick Reference Guide
-**Updated**: {datetime.now().strftime('%Y-%m-%d')}
-
-{content}
-
-## Quick Reference Summary
-
-This cheat sheet covers essential Splunk concepts and commands for both Splunk Cloud and Splunk Enterprise:
-
-### Key Areas Covered
-- **Events and Metrics** - Understanding Splunk data structure
-- **SPL Commands** - Search Processing Language reference
-- **Regular Expressions** - Pattern matching in searches
-- **Common Functions** - eval, stats, and other built-in functions
-- **Date/Time Formatting** - Timestamp manipulation
-- **Field Operations** - Working with multivalue fields
-
-### Usage Context
-This resource is invaluable for:
-- Quick command lookup during search development
-- Learning SPL syntax and patterns
-- Reference for regular expressions in Splunk
-- Understanding data formatting options
-
-For specific command details, see also: [SPL Reference](splunk-docs://latest/spl-reference)
-"""
+            # The processor will handle this URL specially and return comprehensive content
+            content = self.processor.process_cheat_sheet_content("", url)
+            return content
 
         return await _doc_cache.get_or_fetch("static", "cheat-sheet", "main", fetch_cheat_sheet)
 
