@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class TroubleshootInputsPrompt(BasePrompt):
     """
-    Guided multi-agent troubleshooting workflow for Splunk data input issues.
+    Guided troubleshooting workflow for Splunk data input issues.
 
     This prompt implements a sophisticated multi-step diagnostic process using metrics.log
     analysis following Anthropic's research patterns. It provides structured delegation
@@ -26,7 +26,7 @@ class TroubleshootInputsPrompt(BasePrompt):
 
     METADATA = PromptMetadata(
         name="troubleshoot_inputs",
-        description="Multi-agent workflow for systematic Splunk data input troubleshooting using metrics.log analysis with parallel execution and validation",
+        description="workflow for systematic Splunk data input troubleshooting using metrics.log analysis with parallel execution and validation",
         category="troubleshooting",
         tags=["troubleshooting", "inputs", "metrics", "diagnostics", "performance", "multi-agent"],
         arguments=[
@@ -256,7 +256,7 @@ Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
   "params": {{
     "name": "run_splunk_search", 
     "arguments": {{
-      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['filter_string']} | stats sum(kb) as total_kb sum(eps) as total_eps avg(kb) as avg_kb by series | eval efficiency_ratio=total_eps/total_kb | sort -total_kb | head 25",
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['filter_string']} | stats sum(kb) as total_kb sum(eps) as total_eps avg(kb) as avg_kb by series | eval efficiency_ratio=total_eps/total_kb | eval health_indicator=case(efficiency_ratio>50 AND efficiency_ratio>2, \"optimal\", efficiency_ratio>10 AND efficiency_ratio>1, \"good\", efficiency_ratio>1, \"suboptimal\", 1=1, \"critical\") | sort -total_kb | head 25",
       "earliest_time": "{earliest_time}",
       "latest_time": "{latest_time}"
     }}
@@ -1410,3 +1410,705 @@ Refer to Splunk performance documentation for detailed optimization strategies.
             "role": "assistant",
             "content": [{"type": "text", "text": workflow_content}]
         }
+
+
+class TroubleshootIndexingPerformancePrompt(BasePrompt):
+    """
+    Systematic indexing performance troubleshooting workflow for Splunk.
+
+    This prompt implements a comprehensive diagnostic process for identifying and triaging
+    indexing performance issues based on Splunk's official troubleshooting methodology.
+    It follows multi-agent patterns with structured analysis phases, parallel execution,
+    and comprehensive validation workflows.
+
+    References:
+    - Splunk Enterprise troubleshooting documentation  
+    - Platform instrumentation logs and searches
+    - Indexing performance metrics and analysis
+    """
+
+    METADATA = PromptMetadata(
+        name="troubleshoot_indexing_performance",
+        description="Comprehensive workflow for identifying and triaging Splunk indexing performance issues using platform instrumentation and metrics analysis",
+        category="troubleshooting",
+        tags=["troubleshooting", "indexing", "performance", "metrics", "platform-instrumentation", "multi-agent"],
+        arguments=[
+            {
+                "name": "earliest_time",
+                "description": "Start time for analysis (ISO format or relative like -24h, -7d)",
+                "required": False,
+                "type": "string"
+            },
+            {
+                "name": "latest_time", 
+                "description": "End time for analysis (ISO format or relative like now, -1h)",
+                "required": False,
+                "type": "string"
+            },
+            {
+                "name": "focus_index",
+                "description": "Specific index to focus analysis on (optional for targeted investigation)",
+                "required": False,
+                "type": "string"
+            },
+            {
+                "name": "focus_host",
+                "description": "Specific indexer host to focus analysis on (optional for targeted investigation)",
+                "required": False,
+                "type": "string"
+            },
+            {
+                "name": "analysis_depth",
+                "description": "Analysis depth: quick, standard, comprehensive (determines scope and execution time)",
+                "required": False,
+                "type": "string"
+            },
+            {
+                "name": "include_delay_analysis",
+                "description": "Include indexing delay and latency analysis (may increase execution time)",
+                "required": False,
+                "type": "boolean"
+            },
+            {
+                "name": "include_platform_instrumentation",
+                "description": "Include platform instrumentation logs and searches analysis",
+                "required": False,
+                "type": "boolean"
+            }
+        ]
+    )
+
+    async def get_prompt(
+        self,
+        ctx: Context,
+        earliest_time: str = "-24h",
+        latest_time: str = "now", 
+        focus_index: str | None = None,
+        focus_host: str | None = None,
+        analysis_depth: str = "standard",
+        include_delay_analysis: bool = True,
+        include_platform_instrumentation: bool = True
+    ) -> dict[str, Any]:
+        """
+        Generate a comprehensive indexing performance troubleshooting workflow.
+
+        Args:
+            earliest_time: Start time for analysis
+            latest_time: End time for analysis
+            focus_index: Specific index to focus on
+            focus_host: Specific indexer host to focus on
+            analysis_depth: Analysis depth level
+            include_delay_analysis: Include delay analysis
+            include_platform_instrumentation: Include platform instrumentation analysis
+
+        Returns:
+            Dict containing the structured indexing performance troubleshooting workflow
+        """
+
+        # Validate and process arguments
+        analysis_depth = self._validate_analysis_depth(analysis_depth)
+        execution_strategy = self._determine_execution_strategy(analysis_depth)
+
+        # Build focus filters and context
+        focus_context = self._build_focus_context(focus_index, focus_host)
+
+        # Generate the comprehensive workflow
+        workflow_content = self._generate_indexing_workflow_content(
+            earliest_time=earliest_time,
+            latest_time=latest_time,
+            focus_context=focus_context,
+            execution_strategy=execution_strategy,
+            include_delay_analysis=include_delay_analysis,
+            include_platform_instrumentation=include_platform_instrumentation
+        )
+
+        return {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "text",
+                    "text": workflow_content
+                }
+            ]
+        }
+
+    def _validate_analysis_depth(self, depth: str) -> str:
+        """Validate and normalize analysis depth."""
+        valid_depths = ["quick", "standard", "comprehensive"]
+        normalized = depth.lower() if depth else "standard"
+        return normalized if normalized in valid_depths else "standard"
+
+    def _determine_execution_strategy(self, analysis_depth: str) -> dict[str, Any]:
+        """Determine execution strategy based on analysis depth."""
+        strategies = {
+            "quick": {
+                "parallel_searches": 3,
+                "analysis_phases": ["basic_metrics", "error_detection"],
+                "validation_level": "basic"
+            },
+            "standard": {
+                "parallel_searches": 5,
+                "analysis_phases": ["basic_metrics", "error_detection", "performance_analysis", "correlation"],
+                "validation_level": "standard"
+            },
+            "comprehensive": {
+                "parallel_searches": 8,
+                "analysis_phases": ["basic_metrics", "error_detection", "performance_analysis", "correlation", "deep_analysis", "prediction"],
+                "validation_level": "thorough"
+            }
+        }
+        return strategies.get(analysis_depth, strategies["standard"])
+
+    def _build_focus_context(self, focus_index: str | None, focus_host: str | None) -> dict[str, Any]:
+        """Build focused analysis context."""
+        context = {
+            "filters": [],
+            "search_filter": "",
+            "description": "",
+            "scope": "general"
+        }
+
+        if focus_index:
+            context["filters"].append(f'index="{focus_index}"')
+            context["scope"] = "index-focused"
+
+        if focus_host:
+            context["filters"].append(f'host="{focus_host}"')
+            context["scope"] = "host-focused" if not focus_index else "index-host-focused"
+
+        if context["filters"]:
+            context["search_filter"] = " AND " + " AND ".join(context["filters"])
+            context["description"] = f"\n**🎯 Analysis Focus**: {', '.join(context['filters'])}"
+
+        return context
+
+    def _generate_indexing_workflow_content(
+        self,
+        earliest_time: str,
+        latest_time: str,
+        focus_context: dict[str, Any],
+        execution_strategy: dict[str, Any],
+        include_delay_analysis: bool,
+        include_platform_instrumentation: bool
+    ) -> str:
+        """Generate the complete indexing performance workflow content."""
+
+        return f"""# 🚀 Splunk Indexing Performance Diagnostic Workflow
+
+**Advanced Indexing Performance Analysis** | **Platform Instrumentation Framework**{focus_context['description']}
+
+**📊 Analysis Configuration**:
+- **Time Range**: `{earliest_time}` to `{latest_time}`
+- **Analysis Depth**: `{execution_strategy['parallel_searches']} parallel searches`
+- **Analysis Phases**: `{', '.join(execution_strategy['analysis_phases'])}`
+- **Validation Level**: `{execution_strategy['validation_level'].title()}`
+
+---
+
+## 🎯 Executive Summary & Methodology
+
+This workflow implements **Splunk's official indexing performance troubleshooting methodology** using advanced multi-agent diagnostic patterns. The process systematically identifies and triages indexing bottlenecks, delays, and performance degradation through structured analysis of platform instrumentation data.
+
+### 🔄 Diagnostic Philosophy
+Following **Observe-Orient-Decide-Act (OODA)** methodology:
+- **Observe**: Collect indexing metrics and platform instrumentation data
+- **Orient**: Contextualize findings within system architecture and baselines
+- **Decide**: Prioritize issues by impact and determine investigation paths
+- **Act**: Execute targeted remediation strategies
+
+---
+
+## 📚 Phase 0: Enhanced Knowledge Acquisition & Context Building
+
+### Step 0.1: Multi-Source Documentation Retrieval
+**🎯 Objective**: Establish comprehensive knowledge foundation
+
+**🔧 Primary Resource Retrieval**:
+```json
+{{
+  "method": "resources/read",
+  "params": {{
+    "uri": "splunk-docs://latest/troubleshooting/indexing-performance"
+  }}
+}}
+```
+
+### Step 0.2: System Context Assessment
+**🎯 Objective**: Establish current system baseline and health status
+
+**🔧 System Information Gathering**:
+
+1. **Available Indexes**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "list_indexes",
+    "arguments": {{}}
+  }}
+}}
+```
+
+2. **Available Sourcetypes**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "list_sourcetypes", 
+    "arguments": {{}}
+  }}
+}}
+```
+
+3. **Documentation Discovery**:
+```json
+{{
+  "method": "resources/read",
+  "params": {{
+    "uri": "splunk-docs://discovery"
+  }}
+}}
+```
+
+---
+
+## 🚀 Phase 1: Hierarchical Parallel Initial Assessment
+
+### Agent Delegation Block Alpha (Lead Analysis - Execute Simultaneously)
+
+#### Step 1.1: System-Wide Throughput Baseline Establishment
+**🎯 Objective**: Establish comprehensive system throughput patterns with trend analysis
+**👤 Agent**: Lead Diagnostic Agent
+
+**🔧 Enhanced Search Query**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | timechart span=1h sum(kb) as totalKB sum(eps) as totalEPS | eval throughput_trend=case(totalKB>lag(totalKB)*1.1, \"increasing\", totalKB<lag(totalKB)*0.9, \"decreasing\", 1=1, \"stable\") | eval anomaly_score=abs((totalKB-lag(totalKB))/lag(totalKB))*100 | eval health_indicator=case(anomaly_score>50, \"critical\", anomaly_score>20, \"warning\", 1=1, \"healthy\")",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+#### Step 1.2: Advanced Index Distribution Matrix
+**🎯 Objective**: Multi-dimensional index analysis with efficiency scoring
+**👤 Agent**: Data Distribution Specialist
+
+**🔧 Enhanced Search Query**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | stats sum(kb) as total_kb sum(eps) as total_eps avg(kb) as avg_kb stdev(kb) as stdev_kb by series | eval efficiency_ratio=total_eps/total_kb | eval consistency_score=if(stdev_kb>0, avg_kb/stdev_kb, 0) | eval health_category=case(efficiency_ratio>50 AND consistency_score>2, \"optimal\", efficiency_ratio>10 AND consistency_score>1, \"good\", efficiency_ratio>1, \"suboptimal\", 1=1, \"critical\") | sort -total_kb | head 30",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+### Agent Delegation Block Beta (Specialist Analysis - Execute Simultaneously)
+
+#### Step 1.3: Indexer Host Performance Assessment
+**🎯 Objective**: Evaluate per-host indexing capacity and identify bottlenecks
+
+**🔧 Host Performance Analysis**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_host_thruput{focus_context['search_filter']} | stats sum(kb) as total_kb sum(eps) as total_eps avg(avg_age) as avg_indexing_delay count as measurement_count by series | eval kb_per_measurement=round(total_kb/measurement_count,2) | eval processing_efficiency=case(avg_indexing_delay<30, \"efficient\", avg_indexing_delay<60, \"normal\", avg_indexing_delay<120, \"slow\", 1=1, \"bottleneck\") | sort -total_kb | head 15",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+#### Step 1.4: Queue and Pipeline Performance Monitoring
+**🎯 Objective**: Detect processing pipeline congestion and queue buildup
+
+**🔧 Pipeline Monitoring Search**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=queue{focus_context['search_filter']} | stats avg(current_size) as avg_queue_size max(current_size) as max_queue_size min(current_size) as min_queue_size by series | eval queue_category=case(max_queue_size<1024, \"healthy\", max_queue_size<10240, \"moderate\", max_queue_size<102400, \"high\", 1=1, \"critical\") | eval queue_variance=max_queue_size-min_queue_size | sort -max_queue_size",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+---
+
+## 🔍 Phase 2: Performance Bottleneck Investigation
+
+### Step 2.1: Indexing Delay Pattern Analysis
+**🎯 Objective**: Identify patterns in indexing delays and correlate with system events
+
+**🔧 Delay Timeline Analysis**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | eval delay_bucket=case(avg_age<10, \"<10s\", avg_age<30, \"10-30s\", avg_age<60, \"30-60s\", avg_age<120, \"1-2min\", avg_age<300, \"2-5min\", 1=1, \">5min\") | timechart span=30m count by delay_bucket | fillnull value=0",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+{self._generate_delay_analysis_section(include_delay_analysis, focus_context, earliest_time, latest_time) if include_delay_analysis else ""}
+
+### Step 2.2: Resource Utilization Correlation
+**🎯 Objective**: Correlate indexing performance with system resource usage
+
+**🔧 Resource Correlation Search**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* (group=per_index_thruput OR group=resource_usage){focus_context['search_filter']} | eval metric_type=case(group=\"per_index_thruput\", \"throughput\", group=\"resource_usage\", \"resources\", 1=1, \"other\") | timechart span=10m sum(eval(if(metric_type=\"throughput\", kb, 0))) as total_kb avg(eval(if(metric_type=\"resources\", data, null()))) as resource_usage | eval correlation_score=correlation(total_kb, resource_usage)",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+---
+
+## 🕵️ Phase 3: Advanced Diagnostic Analysis
+
+### Step 3.1: Cross-Component Impact Analysis
+**🎯 Objective**: Analyze interdependencies between indexing components
+
+**🔧 Component Correlation Matrix**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* (group=per_index_thruput OR group=queue OR group=tcpin_connections OR group=searchconcurrency){focus_context['search_filter']} | eval component=case(group=\"per_index_thruput\", \"indexing\", group=\"queue\", \"processing\", group=\"tcpin_connections\", \"input\", group=\"searchconcurrency\", \"search\", 1=1, \"other\") | timechart span=5m sum(eval(if(component=\"indexing\", kb, 0))) as indexing_kb count(eval(if(component=\"processing\", 1, null()))) as processing_activity count(eval(if(component=\"input\", 1, null()))) as input_connections count(eval(if(component=\"search\", 1, null()))) as search_activity",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+### Step 3.2: Error and Warning Pattern Detection
+**🎯 Objective**: Correlate performance issues with error conditions and warnings
+
+**🔧 Error Correlation Search**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal (source=*splunkd.log* OR source=*metrics.log*) (ERROR OR WARN OR \"timeout\" OR \"failed\" OR \"blocked\" OR \"queue full\" OR \"max size\"){focus_context['search_filter']} | rex field=_raw \"(?<error_type>ERROR|WARN).*?(?<error_component>IndexProcessor|TcpInputProcessor|IndexerService|BucketMover)\" | bucket _time span=10m | stats count by _time error_type error_component | where count>threshold_value",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+### Step 3.3: Saved Search Performance Impact
+**🎯 Objective**: Analyze impact of saved searches on indexing performance
+
+**🔧 List and Analyze Saved Searches**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "list_saved_searches",
+    "arguments": {{
+      "owner": null,
+      "app": null,
+      "sharing": null,
+      "include_disabled": false
+    }}
+  }}
+}}
+```
+
+**🔧 Search Concurrency Impact Analysis**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=searchconcurrency{focus_context['search_filter']} | timechart span=10m avg(active_hist_searches) as avg_active_searches avg(active_realtime_searches) as avg_realtime_searches | join _time [search index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | timechart span=10m avg(avg_age) as avg_indexing_delay] | eval search_impact_score=case(avg_active_searches>10 AND avg_indexing_delay>60, \"high_impact\", avg_active_searches>5 AND avg_indexing_delay>30, \"moderate_impact\", 1=1, \"low_impact\")",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+---
+
+## 📊 Phase 4: Validation & Impact Assessment
+
+### Step 4.1: Performance Threshold Validation
+**🎯 Objective**: Validate findings against established performance thresholds
+
+**🔧 Threshold Compliance Check**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | stats avg(avg_age) as avg_delay max(max_age) as max_delay sum(kb) as total_kb sum(eps) as total_eps by series | eval delay_threshold_status=case(avg_delay<30, \"PASS\", avg_delay<60, \"WARNING\", avg_delay<120, \"CRITICAL\", 1=1, \"SEVERE\") | eval throughput_efficiency=total_eps/total_kb | eval efficiency_threshold_status=case(throughput_efficiency>20, \"EXCELLENT\", throughput_efficiency>10, \"GOOD\", throughput_efficiency>5, \"ACCEPTABLE\", 1=1, \"POOR\")",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+### Step 4.2: Baseline Comparison Analysis
+**🎯 Objective**: Compare current performance against historical baselines
+
+**🔧 Historical Baseline Comparison**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "| union [search index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} earliest={earliest_time} latest={latest_time} | stats avg(avg_age) as current_avg_delay sum(kb) as current_total_kb by series] [search index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} earliest=-7d@d latest=-1d@d | stats avg(avg_age) as baseline_avg_delay sum(kb) as baseline_total_kb by series] | stats values(*) as * by series | eval delay_change_pct=round(((current_avg_delay-baseline_avg_delay)/baseline_avg_delay)*100,2) | eval throughput_change_pct=round(((current_total_kb-baseline_total_kb)/baseline_total_kb)*100,2) | eval performance_trend=case(delay_change_pct<-10, \"improving\", delay_change_pct>10, \"degrading\", 1=1, \"stable\")",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+---
+
+## 🎯 Diagnostic Decision Matrix & Triage Framework
+
+### 🟢 Healthy Performance Indicators
+- **Indexing Delay**: Consistent <30 seconds average, <120 seconds maximum
+- **Queue Sizes**: Consistently under 1MB across all processing queues
+- **Throughput Stability**: Variance within ±15% of baseline rates
+- **Resource Utilization**: CPU <70%, Memory <80%, Disk I/O within normal ranges
+- **Error Rate**: <0.1% of processing events show errors or warnings
+
+### 🟡 Performance Warning Conditions
+- **Moderate Delays**: 30-60 seconds average delay, occasional spikes to 300 seconds
+- **Queue Buildup**: 1-10MB sustained queue sizes in processing pipelines
+- **Throughput Degradation**: 15-30% reduction from baseline throughput
+- **Resource Pressure**: CPU 70-85%, Memory 80-90%, elevated disk latency
+- **Intermittent Errors**: 0.1-1% error rate in processing or ingestion
+
+### 🔴 Critical Performance Issues
+- **High Throughput Volatility**: CV > 0.5
+- **Processing Bottlenecks**: Queue depths > 10MB sustained
+- **Network Failures**: Connection stability < 95%
+- **Critical Error Rate**: Error rate > 1%
+- **Resource Exhaustion**: CPU > 90%, Memory > 95%
+
+---
+
+## 🛠️ Targeted Remediation Strategies
+
+### **Indexing Delay Issues** → Investigate:
+1. **Disk I/O Performance**: Check for storage bottlenecks and disk latency
+2. **Indexer Resource Allocation**: Verify CPU and memory allocation adequacy
+3. **Hot/Warm Bucket Management**: Analyze bucket rolling and size configurations
+4. **Network Latency**: Check forwarder-to-indexer network performance
+
+### **Queue Buildup Problems** → Focus on:
+1. **Processing Pipeline Tuning**: Adjust queue sizes and processing threads
+2. **Search Load Balancing**: Distribute search load across search heads
+3. **Batch Size Optimization**: Tune batch processing parameters
+4. **Resource Scaling**: Consider horizontal or vertical scaling
+
+### **Throughput Degradation** → Examine:
+1. **Input Source Health**: Verify all expected data sources are active
+2. **Network Connectivity**: Check for network issues affecting data flow
+3. **Parsing Configuration**: Optimize props.conf and transforms.conf settings
+4. **Indexer Clustering**: Verify cluster health and replication factor
+
+### **Resource Exhaustion** → Address:
+1. **Capacity Planning**: Evaluate need for additional indexer resources
+2. **Search Scheduling**: Optimize saved search schedules and resource usage
+3. **Data Retention**: Review data retention policies and storage efficiency
+4. **System Optimization**: Fine-tune Splunk configuration parameters
+
+---
+
+## 📈 Continuous Monitoring Recommendations
+
+### Automated Health Checks
+Implement continuous monitoring using these key searches:
+
+1. **Real-time Delay Monitoring**:
+   - Alert when average delay >60 seconds for 10+ minutes
+   - Dashboard showing delay trends by index and host
+
+2. **Queue Size Monitoring**:
+   - Alert when queue sizes >5MB sustained for 5+ minutes
+   - Track processing pipeline health metrics
+
+3. **Throughput Baseline Monitoring**:
+   - Alert when throughput drops >20% below baseline
+   - Monitor daily/weekly throughput patterns
+
+### Performance Trending
+- Establish monthly performance baselines
+- Track capacity utilization trends
+- Monitor search concurrency impact on indexing
+- Correlate performance with infrastructure changes
+
+---
+
+## 🔍 Advanced Analysis Techniques
+
+### Multi-Dimensional Correlation
+Use correlation analysis to identify relationships between:
+- **Search activity patterns** and indexing performance
+- **Infrastructure metrics** and throughput degradation  
+- **Data source changes** and processing efficiency
+- **Time-based patterns** and resource utilization
+
+### Predictive Analysis
+Implement trend analysis to predict:
+- **Capacity requirements** based on growth patterns
+- **Performance degradation** before it impacts users
+- **Resource exhaustion** timelines for proactive scaling
+- **Optimal maintenance windows** based on usage patterns
+
+### Root Cause Investigation
+For identified issues, implement systematic root cause analysis:
+1. **Timeline correlation** with system events and changes
+2. **Component isolation** testing to identify specific bottlenecks
+3. **Load testing** to validate capacity limits and breaking points
+4. **Configuration validation** against best practices and recommendations
+
+---
+
+*This workflow provides comprehensive visibility into Splunk indexing performance with actionable insights for optimization and troubleshooting.*
+"""
+
+    def _generate_delay_analysis_section(
+        self, 
+        include_delay: bool, 
+        focus_context: dict[str, Any], 
+        earliest_time: str, 
+        latest_time: str
+    ) -> str:
+        """Generate indexing delay analysis section."""
+        if not include_delay:
+            return ""
+            
+        return f"""
+
+### Step 2.1a: Advanced Indexing Delay Analysis
+**🎯 Objective**: Deep analysis of indexing delays and temporal patterns
+
+**🔧 Delay Distribution Analysis**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | eval delay_bucket=case(avg_age<10, \"<10s\", avg_age<30, \"10-30s\", avg_age<60, \"30-60s\", avg_age<120, \"1-2min\", avg_age<300, \"2-5min\", 1=1, \">5min\") | timechart span=30m count by delay_bucket | fillnull value=0",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+**🔧 Delay Hotspot Identification**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | where avg_age>60 | stats count as delay_incidents sum(kb) as delayed_data_kb avg(avg_age) as avg_delay_duration by series _time span=1h | where delay_incidents>5 | sort -delayed_data_kb",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+
+**🔧 Delay Root Cause Correlation**:
+```json
+{{
+  "method": "tools/call",
+  "params": {{
+    "name": "run_splunk_search",
+    "arguments": {{
+      "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['search_filter']} | join _time [search index=_internal source=*metrics.log* group=queue | timechart span=1h avg(current_size) as avg_queue_size] | where avg_age>60 | eval delay_category=case(avg_queue_size>10240, \"queue_bottleneck\", avg_age>300, \"severe_delay\", 1=1, \"moderate_delay\") | stats count by delay_category | sort -count",
+      "earliest_time": "{earliest_time}",
+      "latest_time": "{latest_time}"
+    }}
+  }}
+}}
+```
+"""
+
+    def _generate_platform_instrumentation_section(self, include_platform: bool) -> str:
+        """Generate platform instrumentation analysis section."""
+        if not include_platform:
+            return ""
+            
+        return """
+
+### Step 0.2a: Platform Instrumentation Documentation
+**🎯 Objective**: Understand platform instrumentation for performance analysis
+
+**🔧 Platform Instrumentation Resources**:
+
+1. **Platform Instrumentation Logs**:
+```json
+{
+  "method": "resources/read",
+  "params": {
+    "uri": "splunk-docs://latest/troubleshooting/platform-instrumentation-logs"
+  }
+}
+```
+
+2. **Platform Instrumentation Searches**:
+```json
+{
+  "method": "resources/read",
+  "params": {
+    "uri": "splunk-docs://latest/troubleshooting/platform-instrumentation-searches"
+  }
+}
+```
+
+**🧠 Context Integration**: Platform instrumentation provides detailed insight into indexing pipeline performance and resource utilization.
+"""

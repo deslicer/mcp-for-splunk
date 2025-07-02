@@ -710,7 +710,7 @@ class PromptLoader:
         prompt_name = metadata.name
         prompt_description = metadata.description
 
-        # For troubleshoot_inputs prompt specifically (we can expand this pattern later)
+        # Handle specific prompts with their unique signatures
         if prompt_name == "troubleshoot_inputs":
             # Create a wrapper function with the specific signature for this prompt
             async def prompt_wrapper(
@@ -740,6 +740,55 @@ class PromptLoader:
                         latest_time=latest_time,
                         focus_index=focus_index,
                         focus_host=focus_host
+                    )
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "troubleshoot_indexing_performance":
+            # Create a wrapper function with the specific signature for this prompt
+            async def prompt_wrapper(
+                earliest_time: str = "-24h",
+                latest_time: str = "now",
+                focus_index: str | None = None,
+                focus_host: str | None = None,
+                analysis_depth: str = "standard",
+                include_delay_analysis: bool = True,
+                include_platform_instrumentation: bool = True
+            ) -> list[dict[str, Any]]:
+                """Comprehensive workflow for identifying and triaging Splunk indexing performance issues"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method with parameters
+                    result = await prompt_instance.get_prompt(
+                        ctx,
+                        earliest_time=earliest_time,
+                        latest_time=latest_time,
+                        focus_index=focus_index,
+                        focus_host=focus_host,
+                        analysis_depth=analysis_depth,
+                        include_delay_analysis=include_delay_analysis,
+                        include_platform_instrumentation=include_platform_instrumentation
                     )
 
                     # Convert to FastMCP prompt format
