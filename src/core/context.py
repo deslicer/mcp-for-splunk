@@ -12,9 +12,11 @@ from splunklib import client
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class SplunkContext:
     """Context for Splunk operations"""
+
     service: client.Service | None
     is_connected: bool
 
@@ -40,7 +42,11 @@ def validate_splunk_connection(ctx: Any) -> tuple[bool, client.Service | None, s
         splunk_ctx = ctx.request_context.lifespan_context
 
         if not splunk_ctx.is_connected or not splunk_ctx.service:
-            return False, None, "Splunk service is not available. MCP server is running in degraded mode."
+            return (
+                False,
+                None,
+                "Splunk service is not available. MCP server is running in degraded mode.",
+            )
 
         return True, splunk_ctx.service, ""
 

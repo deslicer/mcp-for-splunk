@@ -14,7 +14,7 @@ TOOL_CATEGORIES = {
     "examples": "Example tools for learning and demonstration",
     "security": "Security-focused tools for threat hunting and incident response",
     "devops": "DevOps/SRE tools for monitoring and operational tasks",
-    "analytics": "Business analytics tools for reporting and data analysis"
+    "analytics": "Business analytics tools for reporting and data analysis",
 }
 
 # Common tags for each category
@@ -22,13 +22,13 @@ CATEGORY_TAGS = {
     "examples": ["example", "tutorial", "demo"],
     "security": ["security", "threat-hunting", "incident-response"],
     "devops": ["devops", "monitoring", "sre", "operations"],
-    "analytics": ["analytics", "reporting", "business-intelligence"]
+    "analytics": ["analytics", "reporting", "business-intelligence"],
 }
 
 # Tool templates
 TOOL_TEMPLATES = {
     "basic": "Basic tool template with standard functionality",
-    "splunk_search": "Splunk search tool template for custom SPL queries"
+    "splunk_search": "Splunk search tool template for custom SPL queries",
 }
 
 
@@ -54,7 +54,9 @@ def get_user_input(prompt: str, required: bool = True, options: list[str] = None
 def get_multiline_input(prompt: str, required: bool = True) -> str:
     """Get multiline input from user."""
     print(f"{prompt}")
-    print("(Enter your query line by line. Type 'END' on a new line to finish, or Ctrl+C to cancel)")
+    print(
+        "(Enter your query line by line. Type 'END' on a new line to finish, or Ctrl+C to cancel)"
+    )
     print("Example:")
     print("  index=main sourcetype=access_combined")
     print("  | stats count by status")
@@ -76,7 +78,7 @@ def get_multiline_input(prompt: str, required: bool = True) -> str:
             return get_multiline_input(prompt, required)
         return ""
 
-    result = '\n'.join(lines).strip()
+    result = "\n".join(lines).strip()
     if required and not result:
         print("This field is required. Please try again.")
         return get_multiline_input(prompt, required)
@@ -87,17 +89,18 @@ def get_multiline_input(prompt: str, required: bool = True) -> str:
 def to_snake_case(text: str) -> str:
     """Convert text to snake_case."""
     import re
+
     # Replace spaces and hyphens with underscores
-    text = re.sub(r'[-\s]+', '_', text)
+    text = re.sub(r"[-\s]+", "_", text)
     # Convert camelCase/PascalCase to snake_case
-    text = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', text)
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", text)
     return text.lower()
 
 
 def to_pascal_case(text: str) -> str:
     """Convert text to PascalCase."""
-    words = to_snake_case(text).split('_')
-    return ''.join(word.capitalize() for word in words if word)
+    words = to_snake_case(text).split("_")
+    return "".join(word.capitalize() for word in words if word)
 
 
 def get_tool_info() -> dict[str, str]:
@@ -116,7 +119,9 @@ def get_tool_info() -> dict[str, str]:
 
     while True:
         try:
-            choice = int(get_user_input(f"\nSelect template (1-{len(template_list)})", required=True))
+            choice = int(
+                get_user_input(f"\nSelect template (1-{len(template_list)})", required=True)
+            )
             if 1 <= choice <= len(template_list):
                 template = template_list[choice - 1][0]
                 break
@@ -133,7 +138,9 @@ def get_tool_info() -> dict[str, str]:
 
     while True:
         try:
-            choice = int(get_user_input(f"\nSelect category (1-{len(category_list)})", required=True))
+            choice = int(
+                get_user_input(f"\nSelect category (1-{len(category_list)})", required=True)
+            )
             if 1 <= choice <= len(category_list):
                 category = category_list[choice - 1][0]
                 break
@@ -165,7 +172,9 @@ def get_tool_info() -> dict[str, str]:
                     spl_query = get_multiline_input("SPL Query", required=True)
                     break
                 elif choice == 2:
-                    print("\nExample: index=main sourcetype=access_combined | stats count by status")
+                    print(
+                        "\nExample: index=main sourcetype=access_combined | stats count by status"
+                    )
                     spl_query = get_user_input("SPL Query (single line)", required=True)
                     break
                 else:
@@ -174,13 +183,21 @@ def get_tool_info() -> dict[str, str]:
                 print("Please enter a valid number")
 
         # Get query description
-        query_description = get_user_input("Query description (what does this search do?)", required=True)
+        query_description = get_user_input(
+            "Query description (what does this search do?)", required=True
+        )
 
         # Get default parameters
         print("\n5. Default Search Parameters")
-        default_earliest = get_user_input("Default earliest time (e.g., '-1h', '-24h')", required=False) or "-15m"
-        default_latest = get_user_input("Default latest time (e.g., 'now', '-30m')", required=False) or "now"
-        default_max_results = get_user_input("Default max results (number)", required=False) or "100"
+        default_earliest = (
+            get_user_input("Default earliest time (e.g., '-1h', '-24h')", required=False) or "-15m"
+        )
+        default_latest = (
+            get_user_input("Default latest time (e.g., 'now', '-30m')", required=False) or "now"
+        )
+        default_max_results = (
+            get_user_input("Default max results (number)", required=False) or "100"
+        )
 
         # Additional search parameters
         print("\nAdd custom search parameters?")
@@ -227,14 +244,18 @@ def get_tool_info() -> dict[str, str]:
                     except ValueError:
                         print("Please enter a valid number")
                 param_desc = get_user_input(f"Description for {param_name}", required=True)
-                param_default = get_user_input(f"Default value for {param_name} (optional)", required=False)
+                param_default = get_user_input(
+                    f"Default value for {param_name} (optional)", required=False
+                )
 
-                custom_params.append({
-                    "name": param_name,
-                    "type": param_type,
-                    "description": param_desc,
-                    "default": param_default
-                })
+                custom_params.append(
+                    {
+                        "name": param_name,
+                        "type": param_type,
+                        "description": param_desc,
+                        "default": param_default,
+                    }
+                )
 
         template_data = {
             "spl_query": spl_query,
@@ -242,11 +263,17 @@ def get_tool_info() -> dict[str, str]:
             "default_earliest": default_earliest,
             "default_latest": default_latest,
             "default_max_results": default_max_results,
-            "custom_params": custom_params
+            "custom_params": custom_params,
         }
 
     # Get additional details
-    section_num = 7 if template == "splunk_search" and template_data.get("custom_params") else 5 if template == "splunk_search" else 4
+    section_num = (
+        7
+        if template == "splunk_search" and template_data.get("custom_params")
+        else 5
+        if template == "splunk_search"
+        else 4
+    )
     print(f"\n{section_num}. Additional Configuration")
 
     if template == "splunk_search":
@@ -280,7 +307,7 @@ def get_tool_info() -> dict[str, str]:
 
     tags = default_tags
     if custom_tags:
-        tags.extend([tag.strip() for tag in custom_tags.split(',')])
+        tags.extend([tag.strip() for tag in custom_tags.split(",")])
 
     # Generate names
     snake_name = to_snake_case(name)
@@ -295,17 +322,17 @@ def get_tool_info() -> dict[str, str]:
         "description": description,
         "requires_connection": str(requires_connection),
         "tags": tags,
-        **template_data
+        **template_data,
     }
 
 
 def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
     """Generate a Splunk search tool Python file content."""
 
-    tags_str = ', '.join(f'"{tag}"' for tag in info["tags"])
+    tags_str = ", ".join(f'"{tag}"' for tag in info["tags"])
 
     # Format the SPL query for Python string
-    spl_query = info["spl_query"].replace('"', '\\"').replace('\n', ' ').strip()
+    spl_query = info["spl_query"].replace('"', '\\"').replace("\n", " ").strip()
 
     # Generate custom parameters
     custom_params_str = ""
@@ -320,19 +347,13 @@ def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
         for param in info["custom_params"]:
             param_name = param["name"]
             param_type = param["type"]
-            param_default = param["default"] if param["default"] else {
-                "str": '""',
-                "int": "0",
-                "bool": "False",
-                "float": "0.0"
-            }[param_type]
+            param_default = (
+                param["default"]
+                if param["default"]
+                else {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[param_type]
+            )
 
-            type_hint = {
-                "str": "str",
-                "int": "int",
-                "bool": "bool",
-                "float": "float"
-            }[param_type]
+            type_hint = {"str": "str", "int": "int", "bool": "bool", "float": "float"}[param_type]
 
             param_parts.append(f"{param_name}: {type_hint} = {param_default}")
             doc_parts.append(f"            {param_name}: {param['description']}")
@@ -458,7 +479,7 @@ def generate_tool_file(info: dict[str, str]) -> str:
         return generate_splunk_search_tool_file(info)
 
     # Default basic template (existing functionality)
-    tags_str = ', '.join(f'"{tag}"' for tag in info["tags"])
+    tags_str = ", ".join(f'"{tag}"' for tag in info["tags"])
 
     template = f'''"""
 {info["description"]}
@@ -835,9 +856,9 @@ def main():
         info = get_tool_info()
 
         # Show summary
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Summary")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Template: {info['template']}")
         print(f"Category: {info['category']}")
         print(f"Tool Name: {info['name']}")
@@ -847,12 +868,12 @@ def main():
         print(f"Requires Connection: {info['requires_connection']}")
         print(f"Tags: {', '.join(info['tags'])}")
 
-        if info['template'] == 'splunk_search':
+        if info["template"] == "splunk_search":
             print("\nSplunk Search Details:")
             print(f"Query Description: {info['query_description']}")
             print(f"Default Time Range: {info['default_earliest']} to {info['default_latest']}")
             print(f"Default Max Results: {info['default_max_results']}")
-            if info.get('custom_params'):
+            if info.get("custom_params"):
                 print(f"Custom Parameters: {len(info['custom_params'])} parameters")
             print("\nSPL Query:")
             print(f"  {info['spl_query']}")
@@ -879,15 +900,17 @@ def main():
         if create:
             create_files(info)
 
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("Tool Created Successfully!")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             print("\nNext steps:")
             print("1. Edit the generated file to implement your tool logic")
             print("2. Replace TODO comments with actual implementation")
             print("3. Add proper error handling and validation")
             print("4. Update the test file with comprehensive tests")
-            print(f"5. Test your tool: pytest tests/contrib/{info['category']}/test_{info['snake_name']}.py")
+            print(
+                f"5. Test your tool: pytest tests/contrib/{info['category']}/test_{info['snake_name']}.py"
+            )
             print("6. Add your tool to the registry if needed")
             print(f"\nFile location: contrib/tools/{info['category']}/{info['snake_name']}.py")
 

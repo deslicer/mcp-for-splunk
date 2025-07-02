@@ -14,10 +14,10 @@ from .saved_search_tools import (
 )
 
 __all__ = [
-    "OneshotSearch", 
+    "OneshotSearch",
     "JobSearch",
     "ListSavedSearches",
-    "ExecuteSavedSearch", 
+    "ExecuteSavedSearch",
     "CreateSavedSearch",
     "UpdateSavedSearch",
     "DeleteSavedSearch",

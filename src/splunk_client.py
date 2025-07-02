@@ -9,6 +9,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
 def get_splunk_service(retry_count: int = 3, retry_delay: int = 5) -> client.Service:
     """Create and return a Splunk service connection with retry logic"""
     host = os.getenv("SPLUNK_HOST", "localhost")
@@ -24,22 +25,15 @@ def get_splunk_service(retry_count: int = 3, retry_delay: int = 5) -> client.Ser
 
     for attempt in range(retry_count):
         try:
-            logger.info(f"Attempting to connect to Splunk at {host}:{port} (attempt {attempt + 1}/{retry_count})")
+            logger.info(
+                f"Attempting to connect to Splunk at {host}:{port} (attempt {attempt + 1}/{retry_count})"
+            )
 
             if token:
-                service = client.Service(
-                    host=host,
-                    port=port,
-                    token=token,
-                    verify=False
-                )
+                service = client.Service(host=host, port=port, token=token, verify=False)
             else:
                 service = client.Service(
-                    host=host,
-                    port=port,
-                    username=username,
-                    password=password,
-                    verify=False
+                    host=host, port=port, username=username, password=password, verify=False
                 )
 
             # Explicitly attempt login and verify connection
@@ -62,9 +56,11 @@ def get_splunk_service(retry_count: int = 3, retry_delay: int = 5) -> client.Ser
                 logger.error(f"All {retry_count} connection attempts failed")
 
     # If we get here, all attempts failed
-    raise ValueError(f"Failed to connect to Splunk after {retry_count} attempts: {str(last_exception)}\n"
-                    f"Using host={host}, port={port}, "
-                    f"auth_type={'token' if token else 'username/password'}")
+    raise ValueError(
+        f"Failed to connect to Splunk after {retry_count} attempts: {str(last_exception)}\n"
+        f"Using host={host}, port={port}, "
+        f"auth_type={'token' if token else 'username/password'}"
+    )
 
 
 def get_splunk_service_safe() -> client.Service | None:

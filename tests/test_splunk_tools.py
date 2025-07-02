@@ -1,6 +1,7 @@
 """
 Tests for Splunk tools functionality.
 """
+
 from unittest.mock import Mock, patch
 
 from src import server
@@ -16,7 +17,7 @@ class TestSplunkHealthTool:
         mock_context.request_context.lifespan_context.service = Mock()
         mock_context.request_context.lifespan_context.service.info = {
             "version": "9.0.0",
-            "host": "localhost"
+            "host": "localhost",
         }
 
         result = server.get_splunk_health.fn(mock_context)
@@ -72,7 +73,7 @@ class TestMetadataTools:
 
     def test_list_sourcetypes_success(self, mock_context, mock_results_reader):
         """Test successful sourcetype listing"""
-        with patch('src.server.ResultsReader', mock_results_reader):
+        with patch("src.server.ResultsReader", mock_results_reader):
             # Mock the oneshot job
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
 
@@ -80,9 +81,9 @@ class TestMetadataTools:
             sourcetype_results = [
                 {"sourcetype": "access_combined"},
                 {"sourcetype": "splunkd"},
-                {"sourcetype": "web_service"}
+                {"sourcetype": "web_service"},
             ]
-            with patch('src.server.ResultsReader') as mock_reader:
+            with patch("src.server.ResultsReader") as mock_reader:
                 mock_reader.return_value = iter(sourcetype_results)
 
                 result = server.list_sourcetypes.fn(mock_context)
@@ -95,13 +96,10 @@ class TestMetadataTools:
 
     def test_list_sources_success(self, mock_context):
         """Test successful source listing"""
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
 
-            source_results = [
-                {"source": "/var/log/system.log"},
-                {"source": "/var/log/app.log"}
-            ]
+            source_results = [{"source": "/var/log/system.log"}, {"source": "/var/log/app.log"}]
             mock_reader.return_value = iter(source_results)
 
             result = server.list_sources.fn(mock_context)
@@ -116,7 +114,7 @@ class TestSearchTools:
 
     def test_run_oneshot_search_basic(self, mock_context, mock_search_results):
         """Test basic oneshot search"""
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
 
@@ -125,7 +123,7 @@ class TestSearchTools:
                 query="index=main",
                 earliest_time="-1h",
                 latest_time="now",
-                max_results=10
+                max_results=10,
             )
 
             assert "results" in result
@@ -136,27 +134,21 @@ class TestSearchTools:
 
     def test_run_oneshot_search_with_pipe(self, mock_context, mock_search_results):
         """Test oneshot search with pipe command (no prefix modification)"""
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
 
-            result = server.run_oneshot_search.fn(
-                mock_context,
-                query="| stats count by log_level"
-            )
+            result = server.run_oneshot_search.fn(mock_context, query="| stats count by log_level")
 
             assert result["query_executed"] == "| stats count by log_level"
 
     def test_run_oneshot_search_with_search_prefix(self, mock_context, mock_search_results):
         """Test oneshot search that already has search prefix"""
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
 
-            result = server.run_oneshot_search.fn(
-                mock_context,
-                query="search index=main"
-            )
+            result = server.run_oneshot_search.fn(mock_context, query="search index=main")
 
             assert result["query_executed"] == "search index=main"
 
@@ -164,15 +156,11 @@ class TestSearchTools:
         """Test oneshot search with max results limiting"""
         large_results = [{"result": i} for i in range(150)]
 
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(large_results)
 
-            result = server.run_oneshot_search.fn(
-                mock_context,
-                query="index=main",
-                max_results=100
-            )
+            result = server.run_oneshot_search.fn(mock_context, query="index=main", max_results=100)
 
             assert result["results_count"] == 100
 
@@ -294,7 +282,7 @@ class TestToolIntegration:
         mock_context.request_context.lifespan_context.service = Mock()
         mock_context.request_context.lifespan_context.service.info = {
             "version": "9.0.0",
-            "host": "localhost"
+            "host": "localhost",
         }
 
         health_result = server.get_splunk_health.fn(mock_context)
@@ -311,14 +299,11 @@ class TestToolIntegration:
         assert "indexes" in indexes_result
 
         # Then perform search
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_context.request_context.lifespan_context.service.jobs.oneshot.return_value = Mock()
             mock_reader.return_value = iter(mock_search_results)
 
-            search_result = server.run_oneshot_search.fn(
-                mock_context,
-                query="index=main | head 5"
-            )
+            search_result = server.run_oneshot_search.fn(mock_context, query="index=main | head 5")
 
             assert "results" in search_result
             assert search_result["results_count"] > 0

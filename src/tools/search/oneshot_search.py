@@ -24,7 +24,7 @@ class OneshotSearch(BaseTool):
         description="Execute a one-shot Splunk search that returns results immediately",
         category="search",
         tags=["search", "oneshot", "quick"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(
@@ -33,7 +33,7 @@ class OneshotSearch(BaseTool):
         query: str,
         earliest_time: str = "-15m",
         latest_time: str = "now",
-        max_results: int = 100
+        max_results: int = 100,
     ) -> dict[str, Any]:
         """
         Execute a one-shot Splunk search.
@@ -58,17 +58,16 @@ class OneshotSearch(BaseTool):
                 max_results=10
             )
         """
-        log_tool_execution("run_oneshot_search", query=query, earliest_time=earliest_time, latest_time=latest_time)
+        log_tool_execution(
+            "run_oneshot_search", query=query, earliest_time=earliest_time, latest_time=latest_time
+        )
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
             ctx.error(f"One-shot search failed: {error_msg}")
             return self.format_error_response(
-                error_msg,
-                results=[],
-                results_count=0,
-                query_executed=query
+                error_msg, results=[], results_count=0, query_executed=query
             )
 
         # Sanitize and prepare the query
@@ -81,7 +80,7 @@ class OneshotSearch(BaseTool):
             kwargs = {
                 "earliest_time": earliest_time,
                 "latest_time": latest_time,
-                "count": max_results
+                "count": max_results,
             }
             ctx.info(f"One-shot search parameters: {kwargs}")
 
@@ -101,19 +100,18 @@ class OneshotSearch(BaseTool):
 
             duration = time.time() - start_time
 
-            return self.format_success_response({
-                "results": results,
-                "results_count": result_count,
-                "query_executed": query,
-                "duration": round(duration, 3)
-            })
+            return self.format_success_response(
+                {
+                    "results": results,
+                    "results_count": result_count,
+                    "query_executed": query,
+                    "duration": round(duration, 3),
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"One-shot search failed: {str(e)}")
             ctx.error(f"One-shot search failed: {str(e)}")
             return self.format_error_response(
-                str(e),
-                results=[],
-                results_count=0,
-                query_executed=query
+                str(e), results=[], results_count=0, query_executed=query
             )

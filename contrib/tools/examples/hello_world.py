@@ -28,7 +28,7 @@ class HelloWorldTool(BaseTool):
         category="examples",
         tags=["example", "tutorial", "demo"],
         requires_connection=False,  # This tool doesn't need Splunk connection
-        version="1.0.0"
+        version="1.0.0",
     )
 
     async def execute(self, ctx: Context, name: str | None = "World") -> dict[str, Any]:
@@ -52,11 +52,9 @@ class HelloWorldTool(BaseTool):
         try:
             message = f"Hello, {name}!"
 
-            return self.format_success_response({
-                "message": message,
-                "greeted": name,
-                "tool": "hello_world"
-            })
+            return self.format_success_response(
+                {"message": message, "greeted": name, "tool": "hello_world"}
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to generate greeting: {str(e)}")

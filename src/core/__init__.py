@@ -25,15 +25,19 @@ try:
 except ImportError as e:
     # During development, some modules might not be fully implemented
     import logging
+
     logging.getLogger(__name__).warning(f"Some core modules not available: {e}")
 
     # Provide fallback imports for essential components
     def discover_tools(*args):
         return 0
+
     def discover_resources(*args):
         return 0
+
     def discover_prompts(*args):
         return 0
+
     ToolLoader = None
     ResourceLoader = None
     PromptLoader = None

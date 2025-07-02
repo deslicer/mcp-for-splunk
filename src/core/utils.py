@@ -24,7 +24,11 @@ def validate_splunk_connection(ctx: Any) -> tuple[bool, Any, str]:
         splunk_ctx = ctx.request_context.lifespan_context
 
         if not splunk_ctx.is_connected or not splunk_ctx.service:
-            return False, None, "Splunk service is not available. MCP server is running in degraded mode."
+            return (
+                False,
+                None,
+                "Splunk service is not available. MCP server is running in degraded mode.",
+            )
 
         return True, splunk_ctx.service, ""
 
@@ -47,11 +51,7 @@ def format_error_response(error: str, **kwargs) -> dict[str, Any]:
     Returns:
         Formatted error response dictionary
     """
-    return {
-        "status": "error",
-        "error": error,
-        **kwargs
-    }
+    return {"status": "error", "error": error, **kwargs}
 
 
 def format_success_response(data: dict[str, Any]) -> dict[str, Any]:
@@ -64,10 +64,7 @@ def format_success_response(data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Formatted success response dictionary
     """
-    return {
-        "status": "success",
-        **data
-    }
+    return {"status": "success", **data}
 
 
 def sanitize_search_query(query: str) -> str:
@@ -83,7 +80,7 @@ def sanitize_search_query(query: str) -> str:
     query = query.strip()
 
     # Add 'search' command if not present and query doesn't start with a pipe
-    if not query.lower().startswith(('search ', '| ')):
+    if not query.lower().startswith(("search ", "| ")):
         query = f"search {query}"
 
     return query
@@ -105,7 +102,7 @@ def validate_time_range(earliest_time: str, latest_time: str) -> tuple[bool, str
         return False, "Both earliest_time and latest_time must be provided"
 
     # Check for obviously invalid formats
-    invalid_chars = ['<', '>', ';', '&', '|', '`']
+    invalid_chars = ["<", ">", ";", "&", "|", "`"]
     for char in invalid_chars:
         if char in earliest_time or char in latest_time:
             return False, f"Invalid character '{char}' in time range"
@@ -150,10 +147,10 @@ def filter_customer_indexes(indexes):
     try:
         for idx in indexes:
             # Handle both index objects with .name attribute and string names
-            index_name = idx.name if hasattr(idx, 'name') else str(idx)
+            index_name = idx.name if hasattr(idx, "name") else str(idx)
 
             # Skip any index that starts with underscore (Splunk internal convention)
-            if not index_name.startswith('_'):
+            if not index_name.startswith("_"):
                 customer_indexes.append(idx)
     except (AttributeError, TypeError) as e:
         logger.warning(f"Error filtering indexes: {e}")
@@ -177,12 +174,12 @@ def truncate_large_response(data: Any, max_items: int = 1000) -> tuple[Any, bool
     if isinstance(data, list) and len(data) > max_items:
         return data[:max_items], True
 
-    if isinstance(data, dict) and 'results' in data and isinstance(data['results'], list):
-        if len(data['results']) > max_items:
+    if isinstance(data, dict) and "results" in data and isinstance(data["results"], list):
+        if len(data["results"]) > max_items:
             truncated_data = data.copy()
-            truncated_data['results'] = data['results'][:max_items]
-            truncated_data['truncated'] = True
-            truncated_data['original_count'] = len(data['results'])
+            truncated_data["results"] = data["results"][:max_items]
+            truncated_data["truncated"] = True
+            truncated_data["original_count"] = len(data["results"])
             return truncated_data, True
 
     return data, False

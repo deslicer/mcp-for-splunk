@@ -10,10 +10,10 @@ from typing import Any
 
 from fastmcp.server.context import Context
 
-from ..base import BaseResource, ResourceMetadata
-from ..client_identity import get_client_manager
-from ..enhanced_config_extractor import EnhancedConfigExtractor
-from ..utils import filter_customer_indexes
+from ..core.base import BaseResource, ResourceMetadata
+from ..core.client_identity import get_client_manager
+from ..core.enhanced_config_extractor import EnhancedConfigExtractor
+from ..core.utils import filter_customer_indexes
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class SplunkConfigResource(BaseResource):
         description="Access to Splunk configuration files (indexes.conf, props.conf, transforms.conf, etc.) with client isolation",
         mime_type="text/plain",
         category="configuration",
-        tags=["config", "splunk", "client-scoped", "template"]
+        tags=["config", "splunk", "client-scoped", "template"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "text/plain"):
@@ -72,14 +72,20 @@ class SplunkConfigResource(BaseResource):
             # Extract config file from URI
             config_file = self._extract_config_file_from_uri(request_uri)
             if not config_file:
-                return self._create_error_response(f"Could not determine config file from URI: {request_uri}", request_uri)
+                return self._create_error_response(
+                    f"Could not determine config file from URI: {request_uri}", request_uri
+                )
 
             # Validate config file name for security
             if not self._is_valid_config_file(config_file):
-                return self._create_error_response(f"Invalid or unsupported config file: {config_file}", request_uri)
+                return self._create_error_response(
+                    f"Invalid or unsupported config file: {config_file}", request_uri
+                )
 
             # Get configuration content from Splunk
-            config_content = await self._get_config_content(service, config_file, identity, request_uri)
+            config_content = await self._get_config_content(
+                service, config_file, identity, request_uri
+            )
 
             self.logger.info(f"Retrieved config {config_file} for client {identity.client_id}")
             return config_content
@@ -89,7 +95,9 @@ class SplunkConfigResource(BaseResource):
             return self._create_error_response(f"Splunk connection failed: {str(e)}", request_uri)
         except Exception as e:
             self.logger.error(f"Failed to get config content for {request_uri}: {e}")
-            return self._create_error_response(f"Error retrieving configuration: {str(e)}", request_uri)
+            return self._create_error_response(
+                f"Error retrieving configuration: {str(e)}", request_uri
+            )
 
     def _is_valid_config_file(self, config_file: str) -> bool:
         """
@@ -103,14 +111,22 @@ class SplunkConfigResource(BaseResource):
         """
         # List of allowed config files
         allowed_configs = {
-            'indexes.conf', 'props.conf', 'transforms.conf',
-            'server.conf', 'web.conf', 'inputs.conf',
-            'outputs.conf', 'savedsearches.conf', 'macros.conf',
-            'tags.conf', 'eventtypes.conf', 'alert_actions.conf'
+            "indexes.conf",
+            "props.conf",
+            "transforms.conf",
+            "server.conf",
+            "web.conf",
+            "inputs.conf",
+            "outputs.conf",
+            "savedsearches.conf",
+            "macros.conf",
+            "tags.conf",
+            "eventtypes.conf",
+            "alert_actions.conf",
         }
 
         # Basic validation: must end with .conf and be in allowed list
-        if not config_file.endswith('.conf'):
+        if not config_file.endswith(".conf"):
             return False
 
         # Check against allowed list
@@ -119,7 +135,7 @@ class SplunkConfigResource(BaseResource):
             return False
 
         # Additional security: no path traversal
-        if '..' in config_file or '/' in config_file or '\\' in config_file:
+        if ".." in config_file or "/" in config_file or "\\" in config_file:
             return False
 
         return True
@@ -130,10 +146,10 @@ class SplunkConfigResource(BaseResource):
             # Handle patterns like:
             # splunk://config/indexes.conf
             # splunk://client/{client_id}/config/indexes.conf
-            parts = uri.split('/')
+            parts = uri.split("/")
 
-            if 'config' in parts:
-                config_index = parts.index('config')
+            if "config" in parts:
+                config_index = parts.index("config")
                 if config_index + 1 < len(parts):
                     return parts[config_index + 1]
 
@@ -141,11 +157,13 @@ class SplunkConfigResource(BaseResource):
         except Exception:
             return None
 
-    async def _get_config_content(self, service, config_file: str, identity, uri: str = None) -> str:
+    async def _get_config_content(
+        self, service, config_file: str, identity, uri: str = None
+    ) -> str:
         """Get configuration content from Splunk service"""
         try:
             # Get configuration using Splunk REST API
-            configs = service.confs[config_file.replace('.conf', '')]
+            configs = service.confs[config_file.replace(".conf", "")]
 
             config_data = {}
             for stanza in configs:
@@ -171,12 +189,17 @@ class SplunkConfigResource(BaseResource):
         except Exception as e:
             # Fallback to JSON format if text parsing fails
             self.logger.warning(f"Could not format as config text, using JSON: {e}")
-            return json.dumps({
-                "config_file": config_file,
-                "client_id": identity.client_id,
-                "error": str(e),
-                "available_configs": list(service.confs.keys()) if hasattr(service, 'confs') else []
-            }, indent=2)
+            return json.dumps(
+                {
+                    "config_file": config_file,
+                    "client_id": identity.client_id,
+                    "error": str(e),
+                    "available_configs": list(service.confs.keys())
+                    if hasattr(service, "confs")
+                    else [],
+                },
+                indent=2,
+            )
 
     def _create_error_response(self, error_message: str, uri: str = None) -> str:
         """Create a helpful error response for configuration issues"""
@@ -207,7 +230,7 @@ class SplunkHealthResource(BaseResource):
         description="Real-time health monitoring for Splunk components (includes filtered customer indexes)",
         mime_type="application/json",
         category="monitoring",
-        tags=["health", "monitoring", "splunk"]
+        tags=["health", "monitoring", "splunk"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "application/json"):
@@ -254,18 +277,12 @@ class SplunkHealthResource(BaseResource):
                     "X-Splunk-Password": "your-password",
                     "X-Splunk-Port": "8089",
                     "X-Splunk-Scheme": "https",
-                    "X-Splunk-Verify-SSL": "false"
+                    "X-Splunk-Verify-SSL": "false",
                 },
-                "environment_variables": [
-                    "SPLUNK_HOST",
-                    "SPLUNK_USERNAME",
-                    "SPLUNK_PASSWORD"
-                ]
-            }
+                "environment_variables": ["SPLUNK_HOST", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"],
+            },
         }
         return json.dumps(error_response, indent=2)
-
-
 
     async def _get_health_data(self, service, identity) -> dict[str, Any]:
         """Get comprehensive health data from Splunk"""
@@ -293,7 +310,9 @@ class SplunkHealthResource(BaseResource):
                     "os_version_extended": info.get("os_version_extended"),
                 },
                 "kvstore_status": info.get("kvStoreStatus"),
-                "status": "healthy" if info.get("licenseState") != "EXPIRED" and info.get("health_info") == "green" else "warning"
+                "status": "healthy"
+                if info.get("licenseState") != "EXPIRED" and info.get("health_info") == "green"
+                else "warning",
             }
 
             # Add index information if available (excluding internal indexes)
@@ -314,11 +333,7 @@ class SplunkHealthResource(BaseResource):
             return health_data
 
         except Exception as e:
-            return {
-                "client_id": identity.client_id,
-                "error": str(e),
-                "status": "error"
-            }
+            return {"client_id": identity.client_id, "error": str(e), "status": "error"}
 
 
 class SplunkAppsResource(BaseResource):
@@ -336,7 +351,7 @@ class SplunkAppsResource(BaseResource):
         description="Information about installed Splunk applications and add-ons with capability analysis",
         mime_type="application/json",
         category="applications",
-        tags=["apps", "applications", "splunk", "capabilities"]
+        tags=["apps", "applications", "splunk", "capabilities"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "application/json"):
@@ -380,14 +395,10 @@ class SplunkAppsResource(BaseResource):
                 "http_headers": {
                     "X-Splunk-Host": "your-splunk-host",
                     "X-Splunk-Username": "your-username",
-                    "X-Splunk-Password": "your-password"
+                    "X-Splunk-Password": "your-password",
                 },
-                "environment_variables": [
-                    "SPLUNK_HOST",
-                    "SPLUNK_USERNAME",
-                    "SPLUNK_PASSWORD"
-                ]
-            }
+                "environment_variables": ["SPLUNK_HOST", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"],
+            },
         }
         return json.dumps(error_response, indent=2)
 
@@ -426,7 +437,9 @@ class SplunkAppsResource(BaseResource):
             for app in service.apps:
                 logger.info(f"Processing app: {app.name}")
                 logger.info(f"App content: {dict(app.content)}")
-                logger.info(f"App attributes: {[attr for attr in dir(app) if not attr.startswith('_')]}")
+                logger.info(
+                    f"App attributes: {[attr for attr in dir(app) if not attr.startswith('_')]}"
+                )
 
                 app_info = {
                     "name": app.name,
@@ -436,8 +449,12 @@ class SplunkAppsResource(BaseResource):
                     "author": app.content.get("author", "unknown"),
                     "visible": self._convert_splunk_boolean(app.content.get("visible"), True),
                     "disabled": self._convert_splunk_boolean(app.content.get("disabled"), False),
-                    "configured": self._convert_splunk_boolean(app.content.get("configured"), False),
-                    "state_change_requires_restart": self._convert_splunk_boolean(app.content.get("state_change_requires_restart"), False)
+                    "configured": self._convert_splunk_boolean(
+                        app.content.get("configured"), False
+                    ),
+                    "state_change_requires_restart": self._convert_splunk_boolean(
+                        app.content.get("state_change_requires_restart"), False
+                    ),
                 }
 
                 # Add app capabilities information for LLM context
@@ -455,27 +472,22 @@ class SplunkAppsResource(BaseResource):
                     "total_apps": app_count,
                     "visible_apps": len([app for app in apps_data if app["visible"]]),
                     "enabled_apps": len([app for app in apps_data if not app["disabled"]]),
-                    "configured_apps": len([app for app in apps_data if app["configured"]])
+                    "configured_apps": len([app for app in apps_data if app["configured"]]),
                 },
                 "installed_apps": apps_data,
                 "llm_context": {
                     "purpose": "This data helps understand what Splunk functionality is available",
                     "key_apps": self._identify_key_apps(apps_data),
                     "data_capabilities": self._summarize_data_capabilities(apps_data),
-                    "search_capabilities": self._summarize_search_capabilities(apps_data)
+                    "search_capabilities": self._summarize_search_capabilities(apps_data),
                 },
-                "status": "success"
+                "status": "success",
             }
 
             return apps_context
 
         except Exception as e:
-            return {
-                "client_id": identity.client_id,
-                "error": str(e),
-                "status": "error",
-                "apps": []
-            }
+            return {"client_id": identity.client_id, "error": str(e), "status": "error", "apps": []}
 
     def _analyze_app_capabilities(self, app) -> dict[str, Any]:
         """
@@ -491,61 +503,83 @@ class SplunkAppsResource(BaseResource):
             "type": "unknown",
             "provides": [],
             "data_sources": [],
-            "notable_features": []
+            "notable_features": [],
         }
 
         app_name = app.name.lower()
 
         # Categorize common Splunk apps
         if "enterprise_security" in app_name or app_name == "splunk_security_essentials":
-            capabilities.update({
-                "type": "security",
-                "provides": ["threat_detection", "incident_response", "security_analytics"],
-                "data_sources": ["security_events", "threat_intelligence", "vulnerability_data"],
-                "notable_features": ["correlation_searches", "notable_events", "risk_analysis"]
-            })
+            capabilities.update(
+                {
+                    "type": "security",
+                    "provides": ["threat_detection", "incident_response", "security_analytics"],
+                    "data_sources": [
+                        "security_events",
+                        "threat_intelligence",
+                        "vulnerability_data",
+                    ],
+                    "notable_features": ["correlation_searches", "notable_events", "risk_analysis"],
+                }
+            )
         elif "itsi" in app_name or "it_service_intelligence" in app_name:
-            capabilities.update({
-                "type": "itsi",
-                "provides": ["service_monitoring", "kpi_management", "incident_management"],
-                "data_sources": ["infrastructure_metrics", "service_data", "kpi_data"],
-                "notable_features": ["service_analyzer", "deep_dives", "glass_tables"]
-            })
+            capabilities.update(
+                {
+                    "type": "itsi",
+                    "provides": ["service_monitoring", "kpi_management", "incident_management"],
+                    "data_sources": ["infrastructure_metrics", "service_data", "kpi_data"],
+                    "notable_features": ["service_analyzer", "deep_dives", "glass_tables"],
+                }
+            )
         elif "db_connect" in app_name or "dbx" in app_name:
-            capabilities.update({
-                "type": "database_integration",
-                "provides": ["database_connectivity", "data_ingestion"],
-                "data_sources": ["sql_databases", "relational_data"],
-                "notable_features": ["database_inputs", "sql_queries"]
-            })
+            capabilities.update(
+                {
+                    "type": "database_integration",
+                    "provides": ["database_connectivity", "data_ingestion"],
+                    "data_sources": ["sql_databases", "relational_data"],
+                    "notable_features": ["database_inputs", "sql_queries"],
+                }
+            )
         elif "splunk_app_for_aws" in app_name or app_name == "aws":
-            capabilities.update({
-                "type": "cloud_platform",
-                "provides": ["aws_monitoring", "cloud_analytics"],
-                "data_sources": ["aws_cloudtrail", "aws_s3", "aws_ec2", "aws_vpc"],
-                "notable_features": ["aws_dashboards", "aws_topology"]
-            })
+            capabilities.update(
+                {
+                    "type": "cloud_platform",
+                    "provides": ["aws_monitoring", "cloud_analytics"],
+                    "data_sources": ["aws_cloudtrail", "aws_s3", "aws_ec2", "aws_vpc"],
+                    "notable_features": ["aws_dashboards", "aws_topology"],
+                }
+            )
         elif "machine_learning" in app_name or app_name == "mltk":
-            capabilities.update({
-                "type": "analytics",
-                "provides": ["machine_learning", "statistical_analysis", "forecasting"],
-                "data_sources": ["processed_data", "model_results"],
-                "notable_features": ["ml_algorithms", "predictive_analytics", "anomaly_detection"]
-            })
+            capabilities.update(
+                {
+                    "type": "analytics",
+                    "provides": ["machine_learning", "statistical_analysis", "forecasting"],
+                    "data_sources": ["processed_data", "model_results"],
+                    "notable_features": [
+                        "ml_algorithms",
+                        "predictive_analytics",
+                        "anomaly_detection",
+                    ],
+                }
+            )
         elif app_name == "search":
-            capabilities.update({
-                "type": "core_platform",
-                "provides": ["search_interface", "basic_analytics"],
-                "data_sources": ["all_indexed_data"],
-                "notable_features": ["search_app", "reports", "dashboards"]
-            })
+            capabilities.update(
+                {
+                    "type": "core_platform",
+                    "provides": ["search_interface", "basic_analytics"],
+                    "data_sources": ["all_indexed_data"],
+                    "notable_features": ["search_app", "reports", "dashboards"],
+                }
+            )
         elif "common_information_model" in app_name or app_name == "splunk_sa_cim":
-            capabilities.update({
-                "type": "data_model",
-                "provides": ["data_normalization", "common_schema"],
-                "data_sources": ["normalized_data"],
-                "notable_features": ["cim_data_models", "field_mappings", "tags"]
-            })
+            capabilities.update(
+                {
+                    "type": "data_model",
+                    "provides": ["data_normalization", "common_schema"],
+                    "data_sources": ["normalized_data"],
+                    "notable_features": ["cim_data_models", "field_mappings", "tags"],
+                }
+            )
         else:
             # Try to infer from app description
             description = app.content.get("description", "").lower()
@@ -579,19 +613,21 @@ class SplunkAppsResource(BaseResource):
             "splunk_sa_cim": "Common Information Model for data normalization",
             "machine_learning_toolkit": "Advanced analytics and ML capabilities",
             "db_connect": "Database connectivity and integration",
-            "splunk_app_for_aws": "AWS cloud monitoring and analytics"
+            "splunk_app_for_aws": "AWS cloud monitoring and analytics",
         }
 
         for app in apps_data:
             app_name = app["name"].lower()
             for key_name, description in important_apps.items():
                 if key_name in app_name and not app["disabled"]:
-                    key_apps.append({
-                        "name": app["name"],
-                        "label": app["label"],
-                        "importance": description,
-                        "version": app["version"]
-                    })
+                    key_apps.append(
+                        {
+                            "name": app["name"],
+                            "label": app["label"],
+                            "importance": description,
+                            "version": app["version"],
+                        }
+                    )
                     break
 
         return key_apps
@@ -611,7 +647,7 @@ class SplunkAppsResource(BaseResource):
             "infrastructure_data": [],
             "cloud_data": [],
             "application_data": [],
-            "network_data": []
+            "network_data": [],
         }
 
         for app in apps_data:
@@ -650,7 +686,7 @@ class SplunkAppsResource(BaseResource):
             "visualization": [],
             "reporting": [],
             "alerting": [],
-            "machine_learning": []
+            "machine_learning": [],
         }
 
         for app in apps_data:
@@ -689,7 +725,7 @@ class SplunkSearchResultsResource(BaseResource):
         description="Recent search results from client's Splunk instance",
         mime_type="application/json",
         category="search",
-        tags=["search", "results", "client-scoped"]
+        tags=["search", "results", "client-scoped"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "application/json"):
@@ -734,14 +770,10 @@ class SplunkSearchResultsResource(BaseResource):
                 "http_headers": {
                     "X-Splunk-Host": "your-splunk-host",
                     "X-Splunk-Username": "your-username",
-                    "X-Splunk-Password": "your-password"
+                    "X-Splunk-Password": "your-password",
                 },
-                "environment_variables": [
-                    "SPLUNK_HOST",
-                    "SPLUNK_USERNAME",
-                    "SPLUNK_PASSWORD"
-                ]
-            }
+                "environment_variables": ["SPLUNK_HOST", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"],
+            },
         }
         return json.dumps(error_response, indent=2)
 
@@ -762,12 +794,14 @@ class SplunkSearchResultsResource(BaseResource):
                 if job.is_done():
                     job_info = {
                         "search_id": job.sid,
-                        "search_query": str(job.search)[:200] + "..." if len(str(job.search)) > 200 else str(job.search),
+                        "search_query": str(job.search)[:200] + "..."
+                        if len(str(job.search)) > 200
+                        else str(job.search),
                         "event_count": job.eventCount,
                         "result_count": job.resultCount,
                         "earliest_time": str(job.earliestTime),
                         "latest_time": str(job.latestTime),
-                        "status": "completed"
+                        "status": "completed",
                     }
                     recent_results.append(job_info)
                     count += 1
@@ -778,7 +812,7 @@ class SplunkSearchResultsResource(BaseResource):
                 "timestamp": time.time(),
                 "recent_searches": recent_results,
                 "total_results": len(recent_results),
-                "status": "success"
+                "status": "success",
             }
 
         except Exception as e:
@@ -786,7 +820,7 @@ class SplunkSearchResultsResource(BaseResource):
                 "client_id": identity.client_id,
                 "error": str(e),
                 "status": "error",
-                "recent_searches": []
+                "recent_searches": [],
             }
 
 
@@ -804,7 +838,7 @@ class SplunkIndexesResource(BaseResource):
         description="List of accessible Splunk indexes (excluding internal indexes)",
         mime_type="application/json",
         category="metadata",
-        tags=["indexes", "metadata", "client-scoped"]
+        tags=["indexes", "metadata", "client-scoped"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "application/json"):
@@ -848,14 +882,10 @@ class SplunkIndexesResource(BaseResource):
                 "http_headers": {
                     "X-Splunk-Host": "your-splunk-host",
                     "X-Splunk-Username": "your-username",
-                    "X-Splunk-Password": "your-password"
+                    "X-Splunk-Password": "your-password",
                 },
-                "environment_variables": [
-                    "SPLUNK_HOST",
-                    "SPLUNK_USERNAME",
-                    "SPLUNK_PASSWORD"
-                ]
-            }
+                "environment_variables": ["SPLUNK_HOST", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"],
+            },
         }
         return json.dumps(error_response, indent=2)
 
@@ -884,7 +914,7 @@ class SplunkIndexesResource(BaseResource):
                     "eai_acl": index.content.get("eai:acl", {}),
                     "current_db_size_mb": index.content.get("currentDBSizeMB", 0),
                     "max_total_data_size_mb": index.content.get("maxTotalDataSizeMB", 0),
-                    "total_event_count": index.content.get("totalEventCount", 0)
+                    "total_event_count": index.content.get("totalEventCount", 0),
                 }
                 indexes_list.append(index_info)
 
@@ -897,10 +927,10 @@ class SplunkIndexesResource(BaseResource):
                     "total_indexes": len(indexes_list),
                     "total_count_including_internal": len(all_indexes),
                     "enabled_indexes": len([idx for idx in indexes_list if not idx["disabled"]]),
-                    "disabled_indexes": len([idx for idx in indexes_list if idx["disabled"]])
+                    "disabled_indexes": len([idx for idx in indexes_list if idx["disabled"]]),
                 },
                 "indexes": sorted(indexes_list, key=lambda x: x["name"]),
-                "status": "success"
+                "status": "success",
             }
 
             return indexes_context
@@ -910,7 +940,7 @@ class SplunkIndexesResource(BaseResource):
                 "client_id": identity.client_id,
                 "error": str(e),
                 "status": "error",
-                "indexes": []
+                "indexes": [],
             }
 
     def _convert_splunk_boolean(self, value, default=False):
@@ -937,7 +967,7 @@ class SplunkSavedSearchesResource(BaseResource):
         description="List of accessible Splunk saved searches",
         mime_type="application/json",
         category="search",
-        tags=["saved_searches", "search", "client-scoped"]
+        tags=["saved_searches", "search", "client-scoped"],
     )
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "application/json"):
@@ -952,7 +982,9 @@ class SplunkSavedSearchesResource(BaseResource):
             client_config = await self.config_extractor.extract_client_config(ctx)
             if not client_config:
                 # Fallback to error response with helpful info
-                return self._create_saved_searches_error_response("No Splunk configuration available")
+                return self._create_saved_searches_error_response(
+                    "No Splunk configuration available"
+                )
 
             # Get client identity and connection
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
@@ -967,7 +999,9 @@ class SplunkSavedSearchesResource(BaseResource):
             return self._create_saved_searches_error_response(f"Splunk connection failed: {str(e)}")
         except Exception as e:
             self.logger.error(f"Failed to get saved searches data: {e}")
-            return self._create_saved_searches_error_response(f"Saved searches retrieval error: {str(e)}")
+            return self._create_saved_searches_error_response(
+                f"Saved searches retrieval error: {str(e)}"
+            )
 
     def _create_saved_searches_error_response(self, error_message: str) -> str:
         """Create a helpful JSON error response for saved searches retrieval issues"""
@@ -981,14 +1015,10 @@ class SplunkSavedSearchesResource(BaseResource):
                 "http_headers": {
                     "X-Splunk-Host": "your-splunk-host",
                     "X-Splunk-Username": "your-username",
-                    "X-Splunk-Password": "your-password"
+                    "X-Splunk-Password": "your-password",
                 },
-                "environment_variables": [
-                    "SPLUNK_HOST",
-                    "SPLUNK_USERNAME",
-                    "SPLUNK_PASSWORD"
-                ]
-            }
+                "environment_variables": ["SPLUNK_HOST", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"],
+            },
         }
         return json.dumps(error_response, indent=2)
 
@@ -1014,7 +1044,9 @@ class SplunkSavedSearchesResource(BaseResource):
                     # },
                     # "is_scheduled": self._convert_splunk_boolean(saved_search.content.get("is_scheduled"), False),
                     # "is_visible": self._convert_splunk_boolean(saved_search.content.get("is_visible"), True),
-                    "disabled": self._convert_splunk_boolean(saved_search.content.get("disabled"), False),
+                    "disabled": self._convert_splunk_boolean(
+                        saved_search.content.get("disabled"), False
+                    ),
                     "description": saved_search.content.get("description", ""),
                     "owner": saved_search.content.get("eai:acl", {}).get("owner", ""),
                     "app": saved_search.content.get("eai:acl", {}).get("app", ""),
@@ -1057,7 +1089,7 @@ class SplunkSavedSearchesResource(BaseResource):
                     # "alert_searches": len([ss for ss in saved_searches_list if ss["alert"]["type"]])
                 },
                 "saved_searches": sorted(saved_searches_list, key=lambda x: x["name"]),
-                "status": "success"
+                "status": "success",
             }
 
             return saved_searches_context
@@ -1067,7 +1099,7 @@ class SplunkSavedSearchesResource(BaseResource):
                 "client_id": identity.client_id,
                 "error": str(e),
                 "status": "error",
-                "saved_searches": []
+                "saved_searches": [],
             }
 
     def _convert_splunk_boolean(self, value, default=False):

@@ -24,15 +24,11 @@ class JobSearch(BaseTool):
         description="Execute a normal Splunk search job with progress tracking",
         category="search",
         tags=["search", "job", "tracking", "complex"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(
-        self,
-        ctx: Context,
-        query: str,
-        earliest_time: str = "-24h",
-        latest_time: str = "now"
+        self, ctx: Context, query: str, earliest_time: str = "-24h", latest_time: str = "now"
     ) -> dict[str, Any]:
         """
         Execute a Splunk search job with progress tracking.
@@ -61,7 +57,9 @@ class JobSearch(BaseTool):
                 earliest_time="-7d"
             )
         """
-        log_tool_execution("run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time)
+        log_tool_execution(
+            "run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time
+        )
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
@@ -79,21 +77,17 @@ class JobSearch(BaseTool):
             start_time = time.time()
 
             # Create the search job
-            job = service.jobs.create(
-                query,
-                earliest_time=earliest_time,
-                latest_time=latest_time
-            )
+            job = service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
             ctx.info(f"Search job created: {job.sid}")
 
             # Poll for completion
             while not job.is_done():
                 stats = job.content
                 progress = {
-                    "done": stats.get('isDone', '0') == '1',
-                    "progress": float(stats.get('doneProgress', 0)) * 100,
-                    "scan_progress": float(stats.get('scanCount', 0)),
-                    "event_progress": float(stats.get('eventCount', 0))
+                    "done": stats.get("isDone", "0") == "1",
+                    "progress": float(stats.get("doneProgress", 0)) * 100,
+                    "scan_progress": float(stats.get("scanCount", 0)),
+                    "event_progress": float(stats.get("eventCount", 0)),
                 }
                 ctx.report_progress(progress)
                 self.logger.info(
@@ -117,23 +111,25 @@ class JobSearch(BaseTool):
             stats = job.content
             duration = time.time() - start_time
 
-            return self.format_success_response({
-                "job_id": job.sid,
-                "is_done": True,
-                "scan_count": int(float(stats.get('scanCount', 0))),
-                "event_count": int(float(stats.get('eventCount', 0))),
-                "results": results,
-                "earliest_time": stats.get('earliestTime', ''),
-                "latest_time": stats.get('latestTime', ''),
-                "results_count": result_count,
-                "query_executed": query,
-                "duration": round(duration, 3),
-                "status": {
-                    "progress": 100,
-                    "is_finalized": stats.get('isFinalized', '0') == '1',
-                    "is_failed": stats.get('isFailed', '0') == '1'
+            return self.format_success_response(
+                {
+                    "job_id": job.sid,
+                    "is_done": True,
+                    "scan_count": int(float(stats.get("scanCount", 0))),
+                    "event_count": int(float(stats.get("eventCount", 0))),
+                    "results": results,
+                    "earliest_time": stats.get("earliestTime", ""),
+                    "latest_time": stats.get("latestTime", ""),
+                    "results_count": result_count,
+                    "query_executed": query,
+                    "duration": round(duration, 3),
+                    "status": {
+                        "progress": 100,
+                        "is_finalized": stats.get("isFinalized", "0") == "1",
+                        "is_failed": stats.get("isFailed", "0") == "1",
+                    },
                 }
-            })
+            )
 
         except Exception as e:
             self.logger.error(f"Search failed: {str(e)}")

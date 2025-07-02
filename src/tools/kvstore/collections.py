@@ -21,14 +21,10 @@ class ListKvstoreCollections(BaseTool):
         description="List all KV Store collections with optional app filtering",
         category="kvstore",
         tags=["kvstore", "collections", "storage"],
-        requires_connection=True
+        requires_connection=True,
     )
 
-    async def execute(
-        self,
-        ctx: Context,
-        app: str | None = None
-    ) -> dict[str, Any]:
+    async def execute(self, ctx: Context, app: str | None = None) -> dict[str, Any]:
         """
         List KV Store collections, optionally filtered by app.
 
@@ -56,18 +52,19 @@ class ListKvstoreCollections(BaseTool):
                 kvstore = service.kvstore[app]
 
             for collection in kvstore:
-                collections.append({
-                    "name": collection.name,
-                    "fields": collection.content.get("fields", []),
-                    "accelerated_fields": collection.content.get("accelerated_fields", {}),
-                    "replicated": collection.content.get("replicated", False)
-                })
+                collections.append(
+                    {
+                        "name": collection.name,
+                        "fields": collection.content.get("fields", []),
+                        "accelerated_fields": collection.content.get("accelerated_fields", {}),
+                        "replicated": collection.content.get("replicated", False),
+                    }
+                )
 
             ctx.info(f"Found {len(collections)} collections")
-            return self.format_success_response({
-                "count": len(collections),
-                "collections": collections
-            })
+            return self.format_success_response(
+                {"count": len(collections), "collections": collections}
+            )
         except Exception as e:
             self.logger.error(f"Failed to list KV Store collections: {str(e)}")
             ctx.error(f"Failed to list KV Store collections: {str(e)}")
@@ -84,7 +81,7 @@ class CreateKvstoreCollection(BaseTool):
         description="Create a new KV Store collection with optional field definitions",
         category="kvstore",
         tags=["kvstore", "collections", "create", "storage"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(
@@ -94,7 +91,7 @@ class CreateKvstoreCollection(BaseTool):
         collection: str,
         fields: list[dict[str, Any]] | None = None,
         accelerated_fields: dict[str, list[list[str]]] | None = None,
-        replicated: bool = True
+        replicated: bool = True,
     ) -> dict[str, Any]:
         """
         Create a new KV Store collection.
@@ -126,16 +123,15 @@ class CreateKvstoreCollection(BaseTool):
 
             # Validate collection name - ensure only alphanumeric and underscores
             if not collection.replace("_", "").isalnum():
-                raise ValueError("Collection name must contain only alphanumeric characters and underscores")
+                raise ValueError(
+                    "Collection name must contain only alphanumeric characters and underscores"
+                )
 
             # URL encode the app name to handle special characters
-            encoded_app = quote(app, safe='')
+            encoded_app = quote(app, safe="")
 
             # Prepare collection configuration
-            collection_config = {
-                "name": collection,
-                "replicated": replicated
-            }
+            collection_config = {"name": collection, "replicated": replicated}
 
             if fields:
                 collection_config["field"] = fields
@@ -145,20 +141,19 @@ class CreateKvstoreCollection(BaseTool):
 
             # Create the collection
             kvstore = service.kvstore[encoded_app]
-            new_collection = kvstore.create(
-                name=collection,
-                **collection_config
-            )
+            new_collection = kvstore.create(name=collection, **collection_config)
 
             ctx.info(f"Collection {collection} created successfully")
-            return self.format_success_response({
-                "collection": {
-                    "name": new_collection.name,
-                    "fields": new_collection.content.get("fields", []),
-                    "accelerated_fields": new_collection.content.get("accelerated_fields", {}),
-                    "replicated": new_collection.content.get("replicated", False)
+            return self.format_success_response(
+                {
+                    "collection": {
+                        "name": new_collection.name,
+                        "fields": new_collection.content.get("fields", []),
+                        "accelerated_fields": new_collection.content.get("accelerated_fields", {}),
+                        "replicated": new_collection.content.get("replicated", False),
+                    }
                 }
-            })
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to create KV Store collection: {str(e)}")

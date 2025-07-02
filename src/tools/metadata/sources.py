@@ -22,7 +22,7 @@ class ListSources(BaseTool):
         description="List all available data sources from the configured Splunk instance",
         category="metadata",
         tags=["sources", "metadata", "discovery"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(self, ctx: Context) -> dict[str, Any]:
@@ -51,10 +51,7 @@ class ListSources(BaseTool):
                     sources.append(result["source"])
 
             self.logger.info(f"Retrieved {len(sources)} sources")
-            return self.format_success_response({
-                "sources": sorted(sources),
-                "count": len(sources)
-            })
+            return self.format_success_response({"sources": sorted(sources), "count": len(sources)})
         except Exception as e:
             self.logger.error(f"Failed to retrieve sources: {str(e)}")
             return self.format_error_response(str(e))

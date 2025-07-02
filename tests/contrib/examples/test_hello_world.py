@@ -16,10 +16,7 @@ class TestHelloWorldTool:
     @pytest.fixture
     def tool(self):
         """Create a tool instance for testing."""
-        return HelloWorldTool(
-            name="hello_world",
-            description="A simple hello world example tool"
-        )
+        return HelloWorldTool(name="hello_world", description="A simple hello world example tool")
 
     @pytest.fixture
     def mock_context(self):
@@ -64,7 +61,10 @@ class TestHelloWorldTool:
         metadata = HelloWorldTool.METADATA
 
         assert metadata.name == "hello_world"
-        assert metadata.description == "A simple hello world example tool for demonstrating contributions"
+        assert (
+            metadata.description
+            == "A simple hello world example tool for demonstrating contributions"
+        )
         assert metadata.category == "examples"
         assert not metadata.requires_connection
         assert "example" in metadata.tags
@@ -75,7 +75,7 @@ class TestHelloWorldTool:
         """Test tool initialization."""
         assert tool.name == "hello_world"
         assert tool.description == "A simple hello world example tool"
-        assert hasattr(tool, 'logger')
+        assert hasattr(tool, "logger")
 
     @pytest.mark.asyncio
     async def test_context_logging(self, tool, mock_context):
