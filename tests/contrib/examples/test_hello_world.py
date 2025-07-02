@@ -27,33 +27,13 @@ class TestHelloWorldTool:
         return ctx
 
     @pytest.mark.asyncio
-    async def test_execute_default_name(self, tool, mock_context):
-        """Test execution with default name."""
+    async def test_execute_hello_world(self, tool, mock_context):
+        """Test execution of parameter-less hello world."""
         result = await tool.execute(mock_context)
 
         assert result["status"] == "success"
         assert result["message"] == "Hello, World!"
         assert result["greeted"] == "World"
-        assert result["tool"] == "hello_world"
-
-    @pytest.mark.asyncio
-    async def test_execute_custom_name(self, tool, mock_context):
-        """Test execution with custom name."""
-        result = await tool.execute(mock_context, name="Alice")
-
-        assert result["status"] == "success"
-        assert result["message"] == "Hello, Alice!"
-        assert result["greeted"] == "Alice"
-        assert result["tool"] == "hello_world"
-
-    @pytest.mark.asyncio
-    async def test_execute_empty_name(self, tool, mock_context):
-        """Test execution with empty name."""
-        result = await tool.execute(mock_context, name="")
-
-        assert result["status"] == "success"
-        assert result["message"] == "Hello, !"
-        assert result["greeted"] == ""
         assert result["tool"] == "hello_world"
 
     def test_metadata(self, tool):
@@ -80,7 +60,7 @@ class TestHelloWorldTool:
     @pytest.mark.asyncio
     async def test_context_logging(self, tool, mock_context):
         """Test that the tool properly logs to context."""
-        await tool.execute(mock_context, name="Test")
+        await tool.execute(mock_context)
 
         # Verify context logging was called
-        mock_context.info.assert_called_with("Saying hello to Test")
+        mock_context.info.assert_called_with("Saying hello to World")
