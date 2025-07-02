@@ -121,6 +121,13 @@ class SplunkDocsResource(BaseResource):
 
         return self.VERSION_MAPPING.get(version, self.VERSION_MAPPING["latest"])
 
+    def format_version_for_help_url(self, version: str) -> str:
+        """Convert normalized version to help URL format (e.g., '94' -> '9.4')."""
+        norm_version = self.normalize_version(version)
+        if len(norm_version) == 2:
+            return f"{norm_version[0]}.{norm_version[1]}"
+        return norm_version
+
     async def fetch_doc_content(self, url: str) -> str:
         """Fetch and process documentation content."""
         if not HAS_HTTPX:
@@ -191,12 +198,21 @@ Please check your internet connection and try again.
 class SplunkCheatSheetResource(SplunkDocsResource):
     """Static Splunk cheat sheet resource from Splunk blog."""
 
-    def __init__(self):
-        super().__init__(
-            uri="splunk-docs://cheat-sheet",
-            name="splunk_cheat_sheet",
-            description="Splunk SPL cheat sheet with commands, regex, and query examples",
-        )
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://cheat-sheet",
+        name="splunk_cheat_sheet",
+        description="Splunk SPL cheat sheet with commands, regex, and query examples",
+        mime_type="text/markdown",
+        category="reference",
+        tags=["cheat-sheet", "spl", "reference", "commands", "regex"]
+    )
+
+    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+        # Use metadata defaults if not provided
+        uri = uri or self.METADATA.uri
+        name = name or self.METADATA.name
+        description = description or self.METADATA.description
+        super().__init__(uri, name, description, mime_type)
 
     async def get_content(self, ctx: Context) -> str:
         """Get Splunk cheat sheet content."""
@@ -241,7 +257,9 @@ For specific command details, see also: [SPL Reference](splunk-docs://latest/spl
 class TroubleshootingResource(SplunkDocsResource):
     """Version-aware Splunk troubleshooting documentation."""
 
+    # Comprehensive troubleshooting topics mapping
     TROUBLESHOOTING_TOPICS = {
+        # Log files and internal logging
         "splunk-logs": {
             "title": "What Splunk Logs about Itself",
             "description": "Understanding Splunk's internal logging and log files",
@@ -257,6 +275,47 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Using metrics.log to diagnose input-related issues",
             "url_path": "splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log",
         },
+        
+        # Platform instrumentation
+        "platform-instrumentation": {
+            "title": "About Platform Instrumentation",
+            "description": "Understanding Splunk Enterprise platform instrumentation",
+            "url_path": "platform-instrumentation/about-splunk-enterprise-platform-instrumentation",
+        },
+        "platform-instrumentation-logs": {
+            "title": "What Platform Instrumentation Logs",
+            "description": "Understanding what platform instrumentation logs in Splunk",
+            "url_path": "platform-instrumentation/what-does-platform-instrumentation-log",
+        },
+        "platform-instrumentation-searches": {
+            "title": "Sample Platform Instrumentation Searches",
+            "description": "Example searches for monitoring platform instrumentation",
+            "url_path": "platform-instrumentation/sample-platform-instrumentation-searches",
+        },
+        
+        # Search and web problems
+        "search-problems": {
+            "title": "Splunk Web and Search Problems",
+            "description": "Troubleshooting Splunk web interface and search issues",
+            "url_path": "splunk-web-and-search-problems/i-cant-find-my-data",
+        },
+        "authentication-timeouts": {
+            "title": "Intermittent Authentication Timeouts on Search Peers",
+            "description": "Resolving authentication timeout issues between search head and peers",
+            "url_path": "splunk-web-and-search-problems/intermittent-authentication-timeouts-on-search-peers",
+        },
+        
+        # Data acquisition and indexing
+        "indexing-performance": {
+            "title": "Identify and Triage Indexing Performance Issues",
+            "description": "Diagnosing and resolving indexing performance problems",
+            "url_path": "data-acquisition-problems/identify-and-triage-indexing-performance-problems",
+        },
+        "indexing-delay": {
+            "title": "Event Indexing Delay",
+            "description": "Understanding and resolving event indexing delays",
+            "url_path": "data-acquisition-problems/event-indexing-delay",
+        },
     }
 
     def __init__(self, version: str, topic: str):
@@ -264,7 +323,8 @@ class TroubleshootingResource(SplunkDocsResource):
         self.topic = topic
 
         if topic not in self.TROUBLESHOOTING_TOPICS:
-            raise ValueError(f"Unknown troubleshooting topic: {topic}")
+            available_topics = ", ".join(self.TROUBLESHOOTING_TOPICS.keys())
+            raise ValueError(f"Unknown troubleshooting topic: {topic}. Available topics: {available_topics}")
 
         topic_info = self.TROUBLESHOOTING_TOPICS[topic]
         uri = f"splunk-docs://{version}/troubleshooting/{topic}"
@@ -280,20 +340,18 @@ class TroubleshootingResource(SplunkDocsResource):
 
         async def fetch_troubleshooting_docs():
             topic_info = self.TROUBLESHOOTING_TOPICS[self.topic]
-            norm_version = self.normalize_version(self.version)
-            
-            # Convert version format for help URLs (9.4 instead of 94)
-            help_version = f"{norm_version[0]}.{norm_version[1]}"
+            help_version = self.format_version_for_help_url(self.version)
             
             url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/troubleshoot/{help_version}/{topic_info['url_path']}"
 
             content = await self.fetch_doc_content(url)
 
-            return f"""# Splunk Troubleshooting: {topic_info['title']}
+            result = f"""# Splunk Troubleshooting: {topic_info['title']}
 
 **Version**: Splunk {self.version}
 **Category**: Troubleshooting Guide
 **Topic**: {topic_info['description']}
+**Source URL**: {url}
 
 {content}
 
@@ -313,20 +371,21 @@ This documentation is part of Splunk's comprehensive troubleshooting guide. It h
             # Add links to related troubleshooting topics
             for topic_key, topic_data in self.TROUBLESHOOTING_TOPICS.items():
                 if topic_key != self.topic:
-                    content += f"- [{topic_data['title']}](splunk-docs://{self.version}/troubleshooting/{topic_key})\n"
+                    result += f"- [{topic_data['title']}](splunk-docs://{self.version}/troubleshooting/{topic_key})\n"
 
-            content += f"""
+            result += f"""
 ### Additional Resources
 
 For more troubleshooting information, see:
 - [Splunk Documentation](splunk-docs://{self.version}/admin/monitoring)
 - [SPL Reference](splunk-docs://{self.version}/spl-reference)
+- [Splunk Cheat Sheet](splunk-docs://cheat-sheet)
 
 ---
 **Generated**: {datetime.now().isoformat()}
 """
 
-            return content
+            return result
 
         return await _doc_cache.get_or_fetch(
             self.version, "troubleshooting", self.topic, fetch_troubleshooting_docs
@@ -336,12 +395,21 @@ For more troubleshooting information, see:
 class SPLReferenceResource(SplunkDocsResource):
     """SPL (Search Processing Language) reference documentation."""
 
-    def __init__(self):
-        super().__init__(
-            uri="splunk-docs://spl-reference",
-            name="spl_reference",
-            description="Splunk SPL command and function reference documentation",
-        )
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://spl-reference",
+        name="spl_reference",
+        description="Splunk SPL command and function reference documentation",
+        mime_type="text/markdown",
+        category="reference",
+        tags=["spl", "search", "commands", "reference"]
+    )
+
+    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+        # Use metadata defaults if not provided
+        uri = uri or self.METADATA.uri
+        name = name or self.METADATA.name
+        description = description or self.METADATA.description
+        super().__init__(uri, name, description, mime_type)
 
     async def get_content(self, ctx: Context) -> str:
         """Get SPL reference documentation content."""
@@ -465,12 +533,21 @@ For related administration topics, see the complete [Admin Guide](splunk-docs://
 class DocumentationDiscoveryResource(SplunkDocsResource):
     """Resource for discovering available Splunk documentation."""
 
-    def __init__(self):
-        super().__init__(
-            uri="splunk-docs://discovery",
-            name="documentation_discovery",
-            description="Discover available Splunk documentation resources",
-        )
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://discovery",
+        name="documentation_discovery",
+        description="Discover available Splunk documentation resources",
+        mime_type="text/markdown",
+        category="discovery",
+        tags=["discovery", "documentation", "reference"]
+    )
+
+    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+        # Use metadata defaults if not provided
+        uri = uri or self.METADATA.uri
+        name = name or self.METADATA.name
+        description = description or self.METADATA.description
+        super().__init__(uri, name, description, mime_type)
 
     async def get_content(self, ctx: Context) -> str:
         """Discover available Splunk documentation resources."""
@@ -483,192 +560,168 @@ class DocumentationDiscoveryResource(SplunkDocsResource):
 
         # Common SPL commands for quick reference
         common_spl_commands = [
-            "search",
-            "stats",
-            "eval",
-            "chart",
-            "timechart",
-            "table",
-            "sort",
-            "where",
-            "join",
-            "append",
-            "lookup",
-            "rex",
-            "fieldsfor",
-            "top",
-            "rare",
-            "transaction",
-            "streamstats",
-            "eventstats",
-            "bucket",
+            "search", "stats", "eval", "chart", "timechart", "table", "sort", "where",
+            "join", "append", "lookup", "rex", "fieldsfor", "top", "rare", "transaction",
+            "streamstats", "eventstats", "bucket", "dedup", "head", "tail", "regex",
+            "replace", "convert", "makemv", "mvexpand", "spath", "xmlkv", "kvform"
         ]
 
         # Common admin topics
         admin_topics = [
-            "indexes",
-            "authentication",
-            "deployment",
-            "apps",
-            "users",
-            "data-inputs",
-            "forwarders",
-            "clustering",
-            "security",
-            "monitoring",
+            "indexes", "authentication", "deployment", "apps", "users", "roles",
+            "monitoring", "performance", "clustering", "distributed-search",
+            "forwarders", "inputs", "outputs", "licensing", "security"
         ]
 
-        # Troubleshooting topics
+        # All available troubleshooting topics
         troubleshooting_topics = list(TroubleshootingResource.TROUBLESHOOTING_TOPICS.keys())
 
-        discovery_content = f"""# Splunk Documentation Discovery
+        content = f"""# Splunk Documentation Discovery
 
 **Detected Splunk Version**: {detected_version}
-**Available Documentation Categories**: SPL Reference, Administration Guide, Troubleshooting, Quick Reference
+**Discovery Time**: {datetime.now().isoformat()}
 
-## Quick Access - Cheat Sheet
+This resource helps you discover and access Splunk documentation through the MCP server.
 
-- [**Splunk Cheat Sheet**](splunk-docs://cheat-sheet) - SPL commands, regex, and quick reference
+## Static Resources
 
-## SPL Command Reference
+### 📋 Splunk Cheat Sheet
+- **URI**: `splunk-docs://cheat-sheet`
+- **Description**: Complete SPL command reference, regex patterns, and quick examples
+- **Source**: Official Splunk blog
 
-The following SPL command documentation is readily available:
+## Dynamic Resources
 
+### 🔍 SPL Command Reference
+Access documentation for specific SPL commands:
+
+**Pattern**: `splunk-docs://{{version}}/spl-reference/{{command}}`
+
+**Common Commands**:
 """
 
-        for cmd in common_spl_commands:
-            discovery_content += (
-                f"- [`{cmd}`](splunk-docs://{detected_version}/spl-reference/{cmd})\n"
-            )
+        # Add SPL commands in columns
+        for i, cmd in enumerate(common_spl_commands):
+            if i % 4 == 0:
+                content += "\n"
+            content += f"- [`{cmd}`](splunk-docs://{detected_version}/spl-reference/{cmd})  "
 
-        discovery_content += """
-## Administration Topics
+        content += f"""
 
-Common administration documentation:
+### 🛠️ Troubleshooting Documentation
+Access version-specific troubleshooting guides:
 
+**Pattern**: `splunk-docs://{{version}}/troubleshooting/{{topic}}`
+
+**Available Topics**:
 """
 
-        for topic in admin_topics:
-            discovery_content += (
-                f"- [{topic.title()}](splunk-docs://{detected_version}/admin/{topic})\n"
-            )
-
-        discovery_content += """
-## Troubleshooting Documentation
-
-Splunk troubleshooting and diagnostic resources:
-
-"""
-
+        # Add troubleshooting topics with descriptions
         for topic in troubleshooting_topics:
             topic_info = TroubleshootingResource.TROUBLESHOOTING_TOPICS[topic]
-            discovery_content += (
-                f"- [{topic_info['title']}](splunk-docs://{detected_version}/troubleshooting/{topic})\n"
-            )
+            content += f"- [`{topic}`](splunk-docs://{detected_version}/troubleshooting/{topic}) - {topic_info['description']}\n"
 
-        discovery_content += f"""
+        content += f"""
 
-## Usage Patterns
+### ⚙️ Administration Guides
+Access administration documentation:
 
-### SPL Reference
-```
-splunk-docs://{{version}}/spl-reference/{{command}}
-```
+**Pattern**: `splunk-docs://{{version}}/admin/{{topic}}`
 
-### Administration Guide
-```
-splunk-docs://{{version}}/admin/{{topic}}
-```
-
-### Troubleshooting
-```
-splunk-docs://{{version}}/troubleshooting/{{topic}}
-```
-
-### Static Resources
-```
-splunk-docs://cheat-sheet
-```
-
-## Examples
-- `splunk-docs://latest/spl-reference/stats` - Stats command documentation
-- `splunk-docs://9.4.0/admin/indexes` - Index administration for Splunk 9.4.0
-- `splunk-docs://{detected_version}/troubleshooting/splunk-logs` - Splunk logging documentation
-- `splunk-docs://cheat-sheet` - Quick reference guide
-
-## Available Versions
-
-{", ".join(self.VERSION_MAPPING.keys())}
-
-**Note**: Use "latest" for the most current documentation, or specify a version like "9.4.0" for version-specific docs.
-
----
-**Generated**: {datetime.now().isoformat()}
-**For**: Splunk {detected_version}
+**Common Topics**:
 """
 
-        return discovery_content
+        # Add admin topics in columns
+        for i, topic in enumerate(admin_topics):
+            if i % 3 == 0:
+                content += "\n"
+            content += f"- [`{topic}`](splunk-docs://{detected_version}/admin/{topic})  "
+
+        content += f"""
+
+## Version Support
+
+**Supported Versions**: 9.1.0, 9.2.1, 9.3.0, 9.4.0, latest
+**Default Version**: latest (currently 9.4.0)
+
+### Examples
+
+```
+# Static resources (no version needed)
+splunk-docs://cheat-sheet
+
+# Dynamic resources with version
+splunk-docs://9.4/troubleshooting/metrics-log
+splunk-docs://latest/spl-reference/stats
+splunk-docs://9.3.0/admin/indexes
+
+# Auto-detect version (uses detected: {detected_version})
+splunk-docs://auto/troubleshooting/platform-instrumentation
+```
+
+## Quick Access Links
+
+### Most Useful Resources
+- [📋 Splunk Cheat Sheet](splunk-docs://cheat-sheet) - Essential SPL reference
+- [🔧 Metrics Log Troubleshooting](splunk-docs://{detected_version}/troubleshooting/metrics-log) - Performance monitoring
+- [📊 Platform Instrumentation](splunk-docs://{detected_version}/troubleshooting/platform-instrumentation) - System monitoring
+- [🔍 Search Problems](splunk-docs://{detected_version}/troubleshooting/search-problems) - Search troubleshooting
+- [📈 Indexing Performance](splunk-docs://{detected_version}/troubleshooting/indexing-performance) - Index optimization
+
+### For Administrators
+- [👥 User Management](splunk-docs://{detected_version}/admin/users) - User administration
+- [🏗️ Index Management](splunk-docs://{detected_version}/admin/indexes) - Index configuration
+- [🔐 Authentication](splunk-docs://{detected_version}/admin/authentication) - Security setup
+- [📡 Distributed Search](splunk-docs://{detected_version}/admin/distributed-search) - Multi-instance setup
+
+---
+
+**Note**: All documentation is cached for 24 hours for optimal performance. URLs are automatically validated and content is processed for LLM consumption.
+"""
+
+        return content
 
 
-def register_documentation_resources():
-    """Register all Splunk documentation resources."""
+# Registry and factory functions
+def register_all_resources():
+    """Register all documentation resources with the resource registry."""
+    try:
+        # Register static resources
+        resource_registry.register(
+            SplunkCheatSheetResource,
+            SplunkCheatSheetResource.METADATA
+        )
+        
+        resource_registry.register(
+            DocumentationDiscoveryResource,
+            DocumentationDiscoveryResource.METADATA
+        )
+        
+        resource_registry.register(
+            SPLReferenceResource,
+            SPLReferenceResource.METADATA
+        )
 
-    # Register discovery resource
-    discovery_resource = DocumentationDiscoveryResource()
-    resource_registry.register(
-        DocumentationDiscoveryResource,
-        ResourceMetadata(
-            uri=discovery_resource.uri,
-            name=discovery_resource.name,
-            description=discovery_resource.description,
-            mime_type="text/markdown",
-            category="documentation",
-            tags=["splunk", "documentation", "discovery"],
-        ),
-    )
-
-    # Register base SPL reference resource
-    spl_resource = SPLReferenceResource()
-    resource_registry.register(
-        SPLReferenceResource,
-        ResourceMetadata(
-            uri=spl_resource.uri,
-            name=spl_resource.name,
-            description=spl_resource.description,
-            mime_type="text/markdown",
-            category="documentation",
-            tags=["splunk", "spl", "reference", "commands"],
-        ),
-    )
-
-    # Register static cheat sheet resource
-    cheat_sheet_resource = SplunkCheatSheetResource()
-    resource_registry.register(
-        SplunkCheatSheetResource,
-        ResourceMetadata(
-            uri=cheat_sheet_resource.uri,
-            name=cheat_sheet_resource.name,
-            description=cheat_sheet_resource.description,
-            mime_type="text/markdown",
-            category="documentation",
-            tags=["splunk", "cheat-sheet", "reference", "quick-guide", "spl"],
-        ),
-    )
-
-    logger.info("Registered Splunk documentation resources")
+        logger.info("Successfully registered Splunk documentation resources")
+        
+    except Exception as e:
+        logger.error(f"Failed to register documentation resources: {e}")
 
 
-# Helper function to create dynamic resources
 def create_spl_command_resource(version: str, command: str) -> SPLCommandResource:
-    """Create a dynamic SPL command resource."""
+    """Factory function to create SPL command documentation resources."""
     return SPLCommandResource(version, command)
 
 
 def create_admin_guide_resource(version: str, topic: str) -> AdminGuideResource:
-    """Create a dynamic admin guide resource."""
+    """Factory function to create admin guide documentation resources."""
     return AdminGuideResource(version, topic)
 
 
 def create_troubleshooting_resource(version: str, topic: str) -> TroubleshootingResource:
-    """Create a dynamic troubleshooting resource."""
+    """Factory function to create troubleshooting documentation resources."""
     return TroubleshootingResource(version, topic)
+
+
+# Auto-register resources when module is imported
+register_all_resources()

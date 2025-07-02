@@ -5,9 +5,9 @@ Provides read-only resources including Splunk documentation and other data sourc
 """
 
 try:
-    from .splunk_docs import register_documentation_resources
+    from .splunk_docs import register_all_resources as register_documentation_resources
 
-    __all__ = ["register_documentation_resources"]
+    __all__ = ["register_all_resources"]
 
     def register_all_resources():
         """Register all available resources with the registry."""
