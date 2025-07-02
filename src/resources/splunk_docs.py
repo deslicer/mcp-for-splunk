@@ -696,12 +696,12 @@ def register_all_resources():
             SplunkCheatSheetResource,
             SplunkCheatSheetResource.METADATA
         )
-
+        
         resource_registry.register(
             DocumentationDiscoveryResource,
             DocumentationDiscoveryResource.METADATA
         )
-
+        
         resource_registry.register(
             SPLReferenceResource,
             SPLReferenceResource.METADATA
@@ -731,6 +731,7 @@ def register_all_resources():
             tags=["spl", "commands", "reference", "search"]
         )
         resource_registry.register(SPLCommandResource, spl_command_metadata)
+        
         # AdminGuideResource template
         admin_guide_metadata = ResourceMetadata(
             uri="splunk-docs://{version}/admin/{topic}",
