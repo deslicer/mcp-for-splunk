@@ -34,12 +34,6 @@ class ManageApps(BaseTool):
         ctx: Context,
         action: str,
         app_name: str,
-        splunk_host: str | None = None,
-        splunk_port: int | None = None,
-        splunk_username: str | None = None,
-        splunk_password: str | None = None,
-        splunk_scheme: str | None = None,
-        splunk_verify_ssl: bool | None = None,
     ) -> dict[str, Any]:
         """
         Manage Splunk application state.
@@ -47,31 +41,17 @@ class ManageApps(BaseTool):
         Args:
             action: Action to perform ('enable', 'disable', 'restart', 'reload')
             app_name: Name of the app to manage
-            splunk_host: Optional Splunk host (overrides server config)
-            splunk_port: Optional Splunk port (overrides server config)
-            splunk_username: Optional Splunk username (overrides server config)
-            splunk_password: Optional Splunk password (overrides server config)
-            splunk_scheme: Optional Splunk scheme (overrides server config)
-            splunk_verify_ssl: Optional SSL verification setting (overrides server config)
 
         Returns:
             Dict containing operation result
         """
         log_tool_execution(f"manage_apps_{action}")
 
-        # Extract client configuration from parameters
-        kwargs = locals().copy()
-        kwargs.pop("self")
-        kwargs.pop("ctx")
-        kwargs.pop("action")
-        kwargs.pop("app_name")
-        client_config = self.extract_client_config(kwargs)
+        # Check Splunk availability using context
+        is_available, service, error_msg = self.check_splunk_available(ctx)
 
-        # Get Splunk service connection (client-specific or server default)
-        try:
-            service = await self.get_splunk_service(ctx, client_config)
-        except Exception as e:
-            return self.format_error_response(f"Failed to connect to Splunk: {str(e)}")
+        if not is_available:
+            return self.format_error_response(error_msg)
 
         # Validate action
         valid_actions = ["enable", "disable", "restart", "reload"]
@@ -108,7 +88,6 @@ class ManageApps(BaseTool):
                     "action": action,
                     "app_name": app_name,
                     "result": result,
-                    "connection_source": "client_config" if client_config else "server_config",
                 }
             )
 
