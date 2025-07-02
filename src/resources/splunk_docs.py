@@ -95,8 +95,8 @@ class SplunkDocsResource(BaseResource):
             health_tool = GetSplunkHealth("get_splunk_health", "Get Splunk health status")
             health_result = await health_tool.execute(ctx)
 
-            if health_result.get("status") == "success":
-                version = health_result.get("splunk_info", {}).get("version", "latest")
+            if health_result.get("status") == "connected":
+                version = health_result.get("version", "latest")
                 logger.debug(f"Detected Splunk version: {version}")
                 return version
         except Exception as e:
@@ -484,7 +484,6 @@ class AdminGuideResource(SplunkDocsResource):
         """Get administration documentation for specific topic."""
 
         async def fetch_admin_docs():
-            norm_version = self.normalize_version(self.version)
             # help.splunk.com uses hyphenated topic names and different URL structure
             topic_url = self.topic.replace("_", "-").lower()
             url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/{topic_url}"
@@ -584,12 +583,12 @@ Access documentation for specific SPL commands:
                 content += "\n"
             content += f"- [`{cmd}`](splunk-docs://{detected_version}/spl-reference/{cmd})  "
 
-        content += f"""
+        content += """
 
 ### 🛠️ Troubleshooting Documentation
 Access version-specific troubleshooting guides:
 
-**Pattern**: `splunk-docs://{{version}}/troubleshooting/{{topic}}`
+**Pattern**: `splunk-docs://{version}/troubleshooting/{topic}`
 
 **Available Topics**:
 """
@@ -599,12 +598,12 @@ Access version-specific troubleshooting guides:
             topic_info = TroubleshootingResource.TROUBLESHOOTING_TOPICS[topic]
             content += f"- [`{topic}`](splunk-docs://{detected_version}/troubleshooting/{topic}) - {topic_info['description']}\n"
 
-        content += f"""
+        content += """
 
 ### ⚙️ Administration Guides
 Access administration documentation:
 
-**Pattern**: `splunk-docs://{{version}}/admin/{{topic}}`
+**Pattern**: `splunk-docs://{version}/admin/{topic}`
 
 **Common Topics**:
 """
@@ -669,12 +668,12 @@ def register_all_resources():
             SplunkCheatSheetResource,
             SplunkCheatSheetResource.METADATA
         )
-        
+
         resource_registry.register(
             DocumentationDiscoveryResource,
             DocumentationDiscoveryResource.METADATA
         )
-        
+
         resource_registry.register(
             SPLReferenceResource,
             SPLReferenceResource.METADATA
@@ -704,7 +703,7 @@ def register_all_resources():
             tags=["spl", "commands", "reference", "search"]
         )
         resource_registry.register(SPLCommandResource, spl_command_metadata)
-        
+
         # AdminGuideResource template
         admin_guide_metadata = ResourceMetadata(
             uri="splunk-docs://{version}/admin/{topic}",
