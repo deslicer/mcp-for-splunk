@@ -122,10 +122,12 @@ class SplunkDocsResource(BaseResource):
         return self.VERSION_MAPPING.get(version, self.VERSION_MAPPING["latest"])
 
     def format_version_for_help_url(self, version: str) -> str:
-        """Convert normalized version to help URL format (e.g., '94' -> '9.4')."""
+        """Convert version to help URL format.
+
+        Takes a version string (e.g., "9.4.0", "latest", "auto") and returns
+        the normalized version suitable for help.splunk.com URLs (e.g., "9.4").
+        """
         norm_version = self.normalize_version(version)
-        if len(norm_version) == 2:
-            return f"{norm_version[0]}.{norm_version[1]}"
         return norm_version
 
     async def fetch_doc_content(self, url: str) -> str:
@@ -149,7 +151,9 @@ pip install httpx
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
 
-            async with httpx.AsyncClient(timeout=30.0, headers=headers, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=30.0, headers=headers, follow_redirects=True
+            ) as client:
                 logger.debug(f"Fetching documentation from: {url}")
                 response = await client.get(url)
                 response.raise_for_status()
@@ -209,10 +213,16 @@ class SplunkCheatSheetResource(SplunkDocsResource):
         description="Splunk SPL cheat sheet with commands, regex, and query examples",
         mime_type="text/markdown",
         category="reference",
-        tags=["cheat-sheet", "spl", "reference", "commands", "regex"]
+        tags=["cheat-sheet", "spl", "reference", "commands", "regex"],
     )
 
-    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+    def __init__(
+        self,
+        uri: str = None,
+        name: str = None,
+        description: str = None,
+        mime_type: str = "text/markdown",
+    ):
         # Use metadata defaults if not provided
         uri = uri or self.METADATA.uri
         name = name or self.METADATA.name
@@ -253,7 +263,6 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Using metrics.log to diagnose input-related issues",
             "url_path": "splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log",
         },
-
         # Platform instrumentation
         "platform-instrumentation": {
             "title": "About Platform Instrumentation",
@@ -270,7 +279,6 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Example searches for monitoring platform instrumentation",
             "url_path": "platform-instrumentation/sample-platform-instrumentation-searches",
         },
-
         # Search and web problems
         "search-problems": {
             "title": "Splunk Web and Search Problems",
@@ -282,7 +290,6 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Resolving authentication timeout issues between search head and peers",
             "url_path": "splunk-web-and-search-problems/intermittent-authentication-timeouts-on-search-peers",
         },
-
         # Data acquisition and indexing
         "indexing-performance": {
             "title": "Identify and Triage Indexing Performance Issues",
@@ -302,7 +309,9 @@ class TroubleshootingResource(SplunkDocsResource):
 
         if topic not in self.TROUBLESHOOTING_TOPICS:
             available_topics = ", ".join(self.TROUBLESHOOTING_TOPICS.keys())
-            raise ValueError(f"Unknown troubleshooting topic: {topic}. Available topics: {available_topics}")
+            raise ValueError(
+                f"Unknown troubleshooting topic: {topic}. Available topics: {available_topics}"
+            )
 
         topic_info = self.TROUBLESHOOTING_TOPICS[topic]
         uri = f"splunk-docs://{version}/troubleshooting/{topic}"
@@ -324,11 +333,11 @@ class TroubleshootingResource(SplunkDocsResource):
 
             content = await self.fetch_doc_content(url)
 
-            result = f"""# Splunk Troubleshooting: {topic_info['title']}
+            result = f"""# Splunk Troubleshooting: {topic_info["title"]}
 
 **Version**: Splunk {self.version}
 **Category**: Troubleshooting Guide
-**Topic**: {topic_info['description']}
+**Topic**: {topic_info["description"]}
 **Source URL**: {url}
 
 {content}
@@ -379,10 +388,16 @@ class SPLReferenceResource(SplunkDocsResource):
         description="Splunk SPL command and function reference documentation",
         mime_type="text/markdown",
         category="reference",
-        tags=["spl", "search", "commands", "reference"]
+        tags=["spl", "search", "commands", "reference"],
     )
 
-    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+    def __init__(
+        self,
+        uri: str = None,
+        name: str = None,
+        description: str = None,
+        mime_type: str = "text/markdown",
+    ):
         # Use metadata defaults if not provided
         uri = uri or self.METADATA.uri
         name = name or self.METADATA.name
@@ -516,10 +531,16 @@ class DocumentationDiscoveryResource(SplunkDocsResource):
         description="Discover available Splunk documentation resources",
         mime_type="text/markdown",
         category="discovery",
-        tags=["discovery", "documentation", "reference"]
+        tags=["discovery", "documentation", "reference"],
     )
 
-    def __init__(self, uri: str = None, name: str = None, description: str = None, mime_type: str = "text/markdown"):
+    def __init__(
+        self,
+        uri: str = None,
+        name: str = None,
+        description: str = None,
+        mime_type: str = "text/markdown",
+    ):
         # Use metadata defaults if not provided
         uri = uri or self.METADATA.uri
         name = name or self.METADATA.name
@@ -537,17 +558,55 @@ class DocumentationDiscoveryResource(SplunkDocsResource):
 
         # Common SPL commands for quick reference
         common_spl_commands = [
-            "search", "stats", "eval", "chart", "timechart", "table", "sort", "where",
-            "join", "append", "lookup", "rex", "fieldsfor", "top", "rare", "transaction",
-            "streamstats", "eventstats", "bucket", "dedup", "head", "tail", "regex",
-            "replace", "convert", "makemv", "mvexpand", "spath", "xmlkv", "kvform"
+            "search",
+            "stats",
+            "eval",
+            "chart",
+            "timechart",
+            "table",
+            "sort",
+            "where",
+            "join",
+            "append",
+            "lookup",
+            "rex",
+            "fieldsfor",
+            "top",
+            "rare",
+            "transaction",
+            "streamstats",
+            "eventstats",
+            "bucket",
+            "dedup",
+            "head",
+            "tail",
+            "regex",
+            "replace",
+            "convert",
+            "makemv",
+            "mvexpand",
+            "spath",
+            "xmlkv",
+            "kvform",
         ]
 
         # Common admin topics
         admin_topics = [
-            "indexes", "authentication", "deployment", "apps", "users", "roles",
-            "monitoring", "performance", "clustering", "distributed-search",
-            "forwarders", "inputs", "outputs", "licensing", "security"
+            "indexes",
+            "authentication",
+            "deployment",
+            "apps",
+            "users",
+            "roles",
+            "monitoring",
+            "performance",
+            "clustering",
+            "distributed-search",
+            "forwarders",
+            "inputs",
+            "outputs",
+            "licensing",
+            "security",
         ]
 
         # All available troubleshooting topics
@@ -664,20 +723,13 @@ def register_all_resources():
     """Register all documentation resources with the resource registry."""
     try:
         # Register static resources that have METADATA defined
-        resource_registry.register(
-            SplunkCheatSheetResource,
-            SplunkCheatSheetResource.METADATA
-        )
+        resource_registry.register(SplunkCheatSheetResource, SplunkCheatSheetResource.METADATA)
 
         resource_registry.register(
-            DocumentationDiscoveryResource,
-            DocumentationDiscoveryResource.METADATA
+            DocumentationDiscoveryResource, DocumentationDiscoveryResource.METADATA
         )
 
-        resource_registry.register(
-            SPLReferenceResource,
-            SPLReferenceResource.METADATA
-        )
+        resource_registry.register(SPLReferenceResource, SPLReferenceResource.METADATA)
 
         # Register dynamic/parameterized resources with template metadata
         # These resources don't have static METADATA because they take constructor parameters
@@ -689,7 +741,7 @@ def register_all_resources():
             description="Splunk troubleshooting documentation for various topics and versions",
             mime_type="text/markdown",
             category="troubleshooting",
-            tags=["troubleshooting", "documentation", "diagnostics", "performance"]
+            tags=["troubleshooting", "documentation", "diagnostics", "performance"],
         )
         resource_registry.register(TroubleshootingResource, troubleshooting_metadata)
 
@@ -700,7 +752,7 @@ def register_all_resources():
             description="Splunk SPL command documentation for specific commands and versions",
             mime_type="text/markdown",
             category="reference",
-            tags=["spl", "commands", "reference", "search"]
+            tags=["spl", "commands", "reference", "search"],
         )
         resource_registry.register(SPLCommandResource, spl_command_metadata)
 
@@ -711,11 +763,13 @@ def register_all_resources():
             description="Splunk administration documentation for various topics and versions",
             mime_type="text/markdown",
             category="administration",
-            tags=["administration", "configuration", "management", "deployment"]
+            tags=["administration", "configuration", "management", "deployment"],
         )
         resource_registry.register(AdminGuideResource, admin_guide_metadata)
 
-        logger.info("Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)")
+        logger.info(
+            "Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)"
+        )
 
     except Exception as e:
         logger.error(f"Failed to register documentation resources: {e}")
