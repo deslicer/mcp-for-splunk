@@ -58,8 +58,8 @@ class TestSplunkToolsUnit:
         assert indexes_data["count"] > 0
         assert isinstance(indexes_data["indexes"], list)
 
-        # Check for expected system indexes
-        expected_indexes = ["_internal", "main"]
+        # Check for expected customer indexes (internal indexes are filtered out)
+        expected_indexes = ["main", "security"]
         for expected in expected_indexes:
             assert any(expected in idx for idx in indexes_data["indexes"])
 

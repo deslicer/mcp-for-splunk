@@ -43,9 +43,7 @@ logger = logging.getLogger(__name__)
 # Import the core framework components
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
-
-# Context variable to store HTTP headers for MCP middleware access
-http_headers_context: ContextVar[dict] = ContextVar('http_headers', default={})
+from src.core.shared_context import http_headers_context
 
 # ASGI Middleware to capture HTTP headers
 class HeaderCaptureMiddleware(BaseHTTPMiddleware):
@@ -299,6 +297,28 @@ mcp.add_middleware(ClientConfigMiddleware())
 def health_check() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
+
+# Add more test resources for MCP Inspector testing
+@mcp.resource("info://server")
+def server_info() -> dict:
+    """Server information and capabilities"""
+    return {
+        "name": "MCP Server for Splunk",
+        "version": "2.0.0",
+        "transport": "http",
+        "capabilities": [
+            "tools",
+            "resources", 
+            "prompts"
+        ],
+        "description": "Modular MCP Server providing Splunk integration",
+        "status": "running"
+    }
+
+@mcp.resource("test://greeting/{name}")
+def personalized_greeting(name: str) -> str:
+    """Generate a personalized greeting message"""
+    return f"Hello, {name}! Welcome to the MCP Server for Splunk."
 
 
 async def main():

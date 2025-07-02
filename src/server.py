@@ -18,6 +18,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import logging
 import time
 
+from src.core.utils import filter_customer_indexes
+
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(__file__), 'logs')
 os.makedirs(log_dir, exist_ok=True)
@@ -204,7 +206,7 @@ def check_splunk_available(ctx: Context) -> tuple[bool, client.Service | None, s
     return True, splunk_ctx.service, ""
 
 # Health check endpoint for Docker
-@mcp.resource("health://status")
+@mcp.resource("health://status", name="get_simple_health_check")
 def health_check() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
@@ -266,12 +268,16 @@ def list_indexes(ctx: Context) -> dict[str, Any]:
         }
 
     try:
-        indexes = [index.name for index in service.indexes]
-        ctx.info(f"Indexes: {indexes}")
+        # Filter out internal indexes for better performance and relevance
+        customer_indexes = filter_customer_indexes(service.indexes)
+        index_names = [index.name for index in customer_indexes]
+
+        ctx.info(f"Customer indexes: {index_names}")
         return {
             "status": "success",
-            "indexes": sorted(indexes),
-            "count": len(indexes)
+            "indexes": sorted(index_names),
+            "count": len(index_names),
+            "total_count_including_internal": len(list(service.indexes))
         }
     except Exception as e:
         logger.error(f"Failed to list indexes: {str(e)}")
