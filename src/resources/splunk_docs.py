@@ -72,7 +72,7 @@ _doc_cache = DocumentationCache()
 class SplunkDocsResource(BaseResource):
     """Base class for Splunk documentation resources."""
 
-    SPLUNK_DOCS_BASE = "https://docs.splunk.com"
+    # SPLUNK_DOCS_BASE = "https://docs.splunk.com"
     SPLUNK_HELP_BASE = "https://help.splunk.com"
     VERSION_MAPPING = {
         "9.4.0": "9.4",
@@ -148,7 +148,7 @@ pip install httpx
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
-            
+
             async with httpx.AsyncClient(timeout=30.0, headers=headers, follow_redirects=True) as client:
                 logger.debug(f"Fetching documentation from: {url}")
                 response = await client.get(url)
@@ -280,7 +280,7 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Using metrics.log to diagnose input-related issues",
             "url_path": "splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log",
         },
-        
+
         # Platform instrumentation
         "platform-instrumentation": {
             "title": "About Platform Instrumentation",
@@ -297,7 +297,7 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Example searches for monitoring platform instrumentation",
             "url_path": "platform-instrumentation/sample-platform-instrumentation-searches",
         },
-        
+
         # Search and web problems
         "search-problems": {
             "title": "Splunk Web and Search Problems",
@@ -309,7 +309,7 @@ class TroubleshootingResource(SplunkDocsResource):
             "description": "Resolving authentication timeout issues between search head and peers",
             "url_path": "splunk-web-and-search-problems/intermittent-authentication-timeouts-on-search-peers",
         },
-        
+
         # Data acquisition and indexing
         "indexing-performance": {
             "title": "Identify and Triage Indexing Performance Issues",
@@ -333,7 +333,7 @@ class TroubleshootingResource(SplunkDocsResource):
 
         topic_info = self.TROUBLESHOOTING_TOPICS[topic]
         uri = f"splunk-docs://{version}/troubleshooting/{topic}"
-        
+
         super().__init__(
             uri=uri,
             name=f"troubleshooting_{topic}_{version}",
@@ -346,7 +346,7 @@ class TroubleshootingResource(SplunkDocsResource):
         async def fetch_troubleshooting_docs():
             topic_info = self.TROUBLESHOOTING_TOPICS[self.topic]
             help_version = self.format_version_for_help_url(self.version)
-            
+
             url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/troubleshoot/{help_version}/{topic_info['url_path']}"
 
             content = await self.fetch_doc_content(url)
@@ -372,7 +372,7 @@ This documentation is part of Splunk's comprehensive troubleshooting guide. It h
 ### Related Troubleshooting Topics
 
 """
-            
+
             # Add links to related troubleshooting topics
             for topic_key, topic_data in self.TROUBLESHOOTING_TOPICS.items():
                 if topic_key != self.topic:
@@ -691,24 +691,59 @@ splunk-docs://auto/troubleshooting/platform-instrumentation
 def register_all_resources():
     """Register all documentation resources with the resource registry."""
     try:
-        # Register static resources
+        # Register static resources that have METADATA defined
         resource_registry.register(
             SplunkCheatSheetResource,
             SplunkCheatSheetResource.METADATA
         )
-        
+
         resource_registry.register(
             DocumentationDiscoveryResource,
             DocumentationDiscoveryResource.METADATA
         )
-        
+
         resource_registry.register(
             SPLReferenceResource,
             SPLReferenceResource.METADATA
         )
 
-        logger.info("Successfully registered Splunk documentation resources")
-        
+        # Register dynamic/parameterized resources with template metadata
+        # These resources don't have static METADATA because they take constructor parameters
+
+        # TroubleshootingResource template
+        troubleshooting_metadata = ResourceMetadata(
+            uri="splunk-docs://{version}/troubleshooting/{topic}",
+            name="troubleshooting_guide",
+            description="Splunk troubleshooting documentation for various topics and versions",
+            mime_type="text/markdown",
+            category="troubleshooting",
+            tags=["troubleshooting", "documentation", "diagnostics", "performance"]
+        )
+        resource_registry.register(TroubleshootingResource, troubleshooting_metadata)
+
+        # SPLCommandResource template
+        spl_command_metadata = ResourceMetadata(
+            uri="splunk-docs://{version}/spl-reference/{command}",
+            name="spl_command_reference",
+            description="Splunk SPL command documentation for specific commands and versions",
+            mime_type="text/markdown",
+            category="reference",
+            tags=["spl", "commands", "reference", "search"]
+        )
+        resource_registry.register(SPLCommandResource, spl_command_metadata)
+        # AdminGuideResource template
+        admin_guide_metadata = ResourceMetadata(
+            uri="splunk-docs://{version}/admin/{topic}",
+            name="admin_guide",
+            description="Splunk administration documentation for various topics and versions",
+            mime_type="text/markdown",
+            category="administration",
+            tags=["administration", "configuration", "management", "deployment"]
+        )
+        resource_registry.register(AdminGuideResource, admin_guide_metadata)
+
+        logger.info("Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)")
+
     except Exception as e:
         logger.error(f"Failed to register documentation resources: {e}")
 
