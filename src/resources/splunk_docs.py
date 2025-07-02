@@ -73,11 +73,13 @@ class SplunkDocsResource(BaseResource):
     """Base class for Splunk documentation resources."""
 
     SPLUNK_DOCS_BASE = "https://docs.splunk.com"
+    SPLUNK_HELP_BASE = "https://help.splunk.com"
     VERSION_MAPPING = {
+        "9.4.0": "94",
         "9.3.0": "93",
         "9.2.1": "92",
         "9.1.0": "91",
-        "latest": "93",  # Current latest
+        "latest": "94",  # Current latest
     }
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "text/markdown"):
@@ -184,6 +186,151 @@ Failed to fetch documentation due to an error.
 
 Please check your internet connection and try again.
 """
+
+
+class SplunkCheatSheetResource(SplunkDocsResource):
+    """Static Splunk cheat sheet resource from Splunk blog."""
+
+    def __init__(self):
+        super().__init__(
+            uri="splunk-docs://cheat-sheet",
+            name="splunk_cheat_sheet",
+            description="Splunk SPL cheat sheet with commands, regex, and query examples",
+        )
+
+    async def get_content(self, ctx: Context) -> str:
+        """Get Splunk cheat sheet content."""
+
+        async def fetch_cheat_sheet():
+            url = "https://www.splunk.com/en_us/blog/learn/splunk-cheat-sheet-query-spl-regex-commands.html"
+            content = await self.fetch_doc_content(url)
+
+            return f"""# Splunk Cheat Sheet: Query, SPL, RegEx, & Commands
+
+**Source**: Splunk Official Blog
+**Category**: Quick Reference Guide
+**Updated**: {datetime.now().strftime('%Y-%m-%d')}
+
+{content}
+
+## Quick Reference Summary
+
+This cheat sheet covers essential Splunk concepts and commands for both Splunk Cloud and Splunk Enterprise:
+
+### Key Areas Covered
+- **Events and Metrics** - Understanding Splunk data structure
+- **SPL Commands** - Search Processing Language reference
+- **Regular Expressions** - Pattern matching in searches
+- **Common Functions** - eval, stats, and other built-in functions
+- **Date/Time Formatting** - Timestamp manipulation
+- **Field Operations** - Working with multivalue fields
+
+### Usage Context
+This resource is invaluable for:
+- Quick command lookup during search development
+- Learning SPL syntax and patterns
+- Reference for regular expressions in Splunk
+- Understanding data formatting options
+
+For specific command details, see also: [SPL Reference](splunk-docs://latest/spl-reference)
+"""
+
+        return await _doc_cache.get_or_fetch("static", "cheat-sheet", "main", fetch_cheat_sheet)
+
+
+class TroubleshootingResource(SplunkDocsResource):
+    """Version-aware Splunk troubleshooting documentation."""
+
+    TROUBLESHOOTING_TOPICS = {
+        "splunk-logs": {
+            "title": "What Splunk Logs about Itself",
+            "description": "Understanding Splunk's internal logging and log files",
+            "url_path": "splunk-enterprise-log-files/what-splunk-software-logs-about-itself",
+        },
+        "metrics-log": {
+            "title": "About metrics.log",
+            "description": "Understanding Splunk's metrics.log file for performance monitoring",
+            "url_path": "splunk-enterprise-log-files/about-metrics.log",
+        },
+        "troubleshoot-inputs": {
+            "title": "Troubleshooting Inputs with metrics.log",
+            "description": "Using metrics.log to diagnose input-related issues",
+            "url_path": "splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log",
+        },
+    }
+
+    def __init__(self, version: str, topic: str):
+        self.version = version
+        self.topic = topic
+
+        if topic not in self.TROUBLESHOOTING_TOPICS:
+            raise ValueError(f"Unknown troubleshooting topic: {topic}")
+
+        topic_info = self.TROUBLESHOOTING_TOPICS[topic]
+        uri = f"splunk-docs://{version}/troubleshooting/{topic}"
+        
+        super().__init__(
+            uri=uri,
+            name=f"troubleshooting_{topic}_{version}",
+            description=f"Splunk troubleshooting: {topic_info['description']} (version {version})",
+        )
+
+    async def get_content(self, ctx: Context) -> str:
+        """Get troubleshooting documentation for specific topic."""
+
+        async def fetch_troubleshooting_docs():
+            topic_info = self.TROUBLESHOOTING_TOPICS[self.topic]
+            norm_version = self.normalize_version(self.version)
+            
+            # Convert version format for help URLs (9.4 instead of 94)
+            help_version = f"{norm_version[0]}.{norm_version[1]}"
+            
+            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/troubleshoot/{help_version}/{topic_info['url_path']}"
+
+            content = await self.fetch_doc_content(url)
+
+            return f"""# Splunk Troubleshooting: {topic_info['title']}
+
+**Version**: Splunk {self.version}
+**Category**: Troubleshooting Guide
+**Topic**: {topic_info['description']}
+
+{content}
+
+## Troubleshooting Context
+
+This documentation is part of Splunk's comprehensive troubleshooting guide. It helps administrators and users:
+
+- Understand Splunk's internal operations
+- Diagnose performance and operational issues
+- Monitor system health and metrics
+- Resolve common problems
+
+### Related Troubleshooting Topics
+
+"""
+            
+            # Add links to related troubleshooting topics
+            for topic_key, topic_data in self.TROUBLESHOOTING_TOPICS.items():
+                if topic_key != self.topic:
+                    content += f"- [{topic_data['title']}](splunk-docs://{self.version}/troubleshooting/{topic_key})\n"
+
+            content += f"""
+### Additional Resources
+
+For more troubleshooting information, see:
+- [Splunk Documentation](splunk-docs://{self.version}/admin/monitoring)
+- [SPL Reference](splunk-docs://{self.version}/spl-reference)
+
+---
+**Generated**: {datetime.now().isoformat()}
+"""
+
+            return content
+
+        return await _doc_cache.get_or_fetch(
+            self.version, "troubleshooting", self.topic, fetch_troubleshooting_docs
+        )
 
 
 class SPLReferenceResource(SplunkDocsResource):
@@ -371,12 +518,19 @@ class DocumentationDiscoveryResource(SplunkDocsResource):
             "monitoring",
         ]
 
+        # Troubleshooting topics
+        troubleshooting_topics = list(TroubleshootingResource.TROUBLESHOOTING_TOPICS.keys())
+
         discovery_content = f"""# Splunk Documentation Discovery
 
 **Detected Splunk Version**: {detected_version}
-**Available Documentation Categories**: SPL Reference, Administration Guide, API Reference
+**Available Documentation Categories**: SPL Reference, Administration Guide, Troubleshooting, Quick Reference
 
-## Quick Access - Common SPL Commands
+## Quick Access - Cheat Sheet
+
+- [**Splunk Cheat Sheet**](splunk-docs://cheat-sheet) - SPL commands, regex, and quick reference
+
+## SPL Command Reference
 
 The following SPL command documentation is readily available:
 
@@ -399,6 +553,19 @@ Common administration documentation:
                 f"- [{topic.title()}](splunk-docs://{detected_version}/admin/{topic})\n"
             )
 
+        discovery_content += """
+## Troubleshooting Documentation
+
+Splunk troubleshooting and diagnostic resources:
+
+"""
+
+        for topic in troubleshooting_topics:
+            topic_info = TroubleshootingResource.TROUBLESHOOTING_TOPICS[topic]
+            discovery_content += (
+                f"- [{topic_info['title']}](splunk-docs://{detected_version}/troubleshooting/{topic})\n"
+            )
+
         discovery_content += f"""
 
 ## Usage Patterns
@@ -413,16 +580,27 @@ splunk-docs://{{version}}/spl-reference/{{command}}
 splunk-docs://{{version}}/admin/{{topic}}
 ```
 
-### Examples
+### Troubleshooting
+```
+splunk-docs://{{version}}/troubleshooting/{{topic}}
+```
+
+### Static Resources
+```
+splunk-docs://cheat-sheet
+```
+
+## Examples
 - `splunk-docs://latest/spl-reference/stats` - Stats command documentation
-- `splunk-docs://9.3.0/admin/indexes` - Index administration for Splunk 9.3.0
-- `splunk-docs://{detected_version}/spl-reference/eval` - Eval command for your Splunk version
+- `splunk-docs://9.4.0/admin/indexes` - Index administration for Splunk 9.4.0
+- `splunk-docs://{detected_version}/troubleshooting/splunk-logs` - Splunk logging documentation
+- `splunk-docs://cheat-sheet` - Quick reference guide
 
 ## Available Versions
 
 {", ".join(self.VERSION_MAPPING.keys())}
 
-**Note**: Use "latest" for the most current documentation, or specify a version like "9.3.0" for version-specific docs.
+**Note**: Use "latest" for the most current documentation, or specify a version like "9.4.0" for version-specific docs.
 
 ---
 **Generated**: {datetime.now().isoformat()}
@@ -463,6 +641,20 @@ def register_documentation_resources():
         ),
     )
 
+    # Register static cheat sheet resource
+    cheat_sheet_resource = SplunkCheatSheetResource()
+    resource_registry.register(
+        SplunkCheatSheetResource,
+        ResourceMetadata(
+            uri=cheat_sheet_resource.uri,
+            name=cheat_sheet_resource.name,
+            description=cheat_sheet_resource.description,
+            mime_type="text/markdown",
+            category="documentation",
+            tags=["splunk", "cheat-sheet", "reference", "quick-guide", "spl"],
+        ),
+    )
+
     logger.info("Registered Splunk documentation resources")
 
 
@@ -475,3 +667,8 @@ def create_spl_command_resource(version: str, command: str) -> SPLCommandResourc
 def create_admin_guide_resource(version: str, topic: str) -> AdminGuideResource:
     """Create a dynamic admin guide resource."""
     return AdminGuideResource(version, topic)
+
+
+def create_troubleshooting_resource(version: str, topic: str) -> TroubleshootingResource:
+    """Create a dynamic troubleshooting resource."""
+    return TroubleshootingResource(version, topic)

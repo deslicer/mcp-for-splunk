@@ -4,7 +4,10 @@ HTML to LLM-optimized content processor for Splunk documentation.
 
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bs4 import BeautifulSoup
 
 try:
     from bs4 import BeautifulSoup
@@ -12,6 +15,8 @@ try:
     HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
+    # Define a placeholder for type checking
+    BeautifulSoup = Any
 
 
 class SplunkDocsProcessor:
@@ -60,7 +65,7 @@ class SplunkDocsProcessor:
 **Format**: Basic text extraction (BeautifulSoup not available)
 """
 
-    def extract_main_content(self, soup: BeautifulSoup) -> BeautifulSoup:
+    def extract_main_content(self, soup: "BeautifulSoup") -> "BeautifulSoup":
         """Extract the main documentation content, removing navigation/footer."""
         # Splunk docs typically have main content in specific containers
         main_content = (
@@ -73,7 +78,7 @@ class SplunkDocsProcessor:
         )
         return main_content or soup
 
-    def extract_sections(self, content: BeautifulSoup) -> list[dict[str, Any]]:
+    def extract_sections(self, content: "BeautifulSoup") -> list[dict[str, Any]]:
         """Extract hierarchical sections from documentation."""
         sections = []
         current_section: dict[str, Any] | None = None
