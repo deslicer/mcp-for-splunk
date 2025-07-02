@@ -25,27 +25,22 @@ EXPECTED_TOOLS = [
     # Search tools
     "run_oneshot_search",
     "run_splunk_search",
-
     # Metadata tools
     "list_indexes",
     "list_sourcetypes",
     "list_sources",
-
     # Health tools
     "get_splunk_health",
-
     # Admin tools
     "list_apps",
     "list_users",
     "get_configurations",
-
     # KV Store tools
     "list_kvstore_collections",
     "get_kvstore_data",
     "create_kvstore_collection",
-
     # Example tools (from contrib)
-    "hello_world"
+    "hello_world",
 ]
 
 

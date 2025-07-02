@@ -36,7 +36,7 @@ class GetLatestFeatureHealthTool(BaseTool):
         category="health",
         tags=["health", "monitoring", "infrastructure", "troubleshooting", "issues"],
         requires_connection=True,
-        version="1.0.0"
+        version="1.0.0",
     )
 
     async def execute(self, ctx: Context, max_results: int = 100) -> dict[str, Any]:
@@ -77,11 +77,7 @@ class GetLatestFeatureHealthTool(BaseTool):
                 return self.format_error_response(error_msg)
 
             # Use static time range - search last 15 minutes for latest health status
-            kwargs = {
-                "earliest_time": "-15m",
-                "latest_time": "now",
-                "count": max_results
-            }
+            kwargs = {"earliest_time": "-15m", "latest_time": "now", "count": max_results}
             ctx.info(f"Get-latest-feature-health parameters: {kwargs}")
 
             # Updated query with more common health status terms
@@ -110,12 +106,14 @@ class GetLatestFeatureHealthTool(BaseTool):
 
             duration = time.time() - start_time
 
-            return self.format_success_response({
-                "results": results,
-                "results_count": result_count,
-                "query_executed": query,
-                "duration": round(duration, 3)
-            })
+            return self.format_success_response(
+                {
+                    "results": results,
+                    "results_count": result_count,
+                    "query_executed": query,
+                    "duration": round(duration, 3),
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to execute get-latest-feature-health: {str(e)}")

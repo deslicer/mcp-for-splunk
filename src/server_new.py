@@ -11,7 +11,6 @@ import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from contextvars import ContextVar
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -26,17 +25,17 @@ if project_root not in sys.path:
 import logging
 
 # Create logs directory if it doesn't exist
-log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+log_dir = os.path.join(os.path.dirname(__file__), "logs")
 os.makedirs(log_dir, exist_ok=True)
 
 # Enhanced logging configuration
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(log_dir, 'mcp_splunk_server.log')),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler(os.path.join(log_dir, "mcp_splunk_server.log")),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -44,6 +43,7 @@ logger = logging.getLogger(__name__)
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
 from src.core.shared_context import http_headers_context
+
 
 # ASGI Middleware to capture HTTP headers
 class HeaderCaptureMiddleware(BaseHTTPMiddleware):
@@ -64,7 +64,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
             http_headers_context.set(headers)
 
             # Log header extraction for debugging
-            splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith('x-splunk-')}
+            splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith("x-splunk-")}
             if splunk_headers:
                 logger.info(f"Captured Splunk headers: {list(splunk_headers.keys())}")
             else:
@@ -96,22 +96,22 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
 
     # Mapping of header names to config keys
     header_mapping = {
-        'X-Splunk-Host': 'splunk_host',
-        'X-Splunk-Port': 'splunk_port',
-        'X-Splunk-Username': 'splunk_username',
-        'X-Splunk-Password': 'splunk_password',
-        'X-Splunk-Scheme': 'splunk_scheme',
-        'X-Splunk-Verify-SSL': 'splunk_verify_ssl'
+        "X-Splunk-Host": "splunk_host",
+        "X-Splunk-Port": "splunk_port",
+        "X-Splunk-Username": "splunk_username",
+        "X-Splunk-Password": "splunk_password",
+        "X-Splunk-Scheme": "splunk_scheme",
+        "X-Splunk-Verify-SSL": "splunk_verify_ssl",
     }
 
     for header_name, config_key in header_mapping.items():
         header_value = headers.get(header_name) or headers.get(header_name.lower())
         if header_value:
             # Handle type conversions
-            if config_key == 'splunk_port':
+            if config_key == "splunk_port":
                 client_config[config_key] = int(header_value)
-            elif config_key == 'splunk_verify_ssl':
-                client_config[config_key] = header_value.lower() == 'true'
+            elif config_key == "splunk_verify_ssl":
+                client_config[config_key] = header_value.lower() == "true"
             else:
                 client_config[config_key] = header_value
 
@@ -132,22 +132,22 @@ def extract_client_config_from_env() -> dict | None:
 
     # Check for MCP client-specific environment variables
     env_mapping = {
-        'MCP_SPLUNK_HOST': 'splunk_host',
-        'MCP_SPLUNK_PORT': 'splunk_port',
-        'MCP_SPLUNK_USERNAME': 'splunk_username',
-        'MCP_SPLUNK_PASSWORD': 'splunk_password',
-        'MCP_SPLUNK_SCHEME': 'splunk_scheme',
-        'MCP_SPLUNK_VERIFY_SSL': 'splunk_verify_ssl'
+        "MCP_SPLUNK_HOST": "splunk_host",
+        "MCP_SPLUNK_PORT": "splunk_port",
+        "MCP_SPLUNK_USERNAME": "splunk_username",
+        "MCP_SPLUNK_PASSWORD": "splunk_password",
+        "MCP_SPLUNK_SCHEME": "splunk_scheme",
+        "MCP_SPLUNK_VERIFY_SSL": "splunk_verify_ssl",
     }
 
     for env_var, config_key in env_mapping.items():
         env_value = os.getenv(env_var)
         if env_value:
             # Handle type conversions
-            if config_key == 'splunk_port':
+            if config_key == "splunk_port":
                 client_config[config_key] = int(env_value)
-            elif config_key == 'splunk_verify_ssl':
-                client_config[config_key] = env_value.lower() == 'true'
+            elif config_key == "splunk_verify_ssl":
+                client_config[config_key] = env_value.lower() == "true"
             else:
                 client_config[config_key] = env_value
 
@@ -172,6 +172,7 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
 
         # Import the safe version that doesn't raise exceptions
         from src.client.splunk_client import get_splunk_service_safe
+
         service = get_splunk_service_safe(client_config)
 
         if service:
@@ -183,7 +184,9 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
             logger.warning("Some tools will not be available until Splunk connection is restored")
 
         # Create the context with client configuration
-        context = SplunkContext(service=service, is_connected=is_connected, client_config=client_config)
+        context = SplunkContext(
+            service=service, is_connected=is_connected, client_config=client_config
+        )
 
         # Load all components using the modular framework
         logger.info("Loading MCP components...")
@@ -244,7 +247,7 @@ class ClientConfigMiddleware(Middleware):
                     logger.info(f"Client config extracted: {list(client_config.keys())}")
 
                     # Cache the config for this session
-                    session_id = getattr(context, 'session_id', 'default')
+                    session_id = getattr(context, "session_id", "default")
                     self.client_config_cache[session_id] = client_config
                 else:
                     logger.debug("No Splunk headers found in HTTP request")
@@ -253,7 +256,7 @@ class ClientConfigMiddleware(Middleware):
 
             # If we didn't extract config from headers, check if we have cached config
             if not client_config:
-                session_id = getattr(context, 'session_id', 'default')
+                session_id = getattr(context, "session_id", "default")
                 client_config = self.client_config_cache.get(session_id)
                 if client_config:
                     logger.debug(f"Using cached client config for session {session_id}")
@@ -270,13 +273,14 @@ class ClientConfigMiddleware(Middleware):
                 logger.debug("Stored client config in context")
 
                 # Also try to update the lifespan context if available
-                if (hasattr(context, 'fastmcp_context') and
-                    context.fastmcp_context and
-                    hasattr(context.fastmcp_context, 'lifespan_context')):
-
+                if (
+                    hasattr(context, "fastmcp_context")
+                    and context.fastmcp_context
+                    and hasattr(context.fastmcp_context, "lifespan_context")
+                ):
                     # Update the lifespan context with client config
                     lifespan_ctx = context.fastmcp_context.lifespan_context
-                    if hasattr(lifespan_ctx, 'client_config'):
+                    if hasattr(lifespan_ctx, "client_config"):
                         lifespan_ctx.client_config = client_config
                         logger.debug("Updated lifespan context with client config")
 
@@ -288,6 +292,7 @@ class ClientConfigMiddleware(Middleware):
 
         return result
 
+
 # Add the middleware to the server
 mcp.add_middleware(ClientConfigMiddleware())
 
@@ -298,6 +303,7 @@ def health_check() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
 
+
 # Add more test resources for MCP Inspector testing
 @mcp.resource("info://server")
 def server_info() -> dict:
@@ -306,14 +312,11 @@ def server_info() -> dict:
         "name": "MCP Server for Splunk",
         "version": "2.0.0",
         "transport": "http",
-        "capabilities": [
-            "tools",
-            "resources", 
-            "prompts"
-        ],
+        "capabilities": ["tools", "resources", "prompts"],
         "description": "Modular MCP Server providing Splunk integration",
-        "status": "running"
+        "status": "running",
     }
+
 
 @mcp.resource("test://greeting/{name}")
 def personalized_greeting(name: str) -> str:
@@ -342,6 +345,7 @@ async def main():
     # Import uvicorn to run the server
     try:
         import uvicorn
+
         config = uvicorn.Config(app, host=host, port=port, log_level="info")
         server = uvicorn.Server(config)
         await server.serve()
@@ -356,18 +360,16 @@ if __name__ == "__main__":
         "--transport",
         choices=["stdio", "http"],
         default="http",
-        help="Transport mode for MCP server"
+        help="Transport mode for MCP server",
     )
     parser.add_argument(
-        "--host",
-        default="0.0.0.0",
-        help="Host to bind the HTTP server (only for http transport)"
+        "--host", default="0.0.0.0", help="Host to bind the HTTP server (only for http transport)"
     )
     parser.add_argument(
         "--port",
         type=int,
         default=8000,
-        help="Port to bind the HTTP server (only for http transport)"
+        help="Port to bind the HTTP server (only for http transport)",
     )
 
     args = parser.parse_args()

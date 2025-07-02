@@ -17,7 +17,12 @@ logger = logging.getLogger(__name__)
 class SplunkContext:
     """Shared context for Splunk operations"""
 
-    def __init__(self, service: client.Service | None, is_connected: bool, client_config: dict[str, Any] = None):
+    def __init__(
+        self,
+        service: client.Service | None,
+        is_connected: bool,
+        client_config: dict[str, Any] = None,
+    ):
         self.service = service
         self.is_connected = is_connected
         self.client_config = client_config or {}
@@ -49,7 +54,7 @@ class BaseTool(ABC):
             Dict containing extracted Splunk configuration
         """
         client_config = {}
-        splunk_keys = [key for key in kwargs.keys() if key.startswith('splunk_')]
+        splunk_keys = [key for key in kwargs.keys() if key.startswith("splunk_")]
 
         for key in splunk_keys:
             client_config[key] = kwargs.pop(key)
@@ -73,8 +78,10 @@ class BaseTool(ABC):
         """
         # Try to get from HTTP request state (if HTTP transport)
         try:
-            if hasattr(ctx.request_context, 'request') and hasattr(ctx.request_context.request, 'state'):
-                if hasattr(ctx.request_context.request.state, 'client_config'):
+            if hasattr(ctx.request_context, "request") and hasattr(
+                ctx.request_context.request, "state"
+            ):
+                if hasattr(ctx.request_context.request.state, "client_config"):
                     client_config = ctx.request_context.request.state.client_config
                     if client_config:
                         self.logger.info("Using client config from HTTP headers")
@@ -85,7 +92,7 @@ class BaseTool(ABC):
         # Try to get from lifespan context (client environment)
         try:
             splunk_ctx = ctx.request_context.lifespan_context
-            if hasattr(splunk_ctx, 'client_config') and splunk_ctx.client_config:
+            if hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:
                 self.logger.info("Using client config from environment variables")
                 return splunk_ctx.client_config
         except:
@@ -93,7 +100,9 @@ class BaseTool(ABC):
 
         return None
 
-    async def get_splunk_service(self, ctx: Context, tool_level_config: dict[str, Any] | None = None) -> client.Service:
+    async def get_splunk_service(
+        self, ctx: Context, tool_level_config: dict[str, Any] | None = None
+    ) -> client.Service:
         """
         Get Splunk service connection using client config or fallback to server default.
 
@@ -116,6 +125,7 @@ class BaseTool(ABC):
         if tool_level_config:
             try:
                 from src.client.splunk_client import get_splunk_service
+
                 self.logger.info("Using tool-level Splunk configuration")
                 return get_splunk_service(tool_level_config)
             except Exception as e:
@@ -126,6 +136,7 @@ class BaseTool(ABC):
         if client_config:
             try:
                 from src.client.splunk_client import get_splunk_service
+
                 self.logger.info("Using MCP client configuration")
                 return get_splunk_service(client_config)
             except Exception as e:
@@ -149,24 +160,21 @@ class BaseTool(ABC):
         splunk_ctx = ctx.request_context.lifespan_context
 
         if not splunk_ctx.is_connected or not splunk_ctx.service:
-            return False, None, "Splunk service is not available. MCP server is running in degraded mode."
+            return (
+                False,
+                None,
+                "Splunk service is not available. MCP server is running in degraded mode.",
+            )
 
         return True, splunk_ctx.service, ""
 
     def format_error_response(self, error: str, **kwargs) -> dict[str, Any]:
         """Format a consistent error response"""
-        return {
-            "status": "error",
-            "error": error,
-            **kwargs
-        }
+        return {"status": "error", "error": error, **kwargs}
 
     def format_success_response(self, data: dict[str, Any]) -> dict[str, Any]:
         """Format a consistent success response"""
-        return {
-            "status": "success",
-            **data
-        }
+        return {"status": "success", **data}
 
     @abstractmethod
     async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
@@ -222,7 +230,7 @@ class ToolMetadata:
         category: str,
         tags: list[str] | None = None,
         requires_connection: bool = True,
-        version: str = "1.0.0"
+        version: str = "1.0.0",
     ):
         self.name = name
         self.description = description
@@ -242,7 +250,7 @@ class ResourceMetadata:
         description: str,
         mime_type: str = "text/plain",
         category: str = "general",
-        tags: list[str] | None = None
+        tags: list[str] | None = None,
     ):
         self.uri = uri
         self.name = name
@@ -261,7 +269,7 @@ class PromptMetadata:
         description: str,
         category: str,
         tags: list[str] | None = None,
-        arguments: list[dict[str, Any]] | None = None
+        arguments: list[dict[str, Any]] | None = None,
     ):
         self.name = name
         self.description = description

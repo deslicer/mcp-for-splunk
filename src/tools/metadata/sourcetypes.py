@@ -22,7 +22,7 @@ class ListSourcetypes(BaseTool):
         description="List all available sourcetypes from the configured Splunk instance",
         category="metadata",
         tags=["sourcetypes", "metadata", "discovery"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(self, ctx: Context) -> dict[str, Any]:
@@ -43,7 +43,9 @@ class ListSourcetypes(BaseTool):
 
         try:
             # Use metadata command to retrieve sourcetypes
-            job = service.jobs.oneshot("| metadata type=sourcetypes index=_* index=* | table sourcetype")
+            job = service.jobs.oneshot(
+                "| metadata type=sourcetypes index=_* index=* | table sourcetype"
+            )
 
             sourcetypes = []
             for result in ResultsReader(job):
@@ -52,10 +54,9 @@ class ListSourcetypes(BaseTool):
 
             self.logger.info(f"Retrieved {len(sourcetypes)} sourcetypes")
             ctx.info(f"Sourcetypes: {sourcetypes}")
-            return self.format_success_response({
-                "sourcetypes": sorted(sourcetypes),
-                "count": len(sourcetypes)
-            })
+            return self.format_success_response(
+                {"sourcetypes": sorted(sourcetypes), "count": len(sourcetypes)}
+            )
         except Exception as e:
             self.logger.error(f"Failed to retrieve sourcetypes: {str(e)}")
             ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")

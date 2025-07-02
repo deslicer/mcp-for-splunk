@@ -504,9 +504,7 @@ class CreateSavedSearch(BaseTool):
 
             # Create the saved search
             if app:
-                service.saved_searches.create(
-                    name, **config, app=app, sharing=sharing
-                )
+                service.saved_searches.create(name, **config, app=app, sharing=sharing)
             else:
                 service.saved_searches.create(name, **config, sharing=sharing)
 

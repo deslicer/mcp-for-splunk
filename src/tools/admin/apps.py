@@ -20,7 +20,7 @@ class ListApps(BaseTool):
         description="List all installed Splunk apps and their properties",
         category="admin",
         tags=["apps", "administration", "management"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(self, ctx: Context) -> dict[str, Any]:
@@ -43,20 +43,19 @@ class ListApps(BaseTool):
         try:
             apps = []
             for app in service.apps:
-                apps.append({
-                    "name": app.name,
-                    "label": app.content.get("label"),
-                    "version": app.content.get("version"),
-                    "description": app.content.get("description"),
-                    "author": app.content.get("author"),
-                    "visible": app.content.get("visible")
-                })
+                apps.append(
+                    {
+                        "name": app.name,
+                        "label": app.content.get("label"),
+                        "version": app.content.get("version"),
+                        "description": app.content.get("description"),
+                        "author": app.content.get("author"),
+                        "visible": app.content.get("visible"),
+                    }
+                )
 
             ctx.info(f"Found {len(apps)} apps")
-            return self.format_success_response({
-                "count": len(apps),
-                "apps": apps
-            })
+            return self.format_success_response({"count": len(apps), "apps": apps})
         except Exception as e:
             self.logger.error(f"Failed to list apps: {str(e)}")
             ctx.error(f"Failed to list apps: {str(e)}")

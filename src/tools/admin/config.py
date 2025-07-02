@@ -20,14 +20,11 @@ class GetConfigurations(BaseTool):
         description="Get Splunk configurations from specified conf files",
         category="admin",
         tags=["configuration", "settings", "administration"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(
-        self,
-        ctx: Context,
-        conf_file: str,
-        stanza: str | None = None
+        self, ctx: Context, conf_file: str, stanza: str | None = None
     ) -> dict[str, Any]:
         """
         Get Splunk configurations.
@@ -54,10 +51,7 @@ class GetConfigurations(BaseTool):
 
             if stanza:
                 stanza_obj = confs[stanza]
-                result = {
-                    "stanza": stanza,
-                    "settings": dict(stanza_obj.content)
-                }
+                result = {"stanza": stanza, "settings": dict(stanza_obj.content)}
                 ctx.info(f"Retrieved configuration for stanza: {stanza}")
                 return self.format_success_response(result)
 
@@ -66,10 +60,7 @@ class GetConfigurations(BaseTool):
                 all_stanzas[stanza_obj.name] = dict(stanza_obj.content)
 
             ctx.info(f"Retrieved {len(all_stanzas)} stanzas from {conf_file}")
-            return self.format_success_response({
-                "file": conf_file,
-                "stanzas": all_stanzas
-            })
+            return self.format_success_response({"file": conf_file, "stanzas": all_stanzas})
         except Exception as e:
             self.logger.error(f"Failed to get configurations: {str(e)}")
             ctx.error(f"Failed to get configurations: {str(e)}")

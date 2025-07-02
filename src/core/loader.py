@@ -7,7 +7,6 @@ with the FastMCP server instance.
 
 import inspect
 import logging
-import uuid
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -211,57 +210,149 @@ class ResourceLoader:
         try:
             from .base import ResourceMetadata
             from .registry import resource_registry
-            from .resources.splunk_config import (
-                SplunkAppsResource,
-                SplunkConfigResource,
-                SplunkHealthResource,
-                SplunkIndexesResource,
-                SplunkSavedSearchesResource,
-                SplunkSearchResultsResource,
-            )
 
-            # Manually register these resources with the discovery registry
-            # This ensures they're available for the normal discovery and loading process
-            splunk_resources = [
-                (SplunkConfigResource, "splunk://config/{config_file}"),  # Template
-                (SplunkHealthResource, "splunk://health/status"),
-                (SplunkAppsResource, "splunk://apps/installed"),
-                (SplunkIndexesResource, "splunk://indexes/list"),
-                (SplunkSavedSearchesResource, "splunk://savedsearches/list"),
-                # (SplunkSearchResultsResource, "splunk://search/results/recent"),
-                (SplunkSearchResultsResource, "splunk://search/results/completed"),
-            ]
+            # First, register documentation resources
+            self._register_documentation_resources()
 
-            for resource_class, uri in splunk_resources:
-                if hasattr(resource_class, "METADATA"):
-                    # Create specific metadata for this URI
-                    base_metadata = resource_class.METADATA
-                    metadata = ResourceMetadata(
-                        uri=uri,
-                        name=base_metadata.name,
-                        description=base_metadata.description,
-                        mime_type=base_metadata.mime_type,
-                        category=base_metadata.category,
-                        tags=base_metadata.tags or [],
-                    )
+            # Try to register core Splunk config resources (if they exist)
+            try:
+                from .resources.splunk_config import (
+                    SplunkAppsResource,
+                    SplunkConfigResource,
+                    SplunkHealthResource,
+                    SplunkIndexesResource,
+                    SplunkSavedSearchesResource,
+                    SplunkSearchResultsResource,
+                )
 
-                    # Register with the discovery registry
-                    try:
-                        resource_registry.register(resource_class, metadata)
-                        self.logger.debug(
-                            f"Registered {resource_class.__name__} ({uri}) with discovery registry"
-                        )
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Could not register {resource_class.__name__} with discovery: {e}"
+                # Manually register these resources with the discovery registry
+                # This ensures they're available for the normal discovery and loading process
+                splunk_resources = [
+                    (SplunkConfigResource, "splunk://config/{config_file}"),  # Template
+                    (SplunkHealthResource, "splunk://health/status"),
+                    (SplunkAppsResource, "splunk://apps/installed"),
+                    (SplunkIndexesResource, "splunk://indexes/list"),
+                    (SplunkSavedSearchesResource, "splunk://savedsearches/list"),
+                    (SplunkSearchResultsResource, "splunk://search/results/completed"),
+                ]
+
+                for resource_class, uri in splunk_resources:
+                    if hasattr(resource_class, "METADATA"):
+                        # Create specific metadata for this URI
+                        base_metadata = resource_class.METADATA
+                        metadata = ResourceMetadata(
+                            uri=uri,
+                            name=base_metadata.name,
+                            description=base_metadata.description,
+                            mime_type=base_metadata.mime_type,
+                            category=base_metadata.category,
+                            tags=base_metadata.tags or [],
                         )
 
-            self.logger.info(
-                f"Pre-registered {len(splunk_resources)} Splunk resources with discovery system"
-            )
+                        # Register with the discovery registry
+                        try:
+                            resource_registry.register(resource_class, metadata)
+                            self.logger.debug(
+                                f"Registered {resource_class.__name__} ({uri}) with discovery registry"
+                            )
+                        except Exception as e:
+                            self.logger.warning(
+                                f"Could not register {resource_class.__name__} with discovery: {e}"
+                            )
+
+                self.logger.info(
+                    f"Pre-registered {len(splunk_resources)} core Splunk resources with discovery system"
+                )
+            except ImportError:
+                self.logger.debug("Core Splunk config resources not available")
 
         except ImportError as e:
             self.logger.warning(f"Could not import Splunk resources: {e}")
+
+    def _register_documentation_resources(self) -> None:
+        """Register Splunk documentation resources with the discovery registry"""
+        try:
+            # Import and register documentation resources
+            from ..resources import register_all_resources
+
+            register_all_resources()
+            self.logger.info("Registered Splunk documentation resources")
+
+            # Register dynamic documentation handlers
+            self._register_dynamic_documentation_handlers()
+
+        except ImportError as e:
+            self.logger.debug(f"Documentation resources not available: {e}")
+        except Exception as e:
+            self.logger.warning(f"Failed to register documentation resources: {e}")
+
+    def _register_dynamic_documentation_handlers(self) -> None:
+        """Register dynamic documentation resource handlers with FastMCP"""
+        try:
+            # Register SPL command documentation handler
+            @self.mcp_server.resource(
+                "splunk-docs://{version}/spl-reference/{command}", name="get_spl_command_docs"
+            )
+            async def get_spl_command_docs(version: str, command: str) -> str:
+                """Get SPL command documentation for specific version and command"""
+                try:
+                    from ..resources.splunk_docs import create_spl_command_resource
+
+                    ctx = get_context()
+
+                    resource = create_spl_command_resource(version, command)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting SPL command docs for {command}: {e}")
+                    return f"""# Error: SPL Command Documentation
+
+Failed to retrieve documentation for `{command}` (version {version}).
+
+**Error**: {str(e)}
+
+Please check:
+- Command name spelling
+- Version availability
+- Network connectivity
+
+Try using the discovery resource: `splunk-docs://discovery`
+"""
+
+            # Register admin guide documentation handler
+            @self.mcp_server.resource(
+                "splunk-docs://{version}/admin/{topic}", name="get_admin_guide_docs"
+            )
+            async def get_admin_guide_docs(version: str, topic: str) -> str:
+                """Get Splunk administration documentation for specific version and topic"""
+                try:
+                    from ..resources.splunk_docs import create_admin_guide_resource
+
+                    ctx = get_context()
+
+                    resource = create_admin_guide_resource(version, topic)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting admin docs for {topic}: {e}")
+                    return f"""# Error: Administration Documentation
+
+Failed to retrieve administration documentation for `{topic}` (version {version}).
+
+**Error**: {str(e)}
+
+Please check:
+- Topic name
+- Version availability
+- Network connectivity
+
+Try using the discovery resource: `splunk-docs://discovery`
+"""
+
+            self.logger.info("Registered dynamic documentation handlers")
+
+        except Exception as e:
+            self.logger.error(f"Failed to register dynamic documentation handlers: {e}")
 
     def _load_single_resource(self, metadata) -> int:
         """Load a single resource from registry into FastMCP"""
@@ -339,7 +430,9 @@ class ResourceLoader:
     def _register_with_fastmcp(self, resource_class, uri: str, metadata):
         """Register resource with FastMCP using appropriate pattern matching"""
         # Extract the pattern from URI for FastMCP registration
-        if "config" in uri:
+        if "splunk-docs://" in uri:
+            self._register_documentation_resource(resource_class, uri, metadata)
+        elif "config" in uri:
             self._register_config_resource(resource_class, uri, metadata)
         elif "health" in uri:
             self._register_health_resource(resource_class, uri, metadata)
@@ -515,6 +608,28 @@ class ResourceLoader:
             except Exception as e:
                 self.logger.error(f"Error reading saved searches resource {uri}: {e}")
                 raise RuntimeError(f"Failed to read saved searches: {str(e)}")
+
+    def _register_documentation_resource(self, resource_class, uri: str, metadata):
+        """Register documentation resource with FastMCP"""
+        # Use metadata for proper naming and description
+        resource_name = metadata.name
+        resource_description = metadata.description
+
+        # Create a closure to capture the URI - static resources have no function parameters
+        @self.mcp_server.resource(uri, name=resource_name, description=resource_description)
+        async def get_documentation_resource() -> str:
+            """Get Splunk documentation resource"""
+            try:
+                from .registry import resource_registry
+
+                ctx = get_context()
+                resource = resource_registry.get_resource(uri)
+                if not resource:
+                    raise ValueError(f"Resource not found: {uri}")
+                return await resource.get_content(ctx)
+            except Exception as e:
+                self.logger.error(f"Error reading documentation resource {uri}: {e}")
+                raise RuntimeError(f"Failed to read documentation: {str(e)}")
 
 
 class PromptLoader:

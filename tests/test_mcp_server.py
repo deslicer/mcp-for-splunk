@@ -24,7 +24,7 @@ class TestSplunkToolsUnit:
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service.info = {
             "version": "9.0.0",
-            "host": "so1"
+            "host": "so1",
         }
 
         health_data = get_splunk_health.fn(mock_context)
@@ -84,10 +84,10 @@ class TestSplunkToolsUnit:
             "query": "index=_internal | head 5",
             "earliest_time": "-15m",
             "latest_time": "now",
-            "max_results": 5
+            "max_results": 5,
         }
 
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_reader.return_value = iter(mock_search_results)
 
             search_data = run_oneshot_search.fn(mock_context, **search_params)
@@ -107,7 +107,7 @@ class TestSplunkToolsUnit:
             "query": "index=_internal | head 5",
             "earliest_time": "-15m",
             "latest_time": "now",
-            "max_results": 5
+            "max_results": 5,
         }
 
         search_data = run_oneshot_search.fn(mock_disconnected_context, **search_params)
@@ -125,10 +125,10 @@ class TestSplunkToolsUnit:
         search_params = {
             "query": "index=_internal | stats count",
             "earliest_time": "-5m",
-            "latest_time": "now"
+            "latest_time": "now",
         }
 
-        with patch('src.server.ResultsReader') as mock_reader:
+        with patch("src.server.ResultsReader") as mock_reader:
             mock_reader.return_value = iter(mock_search_results)
 
             search_data = run_splunk_search.fn(mock_context, **search_params)
@@ -195,7 +195,7 @@ class TestMCPClientIntegration:
             result = await client.call_tool("get_splunk_health")
 
             # Extract the result (FastMCP returns TextContent objects)
-            if hasattr(result[0], 'text'):
+            if hasattr(result[0], "text"):
                 # Parse JSON from text content
                 health_data = json.loads(result[0].text)
             else:
@@ -218,7 +218,7 @@ class TestMCPClientIntegration:
                 "run_oneshot_search",
                 "run_splunk_search",
                 "list_apps",
-                "list_users"
+                "list_users",
             ]
 
             for expected_tool in expected_tools:
@@ -239,7 +239,7 @@ class TestMCPClientIntegration:
             result = await client.read_resource("health://status")
 
             assert len(result) > 0
-            assert hasattr(result[0], 'text')
+            assert hasattr(result[0], "text")
             assert result[0].text == "OK"
 
     async def test_fastmcp_client_ping(self, fastmcp_client):
@@ -256,6 +256,7 @@ class TestHelperFunctions:
 
     def test_extract_tool_result_with_json(self, extract_tool_result):
         """Test extracting JSON from tool result"""
+
         class MockContent:
             text = '{"status": "success", "data": "test"}'
 
@@ -267,6 +268,7 @@ class TestHelperFunctions:
 
     def test_extract_tool_result_with_plain_text(self, extract_tool_result):
         """Test extracting plain text from tool result"""
+
         class MockContent:
             text = "plain text response"
 
@@ -298,11 +300,13 @@ class TestErrorHandling:
         search_params = {
             "query": "index=nonexistent_index invalid_command",
             "earliest_time": "-1h",
-            "max_results": 5
+            "max_results": 5,
         }
 
         # Mock the jobs.oneshot to raise an exception
-        mock_context.request_context.lifespan_context.service.jobs.oneshot.side_effect = Exception("Search failed")
+        mock_context.request_context.lifespan_context.service.jobs.oneshot.side_effect = Exception(
+            "Search failed"
+        )
 
         search_data = run_oneshot_search.fn(mock_context, **search_params)
 
@@ -324,7 +328,7 @@ class TestPerformance:
         mock_context.request_context.lifespan_context.is_connected = True
         mock_context.request_context.lifespan_context.service.info = {
             "version": "9.0.0",
-            "host": "so1"
+            "host": "so1",
         }
 
         start_time = time.time()

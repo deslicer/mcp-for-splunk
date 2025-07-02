@@ -25,14 +25,22 @@ def find_test_files(contrib_dir: Path, category: str | None = None) -> list[Path
         category_dir = test_base / category
         if category_dir.exists():
             for test_file in category_dir.iterdir():
-                if test_file.is_file() and test_file.name.startswith('test_') and test_file.suffix == '.py':
+                if (
+                    test_file.is_file()
+                    and test_file.name.startswith("test_")
+                    and test_file.suffix == ".py"
+                ):
                     test_files.append(test_file)
     else:
         # Find all contrib test files
         for category_dir in test_base.iterdir():
-            if category_dir.is_dir() and not category_dir.name.startswith('.'):
+            if category_dir.is_dir() and not category_dir.name.startswith("."):
                 for test_file in category_dir.iterdir():
-                    if test_file.is_file() and test_file.name.startswith('test_') and test_file.suffix == '.py':
+                    if (
+                        test_file.is_file()
+                        and test_file.name.startswith("test_")
+                        and test_file.suffix == ".py"
+                    ):
                         test_files.append(test_file)
 
     return sorted(test_files)
@@ -110,8 +118,7 @@ def check_test_environment():
 
     # Check if pytest is available
     try:
-        subprocess.run(["python", "-m", "pytest", "--version"],
-                      capture_output=True, check=True)
+        subprocess.run(["python", "-m", "pytest", "--version"], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
         issues.append("pytest is not installed or not available")
 
@@ -151,7 +158,9 @@ def main():
 
         test_files = find_test_files(contrib_dir)
         if not test_files:
-            print("No contrib test files found. Use 'python generate_tool.py' to create tools with tests.")
+            print(
+                "No contrib test files found. Use 'python generate_tool.py' to create tools with tests."
+            )
             sys.exit(0)
 
         exit_code = run_pytest(test_files)
@@ -160,7 +169,7 @@ def main():
     elif len(sys.argv) == 2:
         arg = sys.argv[1]
 
-        if arg == '--help':
+        if arg == "--help":
             print("Usage:")
             print("  python test_contrib.py                    - Run all contrib tests")
             print("  python test_contrib.py --list             - List available test files")
@@ -170,23 +179,23 @@ def main():
             print("  python test_contrib.py <category>         - Run tests for specific category")
             print("  python test_contrib.py --help             - Show this help")
 
-        elif arg == '--list':
+        elif arg == "--list":
             list_test_files(contrib_dir)
 
-        elif arg == '--check':
+        elif arg == "--check":
             if check_test_environment():
                 print("Environment is ready for testing.")
             else:
                 sys.exit(1)
 
-        elif arg == '--verbose':
+        elif arg == "--verbose":
             if not check_test_environment():
                 sys.exit(1)
             test_files = find_test_files(contrib_dir)
             exit_code = run_pytest(test_files, verbose=True)
             sys.exit(exit_code)
 
-        elif arg == '--coverage':
+        elif arg == "--coverage":
             if not check_test_environment():
                 sys.exit(1)
             test_files = find_test_files(contrib_dir)

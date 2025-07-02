@@ -150,10 +150,7 @@ class ResourceRegistry:
             resource_class = self._resources[uri]
             metadata = self._metadata[uri]
             self._instances[uri] = resource_class(
-                metadata.uri,
-                metadata.name,
-                metadata.description,
-                metadata.mime_type
+                metadata.uri, metadata.name, metadata.description, metadata.mime_type
             )
 
         return self._instances[uri]

@@ -18,7 +18,7 @@ class TestGetLatestFeatureHealthTool:
         """Create a tool instance for testing."""
         return GetLatestFeatureHealthTool(
             name="get_latest_feature_health",
-            description="This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
+            description="This tool identifies Splunk features with health issues (warning/critical status) requiring attention",
         )
 
     @pytest.fixture
@@ -39,11 +39,13 @@ class TestGetLatestFeatureHealthTool:
         mock_results = [
             {"feature": "indexing", "status": "healthy"},
             {"feature": "searching", "status": "warning"},
-            {"feature": "forwarder", "status": "critical"}
+            {"feature": "forwarder", "status": "critical"},
         ]
 
         # Mock ResultsReader to return our test data
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter(mock_results)
             service.jobs.oneshot.return_value = mock_job
             yield service
@@ -54,10 +56,12 @@ class TestGetLatestFeatureHealthTool:
         # Mock check_splunk_available to return success
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_results = [
                 {"feature": "indexing", "status": "healthy"},
-                {"feature": "searching", "status": "warning"}
+                {"feature": "searching", "status": "warning"},
             ]
             mock_reader.return_value = iter(mock_results)
 
@@ -71,7 +75,7 @@ class TestGetLatestFeatureHealthTool:
         assert result["results_count"] == 2
         assert len(result["results"]) == 2
         assert "index=_internal component=PeriodicHealthReporter" in result["query_executed"]
-        assert "\"green\"" in result["query_executed"]  # Verify double quotes are used
+        assert '"green"' in result["query_executed"]  # Verify double quotes are used
 
         # Verify static time parameters are used
         call_kwargs = mock_splunk_service.jobs.oneshot.call_args[1]
@@ -83,14 +87,13 @@ class TestGetLatestFeatureHealthTool:
         """Test tool execution with custom max_results parameter."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_results = [{"feature": "test", "status": "healthy"}]
             mock_reader.return_value = iter(mock_results)
 
-            result = await tool.execute(
-                mock_context,
-                max_results=50
-            )
+            result = await tool.execute(mock_context, max_results=50)
 
         assert result["status"] == "success"
         assert result["results_count"] == 1
@@ -121,11 +124,11 @@ class TestGetLatestFeatureHealthTool:
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
         # Create more results than the limit
-        mock_results = [
-            {"feature": f"test_{i}", "status": "healthy"} for i in range(10)
-        ]
+        mock_results = [{"feature": f"test_{i}", "status": "healthy"} for i in range(10)]
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter(mock_results)
 
             result = await tool.execute(mock_context, max_results=5)
@@ -152,7 +155,9 @@ class TestGetLatestFeatureHealthTool:
         """Test tool execution with empty search results."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter([])  # Empty results
 
             result = await tool.execute(mock_context)
@@ -168,7 +173,9 @@ class TestGetLatestFeatureHealthTool:
         """Test that the tool properly logs to context."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter([])
 
             await tool.execute(mock_context, max_results=25)
@@ -185,7 +192,10 @@ class TestGetLatestFeatureHealthTool:
         metadata = GetLatestFeatureHealthTool.METADATA
 
         assert metadata.name == "get_latest_feature_health"
-        assert metadata.description == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
+        assert (
+            metadata.description
+            == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
+        )
         assert metadata.category == "health"
         assert metadata.requires_connection is True
         assert "health" in metadata.tags
@@ -195,15 +205,20 @@ class TestGetLatestFeatureHealthTool:
     def test_tool_initialization(self, tool):
         """Test tool initialization."""
         assert tool.name == "get_latest_feature_health"
-        assert tool.description == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
-        assert hasattr(tool, 'logger')
+        assert (
+            tool.description
+            == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
+        )
+        assert hasattr(tool, "logger")
 
     @pytest.mark.asyncio
     async def test_health_status_mapping(self, tool, mock_context, mock_splunk_service):
         """Test that health status mapping uses correct terminology."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter([])
 
             result = await tool.execute(mock_context)
@@ -212,16 +227,18 @@ class TestGetLatestFeatureHealthTool:
 
         # Verify the query contains the updated health status mapping
         query = result["query_executed"]
-        assert "\"healthy\"" in query  # green -> healthy
-        assert "\"warning\"" in query  # yellow -> warning
-        assert "\"critical\"" in query  # red -> critical
+        assert '"healthy"' in query  # green -> healthy
+        assert '"warning"' in query  # yellow -> warning
+        assert '"critical"' in query  # red -> critical
 
     @pytest.mark.asyncio
     async def test_static_time_range(self, tool, mock_context, mock_splunk_service):
         """Test that the tool uses static time range values."""
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
 
-        with patch('contrib.tools.health.get_degraded_splunk_features.ResultsReader') as mock_reader:
+        with patch(
+            "contrib.tools.health.get_degraded_splunk_features.ResultsReader"
+        ) as mock_reader:
             mock_reader.return_value = iter([])
 
             await tool.execute(mock_context, max_results=100)

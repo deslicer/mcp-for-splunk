@@ -26,8 +26,8 @@ def discover_tools(search_paths: list[str] | None = None) -> int:
     """
     if search_paths is None:
         search_paths = [
-            "src.tools",      # Core tools
-            "contrib.tools"   # Community tools
+            "src.tools",  # Core tools
+            "contrib.tools",  # Community tools
         ]
 
     discovered_count = 0
@@ -35,9 +35,7 @@ def discover_tools(search_paths: list[str] | None = None) -> int:
     for search_path in search_paths:
         try:
             discovered_count += _discover_modules_in_package(
-                search_path,
-                BaseTool,
-                _register_tool_class
+                search_path, BaseTool, _register_tool_class
             )
         except ImportError as e:
             logger.debug(f"Could not import {search_path}: {e}")
@@ -61,8 +59,8 @@ def discover_resources(search_paths: list[str] | None = None) -> int:
     if search_paths is None:
         search_paths = [
             "src.core.resources",  # Core resources (actual location)
-            "src.resources",       # Legacy core resources (if exists)
-            "contrib.resources"    # Community resources
+            "src.resources",  # New resources directory (Splunk docs, etc.)
+            "contrib.resources",  # Community resources
         ]
 
     discovered_count = 0
@@ -70,9 +68,7 @@ def discover_resources(search_paths: list[str] | None = None) -> int:
     for search_path in search_paths:
         try:
             discovered_count += _discover_modules_in_package(
-                search_path,
-                BaseResource,
-                _register_resource_class
+                search_path, BaseResource, _register_resource_class
             )
         except ImportError as e:
             logger.debug(f"Could not import {search_path}: {e}")
@@ -95,8 +91,8 @@ def discover_prompts(search_paths: list[str] | None = None) -> int:
     """
     if search_paths is None:
         search_paths = [
-            "src.prompts",      # Core prompts
-            "contrib.prompts"   # Community prompts
+            "src.prompts",  # Core prompts
+            "contrib.prompts",  # Community prompts
         ]
 
     discovered_count = 0
@@ -104,9 +100,7 @@ def discover_prompts(search_paths: list[str] | None = None) -> int:
     for search_path in search_paths:
         try:
             discovered_count += _discover_modules_in_package(
-                search_path,
-                BasePrompt,
-                _register_prompt_class
+                search_path, BasePrompt, _register_prompt_class
             )
         except ImportError as e:
             logger.debug(f"Could not import {search_path}: {e}")
@@ -117,11 +111,7 @@ def discover_prompts(search_paths: list[str] | None = None) -> int:
     return discovered_count
 
 
-def _discover_modules_in_package(
-    package_name: str,
-    base_class: type,
-    register_func
-) -> int:
+def _discover_modules_in_package(package_name: str, base_class: type, register_func) -> int:
     """
     Discover modules in a package and register classes that inherit from base_class.
 
@@ -142,10 +132,9 @@ def _discover_modules_in_package(
     discovered_count = 0
 
     # Walk through all modules in the package
-    if hasattr(package, '__path__'):
+    if hasattr(package, "__path__"):
         for _importer, modname, _ispkg in pkgutil.walk_packages(
-            package.__path__,
-            package.__name__ + "."
+            package.__path__, package.__name__ + "."
         ):
             try:
                 module = importlib.import_module(modname)
@@ -177,11 +166,12 @@ def _process_module(module, base_class: type, register_func) -> int:
         obj = getattr(module, name)
 
         # Check if it's a class that inherits from base_class but isn't base_class itself
-        if (isinstance(obj, type) and
-            issubclass(obj, base_class) and
-            obj is not base_class and
-            not name.startswith('_')):
-
+        if (
+            isinstance(obj, type)
+            and issubclass(obj, base_class)
+            and obj is not base_class
+            and not name.startswith("_")
+        ):
             try:
                 register_func(obj, module)
                 discovered_count += 1
@@ -221,11 +211,11 @@ def _get_tool_metadata(tool_class: type[BaseTool], module):
     from .base import ToolMetadata
 
     # Look for METADATA attribute in class
-    if hasattr(tool_class, 'METADATA'):
+    if hasattr(tool_class, "METADATA"):
         return tool_class.METADATA
 
     # Look for metadata in module
-    if hasattr(module, 'TOOL_METADATA'):
+    if hasattr(module, "TOOL_METADATA"):
         return module.TOOL_METADATA
 
     # Create default metadata
@@ -233,7 +223,7 @@ def _get_tool_metadata(tool_class: type[BaseTool], module):
     return ToolMetadata(
         name=_camel_to_snake(class_name),
         description=tool_class.__doc__ or f"Tool: {class_name}",
-        category="general"
+        category="general",
     )
 
 
@@ -242,11 +232,11 @@ def _get_resource_metadata(resource_class: type[BaseResource], module):
     from .base import ResourceMetadata
 
     # Look for METADATA attribute in class
-    if hasattr(resource_class, 'METADATA'):
+    if hasattr(resource_class, "METADATA"):
         return resource_class.METADATA
 
     # Look for metadata in module
-    if hasattr(module, 'RESOURCE_METADATA'):
+    if hasattr(module, "RESOURCE_METADATA"):
         return module.RESOURCE_METADATA
 
     # Create default metadata
@@ -256,7 +246,7 @@ def _get_resource_metadata(resource_class: type[BaseResource], module):
         uri=uri,
         name=class_name,
         description=resource_class.__doc__ or f"Resource: {class_name}",
-        category="general"
+        category="general",
     )
 
 
@@ -265,11 +255,11 @@ def _get_prompt_metadata(prompt_class: type[BasePrompt], module):
     from .base import PromptMetadata
 
     # Look for METADATA attribute in class
-    if hasattr(prompt_class, 'METADATA'):
+    if hasattr(prompt_class, "METADATA"):
         return prompt_class.METADATA
 
     # Look for metadata in module
-    if hasattr(module, 'PROMPT_METADATA'):
+    if hasattr(module, "PROMPT_METADATA"):
         return module.PROMPT_METADATA
 
     # Create default metadata
@@ -277,12 +267,13 @@ def _get_prompt_metadata(prompt_class: type[BasePrompt], module):
     return PromptMetadata(
         name=_camel_to_snake(class_name),
         description=prompt_class.__doc__ or f"Prompt: {class_name}",
-        category="general"
+        category="general",
     )
 
 
 def _camel_to_snake(name: str) -> str:
     """Convert CamelCase to snake_case"""
     import re
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()

@@ -20,15 +20,11 @@ class GetKvstoreData(BaseTool):
         description="Retrieve data from a KV Store collection with optional filtering",
         category="kvstore",
         tags=["kvstore", "data", "query", "storage"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(
-        self,
-        ctx: Context,
-        collection: str,
-        app: str | None = None,
-        query: dict | None = None
+        self, ctx: Context, collection: str, app: str | None = None, query: dict | None = None
     ) -> dict[str, Any]:
         """
         Retrieve data from a KV Store collection.
@@ -70,10 +66,7 @@ class GetKvstoreData(BaseTool):
             doc_list = list(documents)
 
             ctx.info(f"Retrieved {len(doc_list)} documents from collection {collection}")
-            return self.format_success_response({
-                "count": len(doc_list),
-                "documents": doc_list
-            })
+            return self.format_success_response({"count": len(doc_list), "documents": doc_list})
 
         except Exception as e:
             self.logger.error(f"Failed to retrieve KV Store data: {str(e)}")

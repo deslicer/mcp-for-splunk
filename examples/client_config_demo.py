@@ -69,7 +69,7 @@ async def demo_client_configuration():
             "splunk_username": "dev-user",
             "splunk_password": "dev-password",
             "splunk_scheme": "http",
-            "splunk_verify_ssl": False
+            "splunk_verify_ssl": False,
         },
         "Production": {
             "splunk_host": "prod-splunk.company.com",
@@ -77,7 +77,7 @@ async def demo_client_configuration():
             "splunk_username": "monitoring-service",
             "splunk_password": "secure-prod-password",
             "splunk_scheme": "https",
-            "splunk_verify_ssl": True
+            "splunk_verify_ssl": True,
         },
         "Cloud": {
             "splunk_host": "customer.splunkcloud.com",
@@ -85,8 +85,8 @@ async def demo_client_configuration():
             "splunk_username": "cloud-user",
             "splunk_password": "cloud-token",
             "splunk_scheme": "https",
-            "splunk_verify_ssl": True
-        }
+            "splunk_verify_ssl": True,
+        },
     }
 
     for env_name, config in environments.items():
@@ -111,7 +111,7 @@ async def demo_client_configuration():
         "splunk_username": "user",
         "splunk_password": "pass",
         "other_param": "should_remain",
-        "splunk_port": 8089
+        "splunk_port": 8089,
     }
 
     print(f"Original parameters: {test_kwargs}")
@@ -163,7 +163,7 @@ async def demo_client_configuration():
         "🌐 Support multi-tenant deployments",
         "⚡ No server restart needed for new connections",
         "🔄 Automatic fallback to server configuration",
-        "🛡️ Keep sensitive credentials with the client"
+        "🛡️ Keep sensitive credentials with the client",
     ]
 
     for benefit in benefits:

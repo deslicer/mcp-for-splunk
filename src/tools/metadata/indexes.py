@@ -20,7 +20,7 @@ class ListIndexes(BaseTool):
         description="Retrieves a list of all accessible indexes from the configured Splunk instance",
         category="metadata",
         tags=["indexes", "metadata", "discovery"],
-        requires_connection=True
+        requires_connection=True,
     )
 
     async def execute(self, ctx: Context) -> dict[str, Any]:
@@ -35,11 +35,7 @@ class ListIndexes(BaseTool):
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
-            return self.format_error_response(
-                error_msg,
-                indexes=[],
-                count=0
-            )
+            return self.format_error_response(error_msg, indexes=[], count=0)
 
         try:
             # Filter out internal indexes for better performance and relevance
@@ -47,16 +43,14 @@ class ListIndexes(BaseTool):
             index_names = [index.name for index in customer_indexes]
 
             ctx.info(f"Customer indexes: {index_names}")
-            return self.format_success_response({
-                "indexes": sorted(index_names),
-                "count": len(index_names),
-                "total_count_including_internal": len(list(service.indexes))
-            })
+            return self.format_success_response(
+                {
+                    "indexes": sorted(index_names),
+                    "count": len(index_names),
+                    "total_count_including_internal": len(list(service.indexes)),
+                }
+            )
         except Exception as e:
             self.logger.error(f"Failed to list indexes: {str(e)}")
             ctx.error(f"Failed to list indexes: {str(e)}")
-            return self.format_error_response(
-                str(e),
-                indexes=[],
-                count=0
-            )
+            return self.format_error_response(str(e), indexes=[], count=0)

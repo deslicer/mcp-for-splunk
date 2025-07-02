@@ -21,20 +21,16 @@ __all__ = [
     "UpdateSavedSearch",
     "DeleteSavedSearch",
     "GetSavedSearchDetails",
-
     # Metadata tools
     "ListIndexes",
     "ListSourcetypes",
     "ListSources",
-
     # Health tools
     "GetSplunkHealth",
-
     # Admin tools
     "ListApps",
     "ListUsers",
     "GetConfigurations",
-
     # KV Store tools
     "ListKvstoreCollections",
     "GetKvstoreData",

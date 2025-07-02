@@ -16,6 +16,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+
 def test_stdio_mode():
     """Test the MCP server in stdio mode."""
     print("🔧 Testing STDIO Mode")
@@ -29,11 +30,7 @@ def test_stdio_mode():
         print("Starting server in stdio mode (will timeout after 5 seconds)...")
 
         process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            cwd=project_root
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=project_root
         )
 
         # Wait a bit for startup
@@ -55,6 +52,7 @@ def test_stdio_mode():
         print(f"❌ STDIO mode error: {e}")
         return False
 
+
 async def test_http_mode():
     """Test the MCP server in HTTP mode."""
     print("\n🌐 Testing HTTP Mode")
@@ -75,7 +73,7 @@ async def test_http_mode():
             stderr=subprocess.PIPE,
             text=True,
             cwd=project_root,
-            env={"MCP_SERVER_PORT": "8005"}
+            env={"MCP_SERVER_PORT": "8005"},
         )
 
         # Wait for server to start
@@ -83,7 +81,7 @@ async def test_http_mode():
 
         # Test the server
         try:
-            async with Client(transport='http://localhost:8005/mcp/') as client:
+            async with Client(transport="http://localhost:8005/mcp/") as client:
                 tools = await client.list_tools()
                 if len(tools) == 13:
                     print(f"✅ HTTP mode: SUCCESS - Found {len(tools)} tools!")
@@ -112,6 +110,7 @@ async def test_http_mode():
     except Exception as e:
         print(f"❌ HTTP mode error: {e}")
         return False
+
 
 def print_inspector_instructions():
     """Print instructions for using the MCP Inspector."""
@@ -150,6 +149,7 @@ The MCP Inspector is running and ready to use!
    - Splunk: Running on http://localhost:9000
 """)
 
+
 def print_usage_examples():
     """Print usage examples for different transport modes."""
     print("\n📋 Usage Examples")
@@ -182,6 +182,7 @@ def print_usage_examples():
    - SPLUNK_PASSWORD=Chang3d!  # Splunk password
 """)
 
+
 async def main():
     """Run all transport tests."""
     print("🚀 MCP Server for Splunk - Transport Mode Testing")
@@ -207,6 +208,7 @@ async def main():
     print_usage_examples()
 
     return stdio_success and http_success
+
 
 if __name__ == "__main__":
     success = asyncio.run(main())

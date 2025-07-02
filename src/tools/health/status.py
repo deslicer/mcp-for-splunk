@@ -22,7 +22,7 @@ class GetSplunkHealth(BaseTool):
         description="Get Splunk connection health status and version information",
         category="health",
         tags=["health", "status", "monitoring"],
-        requires_connection=False  # This tool should work even when connection is down
+        requires_connection=False,  # This tool should work even when connection is down
     )
 
     async def execute(
@@ -33,7 +33,7 @@ class GetSplunkHealth(BaseTool):
         splunk_username: str | None = None,
         splunk_password: str | None = None,
         splunk_scheme: str | None = None,
-        splunk_verify_ssl: bool | None = None
+        splunk_verify_ssl: bool | None = None,
     ) -> dict[str, Any]:
         """
         Check Splunk health status.
@@ -56,8 +56,8 @@ class GetSplunkHealth(BaseTool):
 
         # Extract client configuration from parameters
         kwargs = locals().copy()
-        kwargs.pop('self')
-        kwargs.pop('ctx')
+        kwargs.pop("self")
+        kwargs.pop("ctx")
         client_config = self.extract_client_config(kwargs)
 
         try:
@@ -69,7 +69,7 @@ class GetSplunkHealth(BaseTool):
                 "status": "connected",
                 "version": service.info["version"],
                 "server_name": service.info.get("host", "unknown"),
-                "connection_source": "client_config" if client_config else "server_config"
+                "connection_source": "client_config" if client_config else "server_config",
             }
 
             ctx.info(f"Health check successful: {info}")
@@ -90,7 +90,7 @@ class GetSplunkHealth(BaseTool):
                             "version": service.info["version"],
                             "server_name": service.info.get("host", "unknown"),
                             "connection_source": "server_config",
-                            "note": "Client config failed, using server default"
+                            "note": "Client config failed, using server default",
                         }
                         ctx.info(f"Health check successful with server config: {info}")
                         self.logger.info(f"Health check successful with server config: {info}")
@@ -104,5 +104,5 @@ class GetSplunkHealth(BaseTool):
             return {
                 "status": "error",
                 "error": str(e),
-                "connection_source": "client_config" if client_config else "server_config"
+                "connection_source": "client_config" if client_config else "server_config",
             }
