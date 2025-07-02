@@ -31,7 +31,7 @@ class HelloWorldTool(BaseTool):
         version="1.0.0",
     )
 
-    async def execute(self, ctx: Context, name: str | None = "World") -> dict[str, Any]:
+    async def execute(self, ctx: Context, name: str = "World") -> dict[str, Any]:
         """
         Say hello to someone.
 
@@ -50,6 +50,10 @@ class HelloWorldTool(BaseTool):
         ctx.info(f"Saying hello to {name}")
 
         try:
+            # Handle None case if somehow passed (though schema shouldn't allow it)
+            if name is None:
+                name = "World"
+                
             message = f"Hello, {name}!"
 
             return self.format_success_response(
