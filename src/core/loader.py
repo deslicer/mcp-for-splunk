@@ -223,6 +223,7 @@ class ResourceLoader:
                     SplunkIndexesResource,
                     SplunkSavedSearchesResource,
                     SplunkSearchResultsResource,
+
                 )
 
                 # Manually register these resources with the discovery registry
@@ -289,7 +290,42 @@ class ResourceLoader:
     def _register_dynamic_documentation_handlers(self) -> None:
         """Register dynamic documentation resource handlers with FastMCP"""
         try:
+            self.logger.info("Starting registration of dynamic documentation handlers...")
+            
+            # Register troubleshooting documentation handler
+            self.logger.info("Registering troubleshooting documentation handler...")
+            @self.mcp_server.resource(
+                "splunk-docs://{version}/troubleshooting/{topic}", name="get_troubleshooting_docs"
+            )
+            async def get_troubleshooting_docs(version: str, topic: str) -> str:
+                """Get Splunk troubleshooting documentation for specific version and topic"""
+                try:
+                    from ..resources.splunk_docs import create_troubleshooting_resource
+
+                    ctx = get_context()
+
+                    resource = create_troubleshooting_resource(version, topic)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting troubleshooting docs for {topic}: {e}")
+                    return f"""# Error: Troubleshooting Documentation
+
+Failed to retrieve troubleshooting documentation for `{topic}` (version {version}).
+
+**Error**: {str(e)}
+
+Please check:
+- Topic name spelling
+- Version availability  
+- Network connectivity
+
+Try using the discovery resource: `splunk-docs://discovery`
+"""
+            self.logger.info("✅ Troubleshooting handler registered successfully")
+
             # Register SPL command documentation handler
+            self.logger.info("Registering SPL command documentation handler...")
             @self.mcp_server.resource(
                 "splunk-docs://{version}/spl-reference/{command}", name="get_spl_command_docs"
             )
@@ -318,8 +354,10 @@ Please check:
 
 Try using the discovery resource: `splunk-docs://discovery`
 """
+            self.logger.info("✅ SPL command handler registered successfully")
 
             # Register admin guide documentation handler
+            self.logger.info("Registering admin guide documentation handler...")
             @self.mcp_server.resource(
                 "splunk-docs://{version}/admin/{topic}", name="get_admin_guide_docs"
             )
@@ -348,11 +386,14 @@ Please check:
 
 Try using the discovery resource: `splunk-docs://discovery`
 """
+            self.logger.info("✅ Admin guide handler registered successfully")
 
-            self.logger.info("Registered dynamic documentation handlers")
+            self.logger.info("Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)")
 
         except Exception as e:
             self.logger.error(f"Failed to register dynamic documentation handlers: {e}")
+            # Re-raise to see the full traceback
+            raise
 
     def _load_single_resource(self, metadata) -> int:
         """Load a single resource from registry into FastMCP"""
