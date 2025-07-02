@@ -72,14 +72,14 @@ _doc_cache = DocumentationCache()
 class SplunkDocsResource(BaseResource):
     """Base class for Splunk documentation resources."""
 
-    SPLUNK_DOCS_BASE = "https://docs.splunk.com"
+    SPLUNK_DOCS_BASE = "https://help.splunk.com"
     SPLUNK_HELP_BASE = "https://help.splunk.com"
     VERSION_MAPPING = {
-        "9.4.0": "94",
-        "9.3.0": "93",
-        "9.2.1": "92",
-        "9.1.0": "91",
-        "latest": "94",  # Current latest
+        "9.4.0": "9.4",
+        "9.3.0": "9.3",
+        "9.2.1": "9.2",
+        "9.1.0": "9.1",
+        "latest": "9.4",  # Current latest
     }
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "text/markdown"):
@@ -144,7 +144,12 @@ pip install httpx
 """
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Headers to bypass browser detection on help.splunk.com
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            
+            async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
                 logger.debug(f"Fetching documentation from: {url}")
                 response = await client.get(url)
                 response.raise_for_status()
@@ -169,7 +174,7 @@ This may indicate:
 - The Splunk version doesn't have this specific documentation
 - The topic name may be incorrect
 
-Please check the [Splunk Documentation](https://docs.splunk.com) for the correct location.
+Please check the [Splunk Documentation](https://help.splunk.com) for the correct location.
 """
             else:
                 return f"""# Documentation Error
@@ -456,9 +461,9 @@ class SPLCommandResource(SplunkDocsResource):
 
         async def fetch_command_docs():
             norm_version = self.normalize_version(self.version)
-            # Splunk docs URLs use title case for commands
-            command_title = self.command.title()
-            url = f"{self.SPLUNK_DOCS_BASE}/Documentation/Splunk/{norm_version}/SearchReference/{command_title}"
+            # help.splunk.com uses lowercase command names and different URL structure
+            command_lower = self.command.lower()
+            url = f"{self.SPLUNK_DOCS_BASE}/en/splunk-enterprise/search/{norm_version}/commands/{command_lower}"
 
             content = await self.fetch_doc_content(url)
 
@@ -507,9 +512,9 @@ class AdminGuideResource(SplunkDocsResource):
 
         async def fetch_admin_docs():
             norm_version = self.normalize_version(self.version)
-            # Map topic to likely URL structure
-            topic_url = self.topic.replace("-", "").replace("_", "")
-            url = f"{self.SPLUNK_DOCS_BASE}/Documentation/Splunk/{norm_version}/Admin/{topic_url}"
+            # help.splunk.com uses hyphenated topic names and different URL structure
+            topic_url = self.topic.replace("_", "-").lower()
+            url = f"{self.SPLUNK_DOCS_BASE}/en/splunk-enterprise/administer/{norm_version}/{topic_url}"
 
             content = await self.fetch_doc_content(url)
 
