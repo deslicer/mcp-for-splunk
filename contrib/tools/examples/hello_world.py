@@ -31,33 +31,26 @@ class HelloWorldTool(BaseTool):
         version="1.0.0",
     )
 
-    async def execute(self, ctx: Context, name: str = "World") -> dict[str, Any]:
+    async def execute(self, ctx: Context) -> dict[str, Any]:
         """
-        Say hello to someone.
-
-        Args:
-            name: Name to greet (default: "World")
+        Say hello to the world.
 
         Returns:
             Dict containing greeting message
 
         Example:
-            hello_world(name="Alice") -> {"message": "Hello, Alice!"}
+            hello_world() -> {"message": "Hello, World!"}
         """
-        log_tool_execution("hello_world", name=name)
+        log_tool_execution("hello_world")
 
-        self.logger.info(f"Greeting: {name}")
-        ctx.info(f"Saying hello to {name}")
+        self.logger.info("Greeting: World")
+        ctx.info("Saying hello to World")
 
         try:
-            # Handle None case if somehow passed (though schema shouldn't allow it)
-            if name is None:
-                name = "World"
-                
-            message = f"Hello, {name}!"
+            message = "Hello, World!"
 
             return self.format_success_response(
-                {"message": message, "greeted": name, "tool": "hello_world"}
+                {"message": message, "greeted": "World", "tool": "hello_world"}
             )
 
         except Exception as e:
