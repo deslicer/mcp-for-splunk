@@ -4,9 +4,10 @@ A **modular, community-driven** Model Context Protocol (MCP) server that provide
 
 ## ✨ Key Features
 
-- **🏗️ Modular Architecture** - Core framework with automatic tool discovery and loading
+- **🏗️ Modular Architecture** - Core framework with automatic tool and resource discovery
 - **👥 Community-Friendly** - Structured contribution system with examples and guidelines  
 - **🔌 MCP-Compliant** - Full MCP specification support using FastMCP framework
+- **📚 Rich Resources** - 14 discoverable resources for Splunk documentation and system context
 - **🌐 Multiple Transports** - stdio (local) and HTTP (remote server) modes
 - **⚙️ Flexible Configuration** - Server environment, client environment, or HTTP header Splunk settings
 - **🔒 Enterprise-Ready** - Secure authentication and production deployment
@@ -21,7 +22,8 @@ The server is built on a modular architecture that separates core functionality 
 
 ```
 📦 Core Framework (src/core/)     - Base classes, discovery, registry
-🔧 Core Tools (src/tools/)        - Essential Splunk operations  
+🔧 Core Tools (src/tools/)        - Essential Splunk operations
+📚 Core Resources (src/resources/) - Documentation and configuration access
 🌟 Community Tools (contrib/)     - Community-contributed extensions
 🔌 Plugin System (plugins/)       - External packages (future)
 ```
@@ -255,11 +257,179 @@ The tool is **automatically discovered** and loaded - no manual registration nee
 ### Community Tools
 See `contrib/tools/` for community-contributed tools organized by category.
 
+## 📚 Available Resources
+
+The MCP server provides **14 discoverable resources** that give LLMs access to Splunk documentation, configuration data, and system information. Resources are read-only and provide contextual information to enhance LLM understanding of Splunk environments.
+
+### Core Splunk Resources (6 resources)
+
+#### 🔧 Configuration Resources
+- **`splunk://config/{config_file}`** - Access to Splunk configuration files with client isolation
+  - Supports: `indexes.conf`, `props.conf`, `transforms.conf`, `server.conf`, `web.conf`, `inputs.conf`, `outputs.conf`, `savedsearches.conf`, `macros.conf`, `tags.conf`, `eventtypes.conf`, `alert_actions.conf`
+  - **Security**: Validated file names, no path traversal, client-scoped access
+  - **Format**: Human-readable configuration text with client metadata
+
+#### 📊 System Information Resources
+- **`splunk://health/status`** - Real-time Splunk health monitoring
+  - Server info, version, license state, KV store status
+  - Resource utilization (CPU, memory, OS details)
+  - **Format**: JSON with comprehensive health metrics
+
+- **`splunk://apps/installed`** - Installed Splunk applications analysis
+  - App capabilities, data sources, notable features
+  - LLM context for understanding available functionality
+  - **Format**: JSON with capability analysis for LLM consumption
+
+- **`splunk://indexes/list`** - Accessible Splunk indexes (customer indexes only)
+  - Index metadata, size information, configuration details
+  - Automatically filters internal indexes for relevance
+  - **Format**: JSON with comprehensive index information
+
+#### 🔍 Search & Data Resources
+- **`splunk://savedsearches/list`** - User-accessible saved searches
+  - Search queries, ownership, app context, scheduling info
+  - **Format**: JSON with search metadata
+
+- **`splunk://search/results/recent`** - Recent search results summary
+  - Last 10 completed searches with event/result counts
+  - **Format**: JSON with search history and statistics
+
+### Documentation Resources (8 resources)
+
+Splunk documentation resources provide **version-aware**, **LLM-optimized** access to official Splunk documentation with automatic caching and content processing.
+
+#### 📋 Static Documentation
+- **`splunk-docs://cheat-sheet`** - Comprehensive SPL cheat sheet
+  - SPL commands, regex patterns, search examples
+  - **Source**: Official Splunk blog, processed for LLM consumption
+
+- **`splunk-docs://discovery`** - Documentation discovery and navigation
+  - Available resources, version mapping, quick access links
+  - **Purpose**: Help LLMs discover and navigate documentation
+
+- **`splunk-docs://spl-reference`** - SPL command reference overview
+  - Template for accessing specific command documentation
+  - **Usage**: Access specific commands via parameterized URIs
+
+#### 🔧 Dynamic Documentation (Template Resources)
+- **`splunk-docs://{version}/spl-reference/{command}`** - Specific SPL command docs
+  - **Examples**: 
+    - `splunk-docs://latest/spl-reference/stats` - Stats command documentation
+    - `splunk-docs://9.3.0/spl-reference/eval` - Eval command for Splunk 9.3.0
+  - **Supported Commands**: search, stats, eval, chart, timechart, table, sort, where, join, append, lookup, rex, top, rare, transaction, streamstats, eventstats, bucket, dedup, head, tail, regex, replace, convert, makemv, mvexpand, spath, xmlkv, kvform
+
+- **`splunk-docs://{version}/troubleshooting/{topic}`** - Troubleshooting guides
+  - **Available Topics**:
+    - `splunk-logs` - What Splunk logs about itself
+    - `metrics-log` - Understanding metrics.log for performance monitoring
+    - `troubleshoot-inputs` - Diagnosing input-related issues
+    - `platform-instrumentation` - Platform instrumentation overview
+    - `search-problems` - Splunk web and search issues
+    - `indexing-performance` - Indexing performance optimization
+    - `indexing-delay` - Event indexing delay resolution
+    - `authentication-timeouts` - Search peer authentication issues
+
+- **`splunk-docs://{version}/admin/{topic}`** - Administration documentation
+  - **Common Topics**: indexes, authentication, deployment, apps, users, roles, monitoring, performance, clustering, distributed-search, forwarders, inputs, outputs, licensing, security
+
+### Resource Usage Examples
+
+#### Accessing Configuration Files
+```bash
+# Get indexes configuration
+GET splunk://config/indexes.conf
+
+# Get props configuration  
+GET splunk://config/props.conf
+
+# Get server configuration
+GET splunk://config/server.conf
+```
+
+#### Documentation Access
+```bash
+# Static cheat sheet
+GET splunk-docs://cheat-sheet
+
+# Version-specific SPL command
+GET splunk-docs://latest/spl-reference/stats
+GET splunk-docs://9.3.0/spl-reference/chart
+
+# Troubleshooting guides
+GET splunk-docs://latest/troubleshooting/metrics-log
+GET splunk-docs://9.4/troubleshooting/platform-instrumentation
+
+# Administration guides
+GET splunk-docs://latest/admin/indexes
+GET splunk-docs://9.3.0/admin/authentication
+```
+
+#### System Information
+```bash
+# Health status
+GET splunk://health/status
+
+# Installed apps with capability analysis
+GET splunk://apps/installed
+
+# Customer indexes only
+GET splunk://indexes/list
+
+# Recent search history
+GET splunk://search/results/recent
+```
+
+### Resource Features
+
+#### 🔒 **Client Isolation & Security**
+- **Multi-tenant support**: Each client gets isolated access to their Splunk instance
+- **Configuration validation**: Only allowed configuration files are accessible
+- **Path traversal protection**: Security validation prevents directory traversal attacks
+- **Client-scoped URIs**: Resources automatically include client identification
+
+#### ⚡ **Performance & Caching**
+- **Documentation caching**: 24-hour TTL for documentation resources
+- **Efficient filtering**: Automatic filtering of internal indexes for better performance
+- **Lazy loading**: Resources are loaded on-demand
+- **Compression**: Content is optimized for LLM consumption
+
+#### 🎯 **LLM Optimization**
+- **Processed content**: HTML documentation converted to clean Markdown
+- **Contextual metadata**: Resources include client, timestamp, and source information
+- **Capability analysis**: Apps are analyzed for available functionality and data sources
+- **Structured output**: JSON format for machine-readable system information
+
+#### 🔄 **Version Awareness**
+- **Auto-detection**: Automatically detects connected Splunk version when possible
+- **Version mapping**: Maps version numbers to documentation URLs
+- **Fallback support**: Graceful fallback to latest version if detection fails
+- **Cross-version compatibility**: Supports Splunk versions 9.1.0 through 9.4.0
+
+### Resource Discovery
+
+Resources are automatically discovered and loaded through the modular architecture:
+
+```python
+# Resources are automatically registered from src/resources/
+from src.core.discovery import discover_resources
+from src.core.registry import resource_registry
+
+# Discover all resources
+count = discover_resources()  # Returns 14 resources
+
+# List available resources
+for uri in resource_registry.list_resources():
+    resource = resource_registry.get_resource(uri)
+    print(f"{uri}: {resource.__class__.__name__}")
+```
+
+The resource system provides LLMs with comprehensive context about Splunk environments while maintaining security, performance, and ease of use.
+
 ## 🏛️ Architecture Deep Dive
 
 ### Core Framework (`src/core/`)
 - **Base Classes** - `BaseTool`, `BaseResource`, `BasePrompt` for consistent interfaces
-- **Discovery System** - Automatic scanning and loading of tools
+- **Discovery System** - Automatic scanning and loading of tools and resources
 - **Registry** - Centralized component management  
 - **Context Management** - Shared state and connection handling
 - **Utilities** - Common functions for error handling and validation
@@ -271,6 +441,13 @@ Core tools are organized by functional domain:
 - `health/` - System monitoring and diagnostics
 - `admin/` - Administrative and configuration tools
 - `kvstore/` - KV Store operations and management
+
+### Resource Organization (`src/resources/`)
+Core resources provide read-only contextual information:
+- `splunk_config.py` - Splunk configuration and system information resources
+- `splunk_docs.py` - Version-aware Splunk documentation resources
+- `base.py` - Base classes for client-scoped resources
+- `processors/` - Content processors for documentation optimization
 
 ### Community Framework (`contrib/`)
 Structured system for community contributions:
@@ -548,9 +725,10 @@ To migrate: replace `python src/server.py` with the modular server in your deplo
 
 - ✅ **Modular Architecture** - Complete with automatic discovery
 - ✅ **Core Tools** - 12 essential Splunk tools implemented
+- ✅ **Core Resources** - 14 discoverable resources (6 Splunk + 8 documentation)
 - ✅ **Community Framework** - Contribution system with examples
 - ✅ **Development Tools** - Interactive generators and validators
-- ✅ **Testing Suite** - Comprehensive test coverage (63%+)
+- ✅ **Testing Suite** - Comprehensive test coverage (89 tests passing)
 - ✅ **Documentation** - Complete guides and examples
 - ✅ **Production Deployment** - Docker stack with monitoring
 - ✅ **MCP Inspector Integration** - Web-based testing and debugging
