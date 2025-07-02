@@ -14,7 +14,7 @@ The MCP Server for Splunk supports **flexible client configuration**, allowing M
 Both server implementations support client configuration:
 
 - ✅ **`src/server.py`** - Full support (HTTP headers + environment variables)
-- ✅ **`src/server_new.py`** - Full support (HTTP headers + environment variables)
+- ✅ **`src/server.py`** - Full support (HTTP headers + environment variables)
 
 ## 🔧 **Configuration Methods**
 

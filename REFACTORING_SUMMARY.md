@@ -182,7 +182,7 @@ mcp-server-for-splunk/
 │   ├── resources/                   # Core resources
 │   ├── prompts/                     # Core prompts
 │   ├── server.py                    # Original monolithic server
-│   └── server_new.py                # New modular server
+│   └── server.py                    # Modular server
 ├── contrib/                         # Community contributions
 │   ├── tools/                       # Community tools
 │   │   ├── examples/                # Example tools
@@ -204,7 +204,7 @@ mcp-server-for-splunk/
 The new modular server automatically discovers and loads all tools:
 
 ```bash
-python src/server_new.py --transport http --port 8000
+python src/server.py --transport http --port 8000
 ```
 
 ### Adding New Tools
@@ -245,14 +245,14 @@ The framework automatically:
 ## Migration Path
 
 ### Phase 1: Test the New Structure ✅
-- New modular server (`server_new.py`) runs alongside existing server
+- New modular server (`server.py`) is the primary server
 - All existing functionality preserved in modular form
 - Framework tested and validated
 
 ### Phase 2: Transition (Recommended Next Steps)
 1. **Test the modular server** with your existing workflows
 2. **Verify all tools work** as expected
-3. **Update deployment scripts** to use `server_new.py`
+3. **Update deployment scripts** to use `server.py`
 4. **Replace old server** once confident in new structure
 
 ### Phase 3: Community Expansion

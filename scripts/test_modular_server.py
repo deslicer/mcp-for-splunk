@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 from fastmcp import Client
 
-from src.server_new import mcp
+from src.server import mcp
 
 # Expected tools in the modular server
 EXPECTED_TOOLS = [

@@ -11,7 +11,7 @@ This guide walks you through testing and migrating to the new modular MCP server
 python scripts/test_modular_server.py
 
 # Run the modular server locally
-python src/server_new.py --transport http --port 8000
+python src/server.py --transport http --port 8000
 ```
 
 ### 2. **Test with Docker (Original Setup)**
@@ -49,7 +49,7 @@ python scripts/test_modular_server.py
 
 # 3. Compare with original server
 python src/server.py &            # Start original server
-python src/server_new.py &        # Start modular server (different port)
+python src/server.py &        # Start modular server (different port)
 
 # Test both with MCP Inspector or your client
 ```
@@ -220,7 +220,7 @@ docker-compose up
 ### Option 3: Manual Fallback
 ```bash
 # Edit Dockerfile CMD to use old server
-- python src/server_new.py
+- python src/server.py
 + python src/server.py
 ```
 
@@ -237,7 +237,7 @@ docker-compose up
 
 ```bash
 # Measure startup time
-time python src/server_new.py --help
+time python src/server.py --help
 
 # Count tools
 python scripts/test_modular_server.py | grep "Discovered"
