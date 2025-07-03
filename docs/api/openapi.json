@@ -1,0 +1,579 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MCP Server for Splunk API",
+    "version": "1.0.0",
+    "description": "Model Context Protocol server providing Splunk integration tools",
+    "contact": {
+      "name": "API Support",
+      "url": "https://github.com/your-org/mcp-server-for-splunk"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8001/mcp",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/tools/call": {
+      "post": {
+        "summary": "Execute MCP Tool",
+        "description": "Execute any available MCP tool with parameters",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolCallRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool execution result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolCallResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/list": {
+      "post": {
+        "summary": "List Available Tools",
+        "description": "Get list of all available tools",
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ToolCallRequest": {
+        "type": "object",
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": [
+              "2.0"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "tools/call"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": [
+                  "get_configurations",
+                  "list_apps",
+                  "list_users",
+                  "manage_apps",
+                  "get_splunk_health",
+                  "create_kvstore_collection",
+                  "get_kvstore_data",
+                  "list_kvstore_collections",
+                  "list_indexes",
+                  "list_sources",
+                  "list_sourcetypes",
+                  "create_saved_search",
+                  "delete_saved_search",
+                  "execute_saved_search",
+                  "get_saved_search_details",
+                  "run_splunk_search",
+                  "list_saved_searches",
+                  "run_oneshot_search",
+                  "update_saved_search",
+                  "get_latest_feature_health"
+                ]
+              },
+              "arguments": {
+                "type": "object"
+              }
+            }
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "ToolCallResponse": {
+        "type": "object",
+        "properties": {
+          "jsonrpc": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "array"
+              },
+              "isError": {
+                "type": "boolean"
+              }
+            }
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "ToolListResponse": {
+        "type": "object",
+        "properties": {
+          "jsonrpc": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "tools": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ToolMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ToolMetadata": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object"
+          }
+        }
+      },
+      "GetConfigurationsParameters": {
+        "type": "object",
+        "properties": {
+          "conf_file": {
+            "type": "string",
+            "description": "Configuration file name without .conf extension (e.g., 'props', 'transforms', 'inputs', 'outputs', 'server', 'web')"
+          },
+          "stanza": {
+            "type": "string",
+            "description": "Specific stanza name within the conf file to retrieve. If not provided, returns all stanzas in the file.",
+            "default": "None"
+          }
+        },
+        "required": [
+          "conf_file"
+        ]
+      },
+      "ListAppsParameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "ListUsersParameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "ManageAppsParameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "app_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "app_name"
+        ]
+      },
+      "GetSplunkHealthParameters": {
+        "type": "object",
+        "properties": {
+          "splunk_host": {
+            "type": "string",
+            "description": "Splunk server hostname or IP address. If not provided, uses the server's configured connection.",
+            "default": "None"
+          },
+          "splunk_port": {
+            "type": "string",
+            "description": "Splunk management port (typically 8089). Defaults to server configuration.",
+            "default": "None"
+          },
+          "splunk_username": {
+            "type": "string",
+            "description": "Splunk username for authentication. Uses server configuration if not provided.",
+            "default": "None"
+          },
+          "splunk_password": {
+            "type": "string",
+            "description": "Splunk password for authentication. Uses server configuration if not provided.",
+            "default": "None"
+          },
+          "splunk_scheme": {
+            "type": "string",
+            "description": "Connection scheme ('http' or 'https'). Defaults to server configuration.",
+            "default": "None"
+          },
+          "splunk_verify_ssl": {
+            "type": "string",
+            "description": "Whether to verify SSL certificates. Defaults to server configuration.",
+            "default": "None"
+          }
+        },
+        "required": []
+      },
+      "CreateKvstoreCollectionParameters": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "string",
+            "default": "None"
+          },
+          "accelerated_fields": {
+            "type": "string",
+            "default": "None"
+          },
+          "replicated": {
+            "type": "boolean",
+            "default": "True"
+          }
+        },
+        "required": [
+          "app",
+          "collection"
+        ]
+      },
+      "GetKvstoreDataParameters": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "query": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": [
+          "collection"
+        ]
+      },
+      "ListKvstoreCollectionsParameters": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": []
+      },
+      "ListIndexesParameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "ListSourcesParameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "ListSourcetypesParameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSavedSearchParameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "default": "\"\""
+          },
+          "earliest_time": {
+            "type": "string",
+            "default": "\"\""
+          },
+          "latest_time": {
+            "type": "string",
+            "default": "\"\""
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "sharing": {
+            "type": "string",
+            "default": "\"user\""
+          },
+          "is_scheduled": {
+            "type": "boolean",
+            "default": "False"
+          },
+          "cron_schedule": {
+            "type": "string",
+            "default": "\"\""
+          },
+          "is_visible": {
+            "type": "boolean",
+            "default": "True"
+          }
+        },
+        "required": [
+          "name",
+          "search"
+        ]
+      },
+      "DeleteSavedSearchParameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean",
+            "default": "False"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "owner": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ExecuteSavedSearchParameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "earliest_time": {
+            "type": "string",
+            "default": "None"
+          },
+          "latest_time": {
+            "type": "string",
+            "default": "None"
+          },
+          "mode": {
+            "type": "string",
+            "default": "\"oneshot\""
+          },
+          "max_results": {
+            "type": "integer",
+            "default": "100"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "owner": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "GetSavedSearchDetailsParameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "owner": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "RunSplunkSearchParameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "earliest_time": {
+            "type": "string",
+            "default": "\"-24h\""
+          },
+          "latest_time": {
+            "type": "string",
+            "default": "\"now\""
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "ListSavedSearchesParameters": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "default": "None"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "sharing": {
+            "type": "string",
+            "default": "None"
+          },
+          "include_disabled": {
+            "type": "boolean",
+            "default": "False"
+          }
+        },
+        "required": []
+      },
+      "RunOneshotSearchParameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "earliest_time": {
+            "type": "string",
+            "default": "\"-15m\""
+          },
+          "latest_time": {
+            "type": "string",
+            "default": "\"now\""
+          },
+          "max_results": {
+            "type": "integer",
+            "default": "100"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "UpdateSavedSearchParameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string",
+            "default": "None"
+          },
+          "description": {
+            "type": "string",
+            "default": "None"
+          },
+          "earliest_time": {
+            "type": "string",
+            "default": "None"
+          },
+          "latest_time": {
+            "type": "string",
+            "default": "None"
+          },
+          "is_scheduled": {
+            "type": "string",
+            "default": "None"
+          },
+          "cron_schedule": {
+            "type": "string",
+            "default": "None"
+          },
+          "is_visible": {
+            "type": "string",
+            "default": "None"
+          },
+          "app": {
+            "type": "string",
+            "default": "None"
+          },
+          "owner": {
+            "type": "string",
+            "default": "None"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "GetLatestFeatureHealthParameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "default": "100"
+          }
+        },
+        "required": []
+      }
+    }
+  }
+}
