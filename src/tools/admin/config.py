@@ -17,7 +17,12 @@ class GetConfigurations(BaseTool):
 
     METADATA = ToolMetadata(
         name="get_configurations",
-        description="Get Splunk configurations from specified conf files",
+        description=(
+            "Retrieves Splunk configuration settings from specified .conf files. "
+            "Access settings from any Splunk configuration file (props.conf, transforms.conf, "
+            "inputs.conf, outputs.conf, etc.) either by entire file or specific stanza. "
+            "Returns structured configuration data showing all settings and their values."
+        ),
         category="admin",
         tags=["configuration", "settings", "administration"],
         requires_connection=True,
@@ -27,14 +32,16 @@ class GetConfigurations(BaseTool):
         self, ctx: Context, conf_file: str, stanza: str | None = None
     ) -> dict[str, Any]:
         """
-        Get Splunk configurations.
+        Get Splunk configurations from specific configuration files.
 
         Args:
-            conf_file: Configuration file name (e.g., 'props', 'transforms', 'inputs')
-            stanza: Optional stanza name to get specific configuration
+            conf_file (str): Configuration file name without .conf extension 
+                           (e.g., 'props', 'transforms', 'inputs', 'outputs', 'server', 'web')
+            stanza (str, optional): Specific stanza name within the conf file to retrieve.
+                                  If not provided, returns all stanzas in the file.
 
         Returns:
-            Dict containing configuration settings
+            Dict containing configuration settings with status, file name, and configuration data
         """
         log_tool_execution("get_configurations", conf_file=conf_file, stanza=stanza)
 

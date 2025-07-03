@@ -21,7 +21,12 @@ class JobSearch(BaseTool):
 
     METADATA = ToolMetadata(
         name="run_splunk_search",
-        description="Execute a normal Splunk search job with progress tracking",
+        description=(
+            "Executes a Splunk search query as a background job with progress tracking and detailed "
+            "statistics. Best for complex, long-running searches that may take more than 30 seconds. "
+            "Creates a persistent search job that can be monitored for progress and provides detailed "
+            "execution statistics including scan count, event count, and performance metrics."
+        ),
         category="search",
         tags=["search", "job", "tracking", "complex"],
         requires_connection=True,
@@ -31,31 +36,22 @@ class JobSearch(BaseTool):
         self, ctx: Context, query: str, earliest_time: str = "-24h", latest_time: str = "now"
     ) -> dict[str, Any]:
         """
-        Execute a Splunk search job with progress tracking.
+        Execute a Splunk search job with comprehensive progress tracking and statistics.
 
         Args:
-            query: The Splunk search query (SPL) to execute. The 'search' command will be automatically
-                added if not present (e.g., "index=main" becomes "search index=main")
-            earliest_time: Search start time (default: "-24h")
-            latest_time: Search end time (default: "now")
+            query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command 
+                        or pipeline. Supports complex searches with transforming commands, joins, 
+                        and subsearches. Examples: "index=* | stats count by sourcetype", 
+                        "search error | eval severity=case(...)"
+            earliest_time (str, optional): Search start time in Splunk time format. 
+                                         Examples: "-24h", "-7d@d", "2023-01-01T00:00:00"
+                                         Default: "-24h" 
+            latest_time (str, optional): Search end time in Splunk time format.
+                                       Examples: "now", "-1h", "@d", "2023-01-01T23:59:59"
+                                       Default: "now"
 
         Returns:
-            Dict containing:
-                - job_id: Search job ID (sid)
-                - is_done: Whether the search is complete
-                - scan_count: Number of events scanned
-                - event_count: Number of events matched
-                - results: List of search results as dictionaries
-                - results_count: Number of results returned
-                - query_executed: The actual query that was executed
-                - duration: Search duration in seconds
-                - status: Search status information
-
-        Example:
-            run_splunk_search(
-                query="index=* | stats count by source",
-                earliest_time="-7d"
-            )
+            Dict containing search results, job statistics, progress information, and performance metrics
         """
         log_tool_execution(
             "run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time

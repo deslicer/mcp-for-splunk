@@ -23,7 +23,12 @@ class ListSavedSearches(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_saved_searches",
-        description="List saved searches with optional filtering by owner, app, or sharing level",
+        description=(
+            "Lists all saved searches available in the Splunk environment with comprehensive metadata "
+            "including ownership, scheduling configuration, sharing permissions, and last execution details. "
+            "Supports filtering by owner, app context, and sharing level to help discover and manage "
+            "existing search automation and reports."
+        ),
         category="search",
         tags=["saved_searches", "list", "metadata"],
         requires_connection=True,

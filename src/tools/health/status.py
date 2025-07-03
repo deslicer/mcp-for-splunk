@@ -19,7 +19,11 @@ class GetSplunkHealth(BaseTool):
 
     METADATA = ToolMetadata(
         name="get_splunk_health",
-        description="Get Splunk connection health status and version information",
+        description=(
+            "Checks Splunk server connectivity and returns health status information including "
+            "server version, connection status, and system information. Can use server-configured "
+            "connection or accept custom connection parameters for testing different Splunk instances."
+        ),
         category="health",
         tags=["health", "status", "monitoring"],
         requires_connection=False,  # This tool should work even when connection is down
@@ -36,18 +40,24 @@ class GetSplunkHealth(BaseTool):
         splunk_verify_ssl: bool | None = None,
     ) -> dict[str, Any]:
         """
-        Check Splunk health status.
+        Check Splunk server connectivity and health status.
 
         Args:
-            splunk_host: Optional Splunk host (overrides server config)
-            splunk_port: Optional Splunk port (overrides server config)
-            splunk_username: Optional Splunk username (overrides server config)
-            splunk_password: Optional Splunk password (overrides server config)
-            splunk_scheme: Optional Splunk scheme (overrides server config)
-            splunk_verify_ssl: Optional SSL verification setting (overrides server config)
+            splunk_host (str, optional): Splunk server hostname or IP address. If not provided, 
+                                       uses the server's configured connection.
+            splunk_port (int, optional): Splunk management port (typically 8089). Defaults to 
+                                       server configuration.
+            splunk_username (str, optional): Splunk username for authentication. Uses server 
+                                           configuration if not provided.
+            splunk_password (str, optional): Splunk password for authentication. Uses server 
+                                           configuration if not provided.
+            splunk_scheme (str, optional): Connection scheme ('http' or 'https'). Defaults to 
+                                         server configuration.
+            splunk_verify_ssl (bool, optional): Whether to verify SSL certificates. Defaults to 
+                                              server configuration.
 
         Returns:
-            Dict containing Splunk connection status and version information
+            Dict containing connection status, Splunk version, server name, and connection source
         """
         log_tool_execution("get_splunk_health")
 
