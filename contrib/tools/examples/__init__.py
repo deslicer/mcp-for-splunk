@@ -2,6 +2,7 @@
 Example tools to demonstrate contribution patterns.
 """
 
-from .hello_world import HelloWorldTool
+# No example tools currently available
+# Tools will be added here as examples are created
 
-__all__ = ["HelloWorldTool"]
+__all__ = []

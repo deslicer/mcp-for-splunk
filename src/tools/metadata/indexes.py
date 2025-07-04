@@ -17,7 +17,12 @@ class ListIndexes(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_indexes",
-        description="Retrieves a list of all accessible indexes from the configured Splunk instance",
+        description=(
+            "Retrieves a list of all accessible data indexes from the Splunk instance. "
+            "Returns customer indexes (excludes internal Splunk system indexes like _internal, "
+            "_audit for better readability). Useful for discovering available data sources and "
+            "understanding the data structure of the Splunk environment."
+        ),
         category="metadata",
         tags=["indexes", "metadata", "discovery"],
         requires_connection=True,
@@ -25,10 +30,13 @@ class ListIndexes(BaseTool):
 
     async def execute(self, ctx: Context) -> dict[str, Any]:
         """
-        List all accessible indexes.
+        List all accessible data indexes from the Splunk instance.
 
         Returns:
-            Dict containing list of indexes and count
+            Dict containing:
+                - indexes: Sorted list of customer index names (excludes internal indexes)
+                - count: Number of customer indexes found
+                - total_count_including_internal: Total number of all indexes including system indexes
         """
         log_tool_execution("list_indexes")
 

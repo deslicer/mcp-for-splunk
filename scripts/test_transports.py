@@ -24,7 +24,7 @@ def test_stdio_mode():
 
     try:
         # Test stdio mode by checking if it starts without errors
-        cmd = [sys.executable, "src/server_new.py", "--transport", "stdio"]
+        cmd = [sys.executable, "src/server.py", "--transport", "stdio"]
 
         print(f"Command: {' '.join(cmd)}")
         print("Starting server in stdio mode (will timeout after 5 seconds)...")
@@ -39,9 +39,9 @@ def test_stdio_mode():
 
         output, _ = process.communicate(timeout=5)
 
-        # Check for successful indicators
-        if "Starting MCP server" in output and "Loaded 13 tools" in output:
-            print("✅ STDIO mode: SUCCESS - All 13 tools loaded!")
+        # Check for successful indicators (reduced from 13 to 11 after removing example tools)
+        if "Starting MCP server" in output and "Loaded 11 tools" in output:
+            print("✅ STDIO mode: SUCCESS - All 11 tools loaded!")
             return True
         else:
             print("❌ STDIO mode: FAILED")
@@ -63,7 +63,7 @@ async def test_http_mode():
         from fastmcp import Client
 
         # Start server in background
-        cmd = [sys.executable, "src/server_new.py", "--transport", "http", "--port", "8005"]
+        cmd = [sys.executable, "src/server.py", "--transport", "http", "--port", "8005"]
         print(f"Command: {' '.join(cmd)}")
         print("Starting server in HTTP mode on port 8005...")
 
@@ -83,14 +83,14 @@ async def test_http_mode():
         try:
             async with Client(transport="http://localhost:8005/mcp/") as client:
                 tools = await client.list_tools()
-                if len(tools) == 13:
+                if len(tools) == 11:
                     print(f"✅ HTTP mode: SUCCESS - Found {len(tools)} tools!")
                     print("Sample tools:")
                     for tool in tools[:3]:
                         print(f"  - {tool.name}: {tool.description}")
                     success = True
                 else:
-                    print(f"❌ HTTP mode: Expected 13 tools, found {len(tools)}")
+                    print(f"❌ HTTP mode: Expected 11 tools, found {len(tools)}")
                     success = False
         except Exception as e:
             print(f"❌ HTTP mode client error: {e}")
@@ -130,7 +130,7 @@ The MCP Inspector is running and ready to use!
    2. Click "Add Server" or "Connect"
    3. Enter server URL: http://localhost:8001/mcp/
    4. Click "Connect"
-   5. You should see all 13 tools available!
+   5. You should see all 11 tools available!
 
 📊 **Expected Tools in Inspector**:
    ✅ get_configurations - Splunk config management
@@ -139,9 +139,9 @@ The MCP Inspector is running and ready to use!
    ✅ list_kvstore_collections - KV Store listing
    ✅ run_splunk_search - Splunk search execution
    ✅ run_oneshot_search - Quick Splunk searches
-   ✅ hello_world - Example tool
    ✅ list_apps, list_users, get_splunk_health
    ✅ list_indexes, list_sources, list_sourcetypes
+   ✅ Additional tools from contrib directory (if any)
 
 🚀 **Docker Status**:
    - MCP Server: Running on http://localhost:8001/mcp/
@@ -157,10 +157,10 @@ def print_usage_examples():
 
     print("""
 🔧 **STDIO Mode** (for direct MCP client integration):
-   python src/server_new.py --transport stdio
+       python src/server.py --transport stdio
 
 🌐 **HTTP Mode** (for web-based clients and Inspector):
-   python src/server_new.py --transport http --port 8000
+       python src/server.py --transport http --port 8000
 
 🐳 **Docker Mode** (full production setup):
    docker-compose -f docker-compose-modular.yml up

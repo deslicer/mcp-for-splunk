@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 from fastmcp import Client
 
-from src.server_new import mcp
+from src.server import mcp
 
 # Expected tools in the modular server
 EXPECTED_TOOLS = [
@@ -39,8 +39,7 @@ EXPECTED_TOOLS = [
     "list_kvstore_collections",
     "get_kvstore_data",
     "create_kvstore_collection",
-    # Example tools (from contrib)
-    "hello_world",
+    # Example tools from contrib may be added here as they are created
 ]
 
 
@@ -74,27 +73,6 @@ async def test_tool_discovery():
 
         except Exception as e:
             print(f"❌ Tool discovery failed: {e}")
-            return False
-
-
-async def test_hello_world_tool():
-    """Test the hello world example tool."""
-    print("\n🌍 Testing hello world tool...")
-
-    async with Client(mcp) as client:
-        try:
-            # Test hello world tool
-            result = await client.call_tool("hello_world", {"name": "Modular Server"})
-
-            if result and "Hello, Modular Server!" in str(result):
-                print("✅ Hello world tool works correctly!")
-                return True
-            else:
-                print(f"❌ Hello world tool returned unexpected result: {result}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Hello world tool test failed: {e}")
             return False
 
 
@@ -145,7 +123,6 @@ async def run_all_tests():
     tests = [
         ("Server Startup", test_server_startup),
         ("Tool Discovery", test_tool_discovery),
-        ("Hello World Tool", test_hello_world_tool),
         ("Health Tool", test_health_tool),
     ]
 

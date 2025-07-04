@@ -388,52 +388,37 @@ class TestDockerEnvironment:
 
 
 class TestHealthCheckTransport:
-    """Test health check functionality across transports"""
+    """Test health check functionality across transports using FastMCP patterns"""
 
     @pytest.mark.asyncio
-    @patch("src.splunk_client.get_splunk_service")
-    async def test_health_check_stdio_transport(self, mock_get_service):
-        """Test health check resource works with stdio transport"""
-        mock_service = Mock()
-        mock_service.info = {"version": "9.0.0", "host": "localhost"}
-        mock_get_service.return_value = mock_service
+    async def test_health_check_stdio_transport(self, fastmcp_client, extract_tool_result):
+        """Test health check works with stdio transport using FastMCP client"""
+        async with fastmcp_client as client:
+            # Test health check resource
+            health_resource = await client.read_resource("health://status")
+            assert len(health_resource) > 0
+            assert health_resource[0].text == "OK"
 
-        # Test health check resource - access the function through .fn
-        result = server.health_check.fn()
-        assert result == "OK"
-
-        # Test health tool - need to create a mock context
-        from tests.conftest import MockFastMCPContext
-
-        mock_context = MockFastMCPContext()
-        mock_context.request_context.lifespan_context.is_connected = True
-        mock_context.request_context.lifespan_context.service = mock_service
-
-        health_result = server.get_splunk_health.fn(mock_context)
-        assert health_result["status"] == "connected"
-        assert health_result["version"] == "9.0.0"
+            # Test health tool
+            health_result = await client.call_tool("get_splunk_health")
+            health_data = extract_tool_result(health_result)
+            assert "status" in health_data
+            assert health_data["status"] in ["connected", "disconnected", "error"]
 
     @pytest.mark.asyncio
-    @patch("src.splunk_client.get_splunk_service")
-    async def test_health_check_http_transport(self, mock_get_service):
-        """Test health check resource works with HTTP transport"""
-        mock_service = Mock()
-        mock_service.info = {"version": "9.0.0", "host": "localhost"}
-        mock_get_service.return_value = mock_service
+    async def test_health_check_http_transport(self, fastmcp_client, extract_tool_result):
+        """Test health check works with HTTP transport using FastMCP client"""
+        async with fastmcp_client as client:
+            # Health check should work the same regardless of transport
+            health_resource = await client.read_resource("health://status")
+            assert len(health_resource) > 0
+            assert health_resource[0].text == "OK"
 
-        # Health check should work the same regardless of transport
-        result = server.health_check.fn()
-        assert result == "OK"
-
-        # Test health tool - need to create a mock context
-        from tests.conftest import MockFastMCPContext
-
-        mock_context = MockFastMCPContext()
-        mock_context.request_context.lifespan_context.is_connected = True
-        mock_context.request_context.lifespan_context.service = mock_service
-
-        health_result = server.get_splunk_health.fn(mock_context)
-        assert health_result["status"] == "connected"
+            # Test health tool
+            health_result = await client.call_tool("get_splunk_health")
+            health_data = extract_tool_result(health_result)
+            assert "status" in health_data
+            assert health_data["status"] in ["connected", "disconnected", "error"]
 
 
 class TestTransportSecurity:

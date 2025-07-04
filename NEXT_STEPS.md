@@ -35,7 +35,7 @@ docker-compose -f docker-compose-modular.yml up --build
 ```bash
 # Test locally
 python scripts/test_modular_server.py
-python src/server_new.py --transport http --port 8000
+python src/server.py --transport http --port 8000
 ```
 
 ## 🐳 Docker Testing (Next 30 minutes)

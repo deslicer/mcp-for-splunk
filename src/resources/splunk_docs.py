@@ -245,6 +245,15 @@ class SplunkCheatSheetResource(SplunkDocsResource):
 class TroubleshootingResource(SplunkDocsResource):
     """Version-aware Splunk troubleshooting documentation."""
 
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://{version}/troubleshooting/{topic}",
+        name="troubleshooting_guide",
+        description="Splunk troubleshooting documentation for various topics and versions",
+        mime_type="text/markdown",
+        category="troubleshooting",
+        tags=["troubleshooting", "documentation", "diagnostics", "performance"],
+    )
+
     # Comprehensive troubleshooting topics mapping
     TROUBLESHOOTING_TOPICS = {
         # Log files and internal logging
@@ -433,6 +442,15 @@ Replace `{command}` with the SPL command name you want to learn about.
 class SPLCommandResource(SplunkDocsResource):
     """Specific SPL command documentation resource."""
 
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://{version}/spl-reference/{command}",
+        name="spl_command_reference",
+        description="Splunk SPL command documentation for specific commands and versions",
+        mime_type="text/markdown",
+        category="reference",
+        tags=["spl", "commands", "reference", "search"],
+    )
+
     def __init__(self, version: str, command: str):
         self.version = version
         self.command = command
@@ -483,6 +501,15 @@ For more SPL commands, see the complete [SPL Reference](splunk-docs://{self.vers
 
 class AdminGuideResource(SplunkDocsResource):
     """Splunk administration documentation."""
+
+    METADATA = ResourceMetadata(
+        uri="splunk-docs://{version}/admin/{topic}",
+        name="admin_guide",
+        description="Splunk administration documentation for various topics and versions",
+        mime_type="text/markdown",
+        category="administration",
+        tags=["administration", "configuration", "management", "deployment"],
+    )
 
     def __init__(self, version: str, topic: str):
         self.version = version
@@ -731,41 +758,10 @@ def register_all_resources():
 
         resource_registry.register(SPLReferenceResource, SPLReferenceResource.METADATA)
 
-        # Register dynamic/parameterized resources with template metadata
-        # These resources don't have static METADATA because they take constructor parameters
-
-        # TroubleshootingResource template
-        troubleshooting_metadata = ResourceMetadata(
-            uri="splunk-docs://{version}/troubleshooting/{topic}",
-            name="troubleshooting_guide",
-            description="Splunk troubleshooting documentation for various topics and versions",
-            mime_type="text/markdown",
-            category="troubleshooting",
-            tags=["troubleshooting", "documentation", "diagnostics", "performance"],
-        )
-        resource_registry.register(TroubleshootingResource, troubleshooting_metadata)
-
-        # SPLCommandResource template
-        spl_command_metadata = ResourceMetadata(
-            uri="splunk-docs://{version}/spl-reference/{command}",
-            name="spl_command_reference",
-            description="Splunk SPL command documentation for specific commands and versions",
-            mime_type="text/markdown",
-            category="reference",
-            tags=["spl", "commands", "reference", "search"],
-        )
-        resource_registry.register(SPLCommandResource, spl_command_metadata)
-
-        # AdminGuideResource template
-        admin_guide_metadata = ResourceMetadata(
-            uri="splunk-docs://{version}/admin/{topic}",
-            name="admin_guide",
-            description="Splunk administration documentation for various topics and versions",
-            mime_type="text/markdown",
-            category="administration",
-            tags=["administration", "configuration", "management", "deployment"],
-        )
-        resource_registry.register(AdminGuideResource, admin_guide_metadata)
+        # Register dynamic/parameterized resources using their class METADATA
+        resource_registry.register(TroubleshootingResource, TroubleshootingResource.METADATA)
+        resource_registry.register(SPLCommandResource, SPLCommandResource.METADATA)
+        resource_registry.register(AdminGuideResource, AdminGuideResource.METADATA)
 
         logger.info(
             "Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)"

@@ -7,6 +7,8 @@ with the FastMCP server instance.
 
 import inspect
 import logging
+import sys
+import os
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -25,6 +27,62 @@ class ToolLoader:
     def __init__(self, mcp_server: FastMCP):
         self.mcp_server = mcp_server
         self.logger = logging.getLogger(f"{__name__}.ToolLoader")
+        self._loaded_tools = {}  # Track loaded tools for reload functionality
+
+    def reload_tools(self) -> int:
+        """
+        Reload all tools by clearing cache and rediscovering.
+        Useful for development hot reload.
+        """
+        self.logger.info("Hot reloading tools...")
+        
+        # Clear the tool registry to force rediscovery
+        tool_registry._tools.clear()
+        tool_registry._metadata.clear() 
+        tool_registry._instances.clear()
+        
+        # Clear our tracking
+        self._loaded_tools.clear()
+        
+        # Reload tool modules if in development mode
+        if os.environ.get("MCP_RELOAD_MODULES", "false").lower() == "true":
+            self._reload_tool_modules()
+        
+        # Rediscover and load tools
+        return self.load_tools()
+    
+    def _reload_tool_modules(self):
+        """Reload Python modules containing tools to pick up changes."""
+        import importlib
+        
+        # Get list of modules that might contain tools
+        tool_modules = [
+            "src.tools.admin.apps",
+            "src.tools.admin.config", 
+            "src.tools.admin.users",
+            "src.tools.admin.app_management",
+            "src.tools.health.status",
+            "src.tools.kvstore.collections",
+            "src.tools.kvstore.data",
+            "src.tools.metadata.indexes",
+            "src.tools.metadata.sources", 
+            "src.tools.metadata.sourcetypes",
+            "src.tools.search.oneshot_search",
+            "src.tools.search.job_search",
+            "src.tools.search.saved_search_tools",
+        ]
+        
+        reloaded_count = 0
+        for module_name in tool_modules:
+            try:
+                if module_name in sys.modules:
+                    self.logger.debug(f"Reloading module: {module_name}")
+                    importlib.reload(sys.modules[module_name])
+                    reloaded_count += 1
+            except Exception as e:
+                self.logger.warning(f"Failed to reload module {module_name}: {e}")
+        
+        self.logger.info(f"Reloaded {reloaded_count} tool modules")
 
     def _create_tool_wrapper(self, tool_class: type[BaseTool], tool_name: str):
         """Create a wrapper function for the tool that FastMCP can register."""
@@ -242,7 +300,7 @@ class ResourceLoader:
         """Register dynamic documentation resource handlers with FastMCP"""
         try:
             self.logger.info("Starting registration of dynamic documentation handlers...")
-            
+
             # Register troubleshooting documentation handler
             self.logger.info("Registering troubleshooting documentation handler...")
             @self.mcp_server.resource(
@@ -630,20 +688,311 @@ class PromptLoader:
     def __init__(self, mcp_server: FastMCP):
         self.mcp_server = mcp_server
         self.logger = logging.getLogger(f"{__name__}.PromptLoader")
+        self._registered_prompts = {}  # name -> prompt_class mapping
 
     def load_prompts(self) -> int:
         """Load all discovered prompts into the MCP server."""
-        self.logger.info("Prompt loading is currently not implemented")
-        self.logger.info(
-            "The BasePrompt interface is incompatible with FastMCP's @mcp.prompt decorator system"
-        )
-        self.logger.info(
-            "Prompts should be implemented using @mcp.prompt decorators directly in FastMCP"
-        )
+        from .discovery import discover_prompts
+        from .registry import prompt_registry
 
-        # For now, return 0 until prompt loading is properly implemented
-        # TODO: Implement proper prompt loading compatible with FastMCP's prompt system
-        return 0
+        loaded_count = 0
+
+        # Check if prompts are already loaded to prevent duplicates
+        if len(self._registered_prompts) > 0:
+            self.logger.info(
+                f"Prompts already loaded ({len(self._registered_prompts)} prompts), skipping reload"
+            )
+            return len(self._registered_prompts)
+
+        # First, pre-register our Splunk prompts to ensure they're available
+        self._load_manual_splunk_prompts()
+
+        # Discover additional prompts if needed
+        prompt_metadata_list = prompt_registry.list_prompts()
+        if not prompt_metadata_list:
+            discover_prompts()
+            prompt_metadata_list = prompt_registry.list_prompts()
+
+        # Load all prompts from registry
+        for metadata in prompt_metadata_list:
+            try:
+                loaded_count += self._load_single_prompt(metadata)
+            except Exception as e:
+                self.logger.error(f"Failed to load prompt {metadata.name}: {e}")
+
+        self.logger.info(f"Successfully loaded {loaded_count} prompts")
+        return loaded_count
+
+    def _load_manual_splunk_prompts(self) -> None:
+        """Pre-register Splunk-specific prompts with the discovery registry"""
+        try:
+            # Import and register prompts
+            from ..prompts import register_all_prompts
+
+            register_all_prompts()
+            self.logger.info("Registered Splunk prompts")
+
+        except ImportError as e:
+            self.logger.debug(f"Splunk prompts not available: {e}")
+        except Exception as e:
+            self.logger.warning(f"Failed to register Splunk prompts: {e}")
+
+    def _load_single_prompt(self, metadata) -> int:
+        """Load a single prompt from registry into FastMCP"""
+        try:
+            from .registry import prompt_registry
+
+            # Skip if already loaded
+            if metadata.name in self._registered_prompts:
+                return 0
+
+            # Get prompt class from registry
+            prompt_class = prompt_registry._prompts.get(metadata.name)
+            if not prompt_class:
+                self.logger.warning(f"No prompt class found for name: {metadata.name}")
+                return 0
+
+            # Register with FastMCP using the prompt decorator
+            self._register_prompt_with_fastmcp(prompt_class, metadata)
+            self._registered_prompts[metadata.name] = prompt_class.__name__
+            self.logger.debug(f"Loaded prompt: {metadata.name}")
+
+            return 1
+
+        except Exception as e:
+            self.logger.error(f"Failed to load prompt {metadata.name}: {e}")
+            return 0
+
+    def _register_prompt_with_fastmcp(self, prompt_class, metadata):
+        """Register prompt with FastMCP using the @mcp.prompt decorator"""
+        prompt_name = metadata.name
+        prompt_description = metadata.description
+
+        # Handle specific prompts with their unique signatures
+        if prompt_name == "troubleshoot_inputs":
+            # Create a wrapper function with the specific signature for this prompt
+            async def prompt_wrapper(
+                earliest_time: str = "-24h",
+                latest_time: str = "now",
+                focus_index: str | None = None,
+                focus_host: str | None = None
+            ) -> list[dict[str, Any]]:
+                """Guided workflow for troubleshooting Splunk data input issues using metrics.log analysis"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method with parameters
+                    result = await prompt_instance.get_prompt(
+                        ctx,
+                        earliest_time=earliest_time,
+                        latest_time=latest_time,
+                        focus_index=focus_index,
+                        focus_host=focus_host
+                    )
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "troubleshoot_indexing_performance":
+            # Create a wrapper function with the specific signature for this prompt
+            async def prompt_wrapper(
+                earliest_time: str = "-24h",
+                latest_time: str = "now",
+                focus_index: str | None = None,
+                focus_host: str | None = None,
+                analysis_depth: str = "standard",
+                include_delay_analysis: bool = True,
+                include_platform_instrumentation: bool = True
+            ) -> list[dict[str, Any]]:
+                """Comprehensive workflow for identifying and triaging Splunk indexing performance issues"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method with parameters
+                    result = await prompt_instance.get_prompt(
+                        ctx,
+                        earliest_time=earliest_time,
+                        latest_time=latest_time,
+                        focus_index=focus_index,
+                        focus_host=focus_host,
+                        analysis_depth=analysis_depth,
+                        include_delay_analysis=include_delay_analysis,
+                        include_platform_instrumentation=include_platform_instrumentation
+                    )
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "troubleshoot_inputs_multi_agent":
+            # Create a wrapper function with the specific signature for this prompt
+            async def prompt_wrapper(
+                earliest_time: str = "-24h",
+                latest_time: str = "now",
+                focus_index: str | None = None,
+                focus_host: str | None = None,
+                complexity_level: str = "moderate",
+                include_performance_analysis: bool = True,
+                enable_cross_validation: bool = True,
+                analysis_mode: str = "diagnostic"
+            ) -> list[dict[str, Any]]:
+                """Advanced multi-agent troubleshooting workflow for Splunk data input issues"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method with parameters
+                    result = await prompt_instance.get_prompt(
+                        ctx,
+                        earliest_time=earliest_time,
+                        latest_time=latest_time,
+                        focus_index=focus_index,
+                        focus_host=focus_host,
+                        complexity_level=complexity_level,
+                        include_performance_analysis=include_performance_analysis,
+                        enable_cross_validation=enable_cross_validation,
+                        analysis_mode=analysis_mode
+                    )
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "troubleshoot_performance":
+            # Create a wrapper function with the specific signature for this prompt
+            async def prompt_wrapper(
+                earliest_time: str = "-7d",
+                latest_time: str = "now",
+                analysis_type: str = "comprehensive"
+            ) -> list[dict[str, Any]]:
+                """Specialized prompt for Splunk performance analysis and optimization"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method with parameters
+                    result = await prompt_instance.get_prompt(
+                        ctx,
+                        earliest_time=earliest_time,
+                        latest_time=latest_time,
+                        analysis_type=analysis_type
+                    )
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        else:
+            # Generic wrapper for prompts without parameters
+            async def prompt_wrapper() -> list[dict[str, Any]]:
+                """Generic prompt wrapper"""
+                try:
+                    # Create prompt instance
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+
+                    # Get the current context using FastMCP's dependency function
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        )
+
+                    # Call the prompt's get_prompt method
+                    result = await prompt_instance.get_prompt(ctx)
+
+                    # Convert to FastMCP prompt format
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    else:
+                        # Fallback format
+                        return [{"type": "text", "text": str(result)}]
+
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        # Set function metadata
+        prompt_wrapper.__name__ = prompt_name
+        prompt_wrapper.__doc__ = prompt_description
+
+        # Register with FastMCP
+        self.mcp_server.prompt(name=prompt_name, description=prompt_description)(prompt_wrapper)
+
+        self.logger.info(f"Registered prompt: {prompt_name}")
 
 
 class ComponentLoader:
@@ -674,5 +1023,27 @@ class ComponentLoader:
 
         total_loaded = sum(results.values())
         self.logger.info(f"Loaded {total_loaded} total components: {results}")
+
+        return results
+    
+    def reload_all_components(self) -> dict[str, int]:
+        """
+        Hot reload all components for development.
+        
+        Returns:
+            Dict containing counts of reloaded components by type
+        """
+        self.logger.info("Hot reloading all components...")
+
+        # Reload all component types
+        tools_reloaded = self.tool_loader.reload_tools()
+        # Resources and prompts don't change descriptions as often, but we could add reload for them too
+        resources_loaded = self.resource_loader.load_resources()
+        prompts_loaded = self.prompt_loader.load_prompts()
+
+        results = {"tools": tools_reloaded, "resources": resources_loaded, "prompts": prompts_loaded}
+
+        total_reloaded = sum(results.values())
+        self.logger.info(f"Reloaded {total_reloaded} total components: {results}")
 
         return results

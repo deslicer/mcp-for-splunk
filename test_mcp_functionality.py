@@ -20,7 +20,7 @@ async def test_server_components():
     # Test the FastMCP server initialization
     try:
         print("\n1️⃣  Testing FastMCP Server Initialization...")
-        from src.server_new import mcp
+        from src.server import mcp
 
         print(f"   ✅ FastMCP server created: {mcp.name}")
 

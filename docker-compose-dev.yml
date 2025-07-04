@@ -1,0 +1,219 @@
+networks:
+  splunk-network:
+    driver: bridge
+    attachable: true
+
+services:
+  # Traefik reverse proxy and load balancer
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik-dev
+    restart: unless-stopped
+    command:
+      # Enable Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # Configure entrypoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.mcp.address=:8000
+      - --entrypoints.inspector.address=:3002
+      # Enable API and dashboard (optional, for debugging)
+      - --api.dashboard=true
+      - --api.insecure=true
+      # Logging
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"           # HTTP
+      - "8001:8000"       # MCP Server port
+      - "3002:3002"       # MCP Inspector port
+      - "8080:8080"       # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - splunk-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  # MCP Inspector - Web-based debugging interface
+  mcp-inspector:
+    image: node:20-alpine
+    container_name: mcp-inspector-dev
+    restart: unless-stopped
+    working_dir: /app
+    networks:
+      - splunk-network
+    ports:
+      - "3001:6274"       # Inspector UI direct access
+      - "6277:6277"       # Inspector Proxy server access
+    command: >
+      sh -c "
+        apk add --no-cache git &&
+        npm install -g @modelcontextprotocol/inspector &&
+        echo 'Starting MCP Inspector...' &&
+        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
+      "
+    environment:
+      - NODE_ENV=development
+      - DANGEROUSLY_OMIT_AUTH=true
+      # Fix binding and origin issues per MCP Inspector docs
+      - HOST=0.0.0.0
+      - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+    depends_on:
+      - traefik
+      - mcp-server-dev
+    labels:
+      # Enable Traefik for MCP Inspector
+      - "traefik.enable=true"
+      
+      # HTTP router for Inspector UI
+      - "traefik.http.routers.mcp-inspector.rule=Host(`inspector.localhost`) || PathPrefix(`/inspector/`)"
+      - "traefik.http.routers.mcp-inspector.entrypoints=inspector"
+      - "traefik.http.routers.mcp-inspector.service=mcp-inspector"
+      
+      # Service definition pointing to container port 6274 (MCP Inspector default)
+      - "traefik.http.services.mcp-inspector.loadbalancer.server.port=6274"
+      
+      # Add middleware for CORS
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
+      - "traefik.http.middlewares.inspector-cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.mcp-inspector.middlewares=inspector-cors"
+
+  # MCP Server for Splunk (Development Version with Enhanced Hot Reload)
+  mcp-server-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-server-dev
+    restart: unless-stopped
+    networks:
+      - splunk-network
+    ports:
+      - "8002:8000"       # MCP Server direct access (optional)
+    environment:
+      # Splunk connection settings
+      - SPLUNK_HOST=${SPLUNK_HOST:-so1}
+      - SPLUNK_PORT=${SPLUNK_PORT:-8089}
+      - SPLUNK_USERNAME=${SPLUNK_USERNAME:-admin}
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
+      - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
+      
+      # MCP Server settings
+      - MCP_SERVER_HOST=0.0.0.0
+      - MCP_SERVER_PORT=8000
+      - MCP_TRANSPORT=http
+      
+      # Development settings - Enable all hot reload features
+      - MCP_HOT_RELOAD=true
+      - MCP_RELOAD_MODULES=true
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # FastMCP StreamableHTTP specific environment variables
+      - FASTMCP_STREAMABLE_HTTP_ALLOWED_ORIGINS=*
+      - STREAMABLE_HTTP_ALLOW_ALL_ORIGINS=true
+      - MCP_HTTP_ALLOWED_ORIGINS=*
+      - MCP_STREAMABLE_HTTP_ORIGINS=*
+      - FASTMCP_ALLOWED_ORIGINS=*
+      - DISABLE_ORIGIN_CHECK=true
+      - MCP_DISABLE_ORIGIN_CHECK=true
+      - STREAMABLE_HTTP_DISABLE_CORS=true
+    depends_on:
+      # - so1
+      - traefik
+    labels:
+      # Enable Traefik for this service
+      - "traefik.enable=true"
+      
+      # HTTP router for MCP server (Streamable HTTP transport)
+      - "traefik.http.routers.mcp-server.rule=PathPrefix(`/mcp/`)"
+      - "traefik.http.routers.mcp-server.entrypoints=mcp"
+      - "traefik.http.routers.mcp-server.service=mcp-server"
+      
+      # Service definition pointing to container port 8000
+      - "traefik.http.services.mcp-server.loadbalancer.server.port=8000"
+      
+      # Add middleware for CORS headers (important for web clients)
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
+      - "traefik.http.middlewares.mcp-cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
+    develop:
+        watch:
+          # Watch all source files and sync them - fine-grained watching
+          - path: ./src/tools
+            action: sync
+            target: /app/src/tools
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+              - "**/.pytest_cache"
+          # Watch core framework files
+          - path: ./src/core
+            action: sync
+            target: /app/src/core
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+          # Watch contrib folder for community tools
+          - path: ./contrib
+            action: sync
+            target: /app/contrib
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+          # Watch client and other source files
+          - path: ./src/client
+            action: sync
+            target: /app/src/client
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+          # Watch server.py specifically
+          - path: ./src/server.py
+            action: sync
+            target: /app/src/server.py
+          # Rebuild on configuration changes
+          - path: ./pyproject.toml
+            action: rebuild
+          # Rebuild on Dockerfile changes
+          - path: ./Dockerfile
+            action: rebuild
+
+  # # Splunk Enterprise (existing configuration)
+  # so1:
+  #   networks:
+  #     splunk-network:
+  #       aliases:
+  #         - so1
+  #   image: ${SPLUNK_IMAGE:-splunk/splunk:latest}
+  #   platform: linux/amd64
+  #   hostname: so1
+  #   container_name: so1
+  #   restart: unless-stopped
+  #   environment:
+  #     - SPLUNK_START_ARGS=--accept-license
+  #     - SPLUNK_HEC_TOKEN=26898dec-83d1-49f1-b06e-90eabff7f543
+  #     - SPLUNK_PASSWORD=Chang3d!
+  #   ports:
+  #     - "9000:8000"   # Splunk Web UI
+  #     - "8088:8088"   # HEC
+  #     - "8089:8089"   # Management port
+  #   volumes:
+  #     - ./lic/splunk.lic:/tmp/license/splunk.lic
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-s", "-k", "https://localhost:8089/services/server/info"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 120s 

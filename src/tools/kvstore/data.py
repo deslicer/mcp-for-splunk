@@ -17,7 +17,12 @@ class GetKvstoreData(BaseTool):
 
     METADATA = ToolMetadata(
         name="get_kvstore_data",
-        description="Retrieve data from a KV Store collection with optional filtering",
+        description=(
+            "Retrieves data from a specific KV Store collection with optional MongoDB-style query filtering. "
+            "KV Store collections contain structured data that can be queried and filtered. Supports "
+            "complex queries for finding specific records, filtering by field values, and extracting "
+            "lookup data for analysis or enrichment purposes."
+        ),
         category="kvstore",
         tags=["kvstore", "data", "query", "storage"],
         requires_connection=True,

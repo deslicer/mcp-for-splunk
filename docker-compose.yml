@@ -104,6 +104,10 @@ services:
       - MCP_SERVER_PORT=8000
       # Enable HTTP transport for inspector connectivity
       - MCP_TRANSPORT=http
+      # Enable hot reload in development
+      - MCP_HOT_RELOAD=true
+      - MCP_RELOAD_MODULES=true
+      - PYTHONPATH=/app
       # FastMCP StreamableHTTP specific environment variables
       - FASTMCP_STREAMABLE_HTTP_ALLOWED_ORIGINS=*
       - STREAMABLE_HTTP_ALLOW_ALL_ORIGINS=true
@@ -136,6 +140,7 @@ services:
       - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
     develop:
         watch:
+          # Watch all source files and sync them
           - path: ./src
             action: sync
             target: /app/src
@@ -146,7 +151,19 @@ services:
               - "**/.pytest_cache"
               - "**/venv"
               - "**/.venv"
+          # Watch contrib folder for community tools
+          - path: ./contrib
+            action: sync
+            target: /app/contrib
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+          # Rebuild on configuration changes
           - path: ./pyproject.toml
+            action: rebuild
+          # Rebuild on Dockerfile changes
+          - path: ./Dockerfile
             action: rebuild
 
 

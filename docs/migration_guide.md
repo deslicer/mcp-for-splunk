@@ -74,7 +74,7 @@ Test the new modular server with your existing configuration:
 
 ```bash
 # Run modular server (same .env file)
-python src/server_new.py
+python src/server.py
 
 # Or test with the current server.py (already updated)
 python src/server.py

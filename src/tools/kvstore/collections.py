@@ -18,7 +18,12 @@ class ListKvstoreCollections(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_kvstore_collections",
-        description="List all KV Store collections with optional app filtering",
+        description=(
+            "Lists all KV Store collections available in the Splunk environment. KV Store collections "
+            "are NoSQL data stores used for lookups, storing persistent data, and caching information. "
+            "Returns collection names, associated apps, and configuration details. Useful for discovering "
+            "available lookup data and understanding data persistence architecture."
+        ),
         category="kvstore",
         tags=["kvstore", "collections", "storage"],
         requires_connection=True,
