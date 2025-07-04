@@ -36,8 +36,8 @@ class TestRunSplunkSearchParameters(unittest.TestCase):
         if include_optional:
             return RunSplunkSearchParameters(
                 query = '',
-                earliest_time = '"-24h"',
-                latest_time = '"now"'
+                earliest_time = "-24h",
+                latest_time = "now"
             )
         else:
             return RunSplunkSearchParameters(

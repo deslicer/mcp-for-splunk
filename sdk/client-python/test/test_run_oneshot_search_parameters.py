@@ -36,8 +36,8 @@ class TestRunOneshotSearchParameters(unittest.TestCase):
         if include_optional:
             return RunOneshotSearchParameters(
                 query = '',
-                earliest_time = '"-15m"',
-                latest_time = '"now"',
+                earliest_time = "-15m",
+                latest_time = "now",
                 max_results = 56
             )
         else:

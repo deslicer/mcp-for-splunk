@@ -27,8 +27,8 @@ class RunSplunkSearchParameters(BaseModel):
     RunSplunkSearchParameters
     """ # noqa: E501
     query: StrictStr
-    earliest_time: Optional[StrictStr] = '"-24h"'
-    latest_time: Optional[StrictStr] = '"now"'
+    earliest_time: Optional[StrictStr] = "-24h"
+    latest_time: Optional[StrictStr] = "now"
     __properties: ClassVar[List[str]] = ["query", "earliest_time", "latest_time"]
 
     model_config = ConfigDict(
@@ -83,8 +83,8 @@ class RunSplunkSearchParameters(BaseModel):
 
         _obj = cls.model_validate({
             "query": obj.get("query"),
-            "earliest_time": obj.get("earliest_time") if obj.get("earliest_time") is not None else '"-24h"',
-            "latest_time": obj.get("latest_time") if obj.get("latest_time") is not None else '"now"'
+            "earliest_time": obj.get("earliest_time") if obj.get("earliest_time") is not None else "-24h",
+            "latest_time": obj.get("latest_time") if obj.get("latest_time") is not None else "now"
         })
         return _obj
 

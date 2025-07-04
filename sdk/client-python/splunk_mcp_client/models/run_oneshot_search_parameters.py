@@ -27,8 +27,8 @@ class RunOneshotSearchParameters(BaseModel):
     RunOneshotSearchParameters
     """ # noqa: E501
     query: StrictStr
-    earliest_time: Optional[StrictStr] = '"-15m"'
-    latest_time: Optional[StrictStr] = '"now"'
+    earliest_time: Optional[StrictStr] = "-15m"
+    latest_time: Optional[StrictStr] = "now"
     max_results: Optional[StrictInt] = None
     __properties: ClassVar[List[str]] = ["query", "earliest_time", "latest_time", "max_results"]
 
@@ -84,8 +84,8 @@ class RunOneshotSearchParameters(BaseModel):
 
         _obj = cls.model_validate({
             "query": obj.get("query"),
-            "earliest_time": obj.get("earliest_time") if obj.get("earliest_time") is not None else '"-15m"',
-            "latest_time": obj.get("latest_time") if obj.get("latest_time") is not None else '"now"',
+            "earliest_time": obj.get("earliest_time") if obj.get("earliest_time") is not None else "-15m",
+            "latest_time": obj.get("latest_time") if obj.get("latest_time") is not None else "now",
             "max_results": obj.get("max_results")
         })
         return _obj
