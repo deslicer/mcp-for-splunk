@@ -6,6 +6,7 @@ This module contains the core tools maintained by the project team.
 
 # Import all core tools to make them discoverable
 from .admin import *
+from .alerts import *
 from .health import *
 from .kvstore import *
 from .metadata import *
@@ -32,6 +33,8 @@ __all__ = [
     "ListUsers",
     "GetConfigurations", 
     "ToolDescriptionEnhancer",
+    # Alerts tools
+    "ListTriggeredAlerts",
     # KV Store tools
     "ListKvstoreCollections",
     "GetKvstoreData",
