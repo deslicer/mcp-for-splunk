@@ -32,7 +32,20 @@ class GetLatestFeatureHealthTool(BaseTool):
 
     METADATA = ToolMetadata(
         name="get_latest_feature_health",
-        description="This tool identifies Splunk features with health issues (warning/critical status) requiring attention",
+        description="""This tool searches the internal Splunk index (index=_internal) and returns only features with health issues.
+
+    The tool filters for features that require attention:
+    - warning (yellow): Feature has minor issues or degraded performance
+    - critical (red): Feature has serious issues requiring immediate attention
+
+    Features with healthy (green) status are excluded from results to focus on actionable items.
+
+    This tool provides functionality for:
+    - Identifying Splunk features that currently have issues requiring attention
+    - Troubleshooting infrastructure problems by focusing on degraded/critical features
+    - Getting a prioritized list of features that need immediate investigation
+    - Monitoring for operational issues without noise from healthy features
+    - No results are returned if there are no issues""",
         category="health",
         tags=["health", "monitoring", "infrastructure", "troubleshooting", "issues"],
         requires_connection=True,
