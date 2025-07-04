@@ -286,57 +286,40 @@ docker compose version
 - **macOS:** Pre-installed or `brew install curl`
 - **Linux:** `sudo apt install curl` or `sudo dnf install curl`
 
-### ✅ **Verification Script**
+### ✅ **Prerequisites Verification**
 
-Run this script to verify all prerequisites are correctly installed:
+We've included comprehensive scripts to verify all prerequisites are correctly installed:
 
 #### **Windows (PowerShell):**
 ```powershell
-# Save as check-prerequisites.ps1
-Write-Host "🔍 Checking Prerequisites..." -ForegroundColor Cyan
+# Run the prerequisites checker
+.\scripts\check-prerequisites.ps1
 
-$requirements = @{
-    "Python" = { python --version }
-    "UV" = { uv --version }
-    "Node.js" = { node --version }
-    "NPM" = { npm --version }
-    "Docker" = { docker --version }
-    "Git" = { git --version }
-}
+# For detailed information including installation paths
+.\scripts\check-prerequisites.ps1 -Detailed
 
-foreach ($tool in $requirements.Keys) {
-    try {
-        $version = & $requirements[$tool] 2>$null
-        Write-Host "✅ $tool`: $version" -ForegroundColor Green
-    } catch {
-        Write-Host "❌ $tool`: Not installed" -ForegroundColor Red
-    }
-}
+# For help and usage information
+.\scripts\check-prerequisites.ps1 -Help
 ```
 
 #### **macOS/Linux (Bash):**
 ```bash
-#!/bin/bash
-# Save as check-prerequisites.sh
+# Run the prerequisites checker
+./scripts/check-prerequisites.sh
 
-echo "🔍 Checking Prerequisites..."
+# For detailed information including installation paths
+./scripts/check-prerequisites.sh --detailed
 
-check_command() {
-    if command -v $1 &> /dev/null; then
-        version=$($1 --version 2>/dev/null | head -n1)
-        echo "✅ $1: $version"
-    else
-        echo "❌ $1: Not installed"
-    fi
-}
-
-check_command python3
-check_command uv
-check_command node
-check_command npm
-check_command docker
-check_command git
+# For help and usage information
+./scripts/check-prerequisites.sh --help
 ```
+
+**The verification scripts will:**
+- ✅ Check all required and optional tools
+- 📊 Show system information (OS, architecture, available space)
+- 🎯 Provide specific installation commands for missing tools
+- 🔧 Detect your package manager and suggest appropriate commands
+- 📋 Give you a clear summary of what needs to be installed
 
 ### 🎯 **Quick Setup Commands**
 
@@ -745,6 +728,7 @@ The MCP Inspector is perfect for testing different Splunk configurations:
 | Document | Description |
 |----------|-------------|
 | **[Architecture Guide](ARCHITECTURE.md)** | Detailed architecture overview |
+| **[Windows Setup Guide](docs/WINDOWS_GUIDE.md)** | Complete Windows installation and troubleshooting |
 | **[Contribution Guide](contrib/README.md)** | How to contribute tools and resources |
 | **[Docker Guide](DOCKER.md)** | Container deployment and configuration |
 | **[Testing Guide](TESTING.md)** | Comprehensive testing documentation |
