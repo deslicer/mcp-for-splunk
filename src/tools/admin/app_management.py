@@ -23,7 +23,28 @@ class ManageApps(BaseTool):
 
     METADATA = ToolMetadata(
         name="manage_apps",
-        description="Enable, disable, or restart Splunk applications",
+        description=(
+            "Manage Splunk application lifecycle operations including enable, disable, restart, "
+            "and reload actions. This tool provides essential app management capabilities for "
+            "maintaining Splunk environments, troubleshooting app issues, and controlling app "
+            "availability. Operations affect app state and may require Splunk restart for "
+            "some changes to take effect.\n\n"
+            "Args:\n"
+            "    action (str): Management action to perform. Valid options:\n"
+            "        - 'enable': Activate the application\n"
+            "        - 'disable': Deactivate the application\n"
+            "        - 'restart': Disable then enable the application\n"
+            "        - 'reload': Refresh application configuration\n"
+            "    app_name (str): Name of the Splunk application to manage. Examples:\n"
+            "        - 'search': Core Splunk Search app\n"
+            "        - 'splunk_monitoring_console': Monitoring Console\n"
+            "        - 'my_custom_app': Custom business applications\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- action: The performed action\n"
+            "- app_name: The target application name\n"
+            "- result: Action-specific status and configuration details"
+        ),
         category="admin",
         tags=["apps", "administration", "management", "actions"],
         requires_connection=True,

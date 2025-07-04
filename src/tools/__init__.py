@@ -30,7 +30,8 @@ __all__ = [
     # Admin tools
     "ListApps",
     "ListUsers",
-    "GetConfigurations",
+    "GetConfigurations", 
+    "ToolDescriptionEnhancer",
     # KV Store tools
     "ListKvstoreCollections",
     "GetKvstoreData",

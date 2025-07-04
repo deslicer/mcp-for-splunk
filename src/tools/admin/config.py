@@ -21,7 +21,12 @@ class GetConfigurations(BaseTool):
             "Retrieves Splunk configuration settings from specified .conf files. "
             "Access settings from any Splunk configuration file (props.conf, transforms.conf, "
             "inputs.conf, outputs.conf, etc.) either by entire file or specific stanza. "
-            "Returns structured configuration data showing all settings and their values."
+            "Returns structured configuration data showing all settings and their values.\n\n"
+            "Args:\n"
+            "    conf_file (str): Configuration file name without .conf extension "
+            "(e.g., 'props', 'transforms', 'inputs', 'outputs', 'server', 'web')\n"
+            "    stanza (str, optional): Specific stanza name within the conf file to retrieve. "
+            "If not provided, returns all stanzas in the file."
         ),
         category="admin",
         tags=["configuration", "settings", "administration"],
@@ -72,3 +77,5 @@ class GetConfigurations(BaseTool):
             self.logger.error(f"Failed to get configurations: {str(e)}")
             ctx.error(f"Failed to get configurations: {str(e)}")
             return self.format_error_response(str(e))
+
+

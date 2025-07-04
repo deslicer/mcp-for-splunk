@@ -19,7 +19,23 @@ class ListSources(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_sources",
-        description="List all available data sources from the configured Splunk instance",
+        description=(
+            "Discover and enumerate all available data sources from the configured Splunk instance "
+            "using the metadata command. This tool provides a comprehensive inventory of data sources "
+            "across all indexes, helping with data discovery, troubleshooting, and understanding "
+            "the data landscape in your Splunk environment. Sources represent the origin points "
+            "of data such as log files, network streams, databases, and other data inputs.\n\n"
+            "Use Cases:\n"
+            "- Data discovery and cataloging\n"
+            "- Troubleshooting missing data sources\n"
+            "- Understanding data flow and origins\n"
+            "- Planning data retention and archival\n"
+            "- Security analysis and audit trails\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- sources: Sorted array of all data source paths/identifiers\n"
+            "- count: Total number of unique sources discovered"
+        ),
         category="metadata",
         tags=["sources", "metadata", "discovery"],
         requires_connection=True,

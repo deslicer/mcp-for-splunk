@@ -17,7 +17,17 @@ class ListUsers(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_users",
-        description="List all Splunk users and their properties",
+        description=(
+            "Retrieve comprehensive inventory of all Splunk users and their properties. "
+            "Returns detailed user information including usernames, real names, email addresses, "
+            "assigned roles, user types, and default applications. Essential for user management, "
+            "security audits, role assignments, and understanding user access patterns in "
+            "enterprise Splunk environments. Supports both local and LDAP-integrated users.\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field indicating success/error and 'data' containing:\n"
+            "- count: Total number of users found\n"
+            "- users: Array of user objects with username, realname, email, roles, type, and defaultApp"
+        ),
         category="admin",
         tags=["users", "administration", "management"],
         requires_connection=True,
