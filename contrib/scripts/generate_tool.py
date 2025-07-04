@@ -368,11 +368,40 @@ def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
         for param in info["custom_params"]:
             param_name = param["name"]
             param_type = param["type"]
-            param_default = (
-                param["default"]
-                if param["default"]
-                else {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[param_type]
-            )
+
+            # Handle default values with proper formatting
+            if param["default"]:
+                param_default = param["default"]
+                # Validate and format default values based on type
+                if param_type == "str":
+                    # Ensure string defaults are properly quoted
+                    if not (param_default.startswith('"') and param_default.endswith('"')):
+                        param_default = f'"{param_default}"'
+                elif param_type == "bool":
+                    # Validate boolean values
+                    if param_default.lower() in ["true", "1", "yes"]:
+                        param_default = "True"
+                    elif param_default.lower() in ["false", "0", "no"]:
+                        param_default = "False"
+                    else:
+                        param_default = "False"  # Default to False if invalid
+                elif param_type == "int":
+                    # Validate integer values
+                    try:
+                        int(param_default)
+                    except ValueError:
+                        param_default = "0"  # Default to 0 if invalid
+                elif param_type == "float":
+                    # Validate float values
+                    try:
+                        float(param_default)
+                    except ValueError:
+                        param_default = "0.0"  # Default to 0.0 if invalid
+            else:
+                # Use type-appropriate defaults when no value provided
+                param_default = {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[
+                    param_type
+                ]
 
             type_hint = {"str": "str", "int": "int", "bool": "bool", "float": "float"}[param_type]
 
@@ -382,7 +411,7 @@ def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
 
         custom_params_str = ", " + ", ".join(param_parts)
         custom_params_docstring = "\n" + "\n".join(doc_parts)
-        custom_params_logging = ", " + "=".join([f"{p}={p}" for p in log_parts])
+        custom_params_logging = ", " + ", ".join([f"{p}={p}" for p in log_parts])
 
     template = f'''"""
 {info["description"]}
