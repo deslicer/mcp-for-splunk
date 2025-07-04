@@ -27,7 +27,7 @@ class GetConfigurationsParameters(BaseModel):
     GetConfigurationsParameters
     """ # noqa: E501
     conf_file: StrictStr = Field(description="Configuration file name without .conf extension (e.g., 'props', 'transforms', 'inputs', 'outputs', 'server', 'web')")
-    stanza: Optional[StrictStr] = Field(default='None', description="Specific stanza name within the conf file to retrieve. If not provided, returns all stanzas in the file.")
+    stanza: Optional[StrictStr] = Field(default=None, description="Specific stanza name within the conf file to retrieve. If not provided, returns all stanzas in the file.")
     __properties: ClassVar[List[str]] = ["conf_file", "stanza"]
 
     model_config = ConfigDict(
@@ -82,7 +82,7 @@ class GetConfigurationsParameters(BaseModel):
 
         _obj = cls.model_validate({
             "conf_file": obj.get("conf_file"),
-            "stanza": obj.get("stanza") if obj.get("stanza") is not None else 'None'
+            "stanza": obj.get("stanza")
         })
         return _obj
 
