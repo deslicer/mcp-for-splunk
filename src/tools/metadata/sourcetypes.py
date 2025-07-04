@@ -19,7 +19,24 @@ class ListSourcetypes(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_sourcetypes",
-        description="List all available sourcetypes from the configured Splunk instance",
+        description=(
+            "Discover and enumerate all available sourcetypes from the configured Splunk instance "
+            "using the metadata command. Sourcetypes define how Splunk interprets and processes "
+            "different types of data, controlling parsing rules, field extractions, and indexing "
+            "behavior. This tool returns a comprehensive list of sourcetypes present in your "
+            "Splunk environment, essential for data modeling and search optimization.\n\n"
+            "Use Cases:\n"
+            "- Data modeling and CIM compliance\n"
+            "- Understanding data variety and formats\n"
+            "- Troubleshooting parsing and extraction issues\n"
+            "- Planning data preprocessing and transformations\n"
+            "- Security analysis and event correlation\n"
+            "- Building comprehensive search queries\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- sourcetypes: Sorted array of all sourcetype identifiers\n"
+            "- count: Total number of unique sourcetypes discovered"
+        ),
         category="metadata",
         tags=["sourcetypes", "metadata", "discovery"],
         requires_connection=True,

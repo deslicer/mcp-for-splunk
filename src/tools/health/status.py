@@ -20,13 +20,27 @@ class GetSplunkHealth(BaseTool):
     METADATA = ToolMetadata(
         name="get_splunk_health",
         description=(
-            "🔍 UPDATED: Checks Splunk server connectivity and returns health status information including "
-            "server version, connection status, and system information. Can use server-configured "
-            "connection or accept custom connection parameters for testing different Splunk instances. "
-            "This description was updated to test hot reload functionality!"
+            "Check Splunk server connectivity and return comprehensive health status information "
+            "including server version, connection status, and system information. Supports both "
+            "server-configured connections and custom connection parameters for testing different "
+            "Splunk instances. Essential for connectivity troubleshooting and server validation.\\n\\n"
+            "Args:\\n"
+            "    splunk_host (str, optional): Splunk server hostname or IP address "
+            "(e.g., 'localhost', 'splunk.example.com', '10.1.1.100')\\n"
+            "    splunk_port (int, optional): Splunk management port, typically 8089 "
+            "(e.g., 8089, 8000, 9997)\\n"
+            "    splunk_username (str, optional): Splunk username for authentication "
+            "(e.g., 'admin', 'splunk', 'analyst')\\n"
+            "    splunk_password (str, optional): Splunk password for authentication\\n"
+            "    splunk_scheme (str, optional): Connection scheme - 'http' or 'https'\\n"
+            "    splunk_verify_ssl (bool, optional): Whether to verify SSL certificates\\n\\n"
+            "Note: If connection parameters are not provided, uses the server's configured connection.\\n\\n"
+            "Response Format:\\n"
+            "Returns dictionary with 'status', 'version', 'server_name', and 'connection_source' fields. "
+            "Status can be 'connected' or 'error'."
         ),
         category="health",
-        tags=["health", "status", "monitoring", "hot-reload-test"],
+        tags=["health", "status", "monitoring", "connectivity"],
         requires_connection=False,  # This tool should work even when connection is down
     )
 

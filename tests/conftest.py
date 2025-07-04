@@ -104,6 +104,69 @@ class MockSplunkService:
 
         # Mock configurations
         self.confs = {}
+        
+        # Mock configuration files with stanzas
+        self._setup_mock_configurations()
+
+    def _setup_mock_configurations(self):
+        """Set up mock configuration files with stanzas"""
+        # Mock configuration stanzas for different conf files
+        mock_configs = {
+            "props": {
+                "default": {"SHOULD_LINEMERGE": "true", "BREAK_ONLY_BEFORE_DATE": "true"},
+                "source::/var/log/messages": {"sourcetype": "linux_messages_syslog"},
+                "splunk_web_access": {"EXTRACT-status": r"(?i)\s(?P<status>\d+)\s"},
+            },
+            "transforms": {
+                "force_sourcetype_for_syslog": {"DEST_KEY": "_MetaData:Sourcetype", "FORMAT": "syslog"},
+                "dnslookup": {"external_cmd": "dnslookup.py", "fields_list": "clientip"},
+            },
+            "tags": {
+                "eventtype=failed_login": {"authentication": "enabled", "failure": "enabled"},
+                "sourcetype=syslog": {"os": "enabled", "unix": "enabled"},
+            },
+            "macros": {
+                "get_eventtype(1)": {"definition": "eventtype=\"$eventtype$\"", "args": "eventtype"},
+                "index_earliest": {"definition": "earliest=-24h@h"},
+            },
+            "inputs": {
+                "default": {"host": "$decideOnStartup"},
+                "monitor:///var/log/messages": {"sourcetype": "linux_messages_syslog", "disabled": "false"},
+            },
+            "outputs": {
+                "tcpout": {"defaultGroup": "splunk_indexers", "disabled": "false"},
+                "tcpout:splunk_indexers": {"server": "10.1.1.100:9997", "compressed": "true"},
+            },
+            "server": {
+                "general": {"serverName": "splunk-server", "sessionTimeout": "1h"},
+                "license": {"active_group": "Enterprise"},
+            },
+            "web": {
+                "settings": {"httpport": "8000", "mgmtHostPort": "127.0.0.1:8089"},
+                "feature:quarantine_files": {"enable": "true"},
+            },
+        }
+
+        # Create mock configuration objects
+        for conf_name, stanzas in mock_configs.items():
+            mock_conf = Mock()
+            mock_conf.name = conf_name
+            
+            # Create mock stanza objects
+            mock_stanzas = []
+            for stanza_name, content in stanzas.items():
+                mock_stanza = Mock()
+                mock_stanza.name = stanza_name
+                mock_stanza.content = content
+                mock_stanzas.append(mock_stanza)
+            
+            # Make the conf object iterable to return stanzas
+            mock_conf.__iter__ = lambda stanzas=mock_stanzas: iter(stanzas)
+            
+            # Allow accessing specific stanzas by name
+            mock_conf.__getitem__ = lambda key, stanzas_dict=stanzas: Mock(name=key, content=stanzas_dict.get(key, {}))
+            
+            self.confs[conf_name] = mock_conf
 
 
 class MockJob:

@@ -221,11 +221,31 @@ def get_tool_info() -> dict[str, str]:
 
         if use_custom_params:
             print("\n6. Custom Parameters")
-            print("Add custom parameters for your search (press Enter with empty name to finish):")
+
+            # First, ask how many parameters they want to add
             while True:
-                param_name = get_user_input("Parameter name (snake_case)", required=False)
-                if not param_name:
-                    break
+                try:
+                    num_params = int(
+                        get_user_input(
+                            "How many custom parameters do you want to add?", required=True
+                        )
+                    )
+                    if num_params < 0:
+                        print("Please enter a non-negative number")
+                        continue
+                    elif num_params == 0:
+                        print("No custom parameters will be added")
+                        break
+                    else:
+                        break
+                except ValueError:
+                    print("Please enter a valid number")
+
+            # Then collect that many parameters
+            for i in range(num_params):
+                print(f"\nParameter {i + 1} of {num_params}:")
+                param_name = get_user_input("Parameter name (snake_case)", required=True)
+
                 print(f"Type for {param_name}:")
                 print("   1. str")
                 print("   2. int")
@@ -243,6 +263,7 @@ def get_tool_info() -> dict[str, str]:
                             print("Please enter a number between 1 and 4")
                     except ValueError:
                         print("Please enter a valid number")
+
                 param_desc = get_user_input(f"Description for {param_name}", required=True)
                 param_default = get_user_input(
                     f"Default value for {param_name} (optional)", required=False
@@ -347,11 +368,40 @@ def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
         for param in info["custom_params"]:
             param_name = param["name"]
             param_type = param["type"]
-            param_default = (
-                param["default"]
-                if param["default"]
-                else {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[param_type]
-            )
+
+            # Handle default values with proper formatting
+            if param["default"]:
+                param_default = param["default"]
+                # Validate and format default values based on type
+                if param_type == "str":
+                    # Ensure string defaults are properly quoted
+                    if not (param_default.startswith('"') and param_default.endswith('"')):
+                        param_default = f'"{param_default}"'
+                elif param_type == "bool":
+                    # Validate boolean values
+                    if param_default.lower() in ["true", "1", "yes"]:
+                        param_default = "True"
+                    elif param_default.lower() in ["false", "0", "no"]:
+                        param_default = "False"
+                    else:
+                        param_default = "False"  # Default to False if invalid
+                elif param_type == "int":
+                    # Validate integer values
+                    try:
+                        int(param_default)
+                    except ValueError:
+                        param_default = "0"  # Default to 0 if invalid
+                elif param_type == "float":
+                    # Validate float values
+                    try:
+                        float(param_default)
+                    except ValueError:
+                        param_default = "0.0"  # Default to 0.0 if invalid
+            else:
+                # Use type-appropriate defaults when no value provided
+                param_default = {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[
+                    param_type
+                ]
 
             type_hint = {"str": "str", "int": "int", "bool": "bool", "float": "float"}[param_type]
 
@@ -361,7 +411,7 @@ def generate_splunk_search_tool_file(info: dict[str, str]) -> str:
 
         custom_params_str = ", " + ", ".join(param_parts)
         custom_params_docstring = "\n" + "\n".join(doc_parts)
-        custom_params_logging = ", " + "=".join([f"{p}={p}" for p in log_parts])
+        custom_params_logging = ", " + ", ".join([f"{p}={p}" for p in log_parts])
 
     template = f'''"""
 {info["description"]}

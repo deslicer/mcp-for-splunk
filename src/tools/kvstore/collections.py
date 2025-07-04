@@ -83,7 +83,28 @@ class CreateKvstoreCollection(BaseTool):
 
     METADATA = ToolMetadata(
         name="create_kvstore_collection",
-        description="Create a new KV Store collection with optional field definitions",
+        description=(
+            "Create a new KV Store collection in a specified Splunk application with optional "
+            "field definitions and configuration options. KV Store collections are NoSQL "
+            "document stores used for persistent data storage, lookups, and configuration "
+            "management. This tool enables creating structured data repositories with "
+            "defined schemas and indexing for optimal performance.\n\n"
+            "Args:\n"
+            "    app (str): Target Splunk application where the collection will be created. Examples:\n"
+            "        - 'search': Default search app\n"
+            "        - 'my_app': Custom application\n"
+            "        - 'splunk_monitoring_console': Monitoring console app\n"
+            "    collection (str): Name for the new collection (alphanumeric and underscores only). Examples:\n"
+            "        - 'users': User information store\n"
+            "        - 'configurations': Application settings\n"
+            "        - 'lookup_table': Data enrichment table\n"
+            "    fields (list[dict], optional): Field definitions specifying data types and constraints\n"
+            "    accelerated_fields (dict, optional): Index definitions for faster queries\n"
+            "    replicated (bool, optional): Whether to replicate across cluster (default: True)\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- collection: Created collection details with name, fields, acceleration, and replication settings"
+        ),
         category="kvstore",
         tags=["kvstore", "collections", "create", "storage"],
         requires_connection=True,

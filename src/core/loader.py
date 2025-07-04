@@ -421,7 +421,16 @@ Try using the discovery resource: `splunk-docs://discovery`
 
             # Check if this is a template resource
             if "{" in metadata.uri and "}" in metadata.uri:
-                # Template resource - register with special handling
+                # Skip template resources that are already handled by dynamic handlers
+                if any(pattern in metadata.uri for pattern in [
+                    "splunk-docs://{version}/troubleshooting/{topic}",
+                    "splunk-docs://{version}/spl-reference/{command}", 
+                    "splunk-docs://{version}/admin/{topic}"
+                ]):
+                    self.logger.debug(f"Skipping template resource {metadata.uri} - already handled by dynamic handlers")
+                    return 0
+                
+                # Handle other template resources (like config templates)
                 self._register_template_resource(resource_class, metadata.uri)
                 self._registered_resources[metadata.uri] = f"{resource_class.__name__} (template)"
                 self.logger.debug(f"Loaded template resource: {metadata.uri}")
