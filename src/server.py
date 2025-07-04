@@ -11,6 +11,7 @@ import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import time
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -316,6 +317,33 @@ def server_info() -> dict:
         "description": "Modular MCP Server providing Splunk integration",
         "status": "running",
     }
+
+
+# Hot reload endpoint for development
+@mcp.resource("debug://reload")
+def hot_reload() -> dict:
+    """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
+    if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
+        return {"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"}
+    
+    try:
+        # Get the component loader from the server context
+        # This is a simple approach - in production you'd want proper context management
+        logger.info("Triggering hot reload of MCP components...")
+        
+        # Create a new component loader and reload
+        component_loader = ComponentLoader(mcp)
+        results = component_loader.reload_all_components()
+        
+        return {
+            "status": "success",
+            "message": "Components hot reloaded successfully",
+            "results": results,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Hot reload failed: {e}")
+        return {"status": "error", "message": f"Hot reload failed: {str(e)}"}
 
 
 @mcp.resource("test://greeting/{name}")

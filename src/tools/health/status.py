@@ -20,12 +20,13 @@ class GetSplunkHealth(BaseTool):
     METADATA = ToolMetadata(
         name="get_splunk_health",
         description=(
-            "Checks Splunk server connectivity and returns health status information including "
+            "🔍 UPDATED: Checks Splunk server connectivity and returns health status information including "
             "server version, connection status, and system information. Can use server-configured "
-            "connection or accept custom connection parameters for testing different Splunk instances."
+            "connection or accept custom connection parameters for testing different Splunk instances. "
+            "This description was updated to test hot reload functionality!"
         ),
         category="health",
-        tags=["health", "status", "monitoring"],
+        tags=["health", "status", "monitoring", "hot-reload-test"],
         requires_connection=False,  # This tool should work even when connection is down
     )
 

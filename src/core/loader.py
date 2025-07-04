@@ -7,6 +7,8 @@ with the FastMCP server instance.
 
 import inspect
 import logging
+import sys
+import os
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -25,6 +27,62 @@ class ToolLoader:
     def __init__(self, mcp_server: FastMCP):
         self.mcp_server = mcp_server
         self.logger = logging.getLogger(f"{__name__}.ToolLoader")
+        self._loaded_tools = {}  # Track loaded tools for reload functionality
+
+    def reload_tools(self) -> int:
+        """
+        Reload all tools by clearing cache and rediscovering.
+        Useful for development hot reload.
+        """
+        self.logger.info("Hot reloading tools...")
+        
+        # Clear the tool registry to force rediscovery
+        tool_registry._tools.clear()
+        tool_registry._metadata.clear() 
+        tool_registry._instances.clear()
+        
+        # Clear our tracking
+        self._loaded_tools.clear()
+        
+        # Reload tool modules if in development mode
+        if os.environ.get("MCP_RELOAD_MODULES", "false").lower() == "true":
+            self._reload_tool_modules()
+        
+        # Rediscover and load tools
+        return self.load_tools()
+    
+    def _reload_tool_modules(self):
+        """Reload Python modules containing tools to pick up changes."""
+        import importlib
+        
+        # Get list of modules that might contain tools
+        tool_modules = [
+            "src.tools.admin.apps",
+            "src.tools.admin.config", 
+            "src.tools.admin.users",
+            "src.tools.admin.app_management",
+            "src.tools.health.status",
+            "src.tools.kvstore.collections",
+            "src.tools.kvstore.data",
+            "src.tools.metadata.indexes",
+            "src.tools.metadata.sources", 
+            "src.tools.metadata.sourcetypes",
+            "src.tools.search.oneshot_search",
+            "src.tools.search.job_search",
+            "src.tools.search.saved_search_tools",
+        ]
+        
+        reloaded_count = 0
+        for module_name in tool_modules:
+            try:
+                if module_name in sys.modules:
+                    self.logger.debug(f"Reloading module: {module_name}")
+                    importlib.reload(sys.modules[module_name])
+                    reloaded_count += 1
+            except Exception as e:
+                self.logger.warning(f"Failed to reload module {module_name}: {e}")
+        
+        self.logger.info(f"Reloaded {reloaded_count} tool modules")
 
     def _create_tool_wrapper(self, tool_class: type[BaseTool], tool_name: str):
         """Create a wrapper function for the tool that FastMCP can register."""
@@ -965,5 +1023,27 @@ class ComponentLoader:
 
         total_loaded = sum(results.values())
         self.logger.info(f"Loaded {total_loaded} total components: {results}")
+
+        return results
+    
+    def reload_all_components(self) -> dict[str, int]:
+        """
+        Hot reload all components for development.
+        
+        Returns:
+            Dict containing counts of reloaded components by type
+        """
+        self.logger.info("Hot reloading all components...")
+
+        # Reload all component types
+        tools_reloaded = self.tool_loader.reload_tools()
+        # Resources and prompts don't change descriptions as often, but we could add reload for them too
+        resources_loaded = self.resource_loader.load_resources()
+        prompts_loaded = self.prompt_loader.load_prompts()
+
+        results = {"tools": tools_reloaded, "resources": resources_loaded, "prompts": prompts_loaded}
+
+        total_reloaded = sum(results.values())
+        self.logger.info(f"Reloaded {total_reloaded} total components: {results}")
 
         return results

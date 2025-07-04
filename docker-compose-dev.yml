@@ -7,7 +7,7 @@ services:
   # Traefik reverse proxy and load balancer
   traefik:
     image: traefik:v3.0
-    container_name: traefik
+    container_name: traefik-dev
     restart: unless-stopped
     command:
       # Enable Docker provider
@@ -40,7 +40,7 @@ services:
   # MCP Inspector - Web-based debugging interface
   mcp-inspector:
     image: node:20-alpine
-    container_name: mcp-inspector
+    container_name: mcp-inspector-dev
     restart: unless-stopped
     working_dir: /app
     networks:
@@ -63,7 +63,7 @@ services:
       - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
     depends_on:
       - traefik
-      - mcp-server
+      - mcp-server-dev
     labels:
       # Enable Traefik for MCP Inspector
       - "traefik.enable=true"
@@ -83,31 +83,37 @@ services:
       - "traefik.http.middlewares.inspector-cors.headers.accesscontrolmaxage=100"
       - "traefik.http.routers.mcp-inspector.middlewares=inspector-cors"
 
-  # MCP Server for Splunk
-  mcp-server:
+  # MCP Server for Splunk (Development Version with Enhanced Hot Reload)
+  mcp-server-dev:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mcp-server
+    container_name: mcp-server-dev
     restart: unless-stopped
     networks:
       - splunk-network
     ports:
       - "8002:8000"       # MCP Server direct access (optional)
     environment:
+      # Splunk connection settings
       - SPLUNK_HOST=${SPLUNK_HOST:-so1}
       - SPLUNK_PORT=${SPLUNK_PORT:-8089}
       - SPLUNK_USERNAME=${SPLUNK_USERNAME:-admin}
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
+      
+      # MCP Server settings
       - MCP_SERVER_HOST=0.0.0.0
       - MCP_SERVER_PORT=8000
-      # Enable HTTP transport for inspector connectivity
       - MCP_TRANSPORT=http
-      # Enable hot reload in development
+      
+      # Development settings - Enable all hot reload features
       - MCP_HOT_RELOAD=true
       - MCP_RELOAD_MODULES=true
       - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
       # FastMCP StreamableHTTP specific environment variables
       - FASTMCP_STREAMABLE_HTTP_ALLOWED_ORIGINS=*
       - STREAMABLE_HTTP_ALLOW_ALL_ORIGINS=true
@@ -140,17 +146,23 @@ services:
       - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
     develop:
         watch:
-          # Watch all source files and sync them
-          - path: ./src
+          # Watch all source files and sync them - fine-grained watching
+          - path: ./src/tools
             action: sync
-            target: /app/src
+            target: /app/src/tools
             ignore:
               - "**/__pycache__"
               - "**/*.pyc"
               - "**/*.pyo"
               - "**/.pytest_cache"
-              - "**/venv"
-              - "**/.venv"
+          # Watch core framework files
+          - path: ./src/core
+            action: sync
+            target: /app/src/core
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
           # Watch contrib folder for community tools
           - path: ./contrib
             action: sync
@@ -159,13 +171,24 @@ services:
               - "**/__pycache__"
               - "**/*.pyc"
               - "**/*.pyo"
+          # Watch client and other source files
+          - path: ./src/client
+            action: sync
+            target: /app/src/client
+            ignore:
+              - "**/__pycache__"
+              - "**/*.pyc"
+              - "**/*.pyo"
+          # Watch server.py specifically
+          - path: ./src/server.py
+            action: sync
+            target: /app/src/server.py
           # Rebuild on configuration changes
           - path: ./pyproject.toml
             action: rebuild
           # Rebuild on Dockerfile changes
           - path: ./Dockerfile
             action: rebuild
-
 
   # # Splunk Enterprise (existing configuration)
   # so1:
@@ -193,4 +216,4 @@ services:
   #     interval: 30s
   #     timeout: 10s
   #     retries: 5
-  #     start_period: 120s
+  #     start_period: 120s 
