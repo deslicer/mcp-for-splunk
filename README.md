@@ -396,6 +396,42 @@ Once all prerequisites are installed:
 
 ---
 
+### 🔍 **First Time Setup - Check Prerequisites**
+
+**Before running any setup commands, we recommend verifying your system has all required prerequisites:**
+
+#### **Windows:**
+```powershell
+# Clone the repository
+git clone https://github.com/your-org/mcp-server-for-splunk.git
+cd mcp-server-for-splunk
+
+# Check prerequisites first
+.\scripts\check-prerequisites.ps1
+
+# If all requirements are met, proceed with setup
+.\scripts\build_and_run.ps1
+```
+
+#### **macOS/Linux:**
+```bash
+# Clone the repository
+git clone https://github.com/your-org/mcp-server-for-splunk.git
+cd mcp-server-for-splunk
+
+# Check prerequisites first
+./scripts/check-prerequisites.sh
+
+# If all requirements are met, proceed with setup
+./scripts/build_and_run.sh
+```
+
+> **💡 Smart Verification**: The prerequisites checker will tell you exactly what to install if anything is missing, with platform-specific commands and quick-install options.
+
+> **⚡ Auto-Install**: If you're missing only a few tools, the checker provides one-command install scripts for your platform.
+
+---
+
 ### Option 1: One-Command Setup (Recommended)
 
 **Linux/macOS:**

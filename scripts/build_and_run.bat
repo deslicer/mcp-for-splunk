@@ -1,60 +1,61 @@
 @echo off
-REM Build and Run MCP Server for Splunk - Windows Batch Wrapper
-REM This batch file calls the PowerShell version for compatibility
+REM MCP Server for Splunk - Windows Batch File Wrapper
+REM This script calls the PowerShell script for users who prefer Command Prompt
 
-echo.
-echo 🚀 MCP Server for Splunk - Windows Setup
-echo ========================================
-echo.
-echo This script will launch the PowerShell version of the build script.
+echo MCP Server for Splunk - Windows Setup
+echo =====================================
 echo.
 
 REM Check if PowerShell is available
 where powershell >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] PowerShell not found. Please install PowerShell or use the .ps1 script directly.
+if %errorlevel% neq 0 (
+    echo ERROR: PowerShell is not available on this system.
+    echo PowerShell is required to run this setup script.
     echo.
-    echo Download PowerShell from: https://aka.ms/powershell
-    echo Or run directly: .\scripts\build_and_run.ps1
+    echo Please install PowerShell or run the script directly:
+    echo   powershell -File .\scripts\build_and_run.ps1
+    echo.
     pause
     exit /b 1
 )
 
 REM Get the directory of this batch file
-set SCRIPT_DIR=%~dp0
-set PS_SCRIPT=%SCRIPT_DIR%build_and_run.ps1
+set "SCRIPT_DIR=%~dp0"
+set "PS_SCRIPT=%SCRIPT_DIR%build_and_run.ps1"
 
 REM Check if the PowerShell script exists
 if not exist "%PS_SCRIPT%" (
-    echo [ERROR] PowerShell script not found: %PS_SCRIPT%
-    echo.
+    echo ERROR: PowerShell script not found at: %PS_SCRIPT%
     echo Please ensure you're running this from the project root directory.
+    echo.
     pause
     exit /b 1
 )
 
-echo [INFO] Launching PowerShell script: %PS_SCRIPT%
+echo Launching PowerShell script...
 echo.
 
-REM Launch the PowerShell script with all arguments passed through
+REM Execute the PowerShell script with execution policy bypass
+REM Pass any command line arguments to the PowerShell script
 powershell -ExecutionPolicy Bypass -File "%PS_SCRIPT%" %*
 
-REM Check the exit code from PowerShell
-if %ERRORLEVEL% NEQ 0 (
+REM Capture the exit code from PowerShell
+set POWERSHELL_EXIT_CODE=%errorlevel%
+
+echo.
+if %POWERSHELL_EXIT_CODE% equ 0 (
+    echo Setup completed successfully!
+) else (
+    echo Setup encountered an error ^(exit code: %POWERSHELL_EXIT_CODE%^)
     echo.
-    echo [ERROR] PowerShell script failed with exit code: %ERRORLEVEL%
-    echo.
-    echo Troubleshooting tips:
-    echo - Ensure PowerShell execution policy allows script execution
-    echo - Run: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-    echo - Check if Python 3.10+ is installed
-    echo - Verify Docker Desktop is running (for Docker mode)
-    echo.
-    pause
-    exit /b %ERRORLEVEL%
+    echo Troubleshooting:
+    echo   1. Run as Administrator if you encounter permission issues
+    echo   2. Check prerequisites: .\scripts\check-prerequisites.ps1
+    echo   3. Try running PowerShell script directly: powershell -File .\scripts\build_and_run.ps1
 )
 
 echo.
-echo [SUCCESS] Setup completed successfully!
-echo.
-pause 
+echo Press any key to exit...
+pause >nul
+
+exit /b %POWERSHELL_EXIT_CODE% 
