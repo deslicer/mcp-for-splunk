@@ -222,7 +222,7 @@ if ($missingRequirements.Count -eq 0) {
     Write-Host "-" * 20
     
     foreach ($tip in $installationTips) {
-        if ($tip -match "($($missingRequirements -join '|'))") {
+        if ($tip -match "($($missingRequirements | ForEach-Object { [regex]::Escape($_) } | Join-String -Separator '|'))") {
             Write-Host $tip -ForegroundColor Cyan
         }
     }
@@ -238,7 +238,7 @@ if ($optionalMissing.Count -gt 0 -and $missingRequirements.Count -eq 0) {
     Write-Host "-" * 20
     
     foreach ($tip in $installationTips) {
-        if ($tip -match "($($optionalMissing -join '|'))") {
+        if ($tip -match "($($optionalMissing | ForEach-Object { [regex]::Escape($_) } | Join-String -Separator '|'))") {
             Write-Host $tip -ForegroundColor Cyan
         }
     }
