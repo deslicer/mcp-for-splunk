@@ -85,7 +85,7 @@ class SplunkTriageAgentTool(BaseTool):
 
     METADATA = ToolMetadata(
         name="execute_splunk_missing_data_troubleshooting",
-        description="Execute the official Splunk 'I can't find my data!' troubleshooting workflow with systematic diagnostic steps",
+        description="Execute the official Splunk 'I can't find my data!' troubleshooting workflow with systematic diagnostic steps and comprehensive step-by-step summary",
         category="troubleshooting"
     )
 
@@ -894,8 +894,10 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
             if hasattr(result, 'handoffs_occurred'):
                 logger.info(f"- Handoffs occurred: {result.handoffs_occurred}")
 
-            # Log conversation history for debugging
+            # Extract step-by-step analysis from conversation
             conversation_history = result.to_input_list()
+            step_summary = self._extract_step_summary(conversation_history, result.last_agent)
+            
             logger.debug(f"Conversation history ({len(conversation_history)} items):")
             for i, item in enumerate(conversation_history):
                 if isinstance(item, dict):
@@ -929,6 +931,7 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                 "routed_to_specialist": result.last_agent.name if result.last_agent else "No handoff occurred",
                 "analysis_steps": len(result.new_items),
                 "conversation_length": len(result.to_input_list()),
+                "step_summary": step_summary,
                 "execution_times": {
                     "total_execution_time": total_execution_time,
                     "workflow_execution_time": agent_execution_time
@@ -963,7 +966,25 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                 "workflow_type": "triage_system",
                 "error": error_msg,
                 "error_type": "workflow_execution_error",
-                "execution_time": execution_time
+                "execution_time": execution_time,
+                "step_summary": {
+                    "workflow_overview": {
+                        "initial_triage": "Failed during execution",
+                        "specialist_assigned": "None - execution failed",
+                        "total_conversation_turns": 0
+                    },
+                    "execution_summary": {
+                        "tools_used": 0,
+                        "diagnostic_steps_performed": 0,
+                        "key_findings_identified": 0,
+                        "recommendations_provided": 0,
+                        "routing_successful": False
+                    },
+                    "error_details": {
+                        "failure_point": "Agent execution",
+                        "error_message": error_msg
+                    }
+                }
             }
 
     def _create_missing_data_input(
@@ -1064,3 +1085,195 @@ Please analyze this issue and route to the appropriate specialist agent for deta
 
         logger.debug(f"Enhanced input created with {len(context_info)} context items")
         return enhanced_input
+
+    def _extract_step_summary(self, conversation_history: List[Dict], last_agent) -> Dict[str, Any]:
+        """
+        Extract a comprehensive step-by-step summary from the agent conversation.
+        
+        This method analyzes the conversation history to identify:
+        - Routing decisions made by the triage agent
+        - Tools called by specialists
+        - Key findings and diagnostics performed
+        - Actions taken and recommendations provided
+        
+        Args:
+            conversation_history: List of conversation messages
+            last_agent: The final agent that handled the request
+            
+        Returns:
+            Dict containing structured summary of steps taken
+        """
+        logger.debug("Extracting step summary from conversation history...")
+        
+        summary = {
+            "workflow_overview": {
+                "initial_triage": "Analyzed problem and routed to appropriate specialist",
+                "specialist_assigned": last_agent.name if last_agent else "No specialist assigned",
+                "total_conversation_turns": len(conversation_history)
+            },
+            "routing_decision": {
+                "decision_made": False,
+                "routing_rationale": "",
+                "target_specialist": ""
+            },
+            "tools_executed": [],
+            "diagnostic_steps": [],
+            "key_findings": [],
+            "recommendations": [],
+            "timeline": []
+        }
+        
+        current_step = 1
+        tools_called = set()
+        
+        for i, message in enumerate(conversation_history):
+            if not isinstance(message, dict):
+                continue
+                
+            role = message.get('role', '')
+            content = str(message.get('content', ''))
+            timestamp = i  # Use message index as relative timestamp
+            
+            # Track triage agent routing decisions
+            if role == 'assistant' and i < 3:  # Early messages are likely triage decisions
+                if any(keyword in content.lower() for keyword in [
+                    'transfer', 'route', 'handoff', 'specialist', 'missing data', 'inputs', 'performance'
+                ]):
+                    summary["routing_decision"]["decision_made"] = True
+                    summary["routing_decision"]["routing_rationale"] = content[:200] + "..." if len(content) > 200 else content
+                    
+                    # Extract target specialist
+                    if "missing data" in content.lower():
+                        summary["routing_decision"]["target_specialist"] = "Missing Data Specialist"
+                    elif "inputs" in content.lower():
+                        summary["routing_decision"]["target_specialist"] = "Inputs Specialist"
+                    elif "performance" in content.lower():
+                        summary["routing_decision"]["target_specialist"] = "Performance Specialist"
+                    elif "indexing" in content.lower():
+                        summary["routing_decision"]["target_specialist"] = "Indexing Specialist"
+                    elif "general" in content.lower():
+                        summary["routing_decision"]["target_specialist"] = "General Specialist"
+            
+            # Extract tool calls and function executions
+            if 'tool_calls' in message or 'function_call' in content.lower():
+                # Look for tool execution patterns
+                tool_patterns = [
+                    ('get_current_user_info', 'Retrieved current user information and permissions'),
+                    ('list_splunk_indexes', 'Listed available Splunk indexes'),
+                    ('get_splunk_health', 'Checked Splunk server health status'),
+                    ('run_splunk_search', 'Executed Splunk search query'),
+                    ('list_sources', 'Listed available data sources'),
+                    ('list_sourcetypes', 'Listed available sourcetypes'),
+                    ('list_triggered_alerts', 'Checked triggered alerts')
+                ]
+                
+                for tool_name, description in tool_patterns:
+                    if tool_name in content.lower() and tool_name not in tools_called:
+                        tools_called.add(tool_name)
+                        summary["tools_executed"].append({
+                            "step": current_step,
+                            "tool": tool_name,
+                            "description": description,
+                            "timestamp": timestamp
+                        })
+                        current_step += 1
+            
+            # Extract diagnostic steps from assistant messages
+            if role == 'assistant' and len(content) > 50:
+                # Look for diagnostic step patterns
+                step_indicators = [
+                    'checking', 'analyzing', 'investigating', 'examining', 'verifying',
+                    'step 1', 'step 2', 'step 3', 'first', 'next', 'then', 'finally'
+                ]
+                
+                if any(indicator in content.lower() for indicator in step_indicators):
+                    # Extract the key diagnostic action
+                    sentences = content.split('.')[:3]  # First few sentences
+                    diagnostic_action = '. '.join(sentences).strip()
+                    
+                    if len(diagnostic_action) > 20:  # Avoid very short fragments
+                        summary["diagnostic_steps"].append({
+                            "step": len(summary["diagnostic_steps"]) + 1,
+                            "action": diagnostic_action,
+                            "timestamp": timestamp
+                        })
+            
+            # Extract key findings
+            finding_keywords = [
+                'found', 'discovered', 'identified', 'detected', 'observed',
+                'results show', 'analysis reveals', 'indicates that'
+            ]
+            
+            if role == 'assistant' and any(keyword in content.lower() for keyword in finding_keywords):
+                # Extract findings
+                sentences = content.split('.')
+                for sentence in sentences:
+                    if any(keyword in sentence.lower() for keyword in finding_keywords):
+                        finding = sentence.strip()
+                        if len(finding) > 20 and finding not in [f["finding"] for f in summary["key_findings"]]:
+                            summary["key_findings"].append({
+                                "finding": finding,
+                                "timestamp": timestamp
+                            })
+                            break
+            
+            # Extract recommendations
+            recommendation_keywords = [
+                'recommend', 'suggest', 'should', 'try', 'consider',
+                'next steps', 'action items', 'to resolve'
+            ]
+            
+            if role == 'assistant' and any(keyword in content.lower() for keyword in recommendation_keywords):
+                sentences = content.split('.')
+                for sentence in sentences:
+                    if any(keyword in sentence.lower() for keyword in recommendation_keywords):
+                        recommendation = sentence.strip()
+                        if len(recommendation) > 20 and recommendation not in [r["recommendation"] for r in summary["recommendations"]]:
+                            summary["recommendations"].append({
+                                "recommendation": recommendation,
+                                "timestamp": timestamp
+                            })
+                            break
+        
+        # Create timeline summary
+        all_activities = []
+        
+        # Add routing decision
+        if summary["routing_decision"]["decision_made"]:
+            all_activities.append({
+                "step": "Triage & Routing",
+                "description": f"Analyzed problem and routed to {summary['routing_decision']['target_specialist']}",
+                "timestamp": 0
+            })
+        
+        # Add tool executions
+        for tool in summary["tools_executed"]:
+            all_activities.append({
+                "step": f"Tool Execution",
+                "description": tool["description"],
+                "timestamp": tool["timestamp"]
+            })
+        
+        # Add diagnostic steps
+        for step in summary["diagnostic_steps"]:
+            all_activities.append({
+                "step": f"Diagnostic Step {step['step']}",
+                "description": step["action"][:100] + "..." if len(step["action"]) > 100 else step["action"],
+                "timestamp": step["timestamp"]
+            })
+        
+        # Sort by timestamp and create timeline
+        all_activities.sort(key=lambda x: x["timestamp"])
+        summary["timeline"] = all_activities
+        
+        # Add summary statistics
+        summary["execution_summary"] = {
+            "tools_used": len(summary["tools_executed"]),
+            "diagnostic_steps_performed": len(summary["diagnostic_steps"]),
+            "key_findings_identified": len(summary["key_findings"]),
+            "recommendations_provided": len(summary["recommendations"]),
+            "routing_successful": summary["routing_decision"]["decision_made"]
+        }
+        
+        logger.info(f"Step summary extracted: {summary['execution_summary']}")
+        return summary
