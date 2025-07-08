@@ -6,6 +6,7 @@ This module contains the core tools maintained by the project team.
 
 # Import all core tools to make them discoverable
 from .admin import *
+from .agents import *
 from .alerts import *
 from .health import *
 from .kvstore import *
@@ -31,6 +32,7 @@ __all__ = [
     # Admin tools
     "ListApps",
     "ListUsers",
+    "Me",
     "GetConfigurations", 
     "ToolDescriptionEnhancer",
     # Alerts tools
@@ -39,4 +41,10 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
+    # Agent tools
+    "OpenAIAgentTool",
+    "SplunkTriageAgentTool", 
+    "ParallelAnalysisAgentTool",
+    "ReflectionAgentTool",
+    "WorkflowParser",
 ]

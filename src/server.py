@@ -31,7 +31,7 @@ os.makedirs(log_dir, exist_ok=True)
 
 # Enhanced logging configuration
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.path.join(log_dir, "mcp_splunk_server.log")),
@@ -63,6 +63,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
 
             # Store headers in context variable
             http_headers_context.set(headers)
+            logger.debug(f"Captured headers: {list(headers.keys())}")
 
             # Log header extraction for debugging
             splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith("x-splunk-")}

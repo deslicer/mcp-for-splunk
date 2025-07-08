@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
@@ -60,45 +60,54 @@ class JobSearch(BaseTool):
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
-            ctx.error(f"Search job failed: {error_msg}")
+            await ctx.error(f"Search job failed: {error_msg}")
             return self.format_error_response(error_msg)
 
         # Sanitize and prepare the query
         query = sanitize_search_query(query)
 
         self.logger.info(f"Starting normal search with query: {query}")
-        ctx.info(f"Starting normal search with query: {query}")
+        await ctx.info(f"Starting normal search with query: {query}")
 
         try:
             start_time = time.time()
 
             # Create the search job
             job = service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            ctx.info(f"Search job created: {job.sid}")
+            await ctx.info(f"Search job created: {job.sid}")
 
             # Poll for completion
             while not job.is_done():
                 stats = job.content
-                progress = {
+                progress_dict = {
                     "done": stats.get("isDone", "0") == "1",
                     "progress": float(stats.get("doneProgress", 0)) * 100,
                     "scan_progress": float(stats.get("scanCount", 0)),
                     "event_progress": float(stats.get("eventCount", 0)),
                 }
-                ctx.report_progress(progress)
+                
+                # Report progress with just the numeric value
+                await ctx.report_progress(
+                    progress=int(progress_dict["progress"]), 
+                    total=100
+                )
+                
                 self.logger.info(
                     f"Search job {job.sid} in progress... "
-                    f"Progress: {progress['progress']:.1f}%, "
-                    f"Scanned: {progress['scan_progress']} events, "
-                    f"Matched: {progress['event_progress']} events"
+                    f"Progress: {progress_dict['progress']:.1f}%, "
+                    f"Scanned: {progress_dict['scan_progress']} events, "
+                    f"Matched: {progress_dict['event_progress']} events"
                 )
                 time.sleep(2)
 
-            # Get the results using ResultsReader for consistent parsing
+            # Get the results using JSONResultsReader with output_mode=json
             results = []
             result_count = 0
-            ctx.info(f"Getting results for search job: {job.sid}")
-            for result in ResultsReader(job.results()):
+            await ctx.info(f"Getting results for search job: {job.sid}")
+            
+            # Request results in JSON format and use JSONResultsReader
+            reader = JSONResultsReader(job.results(output_mode="json"))
+            for result in reader:
                 if isinstance(result, dict):
                     results.append(result)
                     result_count += 1
@@ -129,5 +138,5 @@ class JobSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Search failed: {str(e)}")
-            ctx.error(f"Search failed: {str(e)}")
+            await ctx.error(f"Search failed: {str(e)}")
             return self.format_error_response(str(e))

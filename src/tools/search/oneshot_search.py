@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
@@ -66,7 +66,7 @@ class OneshotSearch(BaseTool):
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
-            ctx.error(f"One-shot search failed: {error_msg}")
+            await ctx.error(f"One-shot search failed: {error_msg}")
             return self.format_error_response(
                 error_msg, results=[], results_count=0, query_executed=query
             )
@@ -75,24 +75,26 @@ class OneshotSearch(BaseTool):
         query = sanitize_search_query(query)
 
         self.logger.info(f"Executing one-shot search: {query}")
-        ctx.info(f"Executing one-shot search: {query}")
+        await ctx.info(f"Executing one-shot search: {query}")
 
         try:
             kwargs = {
                 "earliest_time": earliest_time,
                 "latest_time": latest_time,
                 "count": max_results,
+                "output_mode": "json",  # Request JSON format
             }
-            ctx.info(f"One-shot search parameters: {kwargs}")
+            await ctx.info(f"One-shot search parameters: {kwargs}")
 
             start_time = time.time()
             job = service.jobs.oneshot(query, **kwargs)
 
-            # Process results
+            # Process results using JSONResultsReader
             results = []
             result_count = 0
 
-            for result in ResultsReader(job):
+            reader = JSONResultsReader(job)
+            for result in reader:
                 if isinstance(result, dict):
                     results.append(result)
                     result_count += 1
@@ -112,7 +114,7 @@ class OneshotSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"One-shot search failed: {str(e)}")
-            ctx.error(f"One-shot search failed: {str(e)}")
+            await ctx.error(f"One-shot search failed: {str(e)}")
             return self.format_error_response(
                 str(e), results=[], results_count=0, query_executed=query
             )
