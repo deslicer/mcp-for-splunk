@@ -15,7 +15,7 @@ Open your browser and go to: **http://localhost:3001**
 In the MCP Inspector interface:
 
 1. **Server URL**: Enter `http://localhost:8001/mcp/`
-2. **Transport**: Select "HTTP" 
+2. **Transport**: Select "HTTP"
 3. **Protocol Version**: Use "2024-11-05"
 4. Click **Connect**
 
@@ -25,11 +25,11 @@ Your MCP server currently provides these resources:
 
 #### Basic Test Resources
 - `health://status` - Simple health check
-- `info://server` - Server information and capabilities  
+- `info://server` - Server information and capabilities
 - `test://data` - Sample JSON data for testing
 - `test://greeting/{name}` - Personalized greeting (template resource)
 
-#### Splunk Resources  
+#### Splunk Resources
 - `splunk://simple-status` - Splunk connection status
 - `splunk://config/indexes.conf` - Splunk configuration files (requires client config)
 - `splunk://health/status` - Splunk health information (requires client config)
@@ -110,7 +110,7 @@ curl -X POST "http://localhost:8001/mcp/" \
 - Return the same content every time
 - Examples: `health://status`, `info://server`
 
-### Template Resources  
+### Template Resources
 - Accept parameters in the URI
 - Examples: `test://greeting/{name}`
 - Replace `{name}` with actual values like `test://greeting/Alice`
@@ -130,7 +130,7 @@ curl -X POST "http://localhost:8001/mcp/" \
 
 2. **"Connection refused"**
    - Check if Docker containers are running: `docker ps`
-   - Restart containers: `docker-compose -f docker-compose-modular.yml restart`
+   - Restart containers: `docker-compose restart`
 
 3. **"Session ID missing"**
    - For direct HTTP testing, you must initialize a session first
@@ -140,12 +140,12 @@ curl -X POST "http://localhost:8001/mcp/" \
 
 View server logs:
 ```bash
-docker logs mcp-server-modular --tail 20
+docker logs mcp-server --tail 20
 ```
 
 View inspector logs:
-```bash  
-docker logs mcp-inspector-modular --tail 20
+```bash
+docker logs mcp-inspector --tail 20
 ```
 
 ## Expected Behavior
@@ -178,4 +178,4 @@ docker logs mcp-inspector-modular --tail 20
 - Each session gets isolated access to Splunk resources
 - The client ID is used internally for logging and resource isolation
 
-The MCP Inspector handles all session management automatically! 
+The MCP Inspector handles all session management automatically!

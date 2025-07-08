@@ -25,7 +25,7 @@ FastMCP only accepts tools with `Context` parameter. Tools with additional param
 ### Docker Test (Recommended):
 ```bash
 # Test working modular architecture  
-docker-compose -f docker-compose-modular.yml up --build
+docker-compose up --build
 
 # Use MCP Inspector: http://localhost:3001
 # Verify 6 tools working perfectly
@@ -49,10 +49,10 @@ export MCP_SERVER_VERSION=new
 docker-compose up --build
 ```
 
-### Option B: Use Dedicated Modular Setup
+### Option B: Use Development Setup
 ```bash
-# Use the new modular docker-compose
-docker-compose -f docker-compose-modular.yml up --build
+# Use the development docker-compose for enhanced debugging
+docker-compose -f docker-compose-dev.yml up --build
 ```
 
 **Verify Docker works:**
@@ -65,7 +65,7 @@ docker-compose -f docker-compose-modular.yml up --build
 ### Core Functionality Tests
 ```bash
 # 1. Check tools are discovered
-docker logs mcp-server-modular | grep "Successfully loaded components"
+docker logs mcp-server | grep "Successfully loaded components"
 
 # 2. Test via MCP Inspector
 # Open http://localhost:3001
@@ -125,7 +125,7 @@ print(f'Discovered {discover_tools()} tools')
 docker-compose build --no-cache
 
 # Check logs
-docker logs mcp-server-modular
+docker logs mcp-server
 ```
 
 #### Problem: MCP Inspector can't connect
@@ -143,7 +143,7 @@ curl http://localhost:8002/mcp/health
 docker ps | grep splunk
 
 # Check environment variables
-docker exec mcp-server-modular env | grep SPLUNK
+docker exec mcp-server env | grep SPLUNK
 ```
 
 ## 🔄 Rollback Strategy
@@ -162,10 +162,10 @@ docker-compose -f docker-compose.yml up
 
 ### Full Rollback (< 5 minutes)
 ```bash
-# Stop modular setup
-docker-compose -f docker-compose-modular.yml down
+# Stop development setup
+docker-compose -f docker-compose-dev.yml down
 
-# Start original setup  
+# Start production setup  
 docker-compose up
 ```
 
@@ -174,7 +174,7 @@ docker-compose up
 Migration is ready for production when:
 
 1. **✅ Local tests pass**: `python scripts/test_modular_server.py`
-2. **✅ Docker startup clean**: No errors in `docker logs mcp-server-modular`
+2. **✅ Docker startup clean**: No errors in `docker logs mcp-server`
 3. **✅ Tool count matches**: Same or more tools than original server
 4. **✅ MCP Inspector works**: Can connect and test tools
 5. **✅ Performance acceptable**: No significant slowdowns
@@ -221,7 +221,7 @@ EOF
 python scripts/test_modular_server.py
 
 # 3. Restart server (automatic discovery)
-docker-compose restart mcp-server-modular
+docker-compose restart mcp-server
 ```
 
 ## 📊 Monitoring & Metrics
@@ -236,10 +236,10 @@ docker-compose restart mcp-server-modular
 ### Monitoring Commands
 ```bash
 # Monitor logs
-docker logs mcp-server-modular --follow
+docker logs mcp-server --follow
 
 # Check container stats
-docker stats mcp-server-modular
+docker stats mcp-server
 
 # Test health endpoint
 watch -n 5 'curl -s http://localhost:8002/mcp/health'

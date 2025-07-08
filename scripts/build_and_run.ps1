@@ -601,6 +601,46 @@ function Start-LocalServer {
     }
 }
 
+# Function to determine if Splunk should be run in Docker
+function Test-ShouldRunSplunkDocker {
+    # Check if SPLUNK_HOST is not set or is set to 'so1' (our Docker Splunk container)
+    if (-not $env:SPLUNK_HOST -or $env:SPLUNK_HOST -eq "so1") {
+        return $true  # run Splunk in Docker
+    } else {
+        return $false  # use external Splunk
+    }
+}
+
+# Function to get Docker compose command with profiles
+function Get-DockerComposeCmd {
+    param([string]$Mode)
+    
+    $baseCmd = "docker-compose"
+    
+    switch ($Mode) {
+        "dev" {
+            $baseCmd = "docker-compose -f docker-compose-dev.yml"
+        }
+        default {
+            $baseCmd = "docker-compose"
+        }
+    }
+    
+    # Add Splunk profile if needed
+    if (Test-ShouldRunSplunkDocker) {
+        if ($Mode -eq "dev") {
+            $baseCmd = "$baseCmd --profile dev --profile splunk"
+        } else {
+            $baseCmd = "$baseCmd --profile splunk"
+        }
+        Write-Local "Including Splunk Enterprise container (SPLUNK_HOST=$($env:SPLUNK_HOST ?? 'not set') indicates local Splunk)"
+    } else {
+        Write-Local "Using external Splunk instance: $env:SPLUNK_HOST"
+    }
+    
+    return $baseCmd
+}
+
 # Function to run Docker setup
 function Start-DockerSetup {
     Write-Status "Using Docker deployment mode..."
@@ -650,8 +690,39 @@ function Start-DockerSetup {
     # Load environment variables from .env file for Docker Compose
     Load-EnvFile
     
+    # Ask user for Docker deployment mode
+    Write-Host ""
+    Write-Status "Choose Docker deployment mode:"
+    Write-Host "  1) Production (default) - Optimized for performance, no hot reload"
+    Write-Host "  2) Development - Hot reload enabled, enhanced debugging"
+    Write-Host ""
+    
+    do {
+        $dockerChoice = Read-Host "Enter your choice (1 or 2, default: 1)"
+        if ([string]::IsNullOrEmpty($dockerChoice)) { $dockerChoice = "1" }
+    } while ($dockerChoice -notin @("1", "2"))
+    
+    $dockerMode = ""
+    $serviceName = "mcp-server"
+    
+    switch ($dockerChoice) {
+        "1" {
+            $dockerMode = "prod"
+            Write-Status "Using Production mode (optimized performance)"
+        }
+        "2" {
+            $dockerMode = "dev"
+            $serviceName = "mcp-server-dev"
+            Write-Status "Using Development mode (hot reload enabled)"
+        }
+    }
+    
+    # Get the appropriate docker-compose command
+    $composeCmd = Get-DockerComposeCmd -Mode $dockerMode
+    
     Write-Status "Building Docker image..."
-    & docker-compose build mcp-server
+    $buildCmd = "$composeCmd build $serviceName"
+    Invoke-Expression $buildCmd
     
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Docker image built successfully!"
@@ -661,7 +732,8 @@ function Start-DockerSetup {
     }
     
     Write-Status "Starting services with docker-compose..."
-    & docker-compose up -d
+    $upCmd = "$composeCmd up -d"
+    Invoke-Expression $upCmd
     
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Services started successfully!"
@@ -674,25 +746,39 @@ function Start-DockerSetup {
     Start-Sleep -Seconds 5
     
     Write-Status "Checking service status..."
-    & docker-compose ps
+    $psCmd = "$composeCmd ps"
+    Invoke-Expression $psCmd
     
     Write-Status "Checking MCP server logs..."
-    & docker-compose logs mcp-server --tail=20
+    $logsCmd = "$composeCmd logs $serviceName --tail=20"
+    Invoke-Expression $logsCmd
     
     Write-Host ""
     Write-Success "🎉 Docker setup complete!"
     Write-Host ""
-    Write-Host "📋 Service URLs:"
+    Write-Status "📋 Service URLs:"
     Write-Host "   🔧 Traefik Dashboard: http://localhost:8080"
-    Write-Host "   🌐 Splunk Web UI:     http://localhost:9000 (admin/Chang3d!)"
+    if (Test-ShouldRunSplunkDocker) {
+        Write-Host "   🌐 Splunk Web UI:     http://localhost:9000 (admin/Chang3d!)"
+    } else {
+        Write-Host "   🌐 External Splunk:   $env:SPLUNK_HOST (configured in .env)"
+    }
     Write-Host "   🔌 MCP Server:        http://localhost:8001/mcp/"
     Write-Host "   📊 MCP Inspector:     http://localhost:3001"
     Write-Host ""
-    Write-Host "🔍 To check logs:"
-    Write-Host "   docker-compose logs -f mcp-server"
+    Write-Status "🔍 To check logs:"
+    Write-Host "   $composeCmd logs -f $serviceName"
     Write-Host ""
-    Write-Host "🛑 To stop all services:"
-    Write-Host "   docker-compose down"
+    Write-Status "🛑 To stop all services:"
+    Write-Host "   $composeCmd down"
+    
+    if ($dockerMode -eq "dev") {
+        Write-Host ""
+        Write-Status "🚀 Development Mode Features:"
+        Write-Host "   • Hot reload enabled - changes sync automatically"
+        Write-Host "   • Enhanced debugging and logging"
+        Write-Host "   • Use: $composeCmd logs -f $serviceName"
+    }
 }
 
 # Function to check if Docker is running

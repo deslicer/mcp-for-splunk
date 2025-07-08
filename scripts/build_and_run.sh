@@ -533,6 +533,45 @@ run_local_server() {
     done
 }
 
+# Function to determine if Splunk should be run in Docker
+should_run_splunk_docker() {
+    # Check if SPLUNK_HOST is not set or is set to 'so1' (our Docker Splunk container)
+    if [ -z "$SPLUNK_HOST" ] || [ "$SPLUNK_HOST" = "so1" ]; then
+        return 0  # true - run Splunk in Docker
+    else
+        return 1  # false - use external Splunk
+    fi
+}
+
+# Function to get Docker compose command with profiles
+get_docker_compose_cmd() {
+    local mode=$1
+    local base_cmd="docker-compose"
+    
+    case $mode in
+        "dev")
+            base_cmd="docker-compose -f docker-compose-dev.yml"
+            ;;
+        "prod"|"")
+            base_cmd="docker-compose"
+            ;;
+    esac
+    
+    # Add Splunk profile if needed
+    if should_run_splunk_docker; then
+        if [ "$mode" = "dev" ]; then
+            base_cmd="$base_cmd --profile dev --profile splunk"
+        else
+            base_cmd="$base_cmd --profile splunk"
+        fi
+        print_local "Including Splunk Enterprise container (SPLUNK_HOST=${SPLUNK_HOST:-'not set'} indicates local Splunk)"
+    else
+        print_local "Using external Splunk instance: $SPLUNK_HOST"
+    fi
+    
+    echo "$base_cmd"
+}
+
 # Function to run Docker setup
 run_docker_setup() {
     print_status "Using Docker deployment mode..."
@@ -574,8 +613,40 @@ run_docker_setup() {
     # Load environment variables from .env file for Docker Compose
     load_env_file
     
+    # Ask user for Docker deployment mode
+    echo
+    print_status "Choose Docker deployment mode:"
+    echo "  1) Production (default) - Optimized for performance, no hot reload"
+    echo "  2) Development - Hot reload enabled, enhanced debugging"
+    echo
+    read -p "Enter your choice (1 or 2, default: 1): " docker_choice
+    docker_choice=${docker_choice:-1}
+    
+    local docker_mode=""
+    local service_name="mcp-server"
+    
+    case $docker_choice in
+        1)
+            docker_mode="prod"
+            print_status "Using Production mode (optimized performance)"
+            ;;
+        2)
+            docker_mode="dev"
+            service_name="mcp-server-dev"
+            print_status "Using Development mode (hot reload enabled)"
+            ;;
+        *)
+            print_warning "Invalid choice. Using Production mode (default)."
+            docker_mode="prod"
+            ;;
+    esac
+    
+    # Get the appropriate docker-compose command
+    local compose_cmd
+    compose_cmd=$(get_docker_compose_cmd "$docker_mode")
+    
     print_status "Building Docker image..."
-    docker-compose build mcp-server
+    eval "$compose_cmd build $service_name"
     
     if [ $? -eq 0 ]; then
         print_success "Docker image built successfully!"
@@ -585,7 +656,7 @@ run_docker_setup() {
     fi
     
     print_status "Starting services with docker-compose..."
-    docker-compose up -d
+    eval "$compose_cmd up -d"
     
     if [ $? -eq 0 ]; then
         print_success "Services started successfully!"
@@ -598,25 +669,37 @@ run_docker_setup() {
     sleep 5
     
     print_status "Checking service status..."
-    docker-compose ps
+    eval "$compose_cmd ps"
     
     print_status "Checking MCP server logs..."
-    docker-compose logs mcp-server --tail=20
+    eval "$compose_cmd logs $service_name --tail=20"
     
     echo
     print_success "🎉 Docker setup complete!"
     echo
-    echo "📋 Service URLs:"
+    print_status "📋 Service URLs:"
     echo "   🔧 Traefik Dashboard: http://localhost:8080"
-    echo "   🌐 Splunk Web UI:     http://localhost:9000 (admin/Chang3d!)"
+    if should_run_splunk_docker; then
+        echo "   🌐 Splunk Web UI:     http://localhost:9000 (admin/Chang3d!)"
+    else
+        echo "   🌐 External Splunk:   $SPLUNK_HOST (configured in .env)"
+    fi
     echo "   🔌 MCP Server:        http://localhost:8001/mcp/"
     echo "   📊 MCP Inspector:     http://localhost:3001"
     echo
-    echo "🔍 To check logs:"
-    echo "   docker-compose logs -f mcp-server"
+    print_status "🔍 To check logs:"
+    echo "   $compose_cmd logs -f $service_name"
     echo
-    echo "🛑 To stop all services:"
-    echo "   docker-compose down"
+    print_status "🛑 To stop all services:"
+    echo "   $compose_cmd down"
+    
+    if [ "$docker_mode" = "dev" ]; then
+        echo
+        print_status "🚀 Development Mode Features:"
+        echo "   • Hot reload enabled - changes sync automatically"
+        echo "   • Enhanced debugging and logging"
+        echo "   • Use: $compose_cmd logs -f $service_name"
+    fi
 }
 
 # Function to find an available port

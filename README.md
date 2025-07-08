@@ -62,8 +62,8 @@ Learn more: [Anthropic's MCP Announcement](https://www.anthropic.com/news/model-
 
 ```bash
 # Check what you need first
-./scripts/check-prerequisites.sh    # macOS/Linux
 .\scripts\check-prerequisites.ps1   # Windows
+./scripts/check-prerequisites.sh    # macOS/Linux
 
 # Platform-specific quick install commands are provided by the checker
 ```
@@ -131,15 +131,6 @@ cd mcp-server-for-splunk
 
 ### Option 1: One-Command Setup (Recommended)
 
-**Linux/macOS:**
-```bash
-git clone https://github.com/your-org/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
-
-# Automated setup - builds and runs everything
-./scripts/build_and_run.sh
-```
-
 **Windows (PowerShell):**
 ```powershell
 git clone https://github.com/your-org/mcp-server-for-splunk.git
@@ -158,6 +149,15 @@ cd mcp-server-for-splunk
 .\scripts\build_and_run.bat
 ```
 
+**macOS/Linux:**
+```bash
+git clone https://github.com/your-org/mcp-server-for-splunk.git
+cd mcp-server-for-splunk
+
+# Automated setup - builds and runs everything
+./scripts/build_and_run.sh
+
+
 **🎯 Access Points after setup:**
 - **MCP Server**: http://localhost:8001/mcp/ (Docker) or http://localhost:8000+ (Local - auto-detects available port)
 - **MCP Inspector (Testing)**: http://localhost:6274 (Local) or http://localhost:3001 (Docker)
@@ -168,21 +168,117 @@ cd mcp-server-for-splunk
 
 > **🪟 Windows Users**: Both scripts provide identical functionality! The PowerShell version includes Windows-specific optimizations and better error handling for Windows environments.
 
-### Option 2: Local Development
+---
 
-**Linux/macOS:**
-```bash
-# Install dependencies
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv sync --dev
+## 🚀 Deployment Modes
 
-# Configure Splunk connection
-cp env.example .env
-# Edit .env with your Splunk details
+The `build_and_run` scripts intelligently detect your environment and offer **flexible deployment options**:
 
-# Run with FastMCP CLI
-uv run fastmcp run src/server.py
+### 🤖 **Automatic Mode Selection**
+
+When you run the build script, it automatically detects available tools and presents options:
+
+1. **Both Docker and Local Available**: You will be prompted to choose your preferred mode
+2. **Docker Only**: Automatically uses Docker deployment with full stack
+3. **Local Only**: Falls back to local FastMCP server with stdio/HTTP modes
+
+### 🐳 **Docker Deployment Mode**
+
+**What it includes:**
+- **Full Stack**: Traefik load balancer, MCP Server, MCP Inspector, and optionally Splunk Enterprise
+- **Production Ready**: Load balancing, health checks, container monitoring
+- **Web Access**: HTTP transport for web-based AI agents and multi-client access
+- **Isolated Environment**: Containerized setup with proper networking
+
+**When Docker mode is used:**
+- ✅ Docker is installed and running
+- ✅ You need HTTP transport for web clients
+- ✅ You want the complete development stack
+- ✅ You prefer containerized isolation
+
+**Access Points (Docker Mode):**
 ```
+🔌 MCP Server (HTTP):    http://localhost:8001/mcp/
+📊 MCP Inspector:        http://localhost:3001
+🌐 Splunk Web UI:        http://localhost:9000 (admin/Chang3d!)
+🔧 Traefik Dashboard:    http://localhost:8080
+```
+
+### 💻 **Local Development Mode**
+
+**What it includes:**
+- **Lightweight**: FastMCP server only, minimal resource usage
+- **Stdio Transport**: Perfect for MCP clients like Cursor, Claude Desktop, Google ADK
+- **HTTP Optional**: Can also run HTTP server on auto-detected ports
+- **Fast Iteration**: Direct Python execution, no container overhead
+
+**When Local mode is used:**
+- ✅ You want minimal resource usage
+- ✅ Using stdio-based MCP clients (Cursor, Claude Desktop)
+- ✅ Direct development on the MCP server code
+- ✅ Docker not available or not needed
+
+**Access Points (Local Mode):**
+```
+🔌 MCP Server (stdio):   Available for MCP clients via command line
+🔌 MCP Server (HTTP):    http://localhost:8000+ (auto-detected port)
+📊 MCP Inspector:        http://localhost:6274 (if Node.js available)
+```
+
+### 🎯 **Mode Selection Examples**
+
+**Interactive Selection (Both Available):**
+```bash
+# When both Docker and uv are available
+./scripts/build_and_run.sh
+
+> Both Docker and local development options are available.
+> Choose deployment method:
+>   1) Docker (full stack with Splunk, Traefik, MCP Inspector)
+>   2) Local (FastMCP server only, lighter weight)
+> Enter your choice (1 or 2, default: 1):
+```
+
+**Force Specific Mode:**
+```bash
+# Force local mode (planned feature)
+./scripts/build_and_run.sh --local
+
+# Force Docker mode (planned feature)  
+./scripts/build_and_run.sh --docker
+```
+
+### 🔧 **Configuration Differences**
+
+| Aspect | Docker Mode | Local Mode |
+|--------|-------------|------------|
+| **Transport** | HTTP (port 8001) | stdio + HTTP (auto-port) |
+| **Splunk** | Can include so1 container | Uses external Splunk |
+| **Inspector** | Included (port 3001) | Optional (port 6274) |
+| **Resource Usage** | Higher (multiple containers) | Lower (single process) |
+| **Startup Time** | Slower (container build) | Faster (direct execution) |
+| **Networking** | Docker networks | Host networking |
+| **Development** | Hot reload via Docker watch | Direct file changes |
+
+### 📊 **Which Mode Should You Choose?**
+
+**Choose Docker Mode When:**
+- 🌐 Building web applications that need HTTP transport
+- 🏢 Need production-like environment
+- 🐳 Want complete Splunk stack included
+- 👥 Multiple users will access the server
+- 🔒 Want containerized security isolation
+
+**Choose Local Mode When:**
+- ⚡ Want fastest development iteration
+- 💾 Have limited system resources
+- 🔌 Using stdio-based MCP clients (Cursor, Claude Desktop)
+- 🛠️ Developing the MCP server itself
+- 🎯 Need simple, direct access
+
+---
+
+### Option 2: Local Development
 
 **Windows (PowerShell):**
 ```powershell
@@ -196,6 +292,20 @@ uv sync --dev
 
 # Configure Splunk connection
 Copy-Item env.example .env
+# Edit .env with your Splunk details
+
+# Run with FastMCP CLI
+uv run fastmcp run src/server.py
+```
+
+**macOS/Linux:**
+```bash
+# Install dependencies
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync --dev
+
+# Configure Splunk connection
+cp env.example .env
 # Edit .env with your Splunk details
 
 # Run with FastMCP CLI
@@ -539,7 +649,16 @@ The project maintains **full backward compatibility**:
 
 ## 🚀 Getting Started Checklist
 
-**Linux/macOS:**
+**Windows:**
+- [ ] Clone the repository
+- [ ] Run `.\scripts\build_and_run.ps1` (PowerShell) or `.\scripts\build_and_run.bat` (Command Prompt)
+- [ ] Open MCP Inspector at http://localhost:3001 or http://localhost:6274
+- [ ] Connect to http://localhost:8001/mcp/ or http://localhost:8000+
+- [ ] Test basic tools like `get_splunk_health`
+- [ ] Explore resources like `splunk://health/status`
+- [ ] Try creating a custom tool with `.\contrib\scripts\generate_tool.py`
+
+**macOS/Linux:**
 - [ ] Clone the repository
 - [ ] Run `./scripts/build_and_run.sh`
 - [ ] Open MCP Inspector at http://localhost:3001 or http://localhost:6274
@@ -547,8 +666,6 @@ The project maintains **full backward compatibility**:
 - [ ] Test basic tools like `get_splunk_health`
 - [ ] Explore resources like `splunk://health/status`
 - [ ] Try creating a custom tool with `./contrib/scripts/generate_tool.py`
-
-**Windows:**
 - [ ] Clone the repository
 - [ ] Run `.\scripts\build_and_run.ps1` (PowerShell) or `.\scripts\build_and_run.bat` (Command Prompt)
 - [ ] Open MCP Inspector at http://localhost:3001 or http://localhost:6274
@@ -570,14 +687,14 @@ The project maintains **full backward compatibility**:
 
 **Ready to empower your AI with Splunk?** 🎯
 
-**Linux/macOS:**
-- **🚀 Quick Start**: `./scripts/build_and_run.sh`
-- **🛠️ Create Tools**: `./contrib/scripts/generate_tool.py`
-- **🔍 Explore**: `./contrib/scripts/list_tools.py --interactive`
-
 **Windows:**
 - **🚀 Quick Start**: `.\scripts\build_and_run.ps1` or `.\scripts\build_and_run.bat`
 - **🛠️ Create Tools**: `.\contrib\scripts\generate_tool.py`
 - **🔍 Explore**: `.\contrib\scripts\list_tools.py --interactive`
+
+**macOS/Linux:**
+- **🚀 Quick Start**: `./scripts/build_and_run.sh`
+- **🛠️ Create Tools**: `./contrib/scripts/generate_tool.py`
+- **🔍 Explore**: `./contrib/scripts/list_tools.py --interactive`
 
 **📖 Learn More**: Check out the [FastMCP documentation](https://gofastmcp.com/) and [MCP specification](https://modelcontextprotocol.io/)

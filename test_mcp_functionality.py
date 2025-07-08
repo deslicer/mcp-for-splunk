@@ -168,8 +168,8 @@ async def show_testing_options():
     print("   📋 Same protocol as option 2")
 
     print("\n4️⃣  Docker Logs Monitoring")
-    print("   📜 Server logs: docker logs mcp-server-modular")
-    print("   📜 Inspector logs: docker logs mcp-inspector-modular")
+    print("   📜 Server logs: docker logs mcp-server")
+    print("   📜 Inspector logs: docker logs mcp-inspector")
 
 
 async def show_current_status():
