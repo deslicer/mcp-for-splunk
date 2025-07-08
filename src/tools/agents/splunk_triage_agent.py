@@ -227,7 +227,8 @@ class SplunkTriageAgentTool(BaseTool):
             "run_splunk_search",
             "run_oneshot_search",
             "get_splunk_health",
-            "list_triggered_alerts"
+            "list_triggered_alerts",
+            "me"
         ]
 
         logger.info(f"Direct tool registry configured with filter for {len(allowed_tools)} allowed tools")
@@ -346,7 +347,6 @@ class SplunkTriageAgentTool(BaseTool):
             try:
                 # Get current context
                 ctx = get_context()
-                
                 # Report progress
                 if hasattr(ctx, 'info'):
                     await ctx.info("🏥 Checking Splunk server health...")
@@ -376,8 +376,51 @@ class SplunkTriageAgentTool(BaseTool):
                     await ctx.error(f"Health check failed: {str(e)}")
                 return f"Error checking health via direct registry: {str(e)}"
 
+        @function_tool
+        async def get_current_user_info() -> str:
+            """Get current authenticated user information including roles and capabilities via direct tool registry."""
+            logger.debug("Getting current user information via direct registry...")
+
+            try:
+                # Get current context
+                ctx = get_context()
+                
+                # Report progress
+                if hasattr(ctx, 'info'):
+                    await ctx.info("👤 Retrieving current user information...")
+
+                # Get the tool directly from registry
+                tool = tool_registry.get_tool("me")
+                if not tool:
+                    raise RuntimeError("me tool not found in registry")
+
+                logger.debug("Calling tool registry: me")
+
+                result = await tool.execute(ctx)
+
+                # Report completion
+                if hasattr(ctx, 'info'):
+                    if isinstance(result, dict) and result.get('status') == 'success':
+                        user_data = result.get('data', {}).get('data', {})
+                        username = user_data.get('username', 'unknown')
+                        roles = user_data.get('roles', [])
+                        await ctx.info(f"✅ Retrieved user info for: {username} (roles: {', '.join(roles)})")
+                    else:
+                        await ctx.info("✅ User information request completed")
+
+                logger.info(f"Direct user info retrieved successfully, result length: {len(str(result))}")
+                return str(result)
+
+            except Exception as e:
+                logger.error(f"Error getting user info via direct registry: {e}", exc_info=True)
+                # Report error to context
+                ctx = get_context()
+                if hasattr(ctx, 'error'):
+                    await ctx.error(f"Failed to get user information: {str(e)}")
+                return f"Error getting user info via direct registry: {str(e)}"
+
         # Store tools for use by agents
-        self.splunk_tools = [run_splunk_search, list_splunk_indexes, get_splunk_health]
+        self.splunk_tools = [run_splunk_search, list_splunk_indexes, get_splunk_health, get_current_user_info]
         logger.info(f"Created {len(self.splunk_tools)} direct registry tool wrappers for triage execution")
 
     def _create_missing_data_specialist(self) -> Agent:
@@ -409,6 +452,7 @@ You systematically work through this structured checklist:
 
 ### 3. PERMISSIONS & ACCESS CONTROL
 **Do your permissions allow you to see the data?**
+- First, get current user information: Use `get_current_user_info()` to get the user's roles and capabilities
 - Check role-based index access restrictions
 - Verify search filters aren't blocking data
 - Use search: `| rest /services/authorization/roles | search title=<your_role> | table title, srchIndexesAllowed, srchIndexesDefault`
@@ -417,7 +461,7 @@ You systematically work through this structured checklist:
 **Check time-related problems:**
 - Verify events exist in your search time window
 - Try "All time" search to catch future-timestamped events
-- Check for indexing delays with: `| eval lag=_indextime-_time | stats avg(lag) max(lag) by index`
+- Check for indexing delays with: ` index=<your_index> | eval lag=_indextime-_time | stats avg(lag) max(lag) by index`
 - Verify timezone settings for scheduled searches
 
 ### 5. FORWARDER CONNECTIVITY (if using forwarders)
@@ -503,14 +547,16 @@ You are a Splunk inputs troubleshooting specialist. You excel at diagnosing and 
 - Network connectivity for data inputs
 
 Your approach:
-1. First check system health and available indexes
-2. Analyze metrics.log for input throughput patterns
-3. Investigate per_index_thruput and per_host_thruput metrics
-4. Examine source and sourcetype distributions
-5. Correlate findings with error logs
-6. Provide specific, actionable recommendations
+1. Get current user information to understand permissions and access
+2. Check system health and available indexes
+3. Analyze metrics.log for input throughput patterns
+4. Investigate per_index_thruput and per_host_thruput metrics
+5. Examine source and sourcetype distributions
+6. Correlate findings with error logs
+7. Provide specific, actionable recommendations
 
 Use the available Splunk tools to gather data and provide comprehensive analysis.
+Start with `get_current_user_info()` to understand the user's role and index access.
 Always explain your reasoning and cite specific metrics or log entries.
             """),
             model=self.config.model,
@@ -607,14 +653,16 @@ You are a general Splunk troubleshooting specialist. You handle:
 - Cross-component issue correlation
 
 Your approach:
-1. Perform comprehensive system health check
-2. Review overall system metrics and trends
-3. Identify potential configuration issues
-4. Check for license or capacity constraints
-5. Provide general recommendations and next steps
-6. Route to specialists if specific issues are identified
+1. Get current user information to understand context and permissions
+2. Perform comprehensive system health check
+3. Review overall system metrics and trends
+4. Identify potential configuration issues
+5. Check for license or capacity constraints
+6. Provide general recommendations and next steps
+7. Route to specialists if specific issues are identified
 
-Start with broad system assessment using available tools.
+Start with `get_current_user_info()` to understand the user's role and access levels.
+Then perform broad system assessment using available tools.
 Look for obvious issues or patterns that need specialist attention.
 Provide clear, actionable guidance for common problems.
             """),
