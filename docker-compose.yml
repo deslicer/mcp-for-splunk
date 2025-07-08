@@ -94,6 +94,8 @@ services:
       - splunk-network
     ports:
       - "8002:8000"       # MCP Server direct access (optional)
+    env_file:
+      - .env              # Load environment variables from .env file
     environment:
       # Splunk connection settings
       - SPLUNK_HOST=${SPLUNK_HOST:-localhost}
@@ -122,6 +124,12 @@ services:
       - DISABLE_ORIGIN_CHECK=true
       - MCP_DISABLE_ORIGIN_CHECK=true
       - STREAMABLE_HTTP_DISABLE_CORS=true
+      
+      # OpenAI Agent Settings (loaded from .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE:-0.7}
+      - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
     depends_on:
       - traefik
     labels:

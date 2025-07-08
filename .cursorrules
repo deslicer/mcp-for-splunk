@@ -1,0 +1,85 @@
+# Cursor Rules for MCP Server for Splunk
+
+## README and Markdown Standards
+
+When editing any `*.md` file, apply these standards:
+
+### README Writing Guidelines
+- Follow the guide in `docs/readme-guide.md` for all README files
+- Use the 3-Layer Principle: Hook (10s) → Quick Start (2m) → Navigation (30s)
+- Target audience first: Define personas and technical level before writing
+- Maximum 1200 words for main READMEs, focus on navigation to detailed docs
+
+### Markdown Formatting Rules
+```markdown
+# H1: Document title only (one per file)
+## H2: Major sections
+### H3: Subsections (use sparingly, avoid H4+)
+
+**Bold**: Important terms, actions, key concepts
+*Italic*: Emphasis, file names, variables
+`Code`: Commands, file paths, configuration values
+```
+
+### Content Standards
+- **Paragraphs**: Maximum 3-4 sentences
+- **Code blocks**: Always include language for syntax highlighting
+- **Links**: Use descriptive text, prefer relative paths for internal links
+- **Images**: Include alt text, optimize for <500KB, use repo-relative paths
+- **Lists**: Use parallel structure, start with action verbs when possible
+
+### Code Example Requirements
+- Test all code examples before including
+- Include expected output when helpful
+- Show command context (directory, prerequisites)
+- Comment complex commands
+- Use realistic examples, not `foo/bar` placeholders
+
+### README Structure Enforcement
+For main README files, ensure these sections exist:
+1. **Hero Section**: Title, badges, value proposition, key features
+2. **Quick Start**: Prerequisites, installation, first success
+3. **Documentation Hub**: Links to detailed guides
+4. **Community/Support**: Issues, discussions, help channels
+
+### Writing Style Rules
+- Use active voice: "Run the command" not "The command should be run"
+- Be specific: "Takes 2 minutes" not "Quick setup"
+- Show outcomes: "You'll see X" not "The system will do Y"
+- Use direct address: "You" instead of "users" or "developers"
+- Avoid jargon without explanation
+
+### Quality Checks
+Before saving any .md file:
+- [ ] All links work and point to correct locations
+- [ ] Code examples are tested and current
+- [ ] Images load and have alt text
+- [ ] Headings follow logical hierarchy
+- [ ] Content serves the target audience
+- [ ] Length appropriate for document type
+
+### Project-Specific Rules
+- Reference the README guide: `docs/readme-guide.md`
+- Use consistent emoji: 🚀 (quick start), 📚 (docs), 🔧 (tools), 🤝 (community)
+- Link to examples in `contrib/` for community tools
+- Maintain backward compatibility notes for migrations
+- Include Windows/macOS/Linux considerations where relevant
+
+### Auto-Corrections
+When editing markdown:
+- Replace "click here" with descriptive link text
+- Convert passive voice to active where possible
+- Break up paragraphs longer than 4 sentences
+- Add syntax highlighting to code blocks missing it
+- Suggest alt text for images without it
+- Flag outdated version numbers or broken links
+
+### Community Contribution Standards
+For contribution-related markdown:
+- Include clear next steps
+- Provide examples of good contributions
+- Link to development setup guides
+- Mention testing requirements
+- Reference code of conduct
+
+Remember: A README is a conversation starter, not a reference manual. Hook readers, help them succeed quickly, then guide them to deeper resources. 
