@@ -896,6 +896,31 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
 
             # Extract step-by-step analysis from conversation
             conversation_history = result.to_input_list()
+            
+            # Log conversation structure for debugging
+            logger.debug("="*50)
+            logger.debug("CONVERSATION STRUCTURE DEBUG")
+            logger.debug("="*50)
+            for i, msg in enumerate(conversation_history):
+                if isinstance(msg, dict):
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '')
+                    
+                    # Log content structure
+                    if isinstance(content, list):
+                        logger.debug(f"Message {i} ({role}): List with {len(content)} items")
+                        for j, item in enumerate(content[:2]):  # First 2 items
+                            logger.debug(f"  Item {j}: {type(item)} - {str(item)[:100]}...")
+                    else:
+                        logger.debug(f"Message {i} ({role}): {type(content)} - {str(content)[:100]}...")
+                    
+                    # Check for tool_calls
+                    if 'tool_calls' in msg:
+                        logger.debug(f"  Has tool_calls: {msg['tool_calls']}")
+                else:
+                    logger.debug(f"Message {i}: {type(msg)} - {str(msg)[:100]}...")
+            logger.debug("="*50)
+            
             step_summary = self._extract_step_summary(conversation_history, result.last_agent)
             
             logger.debug(f"Conversation history ({len(conversation_history)} items):")
@@ -1104,6 +1129,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
             Dict containing structured summary of steps taken
         """
         logger.debug("Extracting step summary from conversation history...")
+        logger.debug(f"Conversation history length: {len(conversation_history)}")
         
         summary = {
             "workflow_overview": {
@@ -1112,9 +1138,9 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                 "total_conversation_turns": len(conversation_history)
             },
             "routing_decision": {
-                "decision_made": False,
-                "routing_rationale": "",
-                "target_specialist": ""
+                "decision_made": True,  # We know routing happened if we have a last_agent
+                "routing_rationale": "Triage agent analyzed the problem and routed to specialist",
+                "target_specialist": last_agent.name if last_agent else "Unknown"
             },
             "tools_executed": [],
             "diagnostic_steps": [],
@@ -1126,114 +1152,158 @@ Please analyze this issue and route to the appropriate specialist agent for deta
         current_step = 1
         tools_called = set()
         
+        # Debug: Log the structure of conversation messages
+        for i, message in enumerate(conversation_history[:3]):  # Just first 3 for debugging
+            logger.debug(f"Message {i}: {type(message)} - {str(message)[:200]}...")
+        
         for i, message in enumerate(conversation_history):
             if not isinstance(message, dict):
                 continue
                 
             role = message.get('role', '')
-            content = str(message.get('content', ''))
+            content = message.get('content', '')
+            
+            # Handle different content formats from OpenAI agents
+            if isinstance(content, list):
+                # OpenAI format: content is a list of content blocks
+                content_text = ""
+                for block in content:
+                    if isinstance(block, dict):
+                        if block.get('type') == 'text':
+                            content_text += block.get('text', '')
+                        elif 'text' in block:
+                            content_text += block.get('text', '')
+                content = content_text
+            elif isinstance(content, dict):
+                # Handle dict content
+                content = content.get('text', str(content))
+            
+            content = str(content)
             timestamp = i  # Use message index as relative timestamp
             
-            # Track triage agent routing decisions
-            if role == 'assistant' and i < 3:  # Early messages are likely triage decisions
-                if any(keyword in content.lower() for keyword in [
-                    'transfer', 'route', 'handoff', 'specialist', 'missing data', 'inputs', 'performance'
-                ]):
-                    summary["routing_decision"]["decision_made"] = True
-                    summary["routing_decision"]["routing_rationale"] = content[:200] + "..." if len(content) > 200 else content
-                    
-                    # Extract target specialist
-                    if "missing data" in content.lower():
-                        summary["routing_decision"]["target_specialist"] = "Missing Data Specialist"
-                    elif "inputs" in content.lower():
-                        summary["routing_decision"]["target_specialist"] = "Inputs Specialist"
-                    elif "performance" in content.lower():
-                        summary["routing_decision"]["target_specialist"] = "Performance Specialist"
-                    elif "indexing" in content.lower():
-                        summary["routing_decision"]["target_specialist"] = "Indexing Specialist"
-                    elif "general" in content.lower():
-                        summary["routing_decision"]["target_specialist"] = "General Specialist"
+            # Look for tool calls in the message structure
+            if 'tool_calls' in message:
+                tool_calls = message.get('tool_calls', [])
+                for tool_call in tool_calls:
+                    if isinstance(tool_call, dict):
+                        function_name = tool_call.get('function', {}).get('name', '')
+                        if function_name and function_name not in tools_called:
+                            tools_called.add(function_name)
+                            description = self._get_tool_description(function_name)
+                            summary["tools_executed"].append({
+                                "step": current_step,
+                                "tool": function_name,
+                                "description": description,
+                                "timestamp": timestamp
+                            })
+                            current_step += 1
             
-            # Extract tool calls and function executions
-            if 'tool_calls' in message or 'function_call' in content.lower():
-                # Look for tool execution patterns
-                tool_patterns = [
-                    ('get_current_user_info', 'Retrieved current user information and permissions'),
-                    ('list_splunk_indexes', 'Listed available Splunk indexes'),
-                    ('get_splunk_health', 'Checked Splunk server health status'),
-                    ('run_splunk_search', 'Executed Splunk search query'),
-                    ('list_sources', 'Listed available data sources'),
-                    ('list_sourcetypes', 'Listed available sourcetypes'),
-                    ('list_triggered_alerts', 'Checked triggered alerts')
-                ]
-                
-                for tool_name, description in tool_patterns:
-                    if tool_name in content.lower() and tool_name not in tools_called:
-                        tools_called.add(tool_name)
-                        summary["tools_executed"].append({
-                            "step": current_step,
-                            "tool": tool_name,
-                            "description": description,
-                            "timestamp": timestamp
-                        })
-                        current_step += 1
+            # Also check for tool mentions in content
+            tool_patterns = [
+                ('get_current_user_info', 'Retrieved current user information and permissions'),
+                ('list_splunk_indexes', 'Listed available Splunk indexes'),
+                ('get_splunk_health', 'Checked Splunk server health status'),
+                ('run_splunk_search', 'Executed Splunk search query'),
+                ('list_sources', 'Listed available data sources'),
+                ('list_sourcetypes', 'Listed available sourcetypes'),
+                ('list_triggered_alerts', 'Checked triggered alerts')
+            ]
+            
+            for tool_name, description in tool_patterns:
+                if tool_name in content.lower() and tool_name not in tools_called:
+                    tools_called.add(tool_name)
+                    summary["tools_executed"].append({
+                        "step": current_step,
+                        "tool": tool_name,
+                        "description": description,
+                        "timestamp": timestamp
+                    })
+                    current_step += 1
             
             # Extract diagnostic steps from assistant messages
             if role == 'assistant' and len(content) > 50:
-                # Look for diagnostic step patterns
-                step_indicators = [
-                    'checking', 'analyzing', 'investigating', 'examining', 'verifying',
-                    'step 1', 'step 2', 'step 3', 'first', 'next', 'then', 'finally'
-                ]
-                
-                if any(indicator in content.lower() for indicator in step_indicators):
-                    # Extract the key diagnostic action
-                    sentences = content.split('.')[:3]  # First few sentences
-                    diagnostic_action = '. '.join(sentences).strip()
+                # Look for section headers and step patterns
+                if any(pattern in content for pattern in ['###', '##', 'STEP', 'Step', 'step']):
+                    # Extract sections/steps
+                    lines = content.split('\n')
+                    current_section = ""
+                    for line in lines:
+                        if line.strip().startswith('#') or 'step' in line.lower():
+                            if current_section and len(current_section) > 20:
+                                summary["diagnostic_steps"].append({
+                                    "step": len(summary["diagnostic_steps"]) + 1,
+                                    "action": current_section.strip(),
+                                    "timestamp": timestamp
+                                })
+                            current_section = line.strip()
+                        elif current_section and line.strip():
+                            current_section += " " + line.strip()
                     
-                    if len(diagnostic_action) > 20:  # Avoid very short fragments
+                    # Add the last section
+                    if current_section and len(current_section) > 20:
                         summary["diagnostic_steps"].append({
                             "step": len(summary["diagnostic_steps"]) + 1,
-                            "action": diagnostic_action,
+                            "action": current_section.strip(),
                             "timestamp": timestamp
                         })
             
-            # Extract key findings
-            finding_keywords = [
-                'found', 'discovered', 'identified', 'detected', 'observed',
-                'results show', 'analysis reveals', 'indicates that'
+            # Extract key findings - look for specific patterns
+            finding_patterns = [
+                'events are present', 'timestamps are set', 'found in', 'discovered that',
+                'analysis shows', 'results indicate', 'data shows', 'identified'
             ]
             
-            if role == 'assistant' and any(keyword in content.lower() for keyword in finding_keywords):
-                # Extract findings
-                sentences = content.split('.')
-                for sentence in sentences:
-                    if any(keyword in sentence.lower() for keyword in finding_keywords):
-                        finding = sentence.strip()
-                        if len(finding) > 20 and finding not in [f["finding"] for f in summary["key_findings"]]:
-                            summary["key_findings"].append({
-                                "finding": finding,
-                                "timestamp": timestamp
-                            })
-                            break
+            if role == 'assistant':
+                for pattern in finding_patterns:
+                    if pattern in content.lower():
+                        # Extract the sentence containing the finding
+                        sentences = content.split('.')
+                        for sentence in sentences:
+                            if pattern in sentence.lower() and len(sentence.strip()) > 20:
+                                finding = sentence.strip()
+                                if finding not in [f["finding"] for f in summary["key_findings"]]:
+                                    summary["key_findings"].append({
+                                        "finding": finding,
+                                        "timestamp": timestamp
+                                    })
+                                break
             
-            # Extract recommendations
-            recommendation_keywords = [
-                'recommend', 'suggest', 'should', 'try', 'consider',
-                'next steps', 'action items', 'to resolve'
-            ]
-            
-            if role == 'assistant' and any(keyword in content.lower() for keyword in recommendation_keywords):
-                sentences = content.split('.')
-                for sentence in sentences:
-                    if any(keyword in sentence.lower() for keyword in recommendation_keywords):
-                        recommendation = sentence.strip()
-                        if len(recommendation) > 20 and recommendation not in [r["recommendation"] for r in summary["recommendations"]]:
-                            summary["recommendations"].append({
-                                "recommendation": recommendation,
-                                "timestamp": timestamp
-                            })
+            # Extract recommendations - look for recommendation sections
+            if role == 'assistant' and ('recommendation' in content.lower() or 'suggest' in content.lower()):
+                # Look for recommendation sections
+                lines = content.split('\n')
+                in_recommendations = False
+                current_recommendation = ""
+                
+                for line in lines:
+                    if 'recommendation' in line.lower():
+                        in_recommendations = True
+                        continue
+                    elif in_recommendations:
+                        if line.strip().startswith(('1.', '2.', '3.', '-', '*')):
+                            if current_recommendation:
+                                summary["recommendations"].append({
+                                    "recommendation": current_recommendation.strip(),
+                                    "timestamp": timestamp
+                                })
+                            current_recommendation = line.strip()
+                        elif line.strip() and not line.strip().startswith('#'):
+                            current_recommendation += " " + line.strip()
+                        elif not line.strip() and current_recommendation:
+                            # End of recommendation section
+                            if current_recommendation:
+                                summary["recommendations"].append({
+                                    "recommendation": current_recommendation.strip(),
+                                    "timestamp": timestamp
+                                })
                             break
+                
+                # Add the last recommendation
+                if current_recommendation:
+                    summary["recommendations"].append({
+                        "recommendation": current_recommendation.strip(),
+                        "timestamp": timestamp
+                    })
         
         # Create timeline summary
         all_activities = []
@@ -1276,4 +1346,21 @@ Please analyze this issue and route to the appropriate specialist agent for deta
         }
         
         logger.info(f"Step summary extracted: {summary['execution_summary']}")
+        logger.debug(f"Tools found: {[t['tool'] for t in summary['tools_executed']]}")
+        logger.debug(f"Findings: {len(summary['key_findings'])}")
+        logger.debug(f"Recommendations: {len(summary['recommendations'])}")
+        
         return summary
+
+    def _get_tool_description(self, tool_name: str) -> str:
+        """Get a user-friendly description for a tool name."""
+        tool_descriptions = {
+            'get_current_user_info': 'Retrieved current user information and permissions',
+            'list_splunk_indexes': 'Listed available Splunk indexes',
+            'get_splunk_health': 'Checked Splunk server health status',
+            'run_splunk_search': 'Executed Splunk search query',
+            'list_sources': 'Listed available data sources',
+            'list_sourcetypes': 'Listed available sourcetypes',
+            'list_triggered_alerts': 'Checked triggered alerts'
+        }
+        return tool_descriptions.get(tool_name, f'Executed {tool_name}')
