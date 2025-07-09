@@ -100,6 +100,9 @@ class DynamicMicroAgent:
         self.tool_registry = tool_registry
         self.task_definition = task_definition
         self.name = f"DynamicAgent_{task_definition.task_id}"
+        
+        # Store current context for tool calls
+        self._current_ctx = None
 
         # Validate task definition
         self._validate_task_definition()
@@ -228,28 +231,45 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             """Execute a Splunk search query with progress tracking."""
             logger.debug(f"[{self.name}] Executing search: {query[:100]}...")
 
+            # Get the current context for progress reporting
+            ctx = self._current_ctx
+            if ctx:
+                await ctx.info(f"🔍 Executing Splunk search: {query[:50]}...")
+                # Set the context on the tool registry for progress reporting
+                self.tool_registry.set_context(ctx)
+
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_search_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool(
                         "run_splunk_search",
-                        {"query": query, "earliest_time": earliest_time, "latest_time": latest_time},
+                        {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
                     )
                     
                     if result.get("success"):
+                        if ctx:
+                            await ctx.info(f"✅ Search completed successfully")
                         return str(result.get("data", ""))
                     else:
-                        return f"Search failed: {result.get('error', 'Unknown error')}"
+                        error_msg = f"Search failed: {result.get('error', 'Unknown error')}"
+                        if ctx:
+                            await ctx.error(f"❌ {error_msg}")
+                        return error_msg
             else:
                 result = await self.tool_registry.call_tool(
                     "run_splunk_search",
-                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time},
+                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
                 )
 
                 if result.get("success"):
+                    if ctx:
+                        await ctx.info(f"✅ Search completed successfully")
                     return str(result.get("data", ""))
                 else:
-                    return f"Search failed: {result.get('error', 'Unknown error')}"
+                    error_msg = f"Search failed: {result.get('error', 'Unknown error')}"
+                    if ctx:
+                        await ctx.error(f"❌ {error_msg}")
+                    return error_msg
 
         # Create the function tool without schema modification
         try:
@@ -276,6 +296,13 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             """Execute a quick Splunk oneshot search."""
             logger.debug(f"[{self.name}] Executing oneshot search: {query[:100]}...")
 
+            # Get the current context for progress reporting
+            ctx = self._current_ctx
+            if ctx:
+                await ctx.info(f"⚡ Executing oneshot search: {query[:50]}...")
+                # Set the context on the tool registry for progress reporting
+                self.tool_registry.set_context(ctx)
+
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_oneshot_search_{self.task_definition.task_id}"):
@@ -286,13 +313,18 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                             "earliest_time": earliest_time,
                             "latest_time": latest_time,
                             "max_results": max_results,
-                        },
+                        }
                     )
                     
                     if result.get("success"):
+                        if ctx:
+                            await ctx.info(f"✅ Oneshot search completed successfully")
                         return str(result.get("data", ""))
                     else:
-                        return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
+                        error_msg = f"Oneshot search failed: {result.get('error', 'Unknown error')}"
+                        if ctx:
+                            await ctx.error(f"❌ {error_msg}")
+                        return error_msg
             else:
                 result = await self.tool_registry.call_tool(
                     "run_oneshot_search",
@@ -301,13 +333,18 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                         "earliest_time": earliest_time,
                         "latest_time": latest_time,
                         "max_results": max_results,
-                    },
+                    }
                 )
 
                 if result.get("success"):
+                    if ctx:
+                        await ctx.info(f"✅ Oneshot search completed successfully")
                     return str(result.get("data", ""))
                 else:
-                    return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
+                    error_msg = f"Oneshot search failed: {result.get('error', 'Unknown error')}"
+                    if ctx:
+                        await ctx.error(f"❌ {error_msg}")
+                    return error_msg
 
         # Create the function tool without schema modification
         try:
@@ -329,22 +366,39 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             """List available Splunk indexes."""
             logger.debug(f"[{self.name}] Listing Splunk indexes...")
 
+            # Get the current context for progress reporting
+            ctx = self._current_ctx
+            if ctx:
+                await ctx.info(f"📂 Listing available Splunk indexes...")
+                # Set the context on the tool registry for progress reporting
+                self.tool_registry.set_context(ctx)
+
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_list_indexes_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("list_splunk_indexes")
                     
                     if result.get("success"):
+                        if ctx:
+                            await ctx.info(f"✅ Index list retrieved successfully")
                         return str(result.get("data", ""))
                     else:
-                        return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                        error_msg = f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                        if ctx:
+                            await ctx.error(f"❌ {error_msg}")
+                        return error_msg
             else:
                 result = await self.tool_registry.call_tool("list_splunk_indexes")
 
                 if result.get("success"):
+                    if ctx:
+                        await ctx.info(f"✅ Index list retrieved successfully")
                     return str(result.get("data", ""))
                 else:
-                    return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                    error_msg = f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                    if ctx:
+                        await ctx.error(f"❌ {error_msg}")
+                    return error_msg
 
         # Create the function tool without schema modification
         try:
@@ -366,22 +420,39 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             """Get current user information including roles and capabilities."""
             logger.debug(f"[{self.name}] Getting current user info...")
 
+            # Get the current context for progress reporting
+            ctx = self._current_ctx
+            if ctx:
+                await ctx.info(f"👤 Getting current user information...")
+                # Set the context on the tool registry for progress reporting
+                self.tool_registry.set_context(ctx)
+
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_user_info_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_current_user_info")
                     
                     if result.get("success"):
+                        if ctx:
+                            await ctx.info(f"✅ User information retrieved successfully")
                         return str(result.get("data", ""))
                     else:
-                        return f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                        error_msg = f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                        if ctx:
+                            await ctx.error(f"❌ {error_msg}")
+                        return error_msg
             else:
                 result = await self.tool_registry.call_tool("get_current_user_info")
 
                 if result.get("success"):
+                    if ctx:
+                        await ctx.info(f"✅ User information retrieved successfully")
                     return str(result.get("data", ""))
                 else:
-                    return f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                    error_msg = f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                    if ctx:
+                        await ctx.error(f"❌ {error_msg}")
+                    return error_msg
 
         # Create the function tool without schema modification
         try:
@@ -403,22 +474,39 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             """Check Splunk server health and connectivity."""
             logger.debug(f"[{self.name}] Checking Splunk health...")
 
+            # Get the current context for progress reporting
+            ctx = self._current_ctx
+            if ctx:
+                await ctx.info(f"🏥 Checking Splunk server health...")
+                # Set the context on the tool registry for progress reporting
+                self.tool_registry.set_context(ctx)
+
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_health_check_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_splunk_health")
                     
                     if result.get("success"):
+                        if ctx:
+                            await ctx.info(f"✅ Health check completed successfully")
                         return str(result.get("data", ""))
                     else:
-                        return f"Health check failed: {result.get('error', 'Unknown error')}"
+                        error_msg = f"Health check failed: {result.get('error', 'Unknown error')}"
+                        if ctx:
+                            await ctx.error(f"❌ {error_msg}")
+                        return error_msg
             else:
                 result = await self.tool_registry.call_tool("get_splunk_health")
 
                 if result.get("success"):
+                    if ctx:
+                        await ctx.info(f"✅ Health check completed successfully")
                     return str(result.get("data", ""))
                 else:
-                    return f"Health check failed: {result.get('error', 'Unknown error')}"
+                    error_msg = f"Health check failed: {result.get('error', 'Unknown error')}"
+                    if ctx:
+                        await ctx.error(f"❌ {error_msg}")
+                    return error_msg
 
         # Create the function tool without schema modification
         try:
@@ -576,6 +664,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """
         start_time = time.time()
         task_name = f"Task: {self.task_definition.name}"
+        
+        # Store the context for tool calls
+        self._current_ctx = ctx
         
         logger.info(f"[{self.name}] Starting task execution: {self.task_definition.name}")
         
@@ -850,6 +941,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             await ctx.info(f"🔍 Checking Splunk license information")
             await ctx.report_progress(progress=60, total=100)
             
+            # Set the context on the tool registry for progress reporting
+            self.tool_registry.set_context(ctx)
+            
             # Get server information - use proper time range to avoid "latest_time must be after earliest_time" error
             server_result = await self.tool_registry.call_tool(
                 "run_oneshot_search",
@@ -905,6 +999,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         try:
             await ctx.info(f"📂 Checking Splunk index availability")
             await ctx.report_progress(progress=60, total=100)
+            
+            # Set the context on the tool registry for progress reporting
+            self.tool_registry.set_context(ctx)
             
             # Get available indexes
             indexes_result = await self.tool_registry.call_tool("list_splunk_indexes")
@@ -971,6 +1068,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             await ctx.info(f"🔐 Checking user permissions and roles")
             await ctx.report_progress(progress=60, total=100)
             
+            # Set the context on the tool registry for progress reporting
+            self.tool_registry.set_context(ctx)
+            
             # Get user info from dependencies or directly
             user_info = None
             if "license_verification" in execution_context.dependency_results:
@@ -1023,6 +1123,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             
             await ctx.info(f"⏰ Checking data availability in time range {context.earliest_time} to {context.latest_time}")
             await ctx.report_progress(progress=60, total=100)
+
+            # Set the context on the tool registry for progress reporting
+            self.tool_registry.set_context(ctx)
 
             # Build search query based on context
             search_filters = []
