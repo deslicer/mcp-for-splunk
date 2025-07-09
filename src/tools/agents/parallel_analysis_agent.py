@@ -321,7 +321,7 @@ class ParallelAnalysisAgentTool(BaseTool):
                 # Get current context
                 ctx = get_context()
                 
-                result = await tool.execute(ctx, random_string="dummy")
+                result = await tool.execute(ctx)
                 
                 logger.info(f"[{component}] Direct indexes listed successfully, result length: {len(str(result))}")
                 return str(result)

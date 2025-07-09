@@ -265,7 +265,7 @@ class DynamicMicroAgent:
         """Execute index verification task."""
         try:
             # Get available indexes
-            indexes_result = await self.tool_registry.call_tool("list_indexes", {"random_string": "check"})
+            indexes_result = await self.tool_registry.call_tool("list_indexes")
             
             if not indexes_result.get("success"):
                 return DiagnosticResult(

@@ -110,17 +110,17 @@ class SplunkToolRegistry:
                     latest_time=args.get("latest_time", "now")
                 )
             elif mcp_tool_name == "list_indexes":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "list_sources":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "list_sourcetypes":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "list_apps":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "list_users":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "me":
-                result = await tool.execute(ctx, random_string="check")
+                result = await tool.execute(ctx)
             elif mcp_tool_name == "get_splunk_health":
                 result = await tool.execute(ctx)
             elif mcp_tool_name == "list_triggered_alerts":
@@ -318,7 +318,7 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callab
             
             logger.debug("Calling tool registry: list_indexes")
             
-            result = await tool.execute(ctx, random_string="check")
+            result = await tool.execute(ctx)
             
             if hasattr(ctx, 'info'):
                 index_count = str(result).count('index:') if 'index:' in str(result) else 'unknown'
