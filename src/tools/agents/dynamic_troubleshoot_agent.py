@@ -679,88 +679,17 @@ Focus on providing actionable insights that address the original problem while c
         """
         execution_start_time = time.time()
 
-        # ===== COMPREHENSIVE PARAMETER LOGGING =====
-        logger.info("=" * 100)
-        logger.info("DYNAMIC TROUBLESHOOT AGENT EXECUTE - PARAMETER VERIFICATION")
-        logger.info("=" * 100)
-
-        # Log all input parameters with detailed type and value information
-        logger.info("INPUT PARAMETERS RECEIVED:")
-        logger.info(f"  problem_description: '{problem_description}' (type: {type(problem_description).__name__}, length: {len(problem_description)} chars)")
-        logger.info(f"  earliest_time: '{earliest_time}' (type: {type(earliest_time).__name__})")
-        logger.info(f"  latest_time: '{latest_time}' (type: {type(latest_time).__name__})")
-        logger.info(f"  focus_index: {repr(focus_index)} (type: {type(focus_index).__name__})")
-        logger.info(f"  focus_host: {repr(focus_host)} (type: {type(focus_host).__name__})")
-        logger.info(f"  complexity_level: '{complexity_level}' (type: {type(complexity_level).__name__})")
-        logger.info(f"  workflow_type: '{workflow_type}' (type: {type(workflow_type).__name__})")
-
-        # Special focus_index validation and logging
-        logger.info("-" * 50)
-        logger.info("FOCUS_INDEX PARAMETER ANALYSIS:")
-        if focus_index is None:
-            logger.warning("❌ focus_index is None - no specific index targeting")
-            logger.info("   → Analysis will run across all available indexes")
-            logger.info("   → Consider providing focus_index for more targeted analysis")
-        elif focus_index == "":
-            logger.warning("❌ focus_index is empty string - treating as None")
-            logger.info("   → Analysis will run across all available indexes")
-            focus_index = None  # Normalize empty string to None
-        else:
-            logger.info(f"✅ focus_index provided: '{focus_index}'")
-            logger.info(f"   → Analysis will focus on index: {focus_index}")
-            logger.info("   → This will improve performance and relevance")
-
-        # Focus_host validation and logging
-        logger.info("-" * 50)
-        logger.info("FOCUS_HOST PARAMETER ANALYSIS:")
-        if focus_host is None:
-            logger.info("ℹ️  focus_host is None - no specific host targeting")
-            logger.info("   → Analysis will run across all available hosts")
-        elif focus_host == "":
-            logger.info("ℹ️  focus_host is empty string - treating as None")
-            focus_host = None  # Normalize empty string to None
-        else:
-            logger.info(f"✅ focus_host provided: '{focus_host}'")
-            logger.info(f"   → Analysis will focus on host: {focus_host}")
-
-        # Parameter validation summary
-        logger.info("-" * 50)
-        logger.info("PARAMETER VALIDATION SUMMARY:")
-        param_status = {
-            "problem_description": "✅ Valid" if problem_description and len(problem_description.strip()) > 0 else "❌ Invalid/Empty",
-            "earliest_time": "✅ Valid" if earliest_time else "❌ Invalid/Empty",
-            "latest_time": "✅ Valid" if latest_time else "❌ Invalid/Empty",
-            "focus_index": "✅ Provided" if focus_index else "⚠️  Not provided (optional)",
-            "focus_host": "✅ Provided" if focus_host else "ℹ️  Not provided (optional)",
-            "complexity_level": "✅ Valid" if complexity_level in ["basic", "moderate", "advanced"] else f"❌ Invalid (got: {complexity_level})",
-            "workflow_type": "✅ Valid" if workflow_type in ["auto", "missing_data", "performance", "health_check"] else f"❌ Invalid (got: {workflow_type})"
-        }
-
-        for param, status in param_status.items():
-            logger.info(f"  {param}: {status}")
-
-        # Check for critical validation errors
-        validation_errors = []
+        # Basic parameter validation
         if not problem_description or len(problem_description.strip()) == 0:
-            validation_errors.append("problem_description is required and cannot be empty")
-        if not earliest_time:
-            validation_errors.append("earliest_time is required")
-        if not latest_time:
-            validation_errors.append("latest_time is required")
+            raise ValueError("problem_description is required and cannot be empty")
         if complexity_level not in ["basic", "moderate", "advanced"]:
-            validation_errors.append(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
+            raise ValueError(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
         if workflow_type not in ["auto", "missing_data", "performance", "health_check"]:
-            validation_errors.append(f"workflow_type must be 'auto', 'missing_data', 'performance', or 'health_check', got: {workflow_type}")
+            raise ValueError(f"workflow_type must be 'auto', 'missing_data', 'performance', or 'health_check', got: {workflow_type}")
 
-        if validation_errors:
-            logger.error("❌ PARAMETER VALIDATION FAILED:")
-            for error in validation_errors:
-                logger.error(f"   - {error}")
-            logger.info("=" * 100)
-            raise ValueError(f"Parameter validation failed: {'; '.join(validation_errors)}")
-
-        logger.info("✅ All required parameters validated successfully")
-        logger.info("=" * 100)
+        # Normalize empty strings to None
+        focus_index = focus_index if focus_index and focus_index.strip() else None
+        focus_host = focus_host if focus_host and focus_host.strip() else None
 
         # Create comprehensive trace for the entire troubleshooting workflow
         # Make trace name unique to avoid "Trace already exists" warnings
@@ -815,16 +744,6 @@ Focus on providing actionable insights that address the original problem while c
         logger.info("=" * 80)
 
         try:
-            # Log parameter propagation through the execution pipeline
-            logger.info("PARAMETER PROPAGATION VERIFICATION:")
-            logger.info(f"  ✅ problem_description: '{problem_description[:100]}...' (length: {len(problem_description)})")
-            logger.info(f"  ✅ earliest_time: '{earliest_time}'")
-            logger.info(f"  ✅ latest_time: '{latest_time}'")
-            logger.info(f"  ✅ focus_index: {repr(focus_index)} {'(NONE - will use all indexes)' if focus_index is None else f'(TARGETING: {focus_index})'}")
-            logger.info(f"  ✅ focus_host: {repr(focus_host)} {'(NONE - will use all hosts)' if focus_host is None else f'(TARGETING: {focus_host})'}")
-            logger.info(f"  ✅ complexity_level: '{complexity_level}'")
-            logger.info(f"  ✅ workflow_type: '{workflow_type}'")
-
             logger.info(f"Problem: {problem_description[:200]}...")
             logger.info(f"Time range: {earliest_time} to {latest_time}")
             logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}")
@@ -845,15 +764,6 @@ Focus on providing actionable insights that address the original problem while c
             await ctx.report_progress(progress=5, total=100)
 
             # Create diagnostic context with tracing span
-            logger.info("CREATING DIAGNOSTIC CONTEXT WITH ALL PARAMETERS:")
-            logger.info(f"  → earliest_time: '{earliest_time}'")
-            logger.info(f"  → latest_time: '{latest_time}'")
-            logger.info(f"  → focus_index: {repr(focus_index)}")
-            logger.info(f"  → focus_host: {repr(focus_host)}")
-            logger.info(f"  → complexity_level: '{complexity_level}'")
-            logger.info(f"  → problem_description: '{problem_description[:100]}...'")
-            logger.info(f"  → workflow_type: '{workflow_type}'")
-
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span("diagnostic_context_creation"):
                     diagnostic_context = SplunkDiagnosticContext(
@@ -865,10 +775,6 @@ Focus on providing actionable insights that address the original problem while c
                         problem_description=problem_description,
                         workflow_type=workflow_type,
                     )
-                    logger.info("✅ Diagnostic context created successfully")
-                    logger.info(f"   Context focus_index: {repr(diagnostic_context.focus_index)}")
-                    logger.info(f"   Context focus_host: {repr(diagnostic_context.focus_host)}")
-                    logger.info(f"   Context problem_description: '{diagnostic_context.problem_description[:50] if diagnostic_context.problem_description else None}...'")
             else:
                 diagnostic_context = SplunkDiagnosticContext(
                     earliest_time=earliest_time,
@@ -879,38 +785,8 @@ Focus on providing actionable insights that address the original problem while c
                     problem_description=problem_description,
                     workflow_type=workflow_type,
                 )
-                logger.info("✅ Diagnostic context created successfully")
-                logger.info(f"   Context focus_index: {repr(diagnostic_context.focus_index)}")
-                logger.info(f"   Context focus_host: {repr(diagnostic_context.focus_host)}")
-                logger.info(f"   Context problem_description: '{diagnostic_context.problem_description[:50] if diagnostic_context.problem_description else None}...'")
 
-            # Verify all parameters were properly stored in the context
-            logger.info("DIAGNOSTIC CONTEXT VERIFICATION:")
-            context_verification = {
-                "earliest_time": diagnostic_context.earliest_time == earliest_time,
-                "latest_time": diagnostic_context.latest_time == latest_time,
-                "focus_index": diagnostic_context.focus_index == focus_index,
-                "focus_host": diagnostic_context.focus_host == focus_host,
-                "complexity_level": diagnostic_context.complexity_level == complexity_level,
-                "problem_description": diagnostic_context.problem_description == problem_description,
-                "workflow_type": diagnostic_context.workflow_type == workflow_type,
-            }
-
-            for param, matches in context_verification.items():
-                status = "✅ MATCH" if matches else "❌ MISMATCH"
-                logger.info(f"  {param}: {status}")
-                if not matches:
-                    original_value = locals().get(param, "NOT_FOUND")
-                    context_value = getattr(diagnostic_context, param, "NOT_FOUND")
-                    logger.error(f"    Original: {repr(original_value)}")
-                    logger.error(f"    Context:  {repr(context_value)}")
-
-            all_match = all(context_verification.values())
-            if all_match:
-                logger.info("✅ All parameters successfully stored in diagnostic context")
-            else:
-                logger.error("❌ Parameter mismatch detected in diagnostic context!")
-                raise ValueError("Diagnostic context parameter mismatch - see logs for details")
+            logger.info(f"Diagnostic context created for index: {focus_index or 'all'}")
 
             # Report progress: Context created
             await ctx.report_progress(progress=10, total=100)
