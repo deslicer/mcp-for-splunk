@@ -10,6 +10,7 @@ import logging
 import os
 import time
 from typing import Any
+from datetime import datetime
 
 from fastmcp import Context
 from openai import OpenAI
@@ -616,15 +617,7 @@ Focus on providing actionable insights that address the original problem while c
 
             # Create diagnostic context with tracing span
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span("diagnostic_context_creation") as span:
-                    span.set_attribute("complexity_level", complexity_level)
-                    span.set_attribute("earliest_time", earliest_time)
-                    span.set_attribute("latest_time", latest_time)
-                    if focus_index:
-                        span.set_attribute("focus_index", focus_index)
-                    if focus_host:
-                        span.set_attribute("focus_host", focus_host)
-                    
+                with custom_span("diagnostic_context_creation"):
                     diagnostic_context = SplunkDiagnosticContext(
                         earliest_time=earliest_time,
                         latest_time=latest_time,
@@ -648,19 +641,13 @@ Focus on providing actionable insights that address the original problem while c
 
             # Determine workflow type with tracing
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span("workflow_type_detection") as span:
-                    span.set_attribute("requested_workflow_type", workflow_type)
-                    
+                with custom_span("workflow_type_detection"):
                     if workflow_type == "auto":
                         detected_workflow = self._analyze_problem_type(problem_description)
-                        span.set_attribute("detected_workflow_type", detected_workflow)
-                        span.set_attribute("auto_detection_used", True)
                         logger.info(f"Auto-detected workflow type: {detected_workflow}")
                         await ctx.info(f"🤖 Auto-detected workflow: {detected_workflow}")
                     else:
                         detected_workflow = workflow_type
-                        span.set_attribute("detected_workflow_type", detected_workflow)
-                        span.set_attribute("auto_detection_used", False)
                         logger.info(f"Using specified workflow type: {detected_workflow}")
                         await ctx.info(f"🎯 Using specified workflow: {detected_workflow}")
             else:
@@ -685,16 +672,10 @@ Focus on providing actionable insights that address the original problem while c
             workflow_start_time = time.time()
             
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"workflow_execution_{detected_workflow}") as span:
-                    span.set_attribute("workflow_type", detected_workflow)
-                    span.set_attribute("problem_description", problem_description[:200])
-                    
+                with custom_span(f"workflow_execution_{detected_workflow}"):
                     workflow_result = await self._execute_workflow_with_tracing(
                         detected_workflow, diagnostic_context, problem_description
                     )
-                    
-                    span.set_attribute("workflow_status", workflow_result.get("status", "unknown"))
-                    span.set_attribute("tasks_completed", len(workflow_result.get("task_results", [])))
             else:
                 workflow_result = await self._execute_workflow_with_tracing(
                     detected_workflow, diagnostic_context, problem_description
@@ -727,10 +708,7 @@ Focus on providing actionable insights that address the original problem while c
 
             try:
                 if OPENAI_AGENTS_AVAILABLE and custom_span:
-                    with custom_span("orchestration_analysis") as span:
-                        span.set_attribute("input_length", len(orchestration_input))
-                        span.set_attribute("workflow_type", detected_workflow)
-                        
+                    with custom_span("orchestration_analysis"):
                         # Use Runner to execute the orchestrating agent
                         orchestration_result = await Runner.run(
                             self.orchestrating_agent,
@@ -739,7 +717,6 @@ Focus on providing actionable insights that address the original problem while c
                         )
 
                         orchestration_analysis = orchestration_result.final_output
-                        span.set_attribute("output_length", len(orchestration_analysis))
                         logger.info(
                             f"Orchestration analysis completed, output length: {len(orchestration_analysis)} characters"
                         )

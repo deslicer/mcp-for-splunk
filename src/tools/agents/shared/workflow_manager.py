@@ -618,16 +618,11 @@ You are performing a basic data availability check.
         try:
             # Get workflow definition with tracing
             if TRACING_AVAILABLE and custom_span:
-                with custom_span("workflow_definition_lookup") as span:
-                    span.set_attribute("workflow_id", workflow_id)
-                    
+                with custom_span("workflow_definition_lookup"):
                     workflow = self.get_workflow(workflow_id)
                     if not workflow:
-                        span.set_attribute("workflow_found", False)
                         raise ValueError(f"Workflow '{workflow_id}' not found")
                     
-                    span.set_attribute("workflow_found", True)
-                    span.set_attribute("task_count", len(workflow.tasks))
                     logger.info(f"Found workflow: {workflow.name} with {len(workflow.tasks)} tasks")
             else:
                 workflow = self.get_workflow(workflow_id)
@@ -637,14 +632,9 @@ You are performing a basic data availability check.
 
             # Build dependency graph with tracing
             if TRACING_AVAILABLE and custom_span:
-                with custom_span("dependency_analysis") as span:
+                with custom_span("dependency_analysis"):
                     dependency_graph = self._build_dependency_graph(workflow.tasks)
                     execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
-                    
-                    span.set_attribute("total_tasks", len(workflow.tasks))
-                    span.set_attribute("execution_phases", len(execution_phases))
-                    span.set_attribute("parallel_efficiency", 
-                                     self._calculate_parallel_efficiency(workflow.tasks, execution_phases))
                     
                     logger.info(f"Dependency analysis complete:")
                     logger.info(f"  - Total tasks: {len(workflow.tasks)}")
@@ -669,11 +659,7 @@ You are performing a basic data availability check.
                 logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}")
                 
                 if TRACING_AVAILABLE and custom_span:
-                    with custom_span(phase_name) as phase_span:
-                        phase_span.set_attribute("phase_number", phase_idx + 1)
-                        phase_span.set_attribute("phase_tasks", phase_tasks)
-                        phase_span.set_attribute("task_count", len(phase_tasks))
-                        
+                    with custom_span(phase_name):
                         # Execute tasks in this phase (potentially in parallel)
                         phase_results = await self._execute_phase_with_tracing(
                             workflow, phase_tasks, diagnostic_context, task_results
@@ -688,11 +674,6 @@ You are performing a basic data availability check.
                         failed_tasks = [task_id for task_id, result in phase_results.items() 
                                       if result.status == "error"]
                         
-                        phase_span.set_attribute("successful_tasks", len(successful_tasks))
-                        phase_span.set_attribute("failed_tasks", len(failed_tasks))
-                        phase_span.set_attribute("phase_success_rate", 
-                                               len(successful_tasks) / len(phase_tasks) if phase_tasks else 0)
-                        
                         logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                 else:
                     # Execute tasks in this phase (potentially in parallel)
@@ -703,6 +684,7 @@ You are performing a basic data availability check.
                     # Update task results
                     task_results.update(phase_results)
                     
+                    # Add phase completion metrics
                     successful_tasks = [task_id for task_id, result in phase_results.items() 
                                       if result.status in ["healthy", "warning"]]
                     failed_tasks = [task_id for task_id, result in phase_results.items() 
@@ -712,31 +694,26 @@ You are performing a basic data availability check.
 
             # Finalize workflow result with tracing
             if TRACING_AVAILABLE and custom_span:
-                with custom_span("workflow_result_synthesis") as span:
-                    span.set_attribute("total_tasks_executed", len(task_results))
-                    
+                with custom_span("workflow_result_synthesis"):
                     workflow_result = await self._finalize_workflow_result(
                         workflow_id, workflow, task_results, execution_phases, start_time
                     )
                     
-                    span.set_attribute("workflow_status", workflow_result.status)
-                    span.set_attribute("execution_time", workflow_result.execution_time)
-                    
-                    logger.info(f"Workflow result synthesis completed")
-                    logger.info(f"  - Overall status: {workflow_result.status}")
+                    logger.info(f"Workflow execution completed successfully")
+                    logger.info(f"  - Status: {workflow_result.status}")
                     logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
-                    
-                    return workflow_result
+                    logger.info(f"  - Tasks executed: {len(task_results)}")
             else:
                 workflow_result = await self._finalize_workflow_result(
                     workflow_id, workflow, task_results, execution_phases, start_time
                 )
                 
-                logger.info(f"Workflow result synthesis completed")
-                logger.info(f"  - Overall status: {workflow_result.status}")
+                logger.info(f"Workflow execution completed successfully")
+                logger.info(f"  - Status: {workflow_result.status}")
                 logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
-                
-                return workflow_result
+                logger.info(f"  - Tasks executed: {len(task_results)}")
+
+            return workflow_result
 
         except Exception as e:
             execution_time = time.time() - start_time
@@ -831,28 +808,15 @@ You are performing a basic data availability check.
     ) -> DiagnosticResult:
         """Execute a single task with comprehensive tracing."""
         
-        with custom_span(f"task_execution_{task_def.task_id}") as span:
-            span.set_attribute("task_id", task_def.task_id)
-            span.set_attribute("task_name", task_def.name)
-            span.set_attribute("required_tools", task_def.required_tools)
-            span.set_attribute("dependencies", task_def.dependencies)
-            
+        with custom_span(f"task_execution_{task_def.task_id}"):
             # Create and execute dynamic agent
             dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
             
             try:
                 result = await dynamic_agent.execute_task(execution_context)
-                
-                span.set_attribute("task_status", result.status)
-                span.set_attribute("findings_count", len(result.findings))
-                span.set_attribute("recommendations_count", len(result.recommendations))
-                
                 return result
                 
             except Exception as e:
-                span.set_attribute("task_status", "error")
-                span.set_attribute("error", str(e))
-                
                 logger.error(f"Task {task_def.task_id} execution failed: {e}", exc_info=True)
                 raise
 

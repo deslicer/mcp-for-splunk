@@ -215,25 +215,15 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"splunk_search_{self.task_definition.task_id}") as span:
-                    span.set_attribute("tool_name", "run_splunk_search")
-                    span.set_attribute("query", query[:200])  # Truncate for readability
-                    span.set_attribute("earliest_time", earliest_time)
-                    span.set_attribute("latest_time", latest_time)
-                    span.set_attribute("agent_name", self.name)
-                    span.set_attribute("task_id", self.task_definition.task_id)
-                    
+                with custom_span(f"splunk_search_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool(
                         "run_splunk_search",
                         {"query": query, "earliest_time": earliest_time, "latest_time": latest_time},
                     )
                     
-                    span.set_attribute("tool_success", result.get("success", False))
                     if result.get("success"):
-                        span.set_attribute("result_length", len(str(result.get("data", ""))))
                         return str(result.get("data", ""))
                     else:
-                        span.set_attribute("error", result.get("error", "Unknown error"))
                         return f"Search failed: {result.get('error', 'Unknown error')}"
             else:
                 result = await self.tool_registry.call_tool(
@@ -263,15 +253,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"splunk_oneshot_search_{self.task_definition.task_id}") as span:
-                    span.set_attribute("tool_name", "run_oneshot_search")
-                    span.set_attribute("query", query[:200])  # Truncate for readability
-                    span.set_attribute("earliest_time", earliest_time)
-                    span.set_attribute("latest_time", latest_time)
-                    span.set_attribute("max_results", max_results)
-                    span.set_attribute("agent_name", self.name)
-                    span.set_attribute("task_id", self.task_definition.task_id)
-                    
+                with custom_span(f"splunk_oneshot_search_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool(
                         "run_oneshot_search",
                         {
@@ -282,12 +264,9 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                         },
                     )
                     
-                    span.set_attribute("tool_success", result.get("success", False))
                     if result.get("success"):
-                        span.set_attribute("result_length", len(str(result.get("data", ""))))
                         return str(result.get("data", ""))
                     else:
-                        span.set_attribute("error", result.get("error", "Unknown error"))
                         return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
             else:
                 result = await self.tool_registry.call_tool(
@@ -317,22 +296,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"splunk_list_indexes_{self.task_definition.task_id}") as span:
-                    span.set_attribute("tool_name", "list_splunk_indexes")
-                    span.set_attribute("agent_name", self.name)
-                    span.set_attribute("task_id", self.task_definition.task_id)
-                    
+                with custom_span(f"splunk_list_indexes_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("list_splunk_indexes")
                     
-                    span.set_attribute("tool_success", result.get("success", False))
                     if result.get("success"):
-                        indexes_data = result.get("data", {})
-                        if isinstance(indexes_data, dict) and "indexes" in indexes_data:
-                            span.set_attribute("indexes_count", len(indexes_data["indexes"]))
-                        span.set_attribute("result_length", len(str(result.get("data", ""))))
                         return str(result.get("data", ""))
                     else:
-                        span.set_attribute("error", result.get("error", "Unknown error"))
                         return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
             else:
                 result = await self.tool_registry.call_tool("list_splunk_indexes")
@@ -354,23 +323,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"splunk_user_info_{self.task_definition.task_id}") as span:
-                    span.set_attribute("tool_name", "get_current_user_info")
-                    span.set_attribute("agent_name", self.name)
-                    span.set_attribute("task_id", self.task_definition.task_id)
-                    
+                with custom_span(f"splunk_user_info_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_current_user_info")
                     
-                    span.set_attribute("tool_success", result.get("success", False))
                     if result.get("success"):
-                        user_data = result.get("data", {})
-                        if isinstance(user_data, dict):
-                            span.set_attribute("user_roles_count", len(user_data.get("roles", [])))
-                            span.set_attribute("username", user_data.get("name", "unknown"))
-                        span.set_attribute("result_length", len(str(result.get("data", ""))))
                         return str(result.get("data", ""))
                     else:
-                        span.set_attribute("error", result.get("error", "Unknown error"))
                         return f"Failed to get user info: {result.get('error', 'Unknown error')}"
             else:
                 result = await self.tool_registry.call_tool("get_current_user_info")
@@ -392,23 +350,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
             # Add tracing for tool execution
             if OPENAI_AGENTS_AVAILABLE and custom_span:
-                with custom_span(f"splunk_health_check_{self.task_definition.task_id}") as span:
-                    span.set_attribute("tool_name", "get_splunk_health")
-                    span.set_attribute("agent_name", self.name)
-                    span.set_attribute("task_id", self.task_definition.task_id)
-                    
+                with custom_span(f"splunk_health_check_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_splunk_health")
                     
-                    span.set_attribute("tool_success", result.get("success", False))
                     if result.get("success"):
-                        health_data = result.get("data", {})
-                        if isinstance(health_data, dict):
-                            span.set_attribute("health_status", health_data.get("status", "unknown"))
-                            span.set_attribute("splunk_version", health_data.get("version", "unknown"))
-                        span.set_attribute("result_length", len(str(result.get("data", ""))))
                         return str(result.get("data", ""))
                     else:
-                        span.set_attribute("error", result.get("error", "Unknown error"))
                         return f"Health check failed: {result.get('error', 'Unknown error')}"
             else:
                 result = await self.tool_registry.call_tool("get_splunk_health")
@@ -472,33 +419,17 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
         # Create comprehensive tracing for task execution
         if OPENAI_AGENTS_AVAILABLE and custom_span:
-            with custom_span(f"micro_agent_task_{self.task_definition.task_id}") as task_span:
-                task_span.set_attribute("agent_name", self.name)
-                task_span.set_attribute("task_id", self.task_definition.task_id)
-                task_span.set_attribute("task_name", self.task_definition.name)
-                task_span.set_attribute("task_description", self.task_definition.description)
-                task_span.set_attribute("required_tools", self.task_definition.required_tools)
-                task_span.set_attribute("dependencies", self.task_definition.dependencies)
-                task_span.set_attribute("expected_output_format", self.task_definition.expected_output_format)
-                
-                # Add diagnostic context attributes
-                task_span.set_attribute("earliest_time", execution_context.diagnostic_context.earliest_time)
-                task_span.set_attribute("latest_time", execution_context.diagnostic_context.latest_time)
-                if execution_context.diagnostic_context.focus_index:
-                    task_span.set_attribute("focus_index", execution_context.diagnostic_context.focus_index)
-                if execution_context.diagnostic_context.focus_host:
-                    task_span.set_attribute("focus_host", execution_context.diagnostic_context.focus_host)
-                
-                return await self._execute_task_with_tracing(execution_context, start_time, task_span)
+            with custom_span(f"micro_agent_task_{self.task_definition.task_id}"):
+                return await self._execute_task_with_tracing(execution_context, start_time, True)
         else:
             # Fallback without tracing
-            return await self._execute_task_with_tracing(execution_context, start_time, None)
+            return await self._execute_task_with_tracing(execution_context, start_time, False)
 
     async def _execute_task_with_tracing(
         self, 
         execution_context: AgentExecutionContext, 
         start_time: float,
-        task_span=None
+        tracing_enabled: bool = False
     ) -> DiagnosticResult:
         """Execute the task with optional tracing support."""
         
@@ -507,53 +438,30 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             self._task_result = None
 
             # Build dynamic instructions with context (with tracing)
-            if OPENAI_AGENTS_AVAILABLE and custom_span and task_span:
-                with custom_span("instruction_building") as inst_span:
-                    inst_span.set_attribute("has_dependencies", len(execution_context.dependency_results) > 0)
-                    inst_span.set_attribute("dependency_count", len(execution_context.dependency_results))
-                    
+            if OPENAI_AGENTS_AVAILABLE and custom_span and tracing_enabled:
+                with custom_span("instruction_building"):
                     dynamic_instructions = self._build_dynamic_instructions(execution_context)
-                    
-                    inst_span.set_attribute("instructions_length", len(dynamic_instructions))
-                    inst_span.set_attribute("context_injected", True)
             else:
                 dynamic_instructions = self._build_dynamic_instructions(execution_context)
 
             # Execute the task using OpenAI Agent if available (with tracing)
             if self.openai_agent and OPENAI_AGENTS_AVAILABLE:
-                if custom_span and task_span:
-                    with custom_span("openai_agent_execution") as agent_span:
-                        agent_span.set_attribute("agent_model", self.config.model)
-                        agent_span.set_attribute("agent_temperature", self.config.temperature)
-                        agent_span.set_attribute("max_turns", 10)
-                        agent_span.set_attribute("instruction_length", len(dynamic_instructions))
-                        
+                if custom_span and tracing_enabled:
+                    with custom_span("openai_agent_execution"):
                         result = await self._execute_with_openai_agent(
                             execution_context, dynamic_instructions
                         )
-                        
-                        agent_span.set_attribute("result_status", result.status)
-                        agent_span.set_attribute("findings_count", len(result.findings))
-                        agent_span.set_attribute("recommendations_count", len(result.recommendations))
-                        agent_span.set_attribute("execution_method", "openai_agent")
                 else:
                     result = await self._execute_with_openai_agent(
                         execution_context, dynamic_instructions
                     )
             else:
                 # Fallback to hardcoded execution for basic tasks (with tracing)
-                if custom_span and task_span:
-                    with custom_span("fallback_execution") as fallback_span:
-                        fallback_span.set_attribute("fallback_reason", 
-                                                  "openai_agent_unavailable" if not OPENAI_AGENTS_AVAILABLE 
-                                                  else "openai_agent_not_created")
-                        
+                if custom_span and tracing_enabled:
+                    with custom_span("fallback_execution"):
                         result = await self._execute_diagnostic_task_fallback(
                             execution_context, dynamic_instructions
                         )
-                        
-                        fallback_span.set_attribute("result_status", result.status)
-                        fallback_span.set_attribute("execution_method", "fallback")
                 else:
                     result = await self._execute_diagnostic_task_fallback(
                         execution_context, dynamic_instructions
@@ -566,13 +474,6 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             result.details["task_id"] = self.task_definition.task_id
             result.details["tracing_enabled"] = OPENAI_AGENTS_AVAILABLE and custom_span is not None
 
-            # Add final attributes to task span
-            if task_span:
-                task_span.set_attribute("execution_time", execution_time)
-                task_span.set_attribute("final_status", result.status)
-                task_span.set_attribute("total_findings", len(result.findings))
-                task_span.set_attribute("total_recommendations", len(result.recommendations))
-
             logger.info(
                 f"[{self.name}] Task completed in {execution_time:.2f}s with status: {result.status}"
             )
@@ -581,13 +482,6 @@ Always return your results as a structured DiagnosticResult by calling the `retu
         except Exception as e:
             execution_time = time.time() - start_time
             logger.error(f"[{self.name}] Task execution failed: {e}", exc_info=True)
-
-            # Add error attributes to task span
-            if task_span:
-                task_span.set_attribute("execution_time", execution_time)
-                task_span.set_attribute("final_status", "error")
-                task_span.set_attribute("error", str(e))
-                task_span.set_attribute("error_type", type(e).__name__)
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
