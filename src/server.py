@@ -363,13 +363,23 @@ async def main():
 
     # Create custom ASGI middleware list to capture HTTP headers
     from starlette.middleware import Middleware as StarletteMiddleware
+    from starlette.applications import Starlette
 
     custom_middleware = [
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-    # Use FastMCP's http_app method with custom middleware
-    app = mcp.http_app(path="/mcp/", middleware=custom_middleware)
+    # Get the FastMCP ASGI app
+    mcp_app = mcp.http_app(path="/mcp/")
+    
+    # Create a Starlette wrapper app with proper lifespan handling
+    app = Starlette(
+        middleware=custom_middleware,
+        lifespan=mcp_app.lifespan  # Pass the FastMCP lifespan to the parent app
+    )
+    
+    # Mount the MCP app
+    app.mount("/", mcp_app)
 
     # Import uvicorn to run the server
     try:
