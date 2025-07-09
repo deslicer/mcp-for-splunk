@@ -546,15 +546,20 @@ Focus on providing actionable insights that address the original problem while c
         execution_start_time = time.time()
         
         # Create comprehensive trace for the entire troubleshooting workflow
-        trace_name = f"Splunk Dynamic Troubleshooting: {problem_description[:50]}..."
+        # Make trace name unique to avoid "Trace already exists" warnings
+        trace_timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
+        trace_name = f"Splunk Dynamic Troubleshooting {trace_timestamp}: {problem_description[:40]}..."
+        
+        # Convert all metadata values to strings for OpenAI API compatibility
         trace_metadata = {
-            "problem_description": problem_description,
+            "problem_description": str(problem_description)[:100],
             "time_range": f"{earliest_time} to {latest_time}",
-            "focus_index": focus_index,
-            "focus_host": focus_host,
-            "complexity_level": complexity_level,
-            "workflow_type": workflow_type,
+            "focus_index": str(focus_index) if focus_index else "all",
+            "focus_host": str(focus_host) if focus_host else "all",
+            "complexity_level": str(complexity_level),
+            "workflow_type": str(workflow_type),
             "tool_name": "dynamic_troubleshoot_agent",
+            "trace_timestamp": str(trace_timestamp),
         }
 
         if OPENAI_AGENTS_AVAILABLE and trace:
@@ -779,8 +784,16 @@ Focus on providing actionable insights that address the original problem while c
                     "trace_available": OPENAI_AGENTS_AVAILABLE and trace is not None,
                     "workflow_traced": True,
                     "orchestration_traced": True,
-                    "trace_name": trace_name if OPENAI_AGENTS_AVAILABLE and trace else None,
-                    "trace_metadata": trace_metadata if OPENAI_AGENTS_AVAILABLE and trace else None,
+                    "trace_name": f"Splunk Dynamic Troubleshooting: {problem_description[:50]}..." if OPENAI_AGENTS_AVAILABLE and trace else None,
+                    "trace_metadata": {
+                        "problem_description": problem_description[:100],
+                        "time_range": f"{earliest_time} to {latest_time}",
+                        "focus_index": str(focus_index) if focus_index else None,
+                        "focus_host": str(focus_host) if focus_host else None,
+                        "complexity_level": complexity_level,
+                        "workflow_type": workflow_type,
+                        "tool_name": "dynamic_troubleshoot_agent",
+                    } if OPENAI_AGENTS_AVAILABLE and trace else None,
                 },
             }
 

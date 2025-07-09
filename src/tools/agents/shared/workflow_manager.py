@@ -583,17 +583,19 @@ You are performing a basic data availability check.
 
         # Create comprehensive trace for workflow execution
         if TRACING_AVAILABLE and trace:
-            workflow_name = f"Splunk Workflow: {workflow_id}"
+            # Make trace name unique to avoid conflicts
+            trace_timestamp = int(time.time() * 1000)
+            workflow_name = f"Splunk Workflow {trace_timestamp}: {workflow_id}"
+            
+            # Convert all metadata values to strings for OpenAI API compatibility
             trace_metadata = {
-                "workflow_id": workflow_id,
-                "diagnostic_context": {
-                    "earliest_time": diagnostic_context.earliest_time,
-                    "latest_time": diagnostic_context.latest_time,
-                    "focus_index": diagnostic_context.focus_index,
-                    "focus_host": diagnostic_context.focus_host,
-                    "complexity_level": diagnostic_context.complexity_level,
-                },
-                "execution_metadata": execution_metadata,
+                "workflow_id": str(workflow_id),
+                "earliest_time": str(diagnostic_context.earliest_time),
+                "latest_time": str(diagnostic_context.latest_time),
+                "focus_index": str(diagnostic_context.focus_index) if diagnostic_context.focus_index else "all",
+                "focus_host": str(diagnostic_context.focus_host) if diagnostic_context.focus_host else "all",
+                "complexity_level": str(diagnostic_context.complexity_level),
+                "trace_timestamp": str(trace_timestamp),
             }
             
             with trace(workflow_name=workflow_name, metadata=trace_metadata):
