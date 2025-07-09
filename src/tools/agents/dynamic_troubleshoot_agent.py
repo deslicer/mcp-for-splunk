@@ -151,6 +151,8 @@ class DynamicTroubleshootAgentTool(BaseTool):
 
     - **focus_host** (str, optional): Specific host or server to focus the analysis on. Helpful for distributed environment troubleshooting.
 
+    - **focus_sourcetype** (str, optional): Specific sourcetype to focus the analysis on. Useful when the problem is related to a particular data format or source type.
+
     - **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced". Affects the comprehensiveness of diagnostic checks. Default: "moderate"
 
     - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "health_check", "auto". Default: "auto" (automatic detection)
@@ -210,6 +212,7 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
 - latest_time (optional): End time for analysis (default: "now")
 - focus_index (optional): Specific index to focus on
 - focus_host (optional): Specific host to focus on
+- focus_sourcetype (optional): Specific sourcetype to focus on
 - complexity_level (optional): "basic", "moderate", "advanced" (default: "moderate")
 - workflow_type (optional): "missing_data", "performance", "health_check", "auto" (default: "auto")
 """,
@@ -655,6 +658,7 @@ Focus on providing actionable insights that address the original problem while c
         latest_time: str = "now",
         focus_index: Optional[str] = None,
         focus_host: Optional[str] = None,
+        focus_sourcetype: Optional[str] = None,
         complexity_level: str = "moderate",
         workflow_type: str = "auto",
     ) -> dict[str, Any]:
@@ -671,6 +675,7 @@ Focus on providing actionable insights that address the original problem while c
             latest_time: End time for analysis
             focus_index: Specific index to focus on (optional)
             focus_host: Specific host to focus on (optional)
+            focus_sourcetype: Specific sourcetype to focus on (optional)
             complexity_level: Analysis complexity level
             workflow_type: Force specific workflow or use auto-detection
 
@@ -690,6 +695,7 @@ Focus on providing actionable insights that address the original problem while c
         # Normalize empty strings to None
         focus_index = focus_index if focus_index and focus_index.strip() else None
         focus_host = focus_host if focus_host and focus_host.strip() else None
+        focus_sourcetype = focus_sourcetype if focus_sourcetype and focus_sourcetype.strip() else None
 
         # Create comprehensive trace for the entire troubleshooting workflow
         # Make trace name unique to avoid "Trace already exists" warnings
@@ -702,6 +708,7 @@ Focus on providing actionable insights that address the original problem while c
             "time_range": f"{earliest_time} to {latest_time}",
             "focus_index": str(focus_index) if focus_index else "all",
             "focus_host": str(focus_host) if focus_host else "all",
+            "focus_sourcetype": str(focus_sourcetype) if focus_sourcetype else "all",
             "complexity_level": str(complexity_level),
             "workflow_type": str(workflow_type),
             "tool_name": "dynamic_troubleshoot_agent",
@@ -713,7 +720,7 @@ Focus on providing actionable insights that address the original problem while c
             with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_with_tracing(
                     ctx, problem_description, earliest_time, latest_time,
-                    focus_index, focus_host, complexity_level, workflow_type,
+                    focus_index, focus_host, focus_sourcetype, complexity_level, workflow_type,
                     execution_start_time
                 )
         else:
@@ -721,7 +728,7 @@ Focus on providing actionable insights that address the original problem while c
             logger.warning("OpenAI Agents tracing not available, executing without traces")
             return await self._execute_with_tracing(
                 ctx, problem_description, earliest_time, latest_time,
-                focus_index, focus_host, complexity_level, workflow_type,
+                focus_index, focus_host, focus_sourcetype, complexity_level, workflow_type,
                 execution_start_time
             )
 
@@ -733,6 +740,7 @@ Focus on providing actionable insights that address the original problem while c
         latest_time: str,
         focus_index: str | None,
         focus_host: str | None,
+        focus_sourcetype: str | None,
         complexity_level: str,
         workflow_type: str,
         execution_start_time: float,
@@ -746,7 +754,7 @@ Focus on providing actionable insights that address the original problem while c
         try:
             logger.info(f"Problem: {problem_description[:200]}...")
             logger.info(f"Time range: {earliest_time} to {latest_time}")
-            logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}")
+            logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}, Sourcetype: {focus_sourcetype}")
             logger.info(f"Complexity level: {complexity_level}")
             logger.info(f"Workflow type: {workflow_type}")
 
@@ -771,6 +779,7 @@ Focus on providing actionable insights that address the original problem while c
                         latest_time=latest_time,
                         focus_index=focus_index,
                         focus_host=focus_host,
+                        focus_sourcetype=focus_sourcetype,
                         complexity_level=complexity_level,
                         problem_description=problem_description,
                         workflow_type=workflow_type,
@@ -781,12 +790,13 @@ Focus on providing actionable insights that address the original problem while c
                     latest_time=latest_time,
                     focus_index=focus_index,
                     focus_host=focus_host,
+                    focus_sourcetype=focus_sourcetype,
                     complexity_level=complexity_level,
                     problem_description=problem_description,
                     workflow_type=workflow_type,
                 )
 
-            logger.info(f"Diagnostic context created for index: {focus_index or 'all'}")
+            logger.info(f"Diagnostic context created for index: {focus_index or 'all'}, host: {focus_host or 'all'}, sourcetype: {focus_sourcetype or 'all'}")
 
             # Report progress: Context created
             await ctx.report_progress(progress=10, total=100)
@@ -923,6 +933,7 @@ Focus on providing actionable insights that address the original problem while c
                     "latest_time": latest_time,
                     "focus_index": focus_index,
                     "focus_host": focus_host,
+                    "focus_sourcetype": focus_sourcetype,
                     "complexity_level": complexity_level,
                 },
                 "summarization": {
@@ -952,6 +963,7 @@ Focus on providing actionable insights that address the original problem while c
                         "time_range": f"{earliest_time} to {latest_time}",
                         "focus_index": str(focus_index) if focus_index else None,
                         "focus_host": str(focus_host) if focus_host else None,
+                        "focus_sourcetype": str(focus_sourcetype) if focus_sourcetype else None,
                         "complexity_level": complexity_level,
                         "workflow_type": workflow_type,
                         "tool_name": "dynamic_troubleshoot_agent",
@@ -1001,6 +1013,7 @@ Focus on providing actionable insights that address the original problem while c
                     "latest_time": latest_time,
                     "focus_index": focus_index,
                     "focus_host": focus_host,
+                    "focus_sourcetype": focus_sourcetype,
                     "complexity_level": complexity_level,
                 },
                 "summarization": {
@@ -1126,6 +1139,7 @@ Focus on providing actionable insights that address the original problem while c
                     "latest_time": diagnostic_context.latest_time,
                     "focus_index": diagnostic_context.focus_index,
                     "focus_host": diagnostic_context.focus_host,
+                    "focus_sourcetype": diagnostic_context.focus_sourcetype,
                     "complexity_level": diagnostic_context.complexity_level,
                 },
             }

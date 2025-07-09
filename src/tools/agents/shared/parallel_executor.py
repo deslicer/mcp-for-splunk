@@ -417,6 +417,7 @@ class ParallelWorkflowExecutor:
         enhanced_instructions = enhanced_instructions.replace("{latest_time}", diagnostic_context.latest_time)
         enhanced_instructions = enhanced_instructions.replace("{focus_index}", diagnostic_context.focus_index or "all indexes")
         enhanced_instructions = enhanced_instructions.replace("{focus_host}", diagnostic_context.focus_host or "all hosts")
+        enhanced_instructions = enhanced_instructions.replace("{focus_sourcetype}", diagnostic_context.focus_sourcetype or "all sourcetypes")
         enhanced_instructions = enhanced_instructions.replace("{problem_description}", diagnostic_context.problem_description or "No specific problem description provided")
         enhanced_instructions = enhanced_instructions.replace("{workflow_type}", diagnostic_context.workflow_type or "unknown")
         enhanced_instructions = enhanced_instructions.replace("{complexity_level}", diagnostic_context.complexity_level)
@@ -467,6 +468,8 @@ class ParallelWorkflowExecutor:
             enhanced_instructions += f"- Focus Index: {diagnostic_context.focus_index}\n"
         if diagnostic_context.focus_host:
             enhanced_instructions += f"- Focus Host: {diagnostic_context.focus_host}\n"
+        if diagnostic_context.focus_sourcetype:
+            enhanced_instructions += f"- Focus Sourcetype: {diagnostic_context.focus_sourcetype}\n"
 
         return enhanced_instructions
 

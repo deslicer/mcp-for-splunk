@@ -6,12 +6,12 @@ for specific agent files and enables task-driven parallelization.
 """
 
 import logging
-import os
 import time
 from dataclasses import dataclass
 from typing import Any
 
 from fastmcp import Context
+
 from .config import AgentConfig
 from .context import DiagnosticResult, SplunkDiagnosticContext
 from .tools import SplunkToolRegistry
@@ -20,9 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Import OpenAI agents if available
 try:
-    from agents import Agent, Runner, function_tool
     # Import tracing capabilities
-    from agents import custom_span
+    from agents import Agent, Runner, custom_span, function_tool
 
     OPENAI_AGENTS_AVAILABLE = True
     logger.info("OpenAI agents SDK loaded successfully for dynamic micro-agents")
@@ -100,7 +99,7 @@ class DynamicMicroAgent:
         self.tool_registry = tool_registry
         self.task_definition = task_definition
         self.name = f"DynamicAgent_{task_definition.task_id}"
-        
+
         # Store current context for tool calls
         self._current_ctx = None
 
@@ -175,14 +174,14 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
 Use proper JSON formatting for the string parameters to ensure they can be parsed correctly.
             """
-            
+
             final_instructions = instructions_template.format(
                 task_name=self.task_definition.name,
                 task_description=self.task_definition.description,
                 task_instructions=self.task_definition.instructions,
                 available_tools=", ".join(self.task_definition.required_tools)
             )
-            
+
             self.openai_agent = Agent(
                 name=self.name,
                 instructions=final_instructions,
@@ -245,10 +244,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                         "run_splunk_search",
                         {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
                     )
-                    
+
                     if result.get("success"):
                         if ctx:
-                            await ctx.info(f"✅ Search completed successfully")
+                            await ctx.info("✅ Search completed successfully")
                         return str(result.get("data", ""))
                     else:
                         error_msg = f"Search failed: {result.get('error', 'Unknown error')}"
@@ -263,7 +262,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
                 if result.get("success"):
                     if ctx:
-                        await ctx.info(f"✅ Search completed successfully")
+                        await ctx.info("✅ Search completed successfully")
                     return str(result.get("data", ""))
                 else:
                     error_msg = f"Search failed: {result.get('error', 'Unknown error')}"
@@ -315,10 +314,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                             "max_results": max_results,
                         }
                     )
-                    
+
                     if result.get("success"):
                         if ctx:
-                            await ctx.info(f"✅ Oneshot search completed successfully")
+                            await ctx.info("✅ Oneshot search completed successfully")
                         return str(result.get("data", ""))
                     else:
                         error_msg = f"Oneshot search failed: {result.get('error', 'Unknown error')}"
@@ -338,7 +337,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
                 if result.get("success"):
                     if ctx:
-                        await ctx.info(f"✅ Oneshot search completed successfully")
+                        await ctx.info("✅ Oneshot search completed successfully")
                     return str(result.get("data", ""))
                 else:
                     error_msg = f"Oneshot search failed: {result.get('error', 'Unknown error')}"
@@ -369,7 +368,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             # Get the current context for progress reporting
             ctx = self._current_ctx
             if ctx:
-                await ctx.info(f"📂 Listing available Splunk indexes...")
+                await ctx.info("📂 Listing available Splunk indexes...")
                 # Set the context on the tool registry for progress reporting
                 self.tool_registry.set_context(ctx)
 
@@ -377,10 +376,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_list_indexes_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("list_splunk_indexes")
-                    
+
                     if result.get("success"):
                         if ctx:
-                            await ctx.info(f"✅ Index list retrieved successfully")
+                            await ctx.info("✅ Index list retrieved successfully")
                         return str(result.get("data", ""))
                     else:
                         error_msg = f"Failed to list indexes: {result.get('error', 'Unknown error')}"
@@ -392,7 +391,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
                 if result.get("success"):
                     if ctx:
-                        await ctx.info(f"✅ Index list retrieved successfully")
+                        await ctx.info("✅ Index list retrieved successfully")
                     return str(result.get("data", ""))
                 else:
                     error_msg = f"Failed to list indexes: {result.get('error', 'Unknown error')}"
@@ -404,7 +403,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         try:
             tool = function_tool(
                 list_splunk_indexes,
-                name_override="list_splunk_indexes", 
+                name_override="list_splunk_indexes",
                 description_override="List available Splunk indexes"
             )
             return tool
@@ -423,7 +422,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             # Get the current context for progress reporting
             ctx = self._current_ctx
             if ctx:
-                await ctx.info(f"👤 Getting current user information...")
+                await ctx.info("👤 Getting current user information...")
                 # Set the context on the tool registry for progress reporting
                 self.tool_registry.set_context(ctx)
 
@@ -431,10 +430,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_user_info_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_current_user_info")
-                    
+
                     if result.get("success"):
                         if ctx:
-                            await ctx.info(f"✅ User information retrieved successfully")
+                            await ctx.info("✅ User information retrieved successfully")
                         return str(result.get("data", ""))
                     else:
                         error_msg = f"Failed to get user info: {result.get('error', 'Unknown error')}"
@@ -446,7 +445,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
                 if result.get("success"):
                     if ctx:
-                        await ctx.info(f"✅ User information retrieved successfully")
+                        await ctx.info("✅ User information retrieved successfully")
                     return str(result.get("data", ""))
                 else:
                     error_msg = f"Failed to get user info: {result.get('error', 'Unknown error')}"
@@ -477,7 +476,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             # Get the current context for progress reporting
             ctx = self._current_ctx
             if ctx:
-                await ctx.info(f"🏥 Checking Splunk server health...")
+                await ctx.info("🏥 Checking Splunk server health...")
                 # Set the context on the tool registry for progress reporting
                 self.tool_registry.set_context(ctx)
 
@@ -485,10 +484,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"splunk_health_check_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool("get_splunk_health")
-                    
+
                     if result.get("success"):
                         if ctx:
-                            await ctx.info(f"✅ Health check completed successfully")
+                            await ctx.info("✅ Health check completed successfully")
                         return str(result.get("data", ""))
                     else:
                         error_msg = f"Health check failed: {result.get('error', 'Unknown error')}"
@@ -500,7 +499,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
                 if result.get("success"):
                     if ctx:
-                        await ctx.info(f"✅ Health check completed successfully")
+                        await ctx.info("✅ Health check completed successfully")
                     return str(result.get("data", ""))
                 else:
                     error_msg = f"Health check failed: {result.get('error', 'Unknown error')}"
@@ -525,9 +524,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """Create tool for returning diagnostic results."""
 
         async def return_diagnostic_result(
-            status: str, 
-            findings: str, 
-            recommendations: str, 
+            status: str,
+            findings: str,
+            recommendations: str,
             details: str = ""
         ) -> str:
             """Return the diagnostic result for this task.
@@ -539,7 +538,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 details: Optional JSON string with additional context (dict)
             """
             import json
-            
+
             # Parse the JSON strings back to Python objects
             try:
                 findings_list = json.loads(findings) if findings else []
@@ -572,11 +571,11 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 name_override="return_diagnostic_result",
                 description_override="Return the diagnostic result for this task. Use JSON strings for lists and objects."
             )
-            
+
             # Don't modify the schema at all - let OpenAI Agents SDK handle it
             logger.debug(f"[{self.name}] Created return_diagnostic_result tool successfully")
             return tool
-            
+
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create return_diagnostic_result tool: {e}")
             # Return a no-op tool as fallback
@@ -584,11 +583,11 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
     def _create_fallback_tool(self, tool_name: str, description: str):
         """Create a fallback no-op tool when tool creation fails."""
-        
+
         async def fallback_function() -> str:
             """Fallback function when tool creation fails."""
             return f"Tool {tool_name} is not available due to configuration issues"
-        
+
         try:
             tool = function_tool(
                 fallback_function,
@@ -606,19 +605,19 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             # Remove additionalProperties if it exists to avoid OpenAI Agents SDK conflicts
             if "additionalProperties" in schema:
                 del schema["additionalProperties"]
-            
+
             # Fix the required array to only include parameters without defaults
             if schema.get("type") == "object" and "properties" in schema and "required" in schema:
                 properties = schema["properties"]
                 required = schema["required"]
-                
+
                 # For the return_diagnostic_result function, details should not be required
                 # since it has a default value
                 if "details" in properties and "details" in required:
                     # Remove details from required since it has a default value
                     required = [req for req in required if req != "details"]
                     schema["required"] = required
-                    
+
                     # Also ensure the details parameter allows null
                     if "details" in properties:
                         details_prop = properties["details"]
@@ -640,7 +639,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                                         {"type": original_type},
                                         {"type": "null"}
                                     ]
-            
+
             # Recursively fix nested schemas
             for key, value in schema.items():
                 if isinstance(value, dict):
@@ -663,13 +662,12 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             DiagnosticResult with task execution results
         """
         start_time = time.time()
-        task_name = f"Task: {self.task_definition.name}"
-        
+
         # Store the context for tool calls
         self._current_ctx = ctx
-        
+
         logger.info(f"[{self.name}] Starting task execution: {self.task_definition.name}")
-        
+
         # Report initial progress
         await ctx.report_progress(progress=0, total=100)
         await ctx.info(f"🔄 Starting {self.task_definition.name}")
@@ -683,14 +681,14 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             return await self._execute_task_with_tracing(execution_context, start_time, ctx, False)
 
     async def _execute_task_with_tracing(
-        self, 
-        execution_context: AgentExecutionContext, 
+        self,
+        execution_context: AgentExecutionContext,
         start_time: float,
         ctx: Context,
         tracing_enabled: bool = False
     ) -> DiagnosticResult:
         """Execute the task with optional tracing support and progress reporting."""
-        
+
         try:
             # Initialize task result storage
             self._task_result = None
@@ -713,7 +711,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             if self.openai_agent and OPENAI_AGENTS_AVAILABLE:
                 await ctx.info(f"🤖 Executing {self.task_definition.name} with OpenAI Agent")
                 await ctx.report_progress(progress=30, total=100)
-                
+
                 if custom_span and tracing_enabled:
                     with custom_span("openai_agent_execution"):
                         result = await self._execute_with_openai_agent(
@@ -726,7 +724,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             else:
                 await ctx.info(f"⚙️ Executing {self.task_definition.name} with fallback method")
                 await ctx.report_progress(progress=30, total=100)
-                
+
                 # Fallback to hardcoded execution for basic tasks (with tracing)
                 if custom_span and tracing_enabled:
                     with custom_span("fallback_execution"):
@@ -760,7 +758,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         except Exception as e:
             execution_time = time.time() - start_time
             logger.error(f"[{self.name}] Task execution failed: {e}", exc_info=True)
-            
+
             await ctx.error(f"❌ {self.task_definition.name} failed: {str(e)}")
 
             return DiagnosticResult(
@@ -855,6 +853,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         instructions = instructions.replace("{latest_time}", context.latest_time)
         instructions = instructions.replace("{focus_index}", context.focus_index or "all indexes")
         instructions = instructions.replace("{focus_host}", context.focus_host or "all hosts")
+        instructions = instructions.replace("{focus_sourcetype}", context.focus_sourcetype or "all sourcetypes")
+        instructions = instructions.replace("{problem_description}", context.problem_description or "No specific problem description provided")
+        instructions = instructions.replace("{workflow_type}", context.workflow_type or "unknown")
+        instructions = instructions.replace("{complexity_level}", context.complexity_level)
 
         if context.indexes:
             instructions = instructions.replace("{indexes}", ", ".join(context.indexes))
@@ -870,19 +872,24 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             )
             instructions += f"\n\n**Dependency Results:**\n{dependency_summary}"
 
-        # Add task-specific context
+        # Add comprehensive task context including problem description
         instructions += "\n\n**Task Context:**\n"
         instructions += f"- Task ID: {self.task_definition.task_id}\n"
         instructions += f"- Task Name: {self.task_definition.name}\n"
         instructions += f"- Available Tools: {', '.join(self.task_definition.required_tools)}\n"
-        instructions += (
-            f"- Diagnostic Time Range: {context.earliest_time} to {context.latest_time}\n"
-        )
+        instructions += f"- Diagnostic Time Range: {context.earliest_time} to {context.latest_time}\n"
+        instructions += f"- Complexity Level: {context.complexity_level}\n"
 
+        if context.problem_description:
+            instructions += f"- Original Problem: {context.problem_description}\n"
+        if context.workflow_type:
+            instructions += f"- Workflow Type: {context.workflow_type}\n"
         if context.focus_index:
             instructions += f"- Focus Index: {context.focus_index}\n"
         if context.focus_host:
             instructions += f"- Focus Host: {context.focus_host}\n"
+        if context.focus_sourcetype:
+            instructions += f"- Focus Sourcetype: {context.focus_sourcetype}\n"
 
         return instructions
 
@@ -916,7 +923,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """Fallback execution method for when OpenAI Agents SDK is not available."""
 
         task_id = self.task_definition.task_id
-        
+
         # Report progress for fallback execution
         await ctx.report_progress(progress=50, total=100)
         await ctx.info(f"🔧 Using fallback execution for {self.task_definition.name}")
@@ -938,12 +945,12 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
     ) -> DiagnosticResult:
         """Execute license verification task with progress reporting."""
         try:
-            await ctx.info(f"🔍 Checking Splunk license information")
+            await ctx.info("🔍 Checking Splunk license information")
             await ctx.report_progress(progress=60, total=100)
-            
+
             # Set the context on the tool registry for progress reporting
             self.tool_registry.set_context(ctx)
-            
+
             # Get server information - use proper time range to avoid "latest_time must be after earliest_time" error
             server_result = await self.tool_registry.call_tool(
                 "run_oneshot_search",
@@ -971,8 +978,8 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             # Implementation similar to the specific license agent but more generic
             findings = ["License verification completed"]
             status = "healthy"
-            
-            await ctx.info(f"✅ License verification completed successfully")
+
+            await ctx.info("✅ License verification completed successfully")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -997,12 +1004,12 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
     ) -> DiagnosticResult:
         """Execute index verification task with progress reporting."""
         try:
-            await ctx.info(f"📂 Checking Splunk index availability")
+            await ctx.info("📂 Checking Splunk index availability")
             await ctx.report_progress(progress=60, total=100)
-            
+
             # Set the context on the tool registry for progress reporting
             self.tool_registry.set_context(ctx)
-            
+
             # Get available indexes
             indexes_result = await self.tool_registry.call_tool("list_splunk_indexes")
 
@@ -1036,7 +1043,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 status = "healthy"
                 findings = ["All target indexes are accessible"]
                 recommendations = []
-                await ctx.info(f"✅ All target indexes are accessible")
+                await ctx.info("✅ All target indexes are accessible")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -1065,12 +1072,12 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
     ) -> DiagnosticResult:
         """Execute permissions verification task with progress reporting."""
         try:
-            await ctx.info(f"🔐 Checking user permissions and roles")
+            await ctx.info("🔐 Checking user permissions and roles")
             await ctx.report_progress(progress=60, total=100)
-            
+
             # Set the context on the tool registry for progress reporting
             self.tool_registry.set_context(ctx)
-            
+
             # Get user info from dependencies or directly
             user_info = None
             if "license_verification" in execution_context.dependency_results:
@@ -1089,7 +1096,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 status = "warning"
                 findings = ["No roles assigned to user"]
                 recommendations = ["Contact administrator for role assignment"]
-                await ctx.warning(f"⚠️ No roles assigned to current user")
+                await ctx.warning("⚠️ No roles assigned to current user")
             else:
                 status = "healthy"
                 findings = [f"User has roles: {', '.join(user_roles)}"]
@@ -1120,7 +1127,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """Execute time range verification task with progress reporting."""
         try:
             context = execution_context.diagnostic_context
-            
+
             await ctx.info(f"⏰ Checking data availability in time range {context.earliest_time} to {context.latest_time}")
             await ctx.report_progress(progress=60, total=100)
 
@@ -1171,7 +1178,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                     f"No data found in time range {context.earliest_time} to {context.latest_time}"
                 ]
                 recommendations = ["Verify time range and check if data exists outside this window"]
-                await ctx.warning(f"⚠️ No data found in specified time range")
+                await ctx.warning("⚠️ No data found in specified time range")
             else:
                 status = "healthy"
                 findings = [f"Found {total_events:,} events in time range"]

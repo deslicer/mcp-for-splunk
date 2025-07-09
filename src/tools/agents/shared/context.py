@@ -3,7 +3,7 @@ Shared context classes for Splunk troubleshooting agents.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -11,15 +11,18 @@ class SplunkDiagnosticContext:
     """Context for maintaining state across Splunk diagnostic workflows."""
     earliest_time: str = "-24h"
     latest_time: str = "now"
-    focus_index: Optional[str] = None
-    focus_host: Optional[str] = None
+    focus_index: str | None = None
+    focus_host: str | None = None
+    focus_sourcetype: str | None = None  # Added: Specific sourcetype to focus analysis on
     complexity_level: str = "moderate"
-    identified_issues: List[str] = None
-    baseline_metrics: Dict[str, Any] = None
-    validation_results: Dict[str, Any] = None
-    indexes: List[str] = None
-    sourcetypes: List[str] = None
-    sources: List[str] = None
+    problem_description: str | None = None  # Added: Original problem description for context
+    workflow_type: str | None = None  # Added: Workflow type being executed
+    identified_issues: list[str] = None
+    baseline_metrics: dict[str, Any] = None
+    validation_results: dict[str, Any] = None
+    indexes: list[str] = None
+    sourcetypes: list[str] = None
+    sources: list[str] = None
 
     def __post_init__(self):
         if self.identified_issues is None:
@@ -41,10 +44,10 @@ class DiagnosticResult:
     """Result from a diagnostic step or micro-agent."""
     step: str
     status: str  # "healthy", "warning", "critical", "error"
-    findings: List[str]
-    recommendations: List[str]
-    details: Dict[str, Any] = None
-    
+    findings: list[str]
+    recommendations: list[str]
+    details: dict[str, Any] = None
+
     def __post_init__(self):
         if self.details is None:
             self.details = {}
@@ -58,7 +61,7 @@ class ComponentAnalysisResult:
     analysis_result: str
     execution_time: float
     status: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 @dataclass
@@ -66,11 +69,11 @@ class ParallelAnalysisContext:
     """Context for coordinating parallel analysis workflows."""
     earliest_time: str = "-24h"
     latest_time: str = "now"
-    focus_components: List[str] = None
+    focus_components: list[str] = None
     analysis_depth: str = "standard"
     enable_cross_validation: bool = True
     parallel_execution_limit: int = 3
-    
+
     def __post_init__(self):
         if self.focus_components is None:
-            self.focus_components = ["inputs", "indexing", "search_performance"] 
+            self.focus_components = ["inputs", "indexing", "search_performance"]
