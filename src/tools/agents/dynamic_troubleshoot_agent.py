@@ -185,7 +185,8 @@ This tool provides direct access to the dynamic coordinator system with an orche
     )
 
     def __init__(self, name: str, category: str):
-        super().__init__(name, category)
+        super().__init__(name, self.METADATA.description)
+        self.category = category
 
         logger.info(f"Initializing Enhanced DynamicTroubleshootAgentTool: {name}")
 
@@ -548,7 +549,7 @@ Focus on providing actionable insights that address the original problem while c
         # Create comprehensive trace for the entire troubleshooting workflow
         # Make trace name unique to avoid "Trace already exists" warnings
         trace_timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
-        trace_name = f"Splunk Dynamic Troubleshooting {trace_timestamp}: {problem_description[:40]}..."
+        trace_name = f"Splunk Dynamic Troubleshooting {trace_timestamp}"
         
         # Convert all metadata values to strings for OpenAI API compatibility
         trace_metadata = {
@@ -563,11 +564,8 @@ Focus on providing actionable insights that address the original problem while c
         }
 
         if OPENAI_AGENTS_AVAILABLE and trace:
-            # Use OpenAI Agents SDK tracing
-            with trace(
-                workflow_name=trace_name,
-                metadata=trace_metadata
-            ):
+            # Use OpenAI Agents SDK tracing with correct API
+            with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_with_tracing(
                     ctx, problem_description, earliest_time, latest_time,
                     focus_index, focus_host, complexity_level, workflow_type,
@@ -713,6 +711,7 @@ Focus on providing actionable insights that address the original problem while c
 
             try:
                 if OPENAI_AGENTS_AVAILABLE and custom_span:
+                    # Use custom_span instead of trace for orchestration
                     with custom_span("orchestration_analysis"):
                         # Use Runner to execute the orchestrating agent
                         orchestration_result = await Runner.run(

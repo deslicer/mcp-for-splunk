@@ -235,19 +235,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Search failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            run_splunk_search,
-            name_override="run_splunk_search",
-            description_override="Execute a Splunk search query with progress tracking",
-            strict_mode=True
-        )
-        
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
-        
-        return tool
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                run_splunk_search,
+                name_override="run_splunk_search",
+                description_override="Execute a Splunk search query with progress tracking"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create run_splunk_search tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("run_splunk_search", "Execute a Splunk search query")
 
     def _create_run_oneshot_search_tool(self):
         """Create run_oneshot_search tool for the agent."""
@@ -294,19 +298,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            run_oneshot_search,
-            name_override="run_oneshot_search",
-            description_override="Execute a quick Splunk oneshot search",
-            strict_mode=True
-        )
-        
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
-        
-        return tool
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                run_oneshot_search,
+                name_override="run_oneshot_search",
+                description_override="Execute a quick Splunk oneshot search"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create run_oneshot_search tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("run_oneshot_search", "Execute a quick Splunk oneshot search")
 
     def _create_list_indexes_tool(self):
         """Create list_splunk_indexes tool for the agent."""
@@ -332,19 +340,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            list_splunk_indexes,
-            name_override="list_splunk_indexes", 
-            description_override="List available Splunk indexes",
-            strict_mode=True
-        )
-        
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
-        
-        return tool
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                list_splunk_indexes,
+                name_override="list_splunk_indexes", 
+                description_override="List available Splunk indexes"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create list_splunk_indexes tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("list_splunk_indexes", "List available Splunk indexes")
 
     def _create_get_user_info_tool(self):
         """Create get_current_user_info tool for the agent."""
@@ -370,19 +382,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to get user info: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            get_current_user_info,
-            name_override="get_current_user_info",
-            description_override="Get current user information including roles and capabilities",
-            strict_mode=True
-        )
-        
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
-        
-        return tool
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                get_current_user_info,
+                name_override="get_current_user_info",
+                description_override="Get current user information including roles and capabilities"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create get_current_user_info tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("get_current_user_info", "Get current user information")
 
     def _create_get_health_tool(self):
         """Create get_splunk_health tool for the agent."""
@@ -408,25 +424,32 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Health check failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            get_splunk_health,
-            name_override="get_splunk_health",
-            description_override="Check Splunk server health and connectivity",
-            strict_mode=True
-        )
-        
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
-        
-        return tool
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                get_splunk_health,
+                name_override="get_splunk_health",
+                description_override="Check Splunk server health and connectivity"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create get_splunk_health tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("get_splunk_health", "Check Splunk server health")
 
     def _create_return_result_tool(self):
         """Create tool for returning diagnostic results."""
 
         async def return_diagnostic_result(
-            status: str, findings: list[str], recommendations: list[str], details: dict = None
+            status: str, 
+            findings: list[str], 
+            recommendations: list[str], 
+            details: dict | None = None
         ) -> str:
             """Return the diagnostic result for this task.
 
@@ -453,26 +476,93 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
             return f"Diagnostic result recorded successfully with status: {status}"
 
-        # Create the function tool with explicit schema configuration
-        tool = function_tool(
-            return_diagnostic_result,
-            name_override="return_diagnostic_result",
-            description_override="Return the diagnostic result for this task",
-            strict_mode=True
-        )
+        # Create the function tool with explicit configuration
+        try:
+            tool = function_tool(
+                return_diagnostic_result,
+                name_override="return_diagnostic_result",
+                description_override="Return the diagnostic result for this task"
+            )
+            
+            # Fix the schema to ensure proper handling of optional parameters
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+                
+                # Additional explicit fix for the return_diagnostic_result schema
+                if tool.params_json_schema.get("type") == "object":
+                    properties = tool.params_json_schema.get("properties", {})
+                    required = tool.params_json_schema.get("required", [])
+                    
+                    # Ensure details is not in required array since it has a default
+                    if "details" in required:
+                        required = [req for req in required if req != "details"]
+                        tool.params_json_schema["required"] = required
+                    
+                    # Ensure details property allows null
+                    if "details" in properties:
+                        details_prop = properties["details"]
+                        if isinstance(details_prop, dict) and "type" in details_prop:
+                            if details_prop["type"] == "object":
+                                details_prop["type"] = ["object", "null"]
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to create return_diagnostic_result tool: {e}")
+            # Return a no-op tool as fallback
+            return self._create_fallback_tool("return_diagnostic_result", "Return diagnostic result")
+
+    def _create_fallback_tool(self, tool_name: str, description: str):
+        """Create a fallback no-op tool when tool creation fails."""
         
-        # Fix the schema to ensure additionalProperties is false
-        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-            self._fix_json_schema(tool.params_json_schema)
+        async def fallback_function() -> str:
+            """Fallback function when tool creation fails."""
+            return f"Tool {tool_name} is not available due to configuration issues"
         
-        return tool
+        try:
+            tool = function_tool(
+                fallback_function,
+                name_override=tool_name,
+                description_override=f"Fallback for {description}"
+            )
+            
+            # Fix the schema to ensure additionalProperties is false
+            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+                self._fix_json_schema(tool.params_json_schema)
+            
+            return tool
+        except Exception as e:
+            logger.error(f"[{self.name}] Even fallback tool creation failed for {tool_name}: {e}")
+            return None
 
     def _fix_json_schema(self, schema: dict) -> None:
-        """Fix JSON schema to ensure additionalProperties is set to false recursively."""
+        """Fix JSON schema to ensure additionalProperties is set to false recursively and fix required arrays."""
         if isinstance(schema, dict):
             # Set additionalProperties to false for all object types
             if schema.get("type") == "object":
                 schema["additionalProperties"] = False
+                
+                # Fix the required array to only include parameters without defaults
+                if "properties" in schema and "required" in schema:
+                    properties = schema["properties"]
+                    required = schema["required"]
+                    
+                    # For the return_diagnostic_result function, details should not be required
+                    # since it has a default value
+                    if "details" in properties and "details" in required:
+                        # Remove details from required since it has a default value
+                        required = [req for req in required if req != "details"]
+                        schema["required"] = required
+                        
+                        # Also ensure the details parameter allows null
+                        if "details" in properties:
+                            details_prop = properties["details"]
+                            if isinstance(details_prop, dict):
+                                # Allow null for optional parameters
+                                if "type" in details_prop:
+                                    if details_prop["type"] == "object":
+                                        details_prop["type"] = ["object", "null"]
+                                    elif isinstance(details_prop["type"], str):
+                                        details_prop["type"] = [details_prop["type"], "null"]
             
             # Recursively fix nested schemas
             for key, value in schema.items():
