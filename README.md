@@ -45,8 +45,6 @@ cd mcp-server-for-splunk
 
 ### First Success Test
 
-### First Success Test
-
 **Step 1: Initialize MCP Session**
 ```bash
 curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
@@ -105,6 +103,8 @@ results = job.results()
 | **[Getting Started](docs/getting-started/)** | First-time setup and tutorial | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
+| **[Rate Limiting Guide](docs/guides/openai-rate-limiting.md)** | Configure OpenAI retry behavior | Operators | 10 min |
+| **[Template Replacement Guide](docs/guides/template-replacement-guide.md)** | Handle agent instruction templates | Developers | 5 min |
 | **[API Reference](docs/api/)** | Complete tool documentation | Integrators | Reference |
 | **[Contributing](docs/community/contributing.md)** | Add your own tools | Contributors | 60 min |
 | **[Architecture](docs/architecture/)** | Technical deep-dive | Architects | Reference |

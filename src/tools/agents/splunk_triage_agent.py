@@ -9,6 +9,7 @@ import os
 import asyncio
 import logging
 import time
+import random
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
 
@@ -16,13 +17,6 @@ from fastmcp import Context
 from openai import OpenAI
 
 from ...core.base import BaseTool, ToolMetadata
-from ...core.registry import prompt_registry
-from ...prompts.troubleshooting import (
-    TroubleshootPerformancePrompt,
-    TroubleshootInputsPrompt,
-    TroubleshootIndexingPerformancePrompt,
-    TroubleshootInputsPromptMultiAgent
-)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +33,160 @@ except ImportError:
     function_tool = None
     prompt_with_handoff_instructions = None
     logger.warning("OpenAI agents SDK not available. Install with: pip install openai-agents")
+
+# Import OpenAI exceptions for retry logic
+try:
+    from openai import RateLimitError, APIError, APIConnectionError, APITimeoutError
+    OPENAI_EXCEPTIONS_AVAILABLE = True
+except ImportError:
+    OPENAI_EXCEPTIONS_AVAILABLE = False
+    RateLimitError = Exception
+    APIError = Exception
+    APIConnectionError = Exception
+    APITimeoutError = Exception
+
+
+class RetryConfig:
+    """Configuration for retry logic with exponential backoff."""
+    
+    def __init__(
+        self,
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+        max_delay: float = 60.0,
+        exponential_base: float = 2.0,
+        jitter: bool = True
+    ):
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+        self.max_delay = max_delay
+        self.exponential_base = exponential_base
+        self.jitter = jitter
+    
+    def calculate_delay(self, attempt: int, suggested_delay: Optional[float] = None) -> float:
+        """Calculate delay for the given attempt number."""
+        if suggested_delay is not None:
+            # Use the delay suggested by the API (from rate limit headers)
+            delay = suggested_delay
+        else:
+            # Calculate exponential backoff delay
+            delay = self.base_delay * (self.exponential_base ** attempt)
+        
+        # Cap the delay at max_delay
+        delay = min(delay, self.max_delay)
+        
+        # Add jitter to prevent thundering herd
+        if self.jitter:
+            delay = delay * (0.5 + random.random() * 0.5)
+        
+        return delay
+
+
+async def retry_with_exponential_backoff(
+    func,
+    retry_config: RetryConfig,
+    ctx: Context,
+    *args,
+    **kwargs
+):
+    """
+    Retry a function with exponential backoff for OpenAI rate limit errors.
+    
+    Args:
+        func: The async function to retry
+        retry_config: Configuration for retry behavior
+        ctx: FastMCP context for progress reporting
+        *args, **kwargs: Arguments to pass to the function
+    
+    Returns:
+        The result of the function call
+    
+    Raises:
+        The last exception if all retries are exhausted
+    """
+    last_exception = None
+    
+    for attempt in range(retry_config.max_retries + 1):
+        try:
+            logger.info(f"Attempt {attempt + 1}/{retry_config.max_retries + 1} for function {func.__name__}")
+            result = await func(*args, **kwargs)
+            
+            if attempt > 0:
+                logger.info(f"Function {func.__name__} succeeded after {attempt + 1} attempts")
+                await ctx.info(f"✅ Operation succeeded after {attempt + 1} attempts")
+            
+            return result
+            
+        except Exception as e:
+            last_exception = e
+            
+            # Check if this is a retryable error
+            is_rate_limit = False
+            is_retryable = False
+            suggested_delay = None
+            
+            if OPENAI_EXCEPTIONS_AVAILABLE:
+                if isinstance(e, RateLimitError):
+                    is_rate_limit = True
+                    is_retryable = True
+                    
+                    # Try to extract suggested delay from error message
+                    error_message = str(e)
+                    if "Please try again in" in error_message:
+                        try:
+                            # Extract delay from message like "Please try again in 7.562s"
+                            import re
+                            match = re.search(r"try again in (\d+\.?\d*)s", error_message)
+                            if match:
+                                suggested_delay = float(match.group(1))
+                                logger.info(f"API suggested delay: {suggested_delay}s")
+                        except Exception:
+                            pass
+                
+                elif isinstance(e, (APIConnectionError, APITimeoutError)):
+                    is_retryable = True
+                
+                elif isinstance(e, APIError):
+                    # Some API errors might be retryable (5xx status codes)
+                    if hasattr(e, 'status_code') and e.status_code >= 500:
+                        is_retryable = True
+            else:
+                # Fallback: check error message for common patterns
+                error_str = str(e).lower()
+                if any(pattern in error_str for pattern in ['rate limit', '429', 'too many requests']):
+                    is_rate_limit = True
+                    is_retryable = True
+                elif any(pattern in error_str for pattern in ['connection', 'timeout', '5']):
+                    is_retryable = True
+            
+            # Log the error
+            if is_rate_limit:
+                logger.warning(f"Rate limit error on attempt {attempt + 1}: {e}")
+            elif is_retryable:
+                logger.warning(f"Retryable error on attempt {attempt + 1}: {e}")
+            else:
+                logger.error(f"Non-retryable error on attempt {attempt + 1}: {e}")
+                raise e
+            
+            # If this was the last attempt, raise the exception
+            if attempt == retry_config.max_retries:
+                logger.error(f"All {retry_config.max_retries + 1} attempts failed for {func.__name__}")
+                raise e
+            
+            # Calculate delay for next attempt
+            delay = retry_config.calculate_delay(attempt, suggested_delay)
+            
+            # Report retry to user
+            if is_rate_limit:
+                await ctx.info(f"⏳ Rate limit reached. Retrying in {delay:.1f}s... (attempt {attempt + 2}/{retry_config.max_retries + 1})")
+            else:
+                await ctx.info(f"🔄 Retrying in {delay:.1f}s due to temporary error... (attempt {attempt + 2}/{retry_config.max_retries + 1})")
+            
+            logger.info(f"Waiting {delay:.1f}s before retry {attempt + 2}")
+            await asyncio.sleep(delay)
+    
+    # This should never be reached, but just in case
+    raise last_exception
 
 
 @dataclass
@@ -64,28 +212,88 @@ class SplunkDiagnosticContext:
 
 class SplunkTriageAgentTool(BaseTool):
     """
-    Splunk Missing Data Troubleshooting Tool using OpenAI Agents SDK.
+    Intelligent Splunk Troubleshooting Agent using OpenAI Agents SDK.
 
-    This tool implements the official Splunk "I can't find my data!" troubleshooting workflow
-    following the structured checklist from Splunk's documentation. It systematically works
-    through 10 key diagnostic steps to identify and resolve missing data issues.
+    This tool implements a hierarchical triage system that automatically analyzes Splunk problems
+    and routes them to specialized diagnostic agents. It provides systematic, step-by-step
+    troubleshooting following official Splunk documentation and best practices.
 
-    The workflow covers:
-    - License and edition verification
-    - Index configuration and access validation
-    - Permissions and role-based access control
-    - Time range and timestamp analysis
-    - Forwarder connectivity checks
-    - Search head configuration verification
-    - License violation detection
-    - Scheduled search issue analysis
-    - Search query syntax validation
-    - Field extraction troubleshooting
+    Current Active Specialists:
+
+    🔍 Missing Data Specialist:
+    - Implements Splunk's official "I can't find my data!" workflow
+    - Covers license verification, index access, permissions, time ranges
+    - Handles forwarder connectivity, search syntax, and field extraction issues
+
+    🚀 Performance Specialist:
+    - Uses Splunk Platform Instrumentation for performance analysis
+    - Covers system resources, search concurrency, disk I/O, indexing pipeline
+    - Handles queue analysis, KV Store performance, and capacity planning
+
+    The tool uses intelligent routing to automatically select the appropriate specialist
+    based on problem symptoms and provides comprehensive diagnostic analysis with
+    actionable recommendations.
     """
 
     METADATA = ToolMetadata(
-        name="execute_splunk_missing_data_troubleshooting",
-        description="Execute the official Splunk 'I can't find my data!' troubleshooting workflow with systematic diagnostic steps and comprehensive step-by-step summary",
+        name="agent_troubleshoot",
+        description="""Intelligent Splunk troubleshooting agent using OpenAI Agents SDK with hierarchical specialist routing.
+This tool implements a triage-based approach to Splunk troubleshooting, automatically analyzing problems and routing them to specialized diagnostic agents. It provides systematic, step-by-step troubleshooting following official Splunk documentation and best practices.
+
+## Available Specialist Workflows:
+
+### 🔍 Missing Data Specialist
+Handles "I can't find my data" scenarios using Splunk's official troubleshooting workflow:
+- License and edition verification
+- Index configuration and access validation
+- Permissions and role-based access control
+- Time range and timestamp analysis
+- Forwarder connectivity checks
+- Search head configuration verification
+- License violation detection
+- Scheduled search issue analysis
+- Search query syntax validation
+- Field extraction troubleshooting
+
+### 🚀 Performance Specialist
+Diagnoses system performance issues using Splunk Platform Instrumentation:
+- System resource baseline analysis (CPU, memory, disk)
+- Splunk process resource analysis
+- Search concurrency and performance monitoring
+- Disk usage and I/O performance
+- Indexing pipeline performance
+- Queue analysis and processing delays
+- Search head and KV Store performance
+- License and capacity constraints
+- Network and forwarder performance
+
+## Arguments:
+
+- **problem_description** (str, required): Detailed description of the Splunk issue or symptoms you're experiencing. Be specific about error messages, expected vs actual behavior, and affected components.
+
+- **earliest_time** (str, optional): Start time for diagnostic searches in Splunk time format. Examples: "-24h", "-7d@d", "2023-01-01T00:00:00". Default: "-24h"
+
+- **latest_time** (str, optional): End time for diagnostic searches in Splunk time format. Examples: "now", "-1h", "@d", "2023-01-01T23:59:59". Default: "now"
+
+- **focus_index** (str, optional): Specific Splunk index to focus the analysis on. Useful when the problem is isolated to a particular data source.
+
+- **focus_host** (str, optional): Specific host or server to focus the analysis on. Helpful for distributed environment troubleshooting.
+
+- **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced". Affects the comprehensiveness of diagnostic checks. Default: "moderate"
+
+## How It Works:
+1. **Triage Analysis**: The main agent analyzes your problem description
+2. **Intelligent Routing**: Routes to the most appropriate specialist based on symptoms
+3. **Systematic Diagnosis**: Specialist performs structured troubleshooting with progress reporting
+4. **Actionable Results**: Provides specific findings, root cause analysis, and remediation steps
+
+## Example Use Cases:
+- "My dashboard shows no data for the last 2 hours"
+- "Searches are running very slowly since yesterday"
+- "I can't see events from my forwarders in index=security"
+- "Getting license violation warnings but don't know why"
+- "High CPU usage on search heads affecting performance"
+""",
         category="troubleshooting"
     )
 
@@ -106,6 +314,18 @@ class SplunkTriageAgentTool(BaseTool):
         logger.info(f"OpenAI config loaded - Model: {self.config.model}, Temperature: {self.config.temperature}")
 
         self.client = OpenAI(api_key=self.config.api_key)
+
+        # Configure retry settings from environment variables
+        self.retry_config = RetryConfig(
+            max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
+            base_delay=float(os.getenv("OPENAI_RETRY_BASE_DELAY", "1.0")),
+            max_delay=float(os.getenv("OPENAI_RETRY_MAX_DELAY", "60.0")),
+            exponential_base=float(os.getenv("OPENAI_RETRY_EXPONENTIAL_BASE", "2.0")),
+            jitter=os.getenv("OPENAI_RETRY_JITTER", "true").lower() == "true"
+        )
+        logger.info(f"Retry config: max_retries={self.retry_config.max_retries}, "
+                   f"base_delay={self.retry_config.base_delay}s, "
+                   f"max_delay={self.retry_config.max_delay}s")
 
         # Initialize the agent system
         logger.info("Setting up agent system...")
@@ -166,21 +386,22 @@ class SplunkTriageAgentTool(BaseTool):
             logger.error(f"Failed to create missing data specialist: {e}", exc_info=True)
             raise
 
-        logger.debug("Creating inputs specialist...")
-        self.inputs_specialist = self._create_inputs_specialist()
-        logger.info("Inputs specialist created successfully")
+        # Comment out unused specialists for now
+        # logger.debug("Creating inputs specialist...")
+        # self.inputs_specialist = self._create_inputs_specialist()
+        # logger.info("Inputs specialist created successfully")
 
         logger.debug("Creating performance specialist...")
         self.performance_specialist = self._create_performance_specialist()
         logger.info("Performance specialist created successfully")
 
-        logger.debug("Creating indexing specialist...")
-        self.indexing_specialist = self._create_indexing_specialist()
-        logger.info("Indexing specialist created successfully")
+        # logger.debug("Creating indexing specialist...")
+        # self.indexing_specialist = self._create_indexing_specialist()
+        # logger.info("Indexing specialist created successfully")
 
-        logger.debug("Creating general specialist...")
-        self.general_specialist = self._create_general_specialist()
-        logger.info("General specialist created successfully")
+        # logger.debug("Creating general specialist...")
+        # self.general_specialist = self._create_general_specialist()
+        # logger.info("General specialist created successfully")
 
         # Create the main triage agent
         logger.debug("Creating main triage agent...")
@@ -259,47 +480,116 @@ class SplunkTriageAgentTool(BaseTool):
 
         @function_tool
         async def run_splunk_search(query: str, earliest_time: str = "-24h", latest_time: str = "now") -> str:
-            """Execute a Splunk search query via direct tool registry and return results."""
-            logger.debug(f"Executing direct search: {query[:100]}... (time: {earliest_time} to {latest_time})")
+            """Execute a Splunk search query via direct tool registry with progress tracking for long-running searches."""
+            logger.debug(f"Executing job-based search: {query[:100]}... (time: {earliest_time} to {latest_time})")
 
             try:
                 # Get current context
                 ctx = get_context()
 
-                # Report progress for search execution
+                # Report search execution start
                 if hasattr(ctx, 'info'):
-                    await ctx.info(f"🔍 Executing search: {query[:50]}...")
+                    await ctx.info(f"🔍 Starting job-based search: {query[:50]}...")
 
-                # Get the tool directly from registry
-                tool = tool_registry.get_tool("run_oneshot_search")
+                # Get the job search tool directly from registry
+                tool = tool_registry.get_tool("run_splunk_search")
                 if not tool:
-                    raise RuntimeError("run_oneshot_search tool not found in registry")
+                    raise RuntimeError("run_splunk_search tool not found in registry")
 
-                logger.debug("Calling tool registry: run_oneshot_search")
+                logger.debug("Calling tool registry: run_splunk_search (job-based)")
 
-                # Call the tool directly
+                search_start_time = time.time()
+
+                # Call the job search tool directly - it handles progress reporting internally
                 result = await tool.execute(
                     ctx,
                     query=query,
                     earliest_time=earliest_time,
-                    latest_time=latest_time,
-                    max_results=50
+                    latest_time=latest_time
                 )
 
-                # Report completion
-                if hasattr(ctx, 'info'):
-                    await ctx.info(f"✅ Search completed, found {str(result).count('|') if '|' in str(result) else 'N/A'} results")
+                search_duration = time.time() - search_start_time
 
-                logger.info(f"Direct search completed successfully, result length: {len(str(result))}")
-                return str(result)
+                # Enhanced error logging - log the complete result structure
+                logger.debug(f"Job search result type: {type(result)}")
+                logger.debug(f"Job search result: {result}")
+
+                # Process the job search result
+                if isinstance(result, dict):
+                    if result.get('status') == 'success':
+                        # format_success_response spreads the data into the top level
+                        results = result.get('results', [])
+                        result_count = result.get('results_count', len(results))
+                        scan_count = result.get('scan_count', 0)
+                        event_count = result.get('event_count', 0)
+                        job_id = result.get('job_id', 'unknown')
+
+                        # Report completion with detailed stats
+                        if hasattr(ctx, 'info'):
+                            await ctx.info(f"✅ Search job {job_id} completed in {search_duration:.1f}s")
+                            await ctx.info(f"📊 Results: {result_count} events, scanned {scan_count:,} events, matched {event_count:,} events")
+
+                        logger.info(f"Job search completed successfully - Job ID: {job_id}, Duration: {search_duration:.1f}s, Results: {result_count}")
+
+                        # Format results for agent consumption
+                        if results:
+                            # Convert results to a readable format
+                            formatted_results = []
+                            for i, res in enumerate(results[:50]):  # Limit to first 50 results for readability
+                                if isinstance(res, dict):
+                                    # Create a readable representation of each result
+                                    result_str = f"Result {i+1}:"
+                                    for key, value in res.items():
+                                        if key.startswith('_') and key not in ['_time', '_raw']:
+                                            continue  # Skip internal fields except _time and _raw
+                                        result_str += f"\n  {key}: {value}"
+                                    formatted_results.append(result_str)
+                                else:
+                                    formatted_results.append(f"Result {i+1}: {str(res)}")
+
+                            return f"Search completed successfully.\n\nJob Statistics:\n- Job ID: {job_id}\n- Results Count: {result_count}\n- Events Scanned: {scan_count:,}\n- Events Matched: {event_count:,}\n- Duration: {search_duration:.1f}s\n\nResults:\n" + "\n\n".join(formatted_results)
+                        else:
+                            return f"Search completed successfully but returned no results.\n\nJob Statistics:\n- Job ID: {job_id}\n- Results Count: 0\n- Events Scanned: {scan_count:,}\n- Events Matched: {event_count:,}\n- Duration: {search_duration:.1f}s"
+                    else:
+                        # Enhanced error handling - capture full error details
+                        error_msg = result.get('error', 'Unknown error')
+                        
+                        # Log the complete result structure for debugging
+                        logger.error(f"Job search failed with result: {result}")
+                        
+                        # Try to extract more detailed error information
+                        detailed_error = error_msg
+                        if isinstance(result, dict):
+                            # Check for additional error fields
+                            if 'message' in result:
+                                detailed_error += f" - Message: {result['message']}"
+                            if 'details' in result:
+                                detailed_error += f" - Details: {result['details']}"
+                            if 'exception' in result:
+                                detailed_error += f" - Exception: {result['exception']}"
+                            
+                            # Include any other relevant fields from the result
+                            for key, value in result.items():
+                                if key not in ['status', 'error', 'message', 'details', 'exception'] and value:
+                                    detailed_error += f" - {key}: {value}"
+                        
+                        logger.error(f"Job search failed: {detailed_error}")
+                        if hasattr(ctx, 'error'):
+                            await ctx.error(f"Search failed: {detailed_error}")
+                        return f"Search failed: {detailed_error}"
+                else:
+                    # Handle unexpected result format
+                    logger.warning(f"Unexpected result format from job search: {type(result)}")
+                    logger.warning(f"Full result content: {result}")
+                    return f"Search completed with unexpected result format: {str(result)}"
 
             except Exception as e:
-                logger.error(f"Error executing direct search: {e}", exc_info=True)
+                logger.error(f"Error executing job-based search: {e}", exc_info=True)
                 # Report error to context
                 ctx = get_context()
                 if hasattr(ctx, 'error'):
                     await ctx.error(f"Search failed: {str(e)}")
-                return f"Error executing direct search: {str(e)}"
+                return f"Error executing job-based search: {str(e)}"
 
         @function_tool
         async def list_splunk_indexes() -> str:
@@ -425,27 +715,27 @@ class SplunkTriageAgentTool(BaseTool):
             """Report progress from specialist agents back to the main context."""
             try:
                 ctx = get_context()
-                
+
                 if progress_percent is not None and hasattr(ctx, 'report_progress'):
                     # Report numeric progress (specialist progress is in 40-85% range)
                     specialist_progress = 40 + int((progress_percent / 100) * 45)  # Map to 40-85% range
                     await ctx.report_progress(progress=specialist_progress, total=100)
-                
+
                 if hasattr(ctx, 'info'):
                     await ctx.info(f"🔧 Specialist: {step_name}")
-                
+
                 logger.info(f"Specialist progress reported: {step_name} ({progress_percent}%)")
                 return f"Progress reported: {step_name}"
-                
+
             except Exception as e:
                 logger.error(f"Error reporting specialist progress: {e}")
                 return f"Error reporting progress: {str(e)}"
 
         # Store tools for use by agents
         self.splunk_tools = [
-            run_splunk_search, 
-            list_splunk_indexes, 
-            get_splunk_health, 
+            run_splunk_search,
+            list_splunk_indexes,
+            get_splunk_health,
             get_current_user_info,
             report_specialist_progress
         ]
@@ -455,10 +745,9 @@ class SplunkTriageAgentTool(BaseTool):
         """Create the missing data troubleshooting specialist agent following Splunk's official workflow."""
         logger.debug("Creating missing data specialist agent...")
 
-        agent = Agent(
-            name="Splunk Missing Data Specialist",
-            handoff_description="Expert in Splunk's official 'I can't find my data!' troubleshooting workflow",
-            instructions=prompt_with_handoff_instructions("""
+        def dynamic_instructions(run_context, agent):
+            """Generate dynamic instructions that include focus context if available."""
+            base_instructions = prompt_with_handoff_instructions("""
 You are a Splunk missing data troubleshooting specialist following the official "I can't find my data!" workflow from Splunk documentation.
 
 **IMPORTANT: Progress Reporting**
@@ -466,6 +755,13 @@ You MUST report progress at each major step using the `report_specialist_progres
 - Call `report_specialist_progress("Step X: Description", progress_percent)` at the start of each major step
 - Progress should go from 0% to 100% across all 10 steps (approximately 10% per step)
 - Always report progress BEFORE executing searches or other time-consuming operations
+
+**IMPORTANT: Template Search Handling**
+When you see template searches with placeholders like `<your_index>` or `<your_sourcetype>`:
+1. Replace placeholders with actual values when known from context
+2. If values are unknown, use `list_splunk_indexes()` to discover available indexes
+3. Ask the user for clarification if specific values are needed
+4. Use wildcards or broad searches when appropriate (e.g., `index=*` instead of `index=<your_index>`)
 
 You systematically work through this structured checklist:
 
@@ -492,10 +788,15 @@ You systematically work through this structured checklist:
 **Start by reporting:** `report_specialist_progress("Step 3: Checking permissions and access control", 30)`
 
 **Do your permissions allow you to see the data?**
-- First, get current user information: Use `get_current_user_info()` to get the user's roles and capabilities
-- Check role-based index access restrictions
-- Verify search filters aren't blocking data
-- Use search: `| rest /services/authorization/roles | search title=<your_role> | table title, srchIndexesAllowed, srchIndexesDefault`
+- **STEP 3A:** First, get current user information: Use `get_current_user_info()` to get the user's roles and capabilities
+- **STEP 3B:** Extract the role names from the user info response (look for the "roles" field)
+- **STEP 3C:** Check role-based index access restrictions using the actual role names
+- **Example workflow:**
+  1. Call `get_current_user_info()` and note the roles (e.g., ["admin", "power"])
+  2. Then use: `| rest /services/authorization/roles | search title IN ("admin", "power") | table title, srchIndexesAllowed, srchIndexesDefault`
+  3. Or check each role individually: `| rest /services/authorization/roles | search title="admin" | table title, srchIndexesAllowed, srchIndexesDefault`
+- **Alternative for overview:** `| rest /services/authorization/roles | table title, srchIndexesAllowed, srchIndexesDefault`
+- Verify search filters aren't blocking data based on the role's index access
 
 ### 4. TIME RANGE ISSUES
 **Start by reporting:** `report_specialist_progress("Step 4: Analyzing time range issues", 40)`
@@ -503,16 +804,18 @@ You systematically work through this structured checklist:
 **Check time-related problems:**
 - Verify events exist in your search time window
 - Try "All time" search to catch future-timestamped events
-- Check for indexing delays with: ` index=<your_index> | eval lag=_indextime-_time | stats avg(lag) max(lag) by index`
+- Check for indexing delays (replace `YOUR_INDEX` with specific index or use `index=*`):
+  `index=YOUR_INDEX | eval lag=_indextime-_time | stats avg(lag) max(lag) by index`
 - Verify timezone settings for scheduled searches
 
 ### 5. FORWARDER CONNECTIVITY (if using forwarders)
 **Start by reporting:** `report_specialist_progress("Step 5: Checking forwarder connectivity", 50)`
 
 **Check forwarder connections:**
-- Verify forwarders connecting: `index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp`
+- Verify forwarders connecting `index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp`
 - Check output queues: `index=_internal source=*metrics.log* group=queue tcpout | stats count by name`
-- Verify recent host activity: `| metadata type=hosts | eval diff=now()-recentTime | where diff < 600`
+- Verify recent host activity (replace `YOUR_INDEX` with specific index or use `index=*`):
+  `| metadata type=hosts index=YOUR_INDEX | eval diff=now()-recentTime | where diff < 600`
 - Check connection logs: `index=_internal "Connected to idx" OR "cooked mode"`
 
 ### 6. SEARCH HEAD CONFIGURATION (distributed environment)
@@ -521,15 +824,16 @@ You systematically work through this structured checklist:
 **Verify search head setup:**
 - Check search heads are connected to correct indexers
 - Verify distributed search configuration
-- Use: `| rest /services/search/distributed/peers | table title, status, is_https`
+- Use search: `| rest /services/search/distributed/peers | table title, status, is_https`
 
 ### 7. LICENSE VIOLATIONS
 **Start by reporting:** `report_specialist_progress("Step 7: Checking for license violations", 70)`
 
 **Check for license issues:**
 - License violations prevent searching (but indexing continues)
-- Check: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool`
-- Verify license status: `| rest /services/licenser/messages | table category, message`
+- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool`
+- Verify license status
+- Use search: `| rest /services/licenser/messages | table category, message`
 
 ### 8. SCHEDULED SEARCH ISSUES
 **Start by reporting:** `report_specialist_progress("Step 8: Analyzing scheduled search issues", 80)`
@@ -537,8 +841,8 @@ You systematically work through this structured checklist:
 **For scheduled searches:**
 - Verify time ranges aren't excluding events
 - Check for indexing lag affecting recent data
-- Examine scheduler performance: `index=_internal source=*scheduler.log* | stats count by status`
-- Check dispatch directory for search artifacts
+- Examine scheduler performance
+- Use search: `index=_internal source=*scheduler.log* | stats count by status`
 
 ### 9. SEARCH QUERY VALIDATION
 **Start by reporting:** `report_specialist_progress("Step 9: Validating search query syntax", 90)`
@@ -557,7 +861,7 @@ You systematically work through this structured checklist:
 - Test regex patterns with rex command
 - Verify extraction permissions and sharing
 - Check extractions applied to correct source/sourcetype/host
-- Use: `| rest /services/data/props/extractions | search stanza=<your_sourcetype>`
+- Use search: `| rest /services/data/props/extractions | search stanza=* | table stanza, attribute, value`
 
 ## 🎯 SYSTEMATIC APPROACH:
 
@@ -579,12 +883,91 @@ Use the available Splunk tools to systematically work through this checklist.
 Document your findings at each step and provide actionable recommendations.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches or time-consuming operations to prevent timeouts!**
-            """),
+            """)
+
+            # Get context values for template replacement
+            context_values = {}
+            if hasattr(run_context, 'context') and run_context.context:
+                context = run_context.context
+                
+                # Extract known values from context
+                if hasattr(context, 'focus_index') and context.focus_index:
+                    context_values['your_index'] = context.focus_index
+                if hasattr(context, 'focus_host') and context.focus_host:
+                    context_values['your_host'] = context.focus_host
+                
+                # Replace templates with actual values
+                for placeholder, value in context_values.items():
+                    base_instructions = base_instructions.replace(f'<{placeholder}>', value)
+
+            # Add focused context if available
+            if hasattr(run_context, 'context') and run_context.context:
+                context = run_context.context
+                focus_additions = []
+                
+                if hasattr(context, 'focus_index') and context.focus_index:
+                    focus_additions.append(f"""
+## 🎯 FOCUSED ANALYSIS CONTEXT:
+
+**Focus Index: {context.focus_index}**
+- Prioritize searches and analysis on index="{context.focus_index}"
+- When checking index verification, pay special attention to this index
+- Include this index specifically in all relevant diagnostic searches
+- Example focused search: `index={context.focus_index} | head 10`
+- Replace any `<your_index>` templates with `{context.focus_index}` in your searches
+""")
+                
+                if hasattr(context, 'focus_host') and context.focus_host:
+                    focus_additions.append(f"""
+**Focus Host: {context.focus_host}**
+- Prioritize analysis on host="{context.focus_host}"
+- When checking forwarder connectivity, focus on this specific host
+- Include this host filter in relevant diagnostic searches
+- Example focused search: `index=* host={context.focus_host} | head 10`
+- Replace any `<your_host>` templates with `{context.focus_host}` in your searches
+""")
+                
+                if focus_additions:
+                    base_instructions += "\n" + "\n".join(focus_additions)
+                    base_instructions += f"""
+**TEMPLATE REPLACEMENT GUIDANCE:**
+- Use `{context_values.get('your_index', 'index=*')}` instead of `<your_index>`
+- Use `{context_values.get('your_host', 'host=*')}` instead of `<your_host>`
+- For unknown sourcetypes, use `sourcetype=*` or discover with `| metadata type=sourcetypes`
+- Always explain what values you're using and why
+
+**IMPORTANT:** Use the focused index and/or host context throughout your analysis to provide targeted troubleshooting specific to the user's concern.
+"""
+            else:
+                # No focused context - provide general guidance
+                base_instructions += """
+**TEMPLATE REPLACEMENT GUIDANCE:**
+- Replace `<your_index>` with specific index names or use `index=*` for broad searches
+- Replace `<your_sourcetype>` with specific sourcetypes or use `sourcetype=*`
+- Replace `<your_host>` with specific hostnames or use `host=*`
+- For role-based searches: First call `get_current_user_info()`, then extract the role names from the response and use them in searches like `title="admin"` instead of `title=<your_role>`
+- Use `list_splunk_indexes()` to discover available indexes when needed
+- Always explain what values you're using and why
+
+**CRITICAL FOR ROLE SEARCHES:**
+1. Call `get_current_user_info()` first to get the user's roles
+2. Extract role names from the response (look for "roles" field)
+3. Use the actual role name in your search, for example:
+   - If user has role "admin": `| rest /services/authorization/roles | search title="admin"`
+   - If user has multiple roles, check each one or use: `| rest /services/authorization/roles | search title IN ("admin", "user")`
+"""
+            
+            return base_instructions
+
+        agent = Agent(
+            name="Splunk Missing Data Specialist",
+            handoff_description="Expert in Splunk's official 'I can't find my data!' troubleshooting workflow",
+            instructions=dynamic_instructions,
             model=self.config.model,
             tools=self.splunk_tools
         )
 
-        logger.debug("Missing data specialist agent created with official workflow and progress reporting")
+        logger.debug("Missing data specialist agent created with dynamic instructions and progress reporting")
         return agent
 
     def _create_inputs_specialist(self) -> Agent:
@@ -639,48 +1022,212 @@ Always explain your reasoning and cite specific metrics or log entries.
         """Create the performance troubleshooting specialist agent."""
         logger.debug("Creating performance specialist agent...")
 
-        agent = Agent(
-            name="Splunk Performance Specialist",
-            handoff_description="Expert in Splunk system performance and capacity analysis",
-            instructions=prompt_with_handoff_instructions("""
-You are a Splunk performance specialist. You excel at diagnosing and optimizing:
+        def dynamic_instructions(run_context, agent):
+            """Generate dynamic instructions that include focus context if available."""
+            base_instructions = prompt_with_handoff_instructions("""
+You are a Splunk performance specialist. You follow the official Splunk Platform Instrumentation troubleshooting workflow to systematically diagnose and optimize performance issues.
 
 **IMPORTANT: Progress Reporting**
 You MUST report progress using `report_specialist_progress` function to prevent timeouts:
 - Call `report_specialist_progress("Step description", progress_percent)` at each major step
 - Report progress BEFORE executing searches or time-consuming operations
 
-- System resource utilization (CPU, memory, disk I/O)
-- Search performance and concurrency issues
-- Indexing throughput and capacity planning
-- Queue management and processing bottlenecks
-- Network performance and bandwidth utilization
+**IMPORTANT: Template Search Handling**
+When you see template searches with placeholders like `<your_index>` or `<your_host>`:
+1. Replace placeholders with actual values when known from context
+2. If values are unknown, use `list_splunk_indexes()` to discover available indexes
+3. Ask the user for clarification if specific values are needed
+4. Use wildcards or broad searches when appropriate (e.g., `index=*` instead of `<your_index>`)
 
-Your approach:
-1. **Start:** `report_specialist_progress("Starting performance analysis", 15)`
-2. Establish baseline performance metrics
-3. **Progress:** `report_specialist_progress("Analyzing resource utilization", 35)`
-4. Analyze resource utilization patterns
-5. **Progress:** `report_specialist_progress("Examining search concurrency", 55)`
-6. Examine search concurrency and scheduling
-7. **Progress:** `report_specialist_progress("Investigating queue management", 75)`
-8. Investigate queue sizes and processing delays
-9. **Progress:** `report_specialist_progress("Correlating performance events", 90)`
-10. Correlate performance with system events
-11. **Complete:** `report_specialist_progress("Generating recommendations", 100)`
-12. Provide optimization recommendations
+**SYSTEMATIC PERFORMANCE TROUBLESHOOTING WORKFLOW**
+Follow this structured 10-step checklist based on Splunk Platform Instrumentation documentation:
 
-Use Splunk searches to gather performance data from _internal index.
-Focus on metrics.log, scheduler.log, and resource usage patterns.
-Provide specific tuning recommendations with expected impact.
+**Step 1: System Resource Baseline (10%)**
+`report_specialist_progress("Analyzing system resource baseline", 10)`
+- Check overall CPU, memory, and disk usage patterns
+- Search: `index=_introspection component=Hostwide | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used by host`
+- Establish baseline resource utilization across all Splunk instances
+- Look for hosts with consistently high resource usage (>80% CPU or memory)
+
+**Step 2: Splunk Process Resource Analysis (20%)**
+`report_specialist_progress("Examining Splunk process resource usage", 20)`
+- Analyze resource usage specific to Splunk processes
+- Identify processes consuming excessive resources
+- Use search: `index=_introspection component=PerProcess data.process_class=search | stats median(data.pct_cpu) as median_cpu, median(data.pct_memory) as median_memory by data.search_type`
+- Check for memory leaks or CPU spikes in splunkd processes
+- Use search: `index=_introspection component=PerProcess data.process=splunkd | stats avg(data.pct_cpu) as avg_splunkd_cpu, avg(data.pct_memory) as avg_splunkd_memory by host`
+
+
+**Step 3: Search Concurrency and Performance (30%)**
+`report_specialist_progress("Analyzing search concurrency and performance", 30)`
+Examine search concurrency patterns and limits
+- Check if search concurrency is hitting configured limits
+- Use search: `index=_introspection component=Hostwide | stats median(data.splunk_search_concurrency) as median_search_concurrency by host`
+- Identify slow or failed scheduled searches
+- Use search: `index=_internal source=*scheduler.log* | stats count by status, search_type | sort -count`
+
+**Step 4: Disk Usage and I/O Performance (40%)**
+`report_specialist_progress("Investigating disk usage and I/O performance", 40)`
+Analyze disk space utilization and I/O patterns
+- Check for disk space issues (>85% usage)
+- Use search: `index=_introspection component=DiskObjects | stats latest(data.capacity) as capacity, latest(data.available) as available by data.mount_point, host | eval pct_used=round(((capacity-available)/capacity)*100,2)`
+- Monitor I/O wait times and disk performance bottlenecks
+- Use search: `index=_introspection component=Hostwide | stats avg(data.read_ops) as avg_read_ops, avg(data.write_ops) as avg_write_ops by host`
+
+
+**Step 5: Indexing Pipeline Performance (50%)**
+`report_specialist_progress("Examining indexing pipeline performance", 50)`
+Analyze indexing delays and throughput issues
+- Check for indexing delays or pipeline bottlenecks
+- Use search: `index=_internal source=*metrics.log* group=per_index_thruput | stats avg(kb) as avg_kb_per_sec by series`
+- Identify indexes with low throughput or high processing times
+- Use search: `index=_internal source=*metrics.log* group=pipeline | stats avg(cpu_seconds) as avg_cpu_seconds, avg(executes) as avg_executes by processor`
+
+
+
+**Step 6: Queue Analysis and Processing Delays (60%)**
+`report_specialist_progress("Analyzing queue sizes and processing delays", 60)`
+Examine queue depths and processing delays
+- Look for consistently full queues (parsing, indexing, typing)
+- Use search: `index=_internal source=*metrics.log* group=queue | stats max(current_size) as max_queue_size, avg(current_size) as avg_queue_size by name`
+- Identify queue bottlenecks affecting performance
+- Use search: `index=_internal source=*metrics.log* group=queue | where current_size > 0 | stats count by name | sort -count`
+
+
+**Step 7: Search Head and KV Store Performance (70%)**
+`report_specialist_progress("Checking search head and KV Store performance", 70)`
+Analyze search head cluster and KV Store performance
+- Check KV Store health and connectivity issues
+- Use search: `index=_internal source=*splunkd.log* component=KVStoreMgr | stats count by log_level | sort -count`
+- Monitor file descriptor usage for splunkweb processes
+- Use search: `index=_introspection component=Hostwide | stats avg(data.splunkweb_fd_used) as avg_fd_used by host`
+
+
+**Step 8: License and Capacity Constraints (80%)**
+`report_specialist_progress("Reviewing license and capacity constraints", 80)`
+Check for license violations affecting performance
+- Identify license pool violations that may throttle indexing
+- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) as total_bytes by pool | eval total_gb=round(total_bytes/1024/1024/1024,2)`
+- Check for capacity planning issues
+- Use search: `index=_internal source=*splunkd.log* LicenseManager | search "pool quota" | head 20`
+
+
+
+**Step 9: Network and Forwarder Performance (90%)**
+`report_specialist_progress("Analyzing network and forwarder performance", 90)`
+- Examine forwarder connectivity and network performance
+- Check forwarder connection stability and throughput
+- Use search: `index=_internal source=*metrics.log* group=tcpin_connections | stats dc(connectionType) as connection_types, avg(kb) as avg_kb_per_sec by sourceHost`
+- Identify network bottlenecks or connection issues
+- Use search: `index=_internal source=*splunkd.log* component=TcpInputProc | stats count by log_level | sort -count`
+
+
+**Step 10: Performance Recommendations and Optimization (100%)**
+`report_specialist_progress("Generating performance recommendations", 100)`
+- Correlate findings and provide specific optimization recommendations
+- Use search: `index=_internal source=*splunkd.log* log_level=WARN OR log_level=ERROR | stats count by component | sort -count | head 10`
+- Provide tuning recommendations based on identified bottlenecks
+- Suggest configuration changes with expected performance impact
+- Document baseline metrics for future comparison
+
+**KEY PLATFORM INSTRUMENTATION SOURCES:**
+- `_introspection` index: Resource usage, disk objects, hostwide metrics
+- `_internal` index: Splunk internal logs (metrics.log, scheduler.log, splunkd.log)
+- Component data: PerProcess, Hostwide, DiskObjects, queue metrics
+- Performance metrics: CPU, memory, disk I/O, search concurrency, throughput
+
+**CRITICAL PERFORMANCE INDICATORS:**
+- CPU usage >80% sustained
+- Memory usage >85% sustained
+- Disk usage >85% of capacity
+- Search concurrency at configured limits
+- Queue sizes consistently >0
+- Indexing throughput below expected rates
+- License pool violations
+- Network connection drops or errors
+
+Always provide specific tuning recommendations with expected impact and follow-up monitoring suggestions.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches to prevent timeouts!**
-            """),
+            """)
+
+            # Get context values for template replacement
+            context_values = {}
+            if hasattr(run_context, 'context') and run_context.context:
+                context = run_context.context
+                
+                # Extract known values from context
+                if hasattr(context, 'focus_index') and context.focus_index:
+                    context_values['your_index'] = context.focus_index
+                if hasattr(context, 'focus_host') and context.focus_host:
+                    context_values['your_host'] = context.focus_host
+                
+                # Replace templates with actual values
+                for placeholder, value in context_values.items():
+                    base_instructions = base_instructions.replace(f'<{placeholder}>', value)
+
+            # Add focused context if available
+            if hasattr(run_context, 'context') and run_context.context:
+                context = run_context.context
+                focus_additions = []
+                
+                if hasattr(context, 'focus_index') and context.focus_index:
+                    focus_additions.append(f"""
+## 🎯 FOCUSED PERFORMANCE ANALYSIS CONTEXT:
+
+**Focus Index: {context.focus_index}**
+- Prioritize performance analysis on index="{context.focus_index}"
+- When checking indexing pipeline performance, focus specifically on this index
+- Include this index in throughput and performance searches
+- Example focused search: `index=_internal source=*metrics.log* group=per_index_thruput series={context.focus_index} | stats avg(kb) as avg_kb_per_sec`
+- Monitor resource usage specifically for this index's data processing
+- Replace any `<your_index>` templates with `{context.focus_index}` in your searches
+""")
+                
+                if hasattr(context, 'focus_host') and context.focus_host:
+                    focus_additions.append(f"""
+**Focus Host: {context.focus_host}**
+- Prioritize performance analysis on host="{context.focus_host}"
+- When checking system resource baseline, focus on this specific host
+- Include this host filter in performance diagnostic searches
+- Example focused search: `index=_introspection component=Hostwide host={context.focus_host} | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used`
+- Monitor forwarder performance specifically from this host
+- Replace any `<your_host>` templates with `{context.focus_host}` in your searches
+""")
+                
+                if focus_additions:
+                    base_instructions += "\n" + "\n".join(focus_additions)
+                    base_instructions += f"""
+**TEMPLATE REPLACEMENT GUIDANCE:**
+- Use `{context_values.get('your_index', 'index=*')}` instead of `<your_index>`
+- Use `{context_values.get('your_host', 'host=*')}` instead of `<your_host>`
+- For performance analysis of specific indexes, use `series={context_values.get('your_index', '*')}` in throughput searches
+- Always explain what values you're using and why
+
+**IMPORTANT:** Use the focused index and/or host context throughout your performance analysis to provide targeted optimization recommendations specific to the user's performance concerns.
+"""
+            else:
+                # No focused context - provide general guidance
+                base_instructions += """
+**TEMPLATE REPLACEMENT GUIDANCE:**
+- Replace `<your_index>` with specific index names or use `index=*` for broad searches
+- Replace `<your_host>` with specific hostnames or use `host=*`
+- For throughput analysis, use `series=*` or specific index names in `series=<index_name>`
+- Use `list_splunk_indexes()` to discover available indexes when needed
+- Always explain what values you're using and why
+"""
+            
+            return base_instructions
+
+        agent = Agent(
+            name="Splunk Performance Specialist",
+            handoff_description="Expert in Splunk system performance and capacity analysis",
+            instructions=dynamic_instructions,
             model=self.config.model,
             tools=self.splunk_tools
         )
 
-        logger.debug("Performance specialist agent created with model, tools, and progress reporting configured")
+        logger.debug("Performance specialist agent created with dynamic instructions and progress reporting")
         return agent
 
     def _create_indexing_specialist(self) -> Agent:
@@ -800,13 +1347,9 @@ ROUTING DECISION TREE:
 - Dashboard showing "No result data"
 - Scheduled searches returning no results
 - Expected data not appearing in searches
-
-⚡ **Input/Ingestion Issues** → Transfer to Splunk Inputs Specialist
-- Data ingestion problems (new data not coming in)
-- Forwarder connectivity issues
-- Source/sourcetype configuration problems
-- Data parsing or format issues
-- Network input failures
+- Permission and access control issues
+- Time range and timestamp problems
+- Search query syntax validation
 
 🚀 **Performance Issues** → Transfer to Splunk Performance Specialist
 - Slow search performance
@@ -814,30 +1357,16 @@ ROUTING DECISION TREE:
 - System capacity concerns
 - Search concurrency problems
 - General system slowness
-
-📊 **Indexing Issues** → Transfer to Splunk Indexing Specialist
 - Indexing delays or high latency
-- Bucket management problems
-- Storage optimization needs
-- Index clustering issues
-- Parsing performance problems
-
-🏥 **General/Health Issues** → Transfer to Splunk General Specialist
-- Overall system health checks
-- Configuration validation
-- License monitoring
-- General troubleshooting
-- Multiple component issues
+- Queue analysis and processing delays
+- Search head and KV Store performance
+- Platform instrumentation analysis
 
 ## KEY ROUTING LOGIC:
 
-**Missing Data vs Input Issues:**
-- Missing Data = Expected data exists but can't find it (search/access problem)
-- Input Issues = New data not being ingested (ingestion problem)
-
-**Performance vs Indexing:**
-- Performance = Search speed, resource usage, general slowness
-- Indexing = Specific delays in data processing pipeline
+**Missing Data vs Performance Issues:**
+- Missing Data = Expected data exists but can't find it (search/access/configuration problem)
+- Performance = System slowness, resource usage, capacity issues, indexing delays
 
 ANALYSIS APPROACH:
 1. Carefully read the user's problem description
@@ -851,19 +1380,16 @@ When you identify the appropriate specialist for the user's problem, you MUST im
 
 Available transfer tools:
 - transfer_to_splunk_missing_data_specialist: For missing data issues
-- transfer_to_splunk_inputs_specialist: For input/ingestion problems
 - transfer_to_splunk_performance_specialist: For performance issues
-- transfer_to_splunk_indexing_specialist: For indexing problems
-- transfer_to_splunk_general_specialist: For general troubleshooting
 
-Example: If the user reports "I can't find my data in index=cca_insights", immediately call transfer_to_splunk_inputs_specialist since this is an input/ingestion issue.
+Example: If the user reports "I can't find my data in index=cca_insights", immediately call transfer_to_splunk_missing_data_specialist since this is a missing data issue.
             """),
             handoffs=[
                 self.missing_data_specialist,
-                self.inputs_specialist,
+                # self.inputs_specialist,  # Commented out for now
                 self.performance_specialist,
-                self.indexing_specialist,
-                self.general_specialist
+                # self.indexing_specialist,  # Commented out for now
+                # self.general_specialist  # Commented out for now
             ],
             model=self.config.model
         )
@@ -972,11 +1498,22 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
             progress_task = asyncio.create_task(periodic_progress_reporter())
 
             try:
-                result = await Runner.run(
-                    self.triage_agent,
-                    input=enhanced_input,
-                    context=diagnostic_context,
-                    max_turns=20  # Allow multiple turns for handoffs
+                # Use configured retry settings for OpenAI rate limits
+                
+                # Wrap Runner.run with retry logic
+                async def run_agent_with_context():
+                    return await Runner.run(
+                        self.triage_agent,
+                        input=enhanced_input,
+                        context=diagnostic_context,
+                        max_turns=20  # Allow multiple turns for handoffs
+                    )
+                
+                # Execute with retry logic
+                result = await retry_with_exponential_backoff(
+                    run_agent_with_context,
+                    self.retry_config,
+                    ctx
                 )
             finally:
                 # Cancel the progress reporter
@@ -1265,42 +1802,41 @@ Please analyze this issue and route to the appropriate specialist agent for deta
         logger.debug("="*60)
         logger.debug("DETAILED CONVERSATION ANALYSIS")
         logger.debug("="*60)
-        
+
         for i, message in enumerate(conversation_history):
             logger.debug(f"\nMessage {i}:")
             logger.debug(f"  Type: {type(message)}")
-            
+
             if isinstance(message, dict):
                 logger.debug(f"  Keys: {list(message.keys())}")
                 role = message.get('role', 'unknown')
                 logger.debug(f"  Role: {role}")
-                
+
                 # Check for tool_calls in various possible locations
                 tool_calls_found = []
-                
                 # Check direct tool_calls key
                 if 'tool_calls' in message:
                     tool_calls_found.append(f"Direct tool_calls: {message['tool_calls']}")
-                
+
                 # Check for tool_calls in content if content is dict
                 content = message.get('content', '')
                 if isinstance(content, dict) and 'tool_calls' in content:
                     tool_calls_found.append(f"Content tool_calls: {content['tool_calls']}")
-                
+
                 # Check for function_call (alternative format)
                 if 'function_call' in message:
                     tool_calls_found.append(f"Function call: {message['function_call']}")
-                
+
                 # Check for any keys that might contain tool info
                 for key in message.keys():
                     if 'tool' in key.lower() or 'function' in key.lower():
                         tool_calls_found.append(f"Key '{key}': {message[key]}")
-                
+
                 if tool_calls_found:
                     logger.debug(f"  Tool calls found: {tool_calls_found}")
                 else:
                     logger.debug("  No tool calls found in this message")
-                
+
                 # Log content structure
                 logger.debug(f"  Content type: {type(content)}")
                 if isinstance(content, str):
@@ -1313,7 +1849,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                     logger.debug(f"  Content dict keys: {list(content.keys())}")
             else:
                 logger.debug(f"  Non-dict message: {str(message)[:200]}...")
-        
+
         logger.debug("="*60)
 
         # Now process messages with improved tool detection
@@ -1347,7 +1883,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
 
             # Enhanced tool call detection - check multiple possible locations
             tool_calls_detected = []
-            
+
             # Method 1: Check direct tool_calls key (standard OpenAI format)
             if 'tool_calls' in message:
                 tool_calls = message.get('tool_calls', [])
@@ -1355,7 +1891,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                     tool_calls_detected.extend(tool_calls)
                 elif tool_calls:  # Single tool call
                     tool_calls_detected.append(tool_calls)
-            
+
             # Method 2: Check function_call (alternative format)
             if 'function_call' in message:
                 function_call = message.get('function_call', {})
@@ -1366,14 +1902,14 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                             'arguments': function_call.get('arguments', {})
                         }
                     })
-            
+
             # Method 3: Check content for tool calls (if content is dict)
             original_content = message.get('content', '')
             if isinstance(original_content, dict) and 'tool_calls' in original_content:
                 content_tool_calls = original_content.get('tool_calls', [])
                 if isinstance(content_tool_calls, list):
                     tool_calls_detected.extend(content_tool_calls)
-            
+
             # Method 4: OpenAI Agents SDK format - direct tool call message
             # Check if this message itself IS a tool call (has name, arguments, call_id)
             if 'name' in message and 'arguments' in message and 'call_id' in message:
@@ -1381,7 +1917,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                 function_name = message.get('name', '')
                 arguments = message.get('arguments', {})
                 call_id = message.get('call_id', '')
-                
+
                 if function_name:
                     tool_calls_detected.append({
                         'function': {
@@ -1392,7 +1928,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                         'type': 'function'
                     })
                     logger.debug(f"Detected OpenAI agents tool call: {function_name} with call_id: {call_id}")
-            
+
             # Process detected tool calls
             for tool_call in tool_calls_detected:
                 if isinstance(tool_call, dict):
@@ -1400,27 +1936,27 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                     function_name = None
                     arguments = {}
                     call_id = tool_call.get('id', '')
-                    
+
                     # Format 1: OpenAI standard format
                     if 'function' in tool_call:
                         function_info = tool_call.get('function', {})
                         function_name = function_info.get('name', '')
                         arguments = function_info.get('arguments', {})
-                    
+
                     # Format 2: Direct format
                     elif 'name' in tool_call:
                         function_name = tool_call.get('name', '')
                         arguments = tool_call.get('arguments', {})
-                    
+
                     # Format 3: Alternative format
                     elif 'tool_name' in tool_call:
                         function_name = tool_call.get('tool_name', '')
                         arguments = tool_call.get('arguments', {})
-                    
+
                     if function_name and function_name not in tools_called:
                         tools_called.add(function_name)
                         description = self._get_tool_description(function_name)
-                        
+
                         # Parse arguments if they're a string
                         if isinstance(arguments, str):
                             try:
@@ -1428,7 +1964,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                                 arguments = json.loads(arguments)
                             except:
                                 arguments = {}
-                        
+
                         summary["tools_executed"].append({
                             "step": current_step,
                             "tool": function_name,
@@ -1438,7 +1974,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                             "timestamp": timestamp
                         })
                         current_step += 1
-                        
+
                         logger.debug(f"Detected tool call: {function_name} with args: {arguments}")
 
             # Enhanced tool mention detection in content (as fallback)
@@ -1465,7 +2001,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                     f'run {tool_name}',
                     f'using {tool_name}'
                 ]
-                
+
                 for pattern in patterns_to_check:
                     if pattern in content.lower() and tool_name not in tools_called:
                         tools_called.add(tool_name)
