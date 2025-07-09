@@ -64,6 +64,36 @@ class SplunkToolRegistry:
             else:
                 tool_names.append(str(tool))
         return tool_names
+    
+    async def call_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Call a tool by name with arguments - mock implementation for testing."""
+        logger.info(f"Mock tool call: {tool_name} with args: {args}")
+        
+        # Mock responses for testing
+        if tool_name == "run_oneshot_search":
+            return {
+                "success": True,
+                "data": {
+                    "results": [{"count": "1000", "license_state": "OK", "product_type": "enterprise"}]
+                }
+            }
+        elif tool_name == "list_indexes":
+            return {
+                "success": True,
+                "data": {
+                    "indexes": ["main", "security", "_internal", "_audit"]
+                }
+            }
+        elif tool_name == "get_current_user":
+            return {
+                "success": True,
+                "data": {
+                    "name": "admin",
+                    "roles": ["admin", "user"]
+                }
+            }
+        else:
+            return {"success": False, "error": f"Tool {tool_name} not found"}
 
 
 def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callable]:
@@ -176,6 +206,44 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callab
             return f"Error executing job-based search: {str(e)}"
     
     @function_tool
+    async def run_oneshot_search(query: str, earliest_time: str = "-15m", latest_time: str = "now", max_results: int = 100) -> str:
+        """Execute a Splunk oneshot search query via direct tool registry for quick results."""
+        logger.debug(f"Executing oneshot search: {query[:100]}... (time: {earliest_time} to {latest_time})")
+        
+        try:
+            ctx = splunk_tool_registry.get_context()
+            
+            if hasattr(ctx, 'info'):
+                await ctx.info(f"🔍 Starting oneshot search: {query[:50]}...")
+            
+            tool = mcp_tool_registry.get_tool("run_oneshot_search")
+            if not tool:
+                raise RuntimeError("run_oneshot_search tool not found in registry")
+            
+            logger.debug("Calling tool registry: run_oneshot_search")
+            
+            result = await tool.execute(
+                ctx,
+                query=query,
+                earliest_time=earliest_time,
+                latest_time=latest_time,
+                max_results=max_results
+            )
+            
+            if hasattr(ctx, 'info'):
+                await ctx.info(f"✅ Oneshot search completed")
+            
+            logger.info(f"Oneshot search completed successfully, result length: {len(str(result))}")
+            return str(result)
+        
+        except Exception as e:
+            logger.error(f"Error executing oneshot search: {e}", exc_info=True)
+            ctx = splunk_tool_registry.get_context()
+            if hasattr(ctx, 'error'):
+                await ctx.error(f"Oneshot search failed: {str(e)}")
+            return f"Error executing oneshot search: {str(e)}"
+    
+    @function_tool
     async def list_splunk_indexes() -> str:
         """List available Splunk indexes via direct tool registry."""
         logger.debug("Listing Splunk indexes via direct registry...")
@@ -192,7 +260,7 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callab
             
             logger.debug("Calling tool registry: list_indexes")
             
-            result = await tool.execute(ctx)
+            result = await tool.execute(ctx, random_string="check")
             
             if hasattr(ctx, 'info'):
                 index_count = str(result).count('index:') if 'index:' in str(result) else 'unknown'
@@ -279,71 +347,13 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callab
                 await ctx.error(f"Failed to get user information: {str(e)}")
             return f"Error getting user info via direct registry: {str(e)}"
     
-    @function_tool
-    async def run_oneshot_search(query: str, earliest_time: str = "-15m", latest_time: str = "now", max_results: int = 100) -> str:
-        """Execute a Splunk oneshot search query via direct tool registry for quick results."""
-        logger.debug(f"Executing oneshot search: {query[:100]}... (time: {earliest_time} to {latest_time})")
-        
-        try:
-            ctx = splunk_tool_registry.get_context()
-            
-            if hasattr(ctx, 'info'):
-                await ctx.info(f"🔍 Starting oneshot search: {query[:50]}...")
-            
-            tool = mcp_tool_registry.get_tool("run_oneshot_search")
-            if not tool:
-                raise RuntimeError("run_oneshot_search tool not found in registry")
-            
-            logger.debug("Calling tool registry: run_oneshot_search")
-            
-            result = await tool.execute(
-                ctx,
-                query=query,
-                earliest_time=earliest_time,
-                latest_time=latest_time,
-                max_results=max_results
-            )
-            
-            if hasattr(ctx, 'info'):
-                await ctx.info(f"✅ Oneshot search completed")
-            
-            logger.info(f"Oneshot search completed successfully, result length: {len(str(result))}")
-            return str(result)
-        
-        except Exception as e:
-            logger.error(f"Error executing oneshot search: {e}", exc_info=True)
-            ctx = splunk_tool_registry.get_context()
-            if hasattr(ctx, 'error'):
-                await ctx.error(f"Oneshot search failed: {str(e)}")
-            return f"Error executing oneshot search: {str(e)}"
-    
-    @function_tool
-    async def report_progress(step_name: str, progress_percent: int = None) -> str:
-        """Report progress from agents back to the main context."""
-        try:
-            ctx = splunk_tool_registry.get_context()
-            
-            if progress_percent is not None and hasattr(ctx, 'report_progress'):
-                await ctx.report_progress(progress=progress_percent, total=100)
-            
-            if hasattr(ctx, 'info'):
-                await ctx.info(f"🔧 {step_name}")
-            
-            logger.info(f"Progress reported: {step_name} ({progress_percent}%)")
-            return f"Progress reported: {step_name}"
-        
-        except Exception as e:
-            logger.error(f"Error reporting progress: {e}")
-            return f"Error reporting progress: {str(e)}"
-    
     # Register tools
     tools = [
         run_splunk_search,
         run_oneshot_search,
         list_splunk_indexes, 
         get_splunk_health,
-        get_current_user_info,
-        report_progress
+        get_current_user_info
     ]
     
     for tool in tools:

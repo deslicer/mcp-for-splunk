@@ -17,6 +17,8 @@ from fastmcp import Context
 from openai import OpenAI
 
 from ...core.base import BaseTool, ToolMetadata
+from .dynamic_coordinator import DynamicCoordinator
+from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +109,10 @@ class ReflectionAgentTool(BaseTool):
         # Initialize the reflection agent system
         logger.info("Setting up reflection agent system...")
         self._setup_reflection_agents()
+        
+        # Initialize dynamic coordinator for missing data analysis
+        logger.info("Setting up dynamic coordinator for missing data analysis...")
+        self._setup_dynamic_coordinator()
         logger.info("ReflectionAgentTool initialization complete")
 
     def _load_config(self):
@@ -172,6 +178,19 @@ class ReflectionAgentTool(BaseTool):
         logger.info("Synthesis agent created successfully")
         
         logger.info("Reflection agent system setup complete - All workflow agents ready")
+
+    def _setup_dynamic_coordinator(self):
+        """Set up the dynamic coordinator for missing data analysis."""
+        
+        logger.info("Setting up dynamic coordinator...")
+        
+        # Create tool registry for dynamic coordinator
+        self.tool_registry = SplunkToolRegistry()
+        
+        # Create dynamic coordinator with the same config
+        self.dynamic_coordinator = DynamicCoordinator(self.config, self.tool_registry)
+        
+        logger.info("Dynamic coordinator setup complete")
 
     def _create_splunk_tools(self):
         """Create function tools that wrap MCP server tools for reflection execution."""
@@ -312,8 +331,83 @@ class ReflectionAgentTool(BaseTool):
                 logger.error(f"[Iteration {iteration}] Error gathering additional context via direct registry: {e}", exc_info=True)
                 return f"[Iteration {iteration}] Error gathering additional context via direct registry: {str(e)}"
 
+        @function_tool
+        async def execute_dynamic_missing_data_analysis(problem_description: str, earliest_time: str = "-24h", latest_time: str = "now", iteration: int = 1) -> str:
+            """Execute missing data analysis using the dynamic coordinator with micro-agents."""
+            logger.debug(f"[Iteration {iteration}] Executing dynamic missing data analysis for: {problem_description[:100]}...")
+            
+            try:
+                # Create diagnostic context
+                diagnostic_context = SplunkDiagnosticContext(
+                    earliest_time=earliest_time,
+                    latest_time=latest_time,
+                    indexes=[],  # Will be populated by the workflow
+                    sourcetypes=[],
+                    sources=[]
+                )
+                
+                logger.debug(f"[Iteration {iteration}] Created diagnostic context: {earliest_time} to {latest_time}")
+                
+                # Set context for the tool registry
+                self.tool_registry.set_context(get_context())
+                
+                # Execute dynamic missing data analysis
+                logger.debug(f"[Iteration {iteration}] Calling dynamic coordinator...")
+                
+                result = await self.dynamic_coordinator.execute_missing_data_analysis(
+                    diagnostic_context=diagnostic_context,
+                    problem_description=problem_description
+                )
+                
+                # Format result for agent consumption
+                if result.get("status") == "success":
+                    workflow_exec = result.get("workflow_execution", {})
+                    task_results = result.get("task_results", [])
+                    performance_metrics = result.get("performance_metrics", {})
+                    
+                    formatted_result = f"""Dynamic Missing Data Analysis Results:
+
+**Workflow Execution:**
+- Workflow ID: {workflow_exec.get('workflow_id', 'unknown')}
+- Overall Status: {workflow_exec.get('overall_status', 'unknown')}
+- Execution Time: {workflow_exec.get('execution_time', 0):.2f}s
+- Parallel Efficiency: {workflow_exec.get('parallel_efficiency', 0):.1%}
+- Execution Phases: {workflow_exec.get('execution_phases', 0)}
+- Total Tasks: {workflow_exec.get('total_tasks', 0)}
+
+**Task Results:**"""
+                    
+                    for task in task_results:
+                        formatted_result += f"""
+- {task.get('task', 'Unknown Task')}: {task.get('status', 'unknown')}
+  Findings: {len(task.get('findings', []))} items
+  Recommendations: {len(task.get('recommendations', []))} items"""
+                        if task.get('findings'):
+                            formatted_result += f"\n  Key Finding: {task['findings'][0]}"
+                    
+                    formatted_result += f"""
+
+**Performance Metrics:**
+- Total Execution Time: {performance_metrics.get('total_execution_time', 0):.2f}s
+- Tasks Completed: {performance_metrics.get('tasks_completed', 0)}
+- Successful Tasks: {performance_metrics.get('successful_tasks', 0)}
+- Failed Tasks: {performance_metrics.get('failed_tasks', 0)}
+- Parallel Phases: {performance_metrics.get('parallel_phases', 0)}"""
+                    
+                    logger.info(f"[Iteration {iteration}] Dynamic missing data analysis completed successfully")
+                    return formatted_result
+                else:
+                    error_msg = result.get("error", "Unknown error")
+                    logger.error(f"[Iteration {iteration}] Dynamic missing data analysis failed: {error_msg}")
+                    return f"Dynamic missing data analysis failed: {error_msg}"
+                
+            except Exception as e:
+                error_msg = f"Error executing dynamic missing data analysis: {str(e)}"
+                logger.error(f"[Iteration {iteration}] {error_msg}", exc_info=True)
+                return error_msg
+
         # Store tools for use by agents
-        self.splunk_tools = [run_reflective_search, validate_analysis_findings, gather_additional_context]
+        self.splunk_tools = [run_reflective_search, validate_analysis_findings, gather_additional_context, execute_dynamic_missing_data_analysis]
         logger.info(f"Created {len(self.splunk_tools)} direct registry tool wrappers for reflection workflow")
 
     def _create_primary_analyst(self) -> Agent:
@@ -323,21 +417,29 @@ class ReflectionAgentTool(BaseTool):
         agent = Agent(
             name="Reflective Primary Analyst",
             instructions="""
-You are a Splunk troubleshooting analyst specialized in iterative, self-improving analysis.
+You are a Splunk troubleshooting analyst specialized in iterative, self-improving analysis using dynamic micro-agents.
 
 Your responsibilities:
-1. Conduct thorough initial analysis of Splunk issues
+1. Conduct thorough initial analysis of Splunk issues using dynamic workflows
 2. Incorporate feedback from reflection and validation cycles
 3. Refine your analysis based on identified gaps or weaknesses
-4. Use available tools to gather comprehensive data
+4. Use available tools including the dynamic missing data analysis coordinator
 5. Continuously improve your understanding and recommendations
 
 Analysis approach:
-- Start with broad system assessment
-- Drill down into specific problem areas
+- For missing data issues, use execute_dynamic_missing_data_analysis for comprehensive parallel analysis
+- Use individual tools (run_reflective_search, etc.) for targeted investigation
+- Start with broad system assessment using dynamic workflows
+- Drill down into specific problem areas with focused searches
 - Use metrics and logs to support findings
 - Provide specific, actionable recommendations
 - Be open to revision based on reflection feedback
+
+Available tools:
+- execute_dynamic_missing_data_analysis: Comprehensive missing data troubleshooting using parallel micro-agents
+- run_reflective_search: Individual Splunk searches for targeted investigation
+- validate_analysis_findings: Validate findings with additional searches
+- gather_additional_context: Gather context for specific focus areas
 
 Focus on accuracy, completeness, and actionability in your analysis.
 Acknowledge uncertainties and areas where additional investigation may be needed.
