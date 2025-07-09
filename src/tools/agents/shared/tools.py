@@ -66,34 +66,92 @@ class SplunkToolRegistry:
         return tool_names
     
     async def call_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Call a tool by name with arguments - mock implementation for testing."""
-        logger.info(f"Mock tool call: {tool_name} with args: {args}")
+        """Call a tool by name with arguments using the MCP tool registry."""
+        logger.debug(f"Calling MCP tool: {tool_name} with args: {args}")
         
-        # Mock responses for testing
-        if tool_name == "run_oneshot_search":
+        try:
+            # Import MCP tool registry for direct access
+            from ....core.registry import tool_registry as mcp_tool_registry
+            
+            # Get current context
+            ctx = self.get_context()
+            
+            # Map tool names to MCP tool names if needed
+            tool_name_mapping = {
+                "get_current_user": "me",
+                "list_splunk_indexes": "list_indexes",
+                "get_current_user_info": "me"
+            }
+            
+            mcp_tool_name = tool_name_mapping.get(tool_name, tool_name)
+            
+            # Get the tool from the MCP registry
+            tool = mcp_tool_registry.get_tool(mcp_tool_name)
+            if not tool:
+                logger.error(f"Tool {mcp_tool_name} not found in MCP registry")
+                return {"success": False, "error": f"Tool {mcp_tool_name} not found in MCP registry"}
+            
+            logger.debug(f"Executing MCP tool: {mcp_tool_name}")
+            
+            # Call the tool with appropriate arguments
+            if mcp_tool_name == "run_oneshot_search":
+                result = await tool.execute(
+                    ctx,
+                    query=args.get("query", ""),
+                    earliest_time=args.get("earliest_time", "-15m"),
+                    latest_time=args.get("latest_time", "now"),
+                    max_results=args.get("max_results", 100)
+                )
+            elif mcp_tool_name == "run_splunk_search":
+                result = await tool.execute(
+                    ctx,
+                    query=args.get("query", ""),
+                    earliest_time=args.get("earliest_time", "-24h"),
+                    latest_time=args.get("latest_time", "now")
+                )
+            elif mcp_tool_name == "list_indexes":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "list_sources":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "list_sourcetypes":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "list_apps":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "list_users":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "me":
+                result = await tool.execute(ctx, random_string="check")
+            elif mcp_tool_name == "get_splunk_health":
+                result = await tool.execute(ctx)
+            elif mcp_tool_name == "list_triggered_alerts":
+                result = await tool.execute(
+                    ctx,
+                    count=args.get("count", 50),
+                    earliest_time=args.get("earliest_time", "-24h@h"),
+                    latest_time=args.get("latest_time", "now"),
+                    search=args.get("search", "")
+                )
+            else:
+                # Generic call with all provided args
+                result = await tool.execute(ctx, **args)
+            
+            logger.info(f"MCP tool {mcp_tool_name} executed successfully")
+            
+            # Return the result in a consistent format
             return {
                 "success": True,
-                "data": {
-                    "results": [{"count": "1000", "license_state": "OK", "product_type": "enterprise"}]
-                }
+                "data": result,
+                "tool_name": mcp_tool_name
             }
-        elif tool_name == "list_indexes":
+            
+        except Exception as e:
+            error_msg = f"Error calling MCP tool {tool_name}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
             return {
-                "success": True,
-                "data": {
-                    "indexes": ["main", "security", "_internal", "_audit"]
-                }
+                "success": False,
+                "error": error_msg,
+                "tool_name": tool_name
             }
-        elif tool_name == "get_current_user":
-            return {
-                "success": True,
-                "data": {
-                    "name": "admin",
-                    "roles": ["admin", "user"]
-                }
-            }
-        else:
-            return {"success": False, "error": f"Tool {tool_name} not found"}
 
 
 def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> List[Callable]:
