@@ -311,11 +311,31 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
 
         logger.info("Parallel execution system setup complete")
 
-
-
-
-
-
+    def _map_workflow_type(self, workflow_type: str) -> str:
+        """
+        Map user-friendly workflow type names to actual workflow IDs.
+        
+        Args:
+            workflow_type: User-friendly workflow type name
+            
+        Returns:
+            str: Actual workflow ID used by WorkflowManager
+        """
+        workflow_mapping = {
+            "missing_data": "missing_data_troubleshooting",
+            "performance": "performance_analysis", 
+            "health_check": "health_check",
+            # Also accept actual IDs
+            "missing_data_troubleshooting": "missing_data_troubleshooting",
+            "performance_analysis": "performance_analysis",
+        }
+        
+        mapped_workflow = workflow_mapping.get(workflow_type, workflow_type)
+        
+        if mapped_workflow != workflow_type:
+            logger.debug(f"Mapped workflow type '{workflow_type}' to '{mapped_workflow}'")
+        
+        return mapped_workflow
 
     def _analyze_problem_type(self, problem_description: str) -> str:
         """
@@ -325,7 +345,7 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
             problem_description: The user's problem description
 
         Returns:
-            str: The recommended workflow type ("missing_data", "performance", or "health_check")
+            str: The recommended workflow type ("missing_data_troubleshooting", "performance_analysis", or "health_check")
         """
         problem_lower = problem_description.lower()
 
@@ -391,16 +411,16 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
             f"Problem analysis scores - Missing Data: {missing_data_score}, Performance: {performance_score}, Health: {health_score}"
         )
 
-        # Determine the best workflow
+        # Determine the best workflow - use actual workflow IDs
         if health_score > 0 and "health check" in problem_lower:
             return "health_check"
         elif missing_data_score > performance_score:
-            return "missing_data"
+            return "missing_data_troubleshooting"
         elif performance_score > 0:
-            return "performance"
+            return "performance_analysis"
         else:
             # Default to missing data for ambiguous cases
-            return "missing_data"
+            return "missing_data_troubleshooting"
 
     def _create_orchestration_input(
         self,
@@ -742,7 +762,7 @@ Focus on providing actionable insights that address the original problem while c
                         logger.info(f"Auto-detected workflow type: {detected_workflow}")
                         await ctx.info(f"🤖 Auto-detected workflow: {detected_workflow}")
                     else:
-                        detected_workflow = workflow_type
+                        detected_workflow = self._map_workflow_type(workflow_type)
                         logger.info(f"Using specified workflow type: {detected_workflow}")
                         await ctx.info(f"🎯 Using specified workflow: {detected_workflow}")
             else:
@@ -751,7 +771,7 @@ Focus on providing actionable insights that address the original problem while c
                     logger.info(f"Auto-detected workflow type: {detected_workflow}")
                     await ctx.info(f"🤖 Auto-detected workflow: {detected_workflow}")
                 else:
-                    detected_workflow = workflow_type
+                    detected_workflow = self._map_workflow_type(workflow_type)
                     logger.info(f"Using specified workflow type: {detected_workflow}")
                     await ctx.info(f"🎯 Using specified workflow: {detected_workflow}")
 
