@@ -206,7 +206,6 @@ Always return your results as a structured DiagnosticResult by calling the `retu
     def _create_run_splunk_search_tool(self):
         """Create run_splunk_search tool for the agent."""
 
-        @function_tool
         async def run_splunk_search(
             query: str, earliest_time: str = "-24h", latest_time: str = "now"
         ) -> str:
@@ -236,12 +235,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Search failed: {result.get('error', 'Unknown error')}"
 
-        return run_splunk_search
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            run_splunk_search,
+            name_override="run_splunk_search",
+            description_override="Execute a Splunk search query with progress tracking",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
 
     def _create_run_oneshot_search_tool(self):
         """Create run_oneshot_search tool for the agent."""
 
-        @function_tool
         async def run_oneshot_search(
             query: str,
             earliest_time: str = "-15m",
@@ -284,12 +294,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
 
-        return run_oneshot_search
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            run_oneshot_search,
+            name_override="run_oneshot_search",
+            description_override="Execute a quick Splunk oneshot search",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
 
     def _create_list_indexes_tool(self):
         """Create list_splunk_indexes tool for the agent."""
 
-        @function_tool
         async def list_splunk_indexes() -> str:
             """List available Splunk indexes."""
             logger.debug(f"[{self.name}] Listing Splunk indexes...")
@@ -311,12 +332,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
 
-        return list_splunk_indexes
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            list_splunk_indexes,
+            name_override="list_splunk_indexes", 
+            description_override="List available Splunk indexes",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
 
     def _create_get_user_info_tool(self):
         """Create get_current_user_info tool for the agent."""
 
-        @function_tool
         async def get_current_user_info() -> str:
             """Get current user information including roles and capabilities."""
             logger.debug(f"[{self.name}] Getting current user info...")
@@ -338,12 +370,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to get user info: {result.get('error', 'Unknown error')}"
 
-        return get_current_user_info
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            get_current_user_info,
+            name_override="get_current_user_info",
+            description_override="Get current user information including roles and capabilities",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
 
     def _create_get_health_tool(self):
         """Create get_splunk_health tool for the agent."""
 
-        @function_tool
         async def get_splunk_health() -> str:
             """Check Splunk server health and connectivity."""
             logger.debug(f"[{self.name}] Checking Splunk health...")
@@ -365,12 +408,23 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Health check failed: {result.get('error', 'Unknown error')}"
 
-        return get_splunk_health
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            get_splunk_health,
+            name_override="get_splunk_health",
+            description_override="Check Splunk server health and connectivity",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
 
     def _create_return_result_tool(self):
         """Create tool for returning diagnostic results."""
 
-        @function_tool
         async def return_diagnostic_result(
             status: str, findings: list[str], recommendations: list[str], details: dict = None
         ) -> str:
@@ -399,7 +453,35 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
             return f"Diagnostic result recorded successfully with status: {status}"
 
-        return return_diagnostic_result
+        # Create the function tool with explicit schema configuration
+        tool = function_tool(
+            return_diagnostic_result,
+            name_override="return_diagnostic_result",
+            description_override="Return the diagnostic result for this task",
+            strict_mode=True
+        )
+        
+        # Fix the schema to ensure additionalProperties is false
+        if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
+            self._fix_json_schema(tool.params_json_schema)
+        
+        return tool
+
+    def _fix_json_schema(self, schema: dict) -> None:
+        """Fix JSON schema to ensure additionalProperties is set to false recursively."""
+        if isinstance(schema, dict):
+            # Set additionalProperties to false for all object types
+            if schema.get("type") == "object":
+                schema["additionalProperties"] = False
+            
+            # Recursively fix nested schemas
+            for key, value in schema.items():
+                if isinstance(value, dict):
+                    self._fix_json_schema(value)
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, dict):
+                            self._fix_json_schema(item)
 
     async def execute_task(self, execution_context: AgentExecutionContext) -> DiagnosticResult:
         """
@@ -644,12 +726,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
     ) -> DiagnosticResult:
         """Execute license verification task."""
         try:
-            # Get server information
+            # Get server information - use proper time range to avoid "latest_time must be after earliest_time" error
             server_result = await self.tool_registry.call_tool(
                 "run_oneshot_search",
                 {
                     "query": "| rest /services/server/info | fields splunk_version, product_type, license_state",
-                    "earliest_time": "now",
+                    "earliest_time": "-1m",  # Use a small time window instead of "now" for both
                     "latest_time": "now",
                     "max_results": 1,
                 },
