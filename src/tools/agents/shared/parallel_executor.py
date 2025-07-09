@@ -507,26 +507,26 @@ class ParallelWorkflowExecutor:
 
         # Determine status based on output content - improved logic to reduce false positives
         output_lower = output.lower()
-        
+
         # Check for actual error indicators (more specific patterns)
         error_patterns = [
             'fatal error', 'execution failed', 'search failed', 'connection failed',
             'authentication failed', 'permission denied', 'access denied',
             'critical error', 'severe error', 'exception:', 'traceback'
         ]
-        
+
         # Check for warning indicators (more specific patterns)
         warning_patterns = [
             'warning:', 'potential issue', 'configuration issue', 'performance issue',
             'deprecated', 'missing configuration', 'timeout occurred', 'partial failure'
         ]
-        
+
         # Check for successful completion indicators
         success_patterns = [
             'analysis completed', 'check completed', 'verification completed',
             'successfully', 'no issues found', 'working properly', 'healthy'
         ]
-        
+
         # Determine status based on specific patterns rather than broad keywords
         if any(pattern in output_lower for pattern in error_patterns):
             status = "critical"
@@ -537,7 +537,7 @@ class ParallelWorkflowExecutor:
         else:
             # Default to healthy for neutral/informational outputs
             # Only mark as warning if there are actual actionable issues mentioned
-            if ('no data found' in output_lower or 'zero results' in output_lower or 
+            if ('no data found' in output_lower or 'zero results' in output_lower or
                 'missing' in output_lower and 'configuration' in output_lower):
                 status = "warning"
             else:
@@ -794,7 +794,7 @@ class ParallelWorkflowExecutor:
 
         # Log task status breakdown
         status_counts = {}
-        for task_id, result in task_results.items():
+        for _task_id, result in task_results.items():
             status = result.status
             status_counts[status] = status_counts.get(status, 0) + 1
 
