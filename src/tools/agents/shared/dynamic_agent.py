@@ -6,10 +6,12 @@ for specific agent files and enables task-driven parallelization.
 """
 
 import logging
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
 
+from fastmcp import Context
 from .config import AgentConfig
 from .context import DiagnosticResult, SplunkDiagnosticContext
 from .tools import SplunkToolRegistry
@@ -573,13 +575,14 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                         if isinstance(item, dict):
                             self._fix_json_schema(item)
 
-    async def execute_task(self, execution_context: AgentExecutionContext) -> DiagnosticResult:
+    async def execute_task(self, execution_context: AgentExecutionContext, ctx: Context) -> DiagnosticResult:
         """
         Execute the assigned task with the provided context and comprehensive tracing.
 
         Args:
             execution_context: Context containing task definition, diagnostic context,
                              and any dependency results
+            ctx: FastMCP context for progress reporting and logging
 
         Returns:
             DiagnosticResult with task execution results
@@ -588,26 +591,34 @@ Always return your results as a structured DiagnosticResult by calling the `retu
         task_name = f"Task: {self.task_definition.name}"
         
         logger.info(f"[{self.name}] Starting task execution: {self.task_definition.name}")
+        
+        # Report initial progress
+        await ctx.report_progress(progress=0, total=100)
+        await ctx.info(f"🔄 Starting {self.task_definition.name}")
 
         # Create comprehensive tracing for task execution
         if OPENAI_AGENTS_AVAILABLE and custom_span:
             with custom_span(f"micro_agent_task_{self.task_definition.task_id}"):
-                return await self._execute_task_with_tracing(execution_context, start_time, True)
+                return await self._execute_task_with_tracing(execution_context, start_time, ctx, True)
         else:
             # Fallback without tracing
-            return await self._execute_task_with_tracing(execution_context, start_time, False)
+            return await self._execute_task_with_tracing(execution_context, start_time, ctx, False)
 
     async def _execute_task_with_tracing(
         self, 
         execution_context: AgentExecutionContext, 
         start_time: float,
+        ctx: Context,
         tracing_enabled: bool = False
     ) -> DiagnosticResult:
-        """Execute the task with optional tracing support."""
+        """Execute the task with optional tracing support and progress reporting."""
         
         try:
             # Initialize task result storage
             self._task_result = None
+
+            # Report progress: Task setup
+            await ctx.report_progress(progress=10, total=100)
 
             # Build dynamic instructions with context (with tracing)
             if OPENAI_AGENTS_AVAILABLE and custom_span and tracing_enabled:
@@ -616,28 +627,41 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             else:
                 dynamic_instructions = self._build_dynamic_instructions(execution_context)
 
+            # Report progress: Instructions built
+            await ctx.report_progress(progress=20, total=100)
+            await ctx.info(f"📋 Instructions prepared for {self.task_definition.name}")
+
             # Execute the task using OpenAI Agent if available (with tracing)
             if self.openai_agent and OPENAI_AGENTS_AVAILABLE:
+                await ctx.info(f"🤖 Executing {self.task_definition.name} with OpenAI Agent")
+                await ctx.report_progress(progress=30, total=100)
+                
                 if custom_span and tracing_enabled:
                     with custom_span("openai_agent_execution"):
                         result = await self._execute_with_openai_agent(
-                            execution_context, dynamic_instructions
+                            execution_context, dynamic_instructions, ctx
                         )
                 else:
                     result = await self._execute_with_openai_agent(
-                        execution_context, dynamic_instructions
+                        execution_context, dynamic_instructions, ctx
                     )
             else:
+                await ctx.info(f"⚙️ Executing {self.task_definition.name} with fallback method")
+                await ctx.report_progress(progress=30, total=100)
+                
                 # Fallback to hardcoded execution for basic tasks (with tracing)
                 if custom_span and tracing_enabled:
                     with custom_span("fallback_execution"):
                         result = await self._execute_diagnostic_task_fallback(
-                            execution_context, dynamic_instructions
+                            execution_context, dynamic_instructions, ctx
                         )
                 else:
                     result = await self._execute_diagnostic_task_fallback(
-                        execution_context, dynamic_instructions
+                        execution_context, dynamic_instructions, ctx
                     )
+
+            # Report progress: Task execution complete
+            await ctx.report_progress(progress=90, total=100)
 
             # Finalize result with execution metadata (with tracing)
             execution_time = time.time() - start_time
@@ -645,6 +669,10 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             result.details["agent_name"] = self.name
             result.details["task_id"] = self.task_definition.task_id
             result.details["tracing_enabled"] = OPENAI_AGENTS_AVAILABLE and custom_span is not None
+
+            # Report final progress
+            await ctx.report_progress(progress=100, total=100)
+            await ctx.info(f"✅ {self.task_definition.name} completed with status: {result.status}")
 
             logger.info(
                 f"[{self.name}] Task completed in {execution_time:.2f}s with status: {result.status}"
@@ -654,6 +682,8 @@ Always return your results as a structured DiagnosticResult by calling the `retu
         except Exception as e:
             execution_time = time.time() - start_time
             logger.error(f"[{self.name}] Task execution failed: {e}", exc_info=True)
+            
+            await ctx.error(f"❌ {self.task_definition.name} failed: {str(e)}")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -670,12 +700,16 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
     async def _execute_with_openai_agent(
-        self, execution_context: AgentExecutionContext, dynamic_instructions: str
+        self, execution_context: AgentExecutionContext, dynamic_instructions: str, ctx: Context
     ) -> DiagnosticResult:
-        """Execute task using OpenAI Agent with instruction following."""
+        """Execute task using OpenAI Agent with instruction following and progress reporting."""
         logger.debug(f"[{self.name}] Executing task with OpenAI Agent...")
 
         try:
+            # Report progress before agent execution
+            await ctx.report_progress(progress=40, total=100)
+            await ctx.info(f"🧠 Running OpenAI Agent for {self.task_definition.name}")
+
             # Execute the agent with the dynamic instructions
             agent_result = await Runner.run(
                 self.openai_agent,
@@ -683,13 +717,18 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 max_turns=10,  # Allow multiple turns for complex tasks
             )
 
+            # Report progress after agent execution
+            await ctx.report_progress(progress=80, total=100)
+
             # Check if the agent stored a result using return_diagnostic_result
             if hasattr(self, "_task_result") and self._task_result:
                 logger.debug(f"[{self.name}] Retrieved stored diagnostic result")
+                await ctx.info(f"📊 {self.task_definition.name} analysis complete")
                 return self._task_result
 
             # If no stored result, create one from the agent output
             logger.warning(f"[{self.name}] No diagnostic result stored, creating from agent output")
+            await ctx.warning(f"⚠️ {self.task_definition.name} completed without structured result")
 
             # Analyze the agent output to determine status
             output = agent_result.final_output.lower() if agent_result.final_output else ""
@@ -717,6 +756,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
         except Exception as e:
             logger.error(f"[{self.name}] OpenAI Agent execution failed: {e}", exc_info=True)
+            await ctx.error(f"❌ OpenAI Agent execution failed for {self.task_definition.name}: {str(e)}")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -793,29 +833,36 @@ Always return your results as a structured DiagnosticResult by calling the `retu
         return "\n".join(summary_parts)
 
     async def _execute_diagnostic_task_fallback(
-        self, execution_context: AgentExecutionContext, instructions: str
+        self, execution_context: AgentExecutionContext, instructions: str, ctx: Context
     ) -> DiagnosticResult:
         """Fallback execution method for when OpenAI Agents SDK is not available."""
 
         task_id = self.task_definition.task_id
+        
+        # Report progress for fallback execution
+        await ctx.report_progress(progress=50, total=100)
+        await ctx.info(f"🔧 Using fallback execution for {self.task_definition.name}")
 
         # Route to appropriate execution method based on task type
         if "license" in task_id.lower():
-            return await self._execute_license_verification(execution_context)
+            return await self._execute_license_verification(execution_context, ctx)
         elif "index" in task_id.lower():
-            return await self._execute_index_verification(execution_context)
+            return await self._execute_index_verification(execution_context, ctx)
         elif "permission" in task_id.lower():
-            return await self._execute_permissions_check(execution_context)
+            return await self._execute_permissions_check(execution_context, ctx)
         elif "time" in task_id.lower() or "range" in task_id.lower():
-            return await self._execute_time_range_check(execution_context)
+            return await self._execute_time_range_check(execution_context, ctx)
         else:
-            return await self._execute_generic_task(execution_context, instructions)
+            return await self._execute_generic_task(execution_context, instructions, ctx)
 
     async def _execute_license_verification(
-        self, execution_context: AgentExecutionContext
+        self, execution_context: AgentExecutionContext, ctx: Context
     ) -> DiagnosticResult:
-        """Execute license verification task."""
+        """Execute license verification task with progress reporting."""
         try:
+            await ctx.info(f"🔍 Checking Splunk license information")
+            await ctx.report_progress(progress=60, total=100)
+            
             # Get server information - use proper time range to avoid "latest_time must be after earliest_time" error
             server_result = await self.tool_registry.call_tool(
                 "run_oneshot_search",
@@ -827,7 +874,10 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 },
             )
 
+            await ctx.report_progress(progress=80, total=100)
+
             if not server_result.get("success"):
+                await ctx.error(f"Failed to retrieve server information: {server_result.get('error')}")
                 return DiagnosticResult(
                     step=self.task_definition.task_id,
                     status="error",
@@ -840,6 +890,8 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             # Implementation similar to the specific license agent but more generic
             findings = ["License verification completed"]
             status = "healthy"
+            
+            await ctx.info(f"✅ License verification completed successfully")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -850,6 +902,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
         except Exception as e:
+            await ctx.error(f"License verification failed: {str(e)}")
             return DiagnosticResult(
                 step=self.task_definition.task_id,
                 status="error",
@@ -859,14 +912,20 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
     async def _execute_index_verification(
-        self, execution_context: AgentExecutionContext
+        self, execution_context: AgentExecutionContext, ctx: Context
     ) -> DiagnosticResult:
-        """Execute index verification task."""
+        """Execute index verification task with progress reporting."""
         try:
+            await ctx.info(f"📂 Checking Splunk index availability")
+            await ctx.report_progress(progress=60, total=100)
+            
             # Get available indexes
             indexes_result = await self.tool_registry.call_tool("list_splunk_indexes")
 
+            await ctx.report_progress(progress=80, total=100)
+
             if not indexes_result.get("success"):
+                await ctx.error(f"Failed to retrieve index list: {indexes_result.get('error')}")
                 return DiagnosticResult(
                     step=self.task_definition.task_id,
                     status="error",
@@ -888,10 +947,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 status = "warning"
                 findings = [f"Missing indexes: {', '.join(missing_indexes)}"]
                 recommendations = ["Verify index names and permissions"]
+                await ctx.warning(f"⚠️ Missing indexes found: {', '.join(missing_indexes)}")
             else:
                 status = "healthy"
                 findings = ["All target indexes are accessible"]
                 recommendations = []
+                await ctx.info(f"✅ All target indexes are accessible")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -906,6 +967,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
         except Exception as e:
+            await ctx.error(f"Index verification failed: {str(e)}")
             return DiagnosticResult(
                 step=self.task_definition.task_id,
                 status="error",
@@ -915,10 +977,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
     async def _execute_permissions_check(
-        self, execution_context: AgentExecutionContext
+        self, execution_context: AgentExecutionContext, ctx: Context
     ) -> DiagnosticResult:
-        """Execute permissions verification task."""
+        """Execute permissions verification task with progress reporting."""
         try:
+            await ctx.info(f"🔐 Checking user permissions and roles")
+            await ctx.report_progress(progress=60, total=100)
+            
             # Get user info from dependencies or directly
             user_info = None
             if "license_verification" in execution_context.dependency_results:
@@ -929,16 +994,20 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 user_result = await self.tool_registry.call_tool("get_current_user_info", {})
                 user_info = user_result.get("data", {}) if user_result.get("success") else {}
 
+            await ctx.report_progress(progress=80, total=100)
+
             # Basic permissions check
             user_roles = user_info.get("roles", [])
             if not user_roles:
                 status = "warning"
                 findings = ["No roles assigned to user"]
                 recommendations = ["Contact administrator for role assignment"]
+                await ctx.warning(f"⚠️ No roles assigned to current user")
             else:
                 status = "healthy"
                 findings = [f"User has roles: {', '.join(user_roles)}"]
                 recommendations = []
+                await ctx.info(f"✅ User has {len(user_roles)} role(s): {', '.join(user_roles[:3])}")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -949,6 +1018,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
         except Exception as e:
+            await ctx.error(f"Permissions check failed: {str(e)}")
             return DiagnosticResult(
                 step=self.task_definition.task_id,
                 status="error",
@@ -958,11 +1028,14 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
     async def _execute_time_range_check(
-        self, execution_context: AgentExecutionContext
+        self, execution_context: AgentExecutionContext, ctx: Context
     ) -> DiagnosticResult:
-        """Execute time range verification task."""
+        """Execute time range verification task with progress reporting."""
         try:
             context = execution_context.diagnostic_context
+            
+            await ctx.info(f"⏰ Checking data availability in time range {context.earliest_time} to {context.latest_time}")
+            await ctx.report_progress(progress=60, total=100)
 
             # Build search query based on context
             search_filters = []
@@ -985,7 +1058,10 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 },
             )
 
+            await ctx.report_progress(progress=80, total=100)
+
             if not count_result.get("success"):
+                await ctx.error(f"Failed to check data in time range: {count_result.get('error')}")
                 return DiagnosticResult(
                     step=self.task_definition.task_id,
                     status="error",
@@ -1005,10 +1081,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                     f"No data found in time range {context.earliest_time} to {context.latest_time}"
                 ]
                 recommendations = ["Verify time range and check if data exists outside this window"]
+                await ctx.warning(f"⚠️ No data found in specified time range")
             else:
                 status = "healthy"
                 findings = [f"Found {total_events:,} events in time range"]
                 recommendations = []
+                await ctx.info(f"✅ Found {total_events:,} events in time range")
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -1022,6 +1100,7 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
         except Exception as e:
+            await ctx.error(f"Time range check failed: {str(e)}")
             return DiagnosticResult(
                 step=self.task_definition.task_id,
                 status="error",
@@ -1031,9 +1110,12 @@ Always return your results as a structured DiagnosticResult by calling the `retu
             )
 
     async def _execute_generic_task(
-        self, execution_context: AgentExecutionContext, instructions: str
+        self, execution_context: AgentExecutionContext, instructions: str, ctx: Context
     ) -> DiagnosticResult:
-        """Execute a generic task using the provided instructions."""
+        """Execute a generic task using the provided instructions with progress reporting."""
+
+        await ctx.info(f"⚙️ Executing generic task: {self.task_definition.name}")
+        await ctx.report_progress(progress=70, total=100)
 
         # For generic tasks, we can implement a simple execution pattern
         # or integrate with an LLM for complex instruction following

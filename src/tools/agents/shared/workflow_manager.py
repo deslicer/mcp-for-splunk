@@ -13,6 +13,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from fastmcp import Context
 from .config import AgentConfig
 from .context import DiagnosticResult, SplunkDiagnosticContext
 from .dynamic_agent import (
@@ -559,35 +560,37 @@ You are performing a basic data availability check.
         self,
         workflow_id: str,
         diagnostic_context: SplunkDiagnosticContext,
+        ctx: Context,
         execution_metadata: dict[str, Any] = None,
     ) -> WorkflowResult:
         """
-        Execute a workflow with comprehensive tracing support.
+        Execute a workflow by orchestrating dynamic micro-agents with progress reporting.
 
         Args:
             workflow_id: ID of the workflow to execute
-            diagnostic_context: Context for the diagnostic analysis
-            execution_metadata: Optional metadata for execution
+            diagnostic_context: Context for diagnostic execution
+            ctx: FastMCP context for progress reporting and logging
+            execution_metadata: Optional metadata for execution tracking
 
         Returns:
-            WorkflowResult with execution details and task results
+            WorkflowResult containing execution results and summary
         """
         start_time = time.time()
         
         if execution_metadata is None:
             execution_metadata = {}
 
-        logger.info(f"Starting workflow execution: {workflow_id}")
-        logger.debug(f"Diagnostic context: {diagnostic_context}")
-        logger.debug(f"Execution metadata: {execution_metadata}")
+        logger.info("=" * 80)
+        logger.info(f"STARTING WORKFLOW EXECUTION: {workflow_id}")
+        logger.info("=" * 80)
 
-        # Create comprehensive trace for workflow execution
+        # Add comprehensive tracing for workflow execution
         if TRACING_AVAILABLE and trace:
-            # Make trace name unique to avoid conflicts
+            # Create unique trace name to avoid conflicts
             trace_timestamp = int(time.time() * 1000)
-            workflow_name = f"Splunk Workflow {trace_timestamp}: {workflow_id}"
+            trace_name = f"Workflow Execution {workflow_id} {trace_timestamp}"
             
-            # Convert all metadata values to strings for OpenAI API compatibility
+            # Convert metadata to strings for OpenAI API compatibility
             trace_metadata = {
                 "workflow_id": str(workflow_id),
                 "earliest_time": str(diagnostic_context.earliest_time),
@@ -598,26 +601,32 @@ You are performing a basic data availability check.
                 "trace_timestamp": str(trace_timestamp),
             }
             
-            with trace(workflow_name=workflow_name, metadata=trace_metadata):
+            with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_workflow_core(
-                    workflow_id, diagnostic_context, execution_metadata, start_time
+                    workflow_id, diagnostic_context, ctx, execution_metadata, start_time
                 )
         else:
-            logger.debug("Tracing not available, executing workflow without traces")
+            # Fallback execution without tracing
+            logger.warning("OpenAI Agents tracing not available, executing without traces")
             return await self._execute_workflow_core(
-                workflow_id, diagnostic_context, execution_metadata, start_time
+                workflow_id, diagnostic_context, ctx, execution_metadata, start_time
             )
 
     async def _execute_workflow_core(
         self,
         workflow_id: str,
         diagnostic_context: SplunkDiagnosticContext,
+        ctx: Context,
         execution_metadata: dict[str, Any],
         start_time: float,
     ) -> WorkflowResult:
-        """Core workflow execution with tracing spans."""
+        """Core workflow execution with tracing spans and progress reporting."""
         
         try:
+            # Report initial progress
+            await ctx.report_progress(progress=0, total=100)
+            await ctx.info(f"🚀 Starting workflow: {workflow_id}")
+            
             # Get workflow definition with tracing
             if TRACING_AVAILABLE and custom_span:
                 with custom_span("workflow_definition_lookup"):
@@ -631,6 +640,10 @@ You are performing a basic data availability check.
                 if not workflow:
                     raise ValueError(f"Workflow '{workflow_id}' not found")
                 logger.info(f"Found workflow: {workflow.name} with {len(workflow.tasks)} tasks")
+
+            # Report progress: Workflow loaded
+            await ctx.report_progress(progress=10, total=100)
+            await ctx.info(f"📋 Loaded {workflow.name} with {len(workflow.tasks)} tasks")
 
             # Build dependency graph with tracing
             if TRACING_AVAILABLE and custom_span:
@@ -653,18 +666,28 @@ You are performing a basic data availability check.
                 logger.info(f"  - Dependency graph: {dependency_graph}")
                 logger.info(f"  - Execution order: {execution_phases}")
 
+            # Report progress: Dependencies analyzed
+            await ctx.report_progress(progress=20, total=100)
+            await ctx.info(f"🔗 Analyzed dependencies: {len(execution_phases)} execution phases")
+
             # Execute tasks in phases with comprehensive tracing
             task_results: dict[str, DiagnosticResult] = {}
+            phase_progress_step = 60 / len(execution_phases)  # 60% of progress for task execution
             
             for phase_idx, phase_tasks in enumerate(execution_phases):
                 phase_name = f"execution_phase_{phase_idx + 1}"
                 logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}")
                 
+                # Report progress for this phase
+                phase_progress = 20 + (phase_idx * phase_progress_step)
+                await ctx.report_progress(progress=phase_progress, total=100)
+                await ctx.info(f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
+                
                 if TRACING_AVAILABLE and custom_span:
                     with custom_span(phase_name):
                         # Execute tasks in this phase (potentially in parallel)
                         phase_results = await self._execute_phase_with_tracing(
-                            workflow, phase_tasks, diagnostic_context, task_results
+                            workflow, phase_tasks, diagnostic_context, task_results, ctx
                         )
                         
                         # Update task results
@@ -677,10 +700,11 @@ You are performing a basic data availability check.
                                       if result.status == "error"]
                         
                         logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+                        await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                 else:
                     # Execute tasks in this phase (potentially in parallel)
                     phase_results = await self._execute_phase_with_tracing(
-                        workflow, phase_tasks, diagnostic_context, task_results
+                        workflow, phase_tasks, diagnostic_context, task_results, ctx
                     )
                     
                     # Update task results
@@ -693,6 +717,11 @@ You are performing a basic data availability check.
                                   if result.status == "error"]
                     
                     logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+                    await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+
+            # Report progress: Task execution complete
+            await ctx.report_progress(progress=80, total=100)
+            await ctx.info(f"🔄 All tasks completed, generating summary...")
 
             # Finalize workflow result with tracing
             if TRACING_AVAILABLE and custom_span:
@@ -715,11 +744,16 @@ You are performing a basic data availability check.
                 logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
                 logger.info(f"  - Tasks executed: {len(task_results)}")
 
+            # Report final progress
+            await ctx.report_progress(progress=100, total=100)
+            await ctx.info(f"✅ Workflow {workflow_id} completed with status: {workflow_result.status}")
+
             return workflow_result
 
         except Exception as e:
             execution_time = time.time() - start_time
             logger.error(f"Workflow execution failed: {e}", exc_info=True)
+            await ctx.error(f"❌ Workflow {workflow_id} failed: {str(e)}")
             
             # Create error result
             return WorkflowResult(
@@ -744,8 +778,9 @@ You are performing a basic data availability check.
         phase_tasks: list[str],
         diagnostic_context: SplunkDiagnosticContext,
         completed_task_results: dict[str, DiagnosticResult],
+        ctx: Context,
     ) -> dict[str, DiagnosticResult]:
-        """Execute a phase of tasks with individual task tracing."""
+        """Execute a phase of tasks with individual task tracing and progress reporting."""
         
         phase_results = {}
         
@@ -773,11 +808,11 @@ You are performing a basic data availability check.
             # Create dynamic agent and execute task with tracing
             if TRACING_AVAILABLE and custom_span:
                 async_tasks.append(
-                    self._execute_single_task_with_tracing(task_def, execution_context)
+                    self._execute_single_task_with_tracing(task_def, execution_context, ctx)
                 )
             else:
                 async_tasks.append(
-                    self._execute_single_task_without_tracing(task_def, execution_context)
+                    self._execute_single_task_without_tracing(task_def, execution_context, ctx)
                 )
         
         # Execute tasks in parallel
@@ -790,6 +825,7 @@ You are performing a basic data availability check.
                 task_id = phase_tasks[i]
                 if isinstance(result, Exception):
                     logger.error(f"Task {task_id} failed with exception: {result}")
+                    await ctx.error(f"❌ Task {task_id} failed: {str(result)}")
                     phase_results[task_id] = DiagnosticResult(
                         step=task_id,
                         status="error",
@@ -807,31 +843,34 @@ You are performing a basic data availability check.
         self,
         task_def: TaskDefinition,
         execution_context: AgentExecutionContext,
+        ctx: Context,
     ) -> DiagnosticResult:
-        """Execute a single task with comprehensive tracing."""
+        """Execute a single task with comprehensive tracing and progress reporting."""
         
         with custom_span(f"task_execution_{task_def.task_id}"):
             # Create and execute dynamic agent
             dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
             
             try:
-                result = await dynamic_agent.execute_task(execution_context)
+                result = await dynamic_agent.execute_task(execution_context, ctx)
                 return result
                 
             except Exception as e:
                 logger.error(f"Task {task_def.task_id} execution failed: {e}", exc_info=True)
+                await ctx.error(f"❌ Task {task_def.task_id} failed: {str(e)}")
                 raise
 
     async def _execute_single_task_without_tracing(
         self,
         task_def: TaskDefinition,
         execution_context: AgentExecutionContext,
+        ctx: Context,
     ) -> DiagnosticResult:
-        """Execute a single task without tracing (fallback)."""
+        """Execute a single task without tracing (fallback) but with progress reporting."""
         
         # Create and execute dynamic agent
         dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
-        return await dynamic_agent.execute_task(execution_context)
+        return await dynamic_agent.execute_task(execution_context, ctx)
 
     async def _finalize_workflow_result(
         self,
@@ -1093,23 +1132,23 @@ You are performing a basic data availability check.
 
 # Convenience functions for common workflows
 async def execute_missing_data_workflow(
-    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext
+    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext, ctx: Context
 ) -> WorkflowResult:
-    """Execute the missing data troubleshooting workflow."""
+    """Execute the missing data troubleshooting workflow with progress reporting."""
     return await workflow_manager.execute_workflow(
-        "missing_data_troubleshooting", diagnostic_context
+        "missing_data_troubleshooting", diagnostic_context, ctx
     )
 
 
 async def execute_performance_workflow(
-    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext
+    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext, ctx: Context
 ) -> WorkflowResult:
-    """Execute the performance analysis workflow."""
-    return await workflow_manager.execute_workflow("performance_analysis", diagnostic_context)
+    """Execute the performance analysis workflow with progress reporting."""
+    return await workflow_manager.execute_workflow("performance_analysis", diagnostic_context, ctx)
 
 
 async def execute_health_check_workflow(
-    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext
+    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext, ctx: Context
 ) -> WorkflowResult:
-    """Execute the basic health check workflow."""
-    return await workflow_manager.execute_workflow("health_check", diagnostic_context)
+    """Execute the basic health check workflow with progress reporting."""
+    return await workflow_manager.execute_workflow("health_check", diagnostic_context, ctx)

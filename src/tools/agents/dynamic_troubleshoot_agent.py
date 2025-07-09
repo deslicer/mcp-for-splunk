@@ -15,7 +15,7 @@ from datetime import datetime
 from fastmcp import Context
 from openai import OpenAI
 
-from ...core.base import BaseTool, ToolMetadata
+from core.base import BaseTool, ToolMetadata
 from .dynamic_coordinator import DynamicCoordinator
 from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
 
@@ -677,11 +677,11 @@ Focus on providing actionable insights that address the original problem while c
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"workflow_execution_{detected_workflow}"):
                     workflow_result = await self._execute_workflow_with_tracing(
-                        detected_workflow, diagnostic_context, problem_description
+                        detected_workflow, diagnostic_context, problem_description, ctx
                     )
             else:
                 workflow_result = await self._execute_workflow_with_tracing(
-                    detected_workflow, diagnostic_context, problem_description
+                    detected_workflow, diagnostic_context, problem_description, ctx
                 )
 
             workflow_execution_time = time.time() - workflow_start_time
@@ -859,20 +859,21 @@ Focus on providing actionable insights that address the original problem while c
         detected_workflow: str,
         diagnostic_context: SplunkDiagnosticContext,
         problem_description: str,
+        ctx: Context,
     ) -> dict[str, Any]:
-        """Execute the workflow with proper tracing context."""
+        """Execute the workflow with proper tracing context and progress reporting."""
         
         if detected_workflow == "missing_data":
             return await self.dynamic_coordinator.execute_missing_data_analysis(
-                diagnostic_context, problem_description
+                diagnostic_context, problem_description, ctx
             )
         elif detected_workflow == "performance":
             return await self.dynamic_coordinator.execute_performance_analysis(
-                diagnostic_context, problem_description
+                diagnostic_context, problem_description, ctx
             )
         elif detected_workflow == "health_check":
             return await self.dynamic_coordinator.execute_health_check(
-                diagnostic_context
+                diagnostic_context, ctx
             )
         else:
             raise ValueError(f"Unknown workflow type: {detected_workflow}")

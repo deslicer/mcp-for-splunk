@@ -9,6 +9,8 @@ import asyncio
 import logging
 import time
 from typing import Dict, Any, List, Optional
+
+from fastmcp import Context
 from .shared import (
     AgentConfig, 
     SplunkDiagnosticContext, 
@@ -51,9 +53,10 @@ class DynamicCoordinator:
     
     async def execute_missing_data_analysis(self, 
                                           diagnostic_context: SplunkDiagnosticContext,
-                                          problem_description: str) -> Dict[str, Any]:
+                                          problem_description: str,
+                                          ctx: Context) -> Dict[str, Any]:
         """
-        Execute missing data analysis using dynamic micro-agents.
+        Execute missing data analysis using dynamic micro-agents with progress reporting.
         
         This method automatically creates and orchestrates the appropriate micro-agents
         for missing data troubleshooting based on the official Splunk workflow.
@@ -62,10 +65,11 @@ class DynamicCoordinator:
         logger.info(f"Starting dynamic missing data analysis")
         
         try:
-            # Execute the missing data workflow
+            # Execute the missing data workflow with progress reporting
             workflow_result = await execute_missing_data_workflow(
                 self.workflow_manager, 
-                diagnostic_context
+                diagnostic_context,
+                ctx
             )
             
             # Format results for compatibility with existing systems
@@ -126,9 +130,10 @@ class DynamicCoordinator:
     
     async def execute_performance_analysis(self,
                                          diagnostic_context: SplunkDiagnosticContext,
-                                         problem_description: str) -> Dict[str, Any]:
+                                         problem_description: str,
+                                         ctx: Context) -> Dict[str, Any]:
         """
-        Execute performance analysis using dynamic micro-agents.
+        Execute performance analysis using dynamic micro-agents with progress reporting.
         
         This method automatically creates and orchestrates the appropriate micro-agents
         for performance troubleshooting based on Splunk Platform Instrumentation.
@@ -137,10 +142,11 @@ class DynamicCoordinator:
         logger.info(f"Starting dynamic performance analysis")
         
         try:
-            # Execute the performance workflow
+            # Execute the performance workflow with progress reporting
             workflow_result = await execute_performance_workflow(
                 self.workflow_manager,
-                diagnostic_context
+                diagnostic_context,
+                ctx
             )
             
             # Format results
@@ -201,9 +207,10 @@ class DynamicCoordinator:
     async def execute_custom_workflow(self,
                                     workflow_definition: WorkflowDefinition,
                                     diagnostic_context: SplunkDiagnosticContext,
-                                    problem_description: str) -> Dict[str, Any]:
+                                    problem_description: str,
+                                    ctx: Context) -> Dict[str, Any]:
         """
-        Execute a custom workflow using dynamic micro-agents.
+        Execute a custom workflow using dynamic micro-agents with progress reporting.
         
         This method allows for on-the-fly workflow creation and execution,
         enabling maximum flexibility for different troubleshooting scenarios.
@@ -215,10 +222,11 @@ class DynamicCoordinator:
             # Register the custom workflow temporarily
             self.workflow_manager.register_workflow(workflow_definition)
             
-            # Execute the workflow
+            # Execute the workflow with progress reporting
             workflow_result = await self.workflow_manager.execute_workflow(
                 workflow_definition.workflow_id,
-                diagnostic_context
+                diagnostic_context,
+                ctx
             )
             
             # Format results
@@ -326,8 +334,8 @@ class DynamicCoordinator:
         
         return workflows
     
-    async def execute_health_check(self, diagnostic_context: SplunkDiagnosticContext) -> Dict[str, Any]:
-        """Execute a quick health check using dynamic micro-agents."""
+    async def execute_health_check(self, diagnostic_context: SplunkDiagnosticContext, ctx: Context) -> Dict[str, Any]:
+        """Execute a quick health check using dynamic micro-agents with progress reporting."""
         
         start_time = time.time()
         logger.info("Starting dynamic health check")
@@ -335,7 +343,8 @@ class DynamicCoordinator:
         try:
             workflow_result = await execute_health_check_workflow(
                 self.workflow_manager,
-                diagnostic_context
+                diagnostic_context,
+                ctx
             )
             
             execution_time = time.time() - start_time
