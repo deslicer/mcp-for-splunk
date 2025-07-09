@@ -15,8 +15,7 @@ from datetime import datetime
 from fastmcp import Context
 from openai import OpenAI
 
-from core.base import BaseTool, ToolMetadata
-from .dynamic_coordinator import DynamicCoordinator
+from src.core.base import BaseTool, ToolMetadata
 from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -73,53 +72,60 @@ class RetryConfig:
 
 class DynamicTroubleshootAgentTool(BaseTool):
     """
-    Enhanced Dynamic Troubleshooting Agent for Splunk Analysis with Orchestration and Tracing.
+    Enhanced Dynamic Troubleshooting Agent with Handoff-Based Orchestration and Comprehensive Tracing.
 
-    This tool provides direct access to the dynamic coordinator system for efficient
-    Splunk troubleshooting using micro-agents. It includes an orchestrating agent that
-    analyzes and summarizes results, plus comprehensive tracing for observability.
+    This tool provides a sophisticated handoff-based orchestration system for efficient
+    Splunk troubleshooting using specialized micro-agents. It leverages the OpenAI Agents SDK
+    handoff pattern for intelligent routing and comprehensive tracing throughout the entire
+    diagnostic process.
 
     ## Key Features:
-    - **Orchestrating Agent**: Analyzes workflow results and provides intelligent summaries
-    - **Comprehensive Tracing**: Full observability of agent execution flows
-    - **Intelligent Routing**: Automatically selects the best workflow based on problem symptoms
-    - **Parallel Execution**: Uses micro-agents for efficient parallel task execution
-    - **Progress Reporting**: Real-time updates throughout execution
-    - **Results Analysis**: Deep analysis and synthesis of findings across all tasks
+    - **Handoff-Based Orchestration**: Uses OpenAI Agents SDK handoff pattern for intelligent agent coordination
+    - **Specialized Micro-Agents**: Individual agents for specific diagnostic tasks (license, permissions, performance, etc.)
+    - **Comprehensive Tracing**: Full observability of agent execution flows and handoffs
+    - **Intelligent Routing**: Automatically selects and coordinates appropriate specialists based on problem symptoms
+    - **Context Preservation**: Maintains diagnostic context across all agent handoffs
+    - **Progress Reporting**: Real-time updates throughout the orchestration process
+    - **Detailed Analysis**: Deep synthesis of findings from all engaged specialists
 
-    ## Available Dynamic Workflows:
+    ## Handoff-Based Architecture:
 
-    ### 🔍 Missing Data Analysis
-    Comprehensive missing data troubleshooting using parallel micro-agents:
-    - License and edition verification
-    - Index configuration and access validation
-    - Permissions and role-based access control
-    - Time range and timestamp analysis
-    - Forwarder connectivity checks
-    - Search head configuration verification
-    - License violation detection
-    - Scheduled search issue analysis
-    - Search query syntax validation
-    - Field extraction troubleshooting
+    ### 🎯 Orchestrating Agent
+    Central coordinator that analyzes problems and hands off to appropriate specialists:
+    - Analyzes problem descriptions and symptoms
+    - Determines which specialists to engage based on issue type
+    - Coordinates handoffs to specialized micro-agents
+    - Synthesizes results from all engaged agents
+    - Provides comprehensive analysis and recommendations
 
-    ### 🚀 Performance Analysis
-    System performance diagnosis using Splunk Platform Instrumentation:
-    - System resource baseline analysis (CPU, memory, disk)
-    - Splunk process resource analysis
-    - Search concurrency and performance monitoring
-    - Disk usage and I/O performance
-    - Indexing pipeline performance
-    - Queue analysis and processing delays
-    - Search head and KV Store performance
-    - License and capacity constraints
-    - Network and forwarder performance
+    ### 🔍 Missing Data Specialists
+    Specialized agents for comprehensive missing data troubleshooting:
+    - **License Verification Agent**: Splunk license and edition verification
+    - **Index Verification Agent**: Index accessibility and configuration verification
+    - **Permissions Agent**: User permissions and role-based access control analysis
+    - **Time Range Agent**: Time-related data availability and timestamp issues
+    - **Forwarder Connectivity Agent**: Forwarder connections and data ingestion pipeline
+    - **Search Head Configuration Agent**: Search head setup and distributed search verification
 
-    ### 🏥 Health Check Analysis
-    Quick system health assessment:
-    - Overall system status verification
-    - Critical component health checks
-    - Basic connectivity validation
-    - License status overview
+    ### 🚀 Performance Analysis Specialists  
+    Specialized agents for system performance diagnosis:
+    - **System Resource Agent**: CPU, memory, and disk usage analysis
+    - **Search Concurrency Agent**: Search performance and concurrency analysis
+    - **Indexing Performance Agent**: Indexing pipeline and throughput analysis
+
+    ### 🏥 Health Check Specialists
+    Specialized agents for quick system health assessment:
+    - **Connectivity Agent**: Basic Splunk server connectivity verification
+    - **Data Availability Agent**: Recent data ingestion and availability checks
+
+    ## Tracing and Observability:
+
+    The tool provides comprehensive tracing through:
+    - **OpenAI Agents SDK Tracing**: Native trace integration with the agents framework
+    - **Handoff Tracking**: Visibility into which agents are engaged and when
+    - **Context Flow**: Tracking of diagnostic context across agent handoffs
+    - **Performance Metrics**: Execution times and agent engagement statistics
+    - **Turn Analysis**: Detailed view of conversation turns and agent interactions
 
     ## Arguments:
 
@@ -137,40 +143,53 @@ class DynamicTroubleshootAgentTool(BaseTool):
 
     - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "health_check", "auto". Default: "auto" (automatic detection)
 
-    ## How It Works:
-    1. **Problem Analysis**: Analyzes the problem description to determine the best workflow
-    2. **Dynamic Routing**: Routes to the appropriate dynamic workflow (missing data, performance, or health check)
-    3. **Parallel Execution**: Executes multiple diagnostic tasks in parallel using micro-agents
-    4. **Orchestration**: Uses an orchestrating agent to analyze and synthesize results
-    5. **Progress Reporting**: Provides real-time updates on task execution and findings
-    6. **Comprehensive Results**: Returns detailed analysis with actionable recommendations and intelligent summaries
+    ## How Handoff Orchestration Works:
+    1. **Problem Analysis**: Orchestrating agent analyzes the problem description to determine issue type
+    2. **Specialist Selection**: Automatically selects appropriate specialist agents based on symptoms
+    3. **Intelligent Handoffs**: Uses OpenAI Agents SDK handoff pattern to engage specialists
+    4. **Context Preservation**: Maintains diagnostic context across all agent interactions
+    5. **Result Synthesis**: Orchestrating agent synthesizes findings from all engaged specialists
+    6. **Comprehensive Analysis**: Returns detailed analysis with actionable recommendations and tracing metadata
 
     ## Example Use Cases:
-    - "My dashboard shows no data for the last 2 hours" → Missing Data Analysis
-    - "Searches are running very slowly since yesterday" → Performance Analysis
-    - "I can't see events from my forwarders in index=security" → Missing Data Analysis
-    - "Getting license violation warnings but don't know why" → Performance Analysis
-    - "High CPU usage on search heads affecting performance" → Performance Analysis
+    - "My dashboard shows no data for the last 2 hours" → Engages missing data specialists
+    - "Searches are running very slowly since yesterday" → Engages performance analysis specialists
+    - "I can't see events from my forwarders in index=security" → Engages missing data specialists
+    - "Getting license violation warnings but don't know why" → Engages license and performance specialists
+    - "High CPU usage on search heads affecting performance" → Engages performance analysis specialists
+
+    ## Tracing Benefits:
+    - **End-to-End Visibility**: Complete view of the diagnostic process from problem to resolution
+    - **Agent Interaction Tracking**: See which specialists were engaged and their contributions
+    - **Performance Analysis**: Understand execution times and bottlenecks in the diagnostic process
+    - **Context Validation**: Verify that appropriate context is being passed to specialists
+    - **Debugging Support**: Detailed traces for troubleshooting the troubleshooting process itself
     """
 
     METADATA = ToolMetadata(
         name="dynamic_troubleshoot",
-        description="""Enhanced dynamic troubleshooting agent with orchestration and tracing for efficient Splunk analysis.
-This tool provides direct access to the dynamic coordinator system with an orchestrating agent that analyzes and summarizes results. It includes comprehensive tracing for observability and intelligent routing to appropriate parallel workflows.
+        description="""Enhanced dynamic troubleshooting agent with handoff-based orchestration and comprehensive tracing for efficient Splunk analysis.
+This tool uses the OpenAI Agents SDK handoff pattern to coordinate specialized micro-agents for intelligent diagnostic routing. It provides end-to-end tracing of agent interactions and maintains context across all handoffs.
+
+## Handoff-Based Architecture:
+- **Orchestrating Agent**: Central coordinator that analyzes problems and hands off to specialists
+- **Specialized Micro-Agents**: Individual agents for license, permissions, performance, connectivity, and health checks
+- **Intelligent Routing**: Automatic selection of appropriate specialists based on problem symptoms
+- **Context Preservation**: Diagnostic context maintained across all agent handoffs
 
 ## Workflow Types:
-- **Missing Data Analysis**: Comprehensive parallel troubleshooting for data visibility issues
-- **Performance Analysis**: System performance diagnosis using Platform Instrumentation
-- **Health Check Analysis**: Quick system health assessment
-- **Auto-Detection**: Automatically selects the best workflow based on problem symptoms
+- **Missing Data Analysis**: Comprehensive handoff-based troubleshooting for data visibility issues
+- **Performance Analysis**: System performance diagnosis using specialized performance agents
+- **Health Check Analysis**: Quick system health assessment with connectivity and data availability agents
+- **Auto-Detection**: Automatically selects the best specialists based on problem symptoms
 
 ## Key Benefits:
-- Orchestrating agent for intelligent result analysis and summarization
+- Handoff-based orchestration for intelligent specialist coordination
 - Comprehensive tracing with OpenAI Agents SDK integration
-- Parallel execution for faster results
-- Real-time progress reporting
-- Deep analysis and synthesis of findings across all tasks
-- Direct routing without triage overhead
+- Context preservation across agent interactions
+- Real-time progress reporting throughout orchestration
+- Deep synthesis of findings from all engaged specialists
+- End-to-end visibility of diagnostic process
 
 ## Parameters:
 - problem_description (required): Detailed issue description
@@ -251,110 +270,644 @@ This tool provides direct access to the dynamic coordinator system with an orche
         return config
 
     def _setup_dynamic_coordinator(self):
-        """Set up the dynamic coordinator system."""
+        """Set up the tool registry for handoff-based micro-agents."""
 
-        logger.info("Setting up dynamic coordinator...")
+        logger.info("Setting up tool registry for handoff-based micro-agents...")
 
-        # Create tool registry for dynamic coordinator
+        # Create tool registry for micro-agents
         self.tool_registry = SplunkToolRegistry()
 
         # Initialize Splunk tools for the registry
-        logger.info("Setting up Splunk tools for dynamic agents...")
+        logger.info("Setting up Splunk tools for handoff-based agents...")
         from .shared.tools import create_splunk_tools
 
         tools = create_splunk_tools(self.tool_registry)
-        logger.info(f"Initialized {len(tools)} Splunk tools for dynamic agents")
+        logger.info(f"Initialized {len(tools)} Splunk tools for handoff-based agents")
 
-        # Create dynamic coordinator with the same config
-        self.dynamic_coordinator = DynamicCoordinator(self.config, self.tool_registry)
-
-        logger.info("Dynamic coordinator setup complete")
+        logger.info("Tool registry setup complete for handoff-based orchestration")
 
     def _setup_orchestrating_agent(self):
-        """Set up the orchestrating agent for result analysis and summarization."""
+        """Set up the orchestrating agent with handoffs to specialized micro-agents."""
 
-        logger.info("Setting up orchestrating agent...")
+        logger.info("Setting up orchestrating agent with handoffs...")
 
-        # Create the orchestrating agent that analyzes workflow results
+        # Create specialized micro-agents for different diagnostic tasks
+        self._create_micro_agents()
+
+        # Create the main orchestrating agent with handoffs
+        from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+
         self.orchestrating_agent = Agent(
-            name="Splunk Analysis Orchestrator",
+            name="Splunk Troubleshooting Orchestrator",
             instructions=prompt_with_handoff_instructions("""
-You are a senior Splunk expert orchestrating agent responsible for analyzing and synthesizing results from dynamic troubleshooting workflows.
+You are a senior Splunk troubleshooting orchestrator responsible for coordinating specialized micro-agents to diagnose and resolve Splunk issues.
 
 Your role is to:
-1. **Analyze Workflow Results**: Review the results from all parallel micro-agents that executed diagnostic tasks
-2. **Synthesize Findings**: Combine findings from multiple tasks into coherent insights
-3. **Prioritize Issues**: Identify the most critical issues requiring immediate attention
-4. **Generate Actionable Recommendations**: Provide specific, prioritized recommendations for resolution
-5. **Create Executive Summary**: Provide a clear, concise summary for both technical and non-technical stakeholders
+1. **Analyze the Problem**: Understand the user's problem description and determine which specialized agents to engage
+2. **Coordinate Handoffs**: Hand off specific diagnostic tasks to the appropriate micro-agents
+3. **Synthesize Results**: Combine findings from multiple agents into coherent insights
+4. **Provide Recommendations**: Generate actionable recommendations based on all agent findings
 
-## Analysis Framework:
+## Available Specialized Agents:
 
-### 1. Result Categorization
-- **Critical Issues**: Problems requiring immediate attention that could impact system availability
-- **Performance Issues**: Problems affecting system performance or efficiency
-- **Configuration Issues**: Misconfigurations that could lead to problems
-- **Informational**: Status information and baseline metrics
+### Missing Data Analysis Agents:
+- **License Verification Agent**: Checks Splunk license status and edition limitations
+- **Index Verification Agent**: Verifies target indexes exist and are accessible  
+- **Permissions Agent**: Analyzes user permissions and role-based access control
+- **Time Range Agent**: Checks data availability in specified time ranges
+- **Forwarder Connectivity Agent**: Analyzes forwarder connections and data flow
+- **Search Head Configuration Agent**: Verifies search head setup in distributed environments
 
-### 2. Root Cause Analysis
-- Look for patterns across multiple task results
-- Identify common themes and underlying causes
-- Correlate findings from different diagnostic areas
-- Distinguish between symptoms and root causes
+### Performance Analysis Agents:
+- **System Resource Agent**: Analyzes CPU, memory, and disk usage patterns
+- **Search Concurrency Agent**: Analyzes search performance and concurrency limits
+- **Indexing Performance Agent**: Analyzes indexing pipeline performance
 
-### 3. Impact Assessment
-- Assess the business impact of identified issues
-- Consider both immediate and potential future impacts
-- Evaluate the scope of affected systems or users
+### Health Check Agents:
+- **Connectivity Agent**: Verifies basic Splunk server connectivity
+- **Data Availability Agent**: Checks for recent data ingestion
 
-### 4. Recommendation Prioritization
-- **Priority 1**: Critical issues requiring immediate action
-- **Priority 2**: Important issues to address within 24-48 hours
-- **Priority 3**: Optimization opportunities and preventive measures
+## Handoff Strategy:
 
-## Output Format:
+Based on the problem description, determine which agents to engage:
 
-Provide your analysis in the following structure:
+**For Missing Data Issues**: Hand off to license verification, index verification, permissions, time range, and forwarder connectivity agents
+**For Performance Issues**: Hand off to system resource, search concurrency, and indexing performance agents  
+**For General Health Checks**: Hand off to connectivity and data availability agents
 
-**EXECUTIVE SUMMARY**
-- Brief overview of the analysis
-- Key findings summary
-- Overall system health assessment
+## Instructions:
+1. Analyze the problem description to understand the issue type
+2. Hand off to the appropriate specialized agents based on the problem symptoms
+3. Wait for results from each agent
+4. Synthesize the findings into a comprehensive analysis
+5. Provide prioritized recommendations for resolution
 
-**CRITICAL ISSUES IDENTIFIED**
-- List of critical issues requiring immediate attention
-- Impact assessment for each issue
-- Immediate action items
-
-**DETAILED FINDINGS**
-- Comprehensive analysis of all findings
-- Task-by-task breakdown with insights
-- Correlation analysis between different areas
-
-**PRIORITIZED RECOMMENDATIONS**
-- Priority 1: Immediate actions (0-4 hours)
-- Priority 2: Short-term actions (1-2 days)
-- Priority 3: Long-term improvements (1-2 weeks)
-
-**MONITORING AND FOLLOW-UP**
-- Suggested monitoring to track resolution
-- Follow-up actions to prevent recurrence
-- Key metrics to watch
-
-## Analysis Guidelines:
-
-- **Be Specific**: Provide concrete, actionable recommendations with specific commands or configuration changes where possible
-- **Consider Context**: Take into account the original problem description and focus areas
-- **Think Systematically**: Consider how different components interact and affect each other
-- **Prioritize Safety**: Always prioritize system stability and data integrity
-- **Explain Reasoning**: Provide clear reasoning for your conclusions and recommendations
-
-Remember: Your analysis should provide value to both immediate troubleshooting efforts and long-term system health improvements.
+Always start by understanding the problem scope, then systematically engage the relevant agents to gather comprehensive diagnostic data.
             """),
             model=self.config.model,
+            handoffs=self.micro_agents,
         )
 
-        logger.info("Orchestrating agent setup complete")
+        logger.info(f"Orchestrating agent setup complete with {len(self.micro_agents)} specialized agents")
+
+    def _create_micro_agents(self):
+        """Create specialized micro-agents for different diagnostic tasks."""
+        
+        logger.info("Creating specialized micro-agents...")
+        
+        self.micro_agents = []
+        
+        # Missing Data Analysis Agents
+        self.micro_agents.extend(self._create_missing_data_agents())
+        
+        # Performance Analysis Agents  
+        self.micro_agents.extend(self._create_performance_agents())
+        
+        # Health Check Agents
+        self.micro_agents.extend(self._create_health_check_agents())
+        
+        logger.info(f"Created {len(self.micro_agents)} specialized micro-agents")
+
+    def _create_missing_data_agents(self):
+        """Create specialized agents for missing data analysis."""
+        
+        from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+        
+        agents = []
+        
+        # License Verification Agent
+        license_agent = Agent(
+            name="License Verification Agent",
+            handoff_description="Specialist for Splunk license and edition verification",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk license verification agent.
+
+**Your Expertise**: Splunk licensing, edition limitations, and license-related data access issues
+
+**Your Tasks**:
+1. Check Splunk license state and edition type
+2. Verify license compliance and violations
+3. Identify license-related restrictions on data access
+4. Analyze license pool usage and quotas
+
+**Available Tools**: You have access to Splunk search capabilities to query license information.
+
+**Key Searches**:
+- `| rest /services/server/info | fields splunk_version, product_type, license_state`
+- `| rest /services/licenser/messages | table category, message`
+- `index=_internal source=*license_usage.log* type=Usage`
+
+**Analysis Focus**:
+- Check if running Splunk Free (has search limitations)
+- Verify license state (OK, expired, violation)
+- Identify license violations that prevent searching
+- Note version and product type compatibility
+
+**Return Format**: Provide structured findings with:
+- License status and edition
+- Any violations or restrictions found
+- Impact on data access capabilities
+- Specific recommendations for license-related issues
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(license_agent)
+        
+        # Index Verification Agent
+        index_agent = Agent(
+            name="Index Verification Agent", 
+            handoff_description="Specialist for index accessibility and configuration verification",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk index verification agent.
+
+**Your Expertise**: Index configuration, accessibility, and data visibility issues
+
+**Your Tasks**:
+1. Verify target indexes exist and are accessible
+2. Test index permissions and access rights
+3. Check index configuration and settings
+4. Analyze index-specific data flow issues
+
+**Available Tools**: You have access to Splunk search and index listing capabilities.
+
+**Key Searches**:
+- List available indexes using list_splunk_indexes tool
+- Test index accessibility with metadata searches
+- Check index-specific data counts and recent activity
+
+**Analysis Focus**:
+- Verify target indexes exist in the system
+- Test user access to specified indexes
+- Check for index-level permissions issues
+- Identify missing or inaccessible indexes
+
+**Return Format**: Provide structured findings with:
+- Index availability status
+- Access verification results
+- Any missing or inaccessible indexes
+- Specific recommendations for index-related issues
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(index_agent)
+        
+        # Permissions Agent
+        permissions_agent = Agent(
+            name="Permissions Agent",
+            handoff_description="Specialist for user permissions and role-based access control analysis", 
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk permissions and access control agent.
+
+**Your Expertise**: User roles, permissions, and role-based access control (RBAC)
+
+**Your Tasks**:
+1. Verify user permissions and assigned roles
+2. Check role-based index access restrictions
+3. Analyze search filters and capabilities based on roles
+4. Identify permission-related data access issues
+
+**Available Tools**: You have access to user information and Splunk search capabilities.
+
+**Key Searches**:
+- Get current user info and roles
+- Test basic search permissions
+- Check role-based index access restrictions
+- Verify search filters based on role permissions
+
+**Analysis Focus**:
+- Current user roles and capabilities
+- Index access permissions by role
+- Search restrictions and filters
+- Permission-related barriers to data access
+
+**Return Format**: Provide structured findings with:
+- User role and permission status
+- Access restrictions identified
+- Role-based limitations affecting data visibility
+- Specific recommendations for permission issues
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(permissions_agent)
+        
+        # Time Range Agent  
+        time_range_agent = Agent(
+            name="Time Range Agent",
+            handoff_description="Specialist for time-related data availability and timestamp issues",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk time range and timestamp analysis agent.
+
+**Your Expertise**: Time-based data queries, timestamp issues, and temporal data availability
+
+**Your Tasks**:
+1. Check data availability in specified time ranges
+2. Analyze time distribution and data gaps
+3. Identify indexing delays and timestamp issues
+4. Verify timezone settings and time-related problems
+
+**Available Tools**: You have access to Splunk search capabilities for time-based analysis.
+
+**Key Searches**:
+- Count queries for specified time ranges
+- Time distribution analysis using timechart
+- Index time vs event time comparison
+- "All time" searches to catch timing issues
+
+**Analysis Focus**:
+- Data availability in target time range
+- Identification of data gaps or missing periods
+- Indexing delays (_indextime vs _time)
+- Timezone and future-timestamped event issues
+
+**Return Format**: Provide structured findings with:
+- Data availability status for time range
+- Time-related issues identified
+- Indexing delay analysis
+- Specific recommendations for time-related problems
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(time_range_agent)
+        
+        # Forwarder Connectivity Agent
+        forwarder_agent = Agent(
+            name="Forwarder Connectivity Agent",
+            handoff_description="Specialist for forwarder connections and data ingestion pipeline analysis",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk forwarder connectivity and data flow agent.
+
+**Your Expertise**: Universal forwarders, data ingestion pipeline, and network connectivity
+
+**Your Tasks**:
+1. Verify forwarder connections and status
+2. Check data flow from forwarders to indexers
+3. Analyze connection stability and throughput
+4. Identify network or connectivity issues
+
+**Available Tools**: You have access to Splunk search capabilities for forwarder analysis.
+
+**Key Searches**:
+- `index=_internal source=*metrics.log* tcpin_connections`
+- `index=_internal source=*metrics.log* group=queue tcpout`
+- `| metadata type=hosts` for recent host activity
+- `index=_internal "Connected to idx" OR "cooked mode"`
+
+**Analysis Focus**:
+- Active forwarder connections
+- Data throughput and connection stability
+- Recent host activity and data flow
+- Connection drops or network issues
+
+**Return Format**: Provide structured findings with:
+- Forwarder connectivity status
+- Data flow analysis results
+- Connection stability assessment
+- Specific recommendations for connectivity issues
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(forwarder_agent)
+        
+        # Search Head Configuration Agent
+        search_head_agent = Agent(
+            name="Search Head Configuration Agent",
+            handoff_description="Specialist for search head configuration and distributed search setup",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk search head configuration agent.
+
+**Your Expertise**: Search head clusters, distributed search, and search head connectivity
+
+**Your Tasks**:
+1. Verify search head configuration in distributed environments
+2. Check search head cluster status and health
+3. Analyze distributed search peer connections
+4. Identify search head connectivity issues
+
+**Available Tools**: You have access to Splunk search capabilities for search head analysis.
+
+**Key Searches**:
+- `| rest /services/search/distributed/peers`
+- `| rest /services/shcluster/status`
+- `index=_internal source=*splunkd.log* component=DistributedSearch`
+
+**Analysis Focus**:
+- Search head to indexer connectivity
+- Distributed search configuration
+- Search head cluster health
+- Peer connection status and issues
+
+**Return Format**: Provide structured findings with:
+- Search head configuration status
+- Distributed search connectivity results
+- Cluster health assessment
+- Specific recommendations for search head issues
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(search_head_agent)
+        
+        return agents
+
+    def _create_performance_agents(self):
+        """Create specialized agents for performance analysis."""
+        
+        from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+        
+        agents = []
+        
+        # System Resource Agent
+        system_resource_agent = Agent(
+            name="System Resource Agent",
+            handoff_description="Specialist for system resource analysis and performance monitoring",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk system resource analysis agent.
+
+**Your Expertise**: System performance, resource utilization, and hardware bottlenecks
+
+**Your Tasks**:
+1. Analyze system CPU, memory, and disk usage patterns
+2. Identify resource bottlenecks and constraints
+3. Check host-level performance metrics
+4. Analyze resource usage trends and spikes
+
+**Available Tools**: You have access to Splunk search capabilities for introspection data analysis.
+
+**Key Searches**:
+- `index=_introspection component=Hostwide`
+- `index=_introspection component=PerProcess`
+- System resource metrics and performance data
+
+**Analysis Focus**:
+- CPU usage patterns (system and user)
+- Memory utilization and availability
+- Disk I/O performance and capacity
+- Hosts with high resource usage (>80%)
+
+**Return Format**: Provide structured findings with:
+- Resource usage baseline and current status
+- Identified bottlenecks and constraints
+- Performance trends and anomalies
+- Specific recommendations for resource optimization
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(system_resource_agent)
+        
+        # Search Concurrency Agent
+        search_concurrency_agent = Agent(
+            name="Search Concurrency Agent", 
+            handoff_description="Specialist for search performance and concurrency analysis",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk search concurrency and performance agent.
+
+**Your Expertise**: Search performance, concurrency limits, and scheduler optimization
+
+**Your Tasks**:
+1. Analyze search concurrency patterns and limits
+2. Check search performance and execution times
+3. Identify slow or failed searches
+4. Analyze scheduler performance and queue status
+
+**Available Tools**: You have access to Splunk search capabilities for search performance analysis.
+
+**Key Searches**:
+- `index=_introspection component=SearchConcurrency`
+- `index=_internal source=*scheduler.log*`
+- `index=_audit action=search`
+- Search performance metrics and statistics
+
+**Analysis Focus**:
+- Current search concurrency vs configured limits
+- Search execution times and performance patterns
+- Failed or slow search identification
+- Scheduler queue status and delays
+
+**Return Format**: Provide structured findings with:
+- Search concurrency status and limits
+- Performance bottlenecks identified
+- Slow or failed search analysis
+- Specific recommendations for search optimization
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(search_concurrency_agent)
+        
+        # Indexing Performance Agent
+        indexing_performance_agent = Agent(
+            name="Indexing Performance Agent",
+            handoff_description="Specialist for indexing pipeline performance and throughput analysis", 
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk indexing performance agent.
+
+**Your Expertise**: Indexing pipeline, data ingestion throughput, and indexer performance
+
+**Your Tasks**:
+1. Analyze indexing throughput and pipeline performance
+2. Check queue sizes and processing delays
+3. Identify indexing bottlenecks and constraints
+4. Monitor per-index performance metrics
+
+**Available Tools**: You have access to Splunk search capabilities for indexing performance analysis.
+
+**Key Searches**:
+- `index=_internal source=*metrics.log* group=per_index_thruput`
+- `index=_internal source=*metrics.log* group=queue`
+- `index=_internal source=*metrics.log* group=pipeline`
+- Indexing performance and throughput metrics
+
+**Analysis Focus**:
+- Indexing throughput by index and time
+- Queue sizes and processing delays
+- Pipeline processor performance
+- Indexing bottlenecks and constraints
+
+**Return Format**: Provide structured findings with:
+- Indexing performance status and throughput
+- Queue analysis and bottleneck identification
+- Pipeline performance assessment
+- Specific recommendations for indexing optimization
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(indexing_performance_agent)
+        
+        return agents
+
+    def _create_health_check_agents(self):
+        """Create specialized agents for health checks."""
+        
+        from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+        
+        agents = []
+        
+        # Connectivity Agent
+        connectivity_agent = Agent(
+            name="Connectivity Agent",
+            handoff_description="Specialist for basic Splunk server connectivity and health verification",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk connectivity verification agent.
+
+**Your Expertise**: Server connectivity, basic health checks, and service availability
+
+**Your Tasks**:
+1. Verify Splunk server connectivity and responsiveness
+2. Check basic service availability and status
+3. Validate authentication and API access
+4. Identify connection issues or service problems
+
+**Available Tools**: You have access to Splunk health check capabilities.
+
+**Analysis Focus**:
+- Server connectivity and response times
+- Service availability and status
+- Authentication and access verification
+- Basic system health indicators
+
+**Return Format**: Provide structured findings with:
+- Connectivity status and response times
+- Service availability assessment
+- Any connection issues identified
+- Specific recommendations for connectivity problems
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(connectivity_agent)
+        
+        # Data Availability Agent
+        data_availability_agent = Agent(
+            name="Data Availability Agent",
+            handoff_description="Specialist for basic data ingestion and availability verification",
+            instructions=prompt_with_handoff_instructions("""
+You are a specialized Splunk data availability verification agent.
+
+**Your Expertise**: Data ingestion verification, basic data availability, and recent data checks
+
+**Your Tasks**:
+1. Verify recent data ingestion across indexes
+2. Check basic data availability and counts
+3. Identify data ingestion issues or gaps
+4. Validate data flow and recent activity
+
+**Available Tools**: You have access to Splunk search and index listing capabilities.
+
+**Key Searches**:
+- Recent data counts across indexes
+- Data availability verification
+- Index activity and recent ingestion
+- Basic data flow validation
+
+**Analysis Focus**:
+- Recent data ingestion status
+- Data availability across indexes
+- Data flow verification
+- Basic ingestion health indicators
+
+**Return Format**: Provide structured findings with:
+- Data availability status
+- Recent ingestion verification results
+- Any data flow issues identified
+- Specific recommendations for data availability problems
+            """),
+            model=self.config.model,
+            tools=self._create_splunk_tools_for_agent(),
+        )
+        agents.append(data_availability_agent)
+        
+        return agents
+
+    def _create_splunk_tools_for_agent(self):
+        """Create Splunk tools for micro-agents using the tool registry."""
+        
+        if not OPENAI_AGENTS_AVAILABLE:
+            return []
+            
+        tools = []
+        
+        # Create function tools that delegate to the tool registry
+        @function_tool
+        async def run_splunk_search(query: str, earliest_time: str = "-24h", latest_time: str = "now") -> str:
+            """Execute a Splunk search query."""
+            try:
+                result = await self.tool_registry.call_tool(
+                    "run_splunk_search",
+                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
+                )
+                if result.get("success"):
+                    return str(result.get("data", ""))
+                else:
+                    return f"Search failed: {result.get('error', 'Unknown error')}"
+            except Exception as e:
+                return f"Search execution failed: {str(e)}"
+        
+        @function_tool  
+        async def run_oneshot_search(query: str, earliest_time: str = "-15m", latest_time: str = "now", max_results: int = 100) -> str:
+            """Execute a quick Splunk oneshot search."""
+            try:
+                result = await self.tool_registry.call_tool(
+                    "run_oneshot_search",
+                    {
+                        "query": query,
+                        "earliest_time": earliest_time, 
+                        "latest_time": latest_time,
+                        "max_results": max_results,
+                    }
+                )
+                if result.get("success"):
+                    return str(result.get("data", ""))
+                else:
+                    return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
+            except Exception as e:
+                return f"Oneshot search execution failed: {str(e)}"
+        
+        @function_tool
+        async def list_splunk_indexes() -> str:
+            """List available Splunk indexes."""
+            try:
+                result = await self.tool_registry.call_tool("list_splunk_indexes")
+                if result.get("success"):
+                    return str(result.get("data", ""))
+                else:
+                    return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+            except Exception as e:
+                return f"Index listing failed: {str(e)}"
+        
+        @function_tool
+        async def get_current_user_info() -> str:
+            """Get current user information including roles and capabilities."""
+            try:
+                result = await self.tool_registry.call_tool("get_current_user_info")
+                if result.get("success"):
+                    return str(result.get("data", ""))
+                else:
+                    return f"Failed to get user info: {result.get('error', 'Unknown error')}"
+            except Exception as e:
+                return f"User info retrieval failed: {str(e)}"
+        
+        @function_tool
+        async def get_splunk_health() -> str:
+            """Check Splunk server health and connectivity."""
+            try:
+                result = await self.tool_registry.call_tool("get_splunk_health")
+                if result.get("success"):
+                    return str(result.get("data", ""))
+                else:
+                    return f"Health check failed: {result.get('error', 'Unknown error')}"
+            except Exception as e:
+                return f"Health check execution failed: {str(e)}"
+        
+        tools = [run_splunk_search, run_oneshot_search, list_splunk_indexes, get_current_user_info, get_splunk_health]
+        
+        return tools
 
     def _analyze_problem_type(self, problem_description: str) -> str:
         """
@@ -513,6 +1066,139 @@ Focus on providing actionable insights that address the original problem while c
 """
 
         return orchestration_input
+
+    def _inspect_agent_context(
+        self,
+        orchestration_input: str,
+        diagnostic_context: SplunkDiagnosticContext,
+        problem_description: str,
+    ) -> dict[str, Any]:
+        """Inspect and return detailed information about context being sent to agents."""
+        
+        context_inspection = {
+            "orchestration_input": {
+                "total_length": len(orchestration_input),
+                "sections": {
+                    "problem_description_length": len(problem_description),
+                    "diagnostic_context_info": {
+                        "earliest_time": diagnostic_context.earliest_time,
+                        "latest_time": diagnostic_context.latest_time,
+                        "focus_index": diagnostic_context.focus_index,
+                        "focus_host": diagnostic_context.focus_host,
+                        "complexity_level": diagnostic_context.complexity_level,
+                        "indexes_count": len(diagnostic_context.indexes) if diagnostic_context.indexes else 0,
+                        "sourcetypes_count": len(diagnostic_context.sourcetypes) if diagnostic_context.sourcetypes else 0,
+                        "sources_count": len(diagnostic_context.sources) if diagnostic_context.sources else 0,
+                    },
+                    "instructions_length": len(orchestration_input) - len(problem_description),
+                }
+            },
+            "agent_context": {
+                "available_specialists": len(self.micro_agents),
+                "specialist_names": [agent.name for agent in self.micro_agents],
+                "tools_per_agent": len(self._create_splunk_tools_for_agent()),
+                "orchestrating_agent_model": self.config.model,
+                "orchestrating_agent_temperature": self.config.temperature,
+            },
+            "tracing_context": {
+                "openai_agents_available": OPENAI_AGENTS_AVAILABLE,
+                "tracing_available": OPENAI_AGENTS_AVAILABLE and trace is not None,
+                "custom_span_available": OPENAI_AGENTS_AVAILABLE and custom_span is not None,
+            },
+            "context_optimization": {
+                "problem_description_ratio": len(problem_description) / len(orchestration_input) if orchestration_input else 0,
+                "context_efficiency_score": self._calculate_context_efficiency(orchestration_input, diagnostic_context),
+                "recommendations": self._get_context_optimization_recommendations(orchestration_input, diagnostic_context),
+            }
+        }
+        
+        # Log context inspection for debugging
+        logger.info("=" * 80)
+        logger.info("AGENT CONTEXT INSPECTION")
+        logger.info("=" * 80)
+        logger.info(f"Total orchestration input length: {context_inspection['orchestration_input']['total_length']} characters")
+        logger.info(f"Problem description length: {context_inspection['orchestration_input']['sections']['problem_description_length']} characters")
+        logger.info(f"Available specialists: {context_inspection['agent_context']['available_specialists']}")
+        logger.info(f"Tools per agent: {context_inspection['agent_context']['tools_per_agent']}")
+        logger.info(f"Context efficiency score: {context_inspection['context_optimization']['context_efficiency_score']:.2f}")
+        logger.info("Specialist agents:")
+        for name in context_inspection['agent_context']['specialist_names']:
+            logger.info(f"  - {name}")
+        logger.info("Context optimization recommendations:")
+        for rec in context_inspection['context_optimization']['recommendations']:
+            logger.info(f"  - {rec}")
+        logger.info("=" * 80)
+        
+        return context_inspection
+
+    def _calculate_context_efficiency(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> float:
+        """Calculate a context efficiency score (0-1) based on information density."""
+        
+        if not orchestration_input:
+            return 0.0
+            
+        # Factors that contribute to efficiency
+        factors = []
+        
+        # Problem description should be substantial but not overwhelming (20-40% of total)
+        problem_ratio = len(diagnostic_context.earliest_time or "") / len(orchestration_input)
+        if 0.2 <= problem_ratio <= 0.4:
+            factors.append(1.0)
+        else:
+            factors.append(max(0.0, 1.0 - abs(problem_ratio - 0.3) * 2))
+        
+        # Context specificity (having focus areas is good)
+        specificity_score = 0.0
+        if diagnostic_context.focus_index:
+            specificity_score += 0.3
+        if diagnostic_context.focus_host:
+            specificity_score += 0.3
+        if diagnostic_context.indexes:
+            specificity_score += 0.2
+        if diagnostic_context.sourcetypes:
+            specificity_score += 0.2
+        factors.append(specificity_score)
+        
+        # Input length should be reasonable (not too short, not too long)
+        length_score = 1.0
+        if len(orchestration_input) < 500:
+            length_score = len(orchestration_input) / 500
+        elif len(orchestration_input) > 5000:
+            length_score = max(0.2, 5000 / len(orchestration_input))
+        factors.append(length_score)
+        
+        return sum(factors) / len(factors)
+
+    def _get_context_optimization_recommendations(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> list[str]:
+        """Get recommendations for optimizing context sent to agents."""
+        
+        recommendations = []
+        
+        # Check input length
+        if len(orchestration_input) > 5000:
+            recommendations.append("Consider reducing orchestration input length for better agent performance")
+        elif len(orchestration_input) < 300:
+            recommendations.append("Consider adding more context details for better agent understanding")
+        
+        # Check context specificity
+        if not diagnostic_context.focus_index and not diagnostic_context.focus_host:
+            recommendations.append("Consider specifying focus_index or focus_host for more targeted analysis")
+        
+        if not diagnostic_context.indexes:
+            recommendations.append("Consider providing specific indexes for more efficient searches")
+        
+        # Check time range
+        if diagnostic_context.earliest_time == "-24h" and diagnostic_context.latest_time == "now":
+            recommendations.append("Consider using more specific time ranges if the issue is time-bounded")
+        
+        # Check complexity level
+        if diagnostic_context.complexity_level == "advanced":
+            recommendations.append("Advanced complexity may result in longer execution times and more context")
+        
+        if not recommendations:
+            recommendations.append("Context appears well-optimized for agent processing")
+        
+        return recommendations
 
     async def execute(
         self,
@@ -677,7 +1363,7 @@ Focus on providing actionable insights that address the original problem while c
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"workflow_execution_{detected_workflow}"):
                     workflow_result = await self._execute_workflow_with_tracing(
-                        detected_workflow, diagnostic_context, problem_description, ctx
+                        detected_workflow, diagnostic_context, problem_description, ctx 
                     )
             else:
                 workflow_result = await self._execute_workflow_with_tracing(
@@ -861,19 +1547,196 @@ Focus on providing actionable insights that address the original problem while c
         problem_description: str,
         ctx: Context,
     ) -> dict[str, Any]:
-        """Execute the workflow with proper tracing context and progress reporting."""
+        """Execute the workflow using handoff-based orchestrating agent with comprehensive tracing."""
         
-        if detected_workflow == "missing_data":
-            return await self.dynamic_coordinator.execute_missing_data_analysis(
-                diagnostic_context, problem_description, ctx
-            )
-        elif detected_workflow == "performance":
-            return await self.dynamic_coordinator.execute_performance_analysis(
-                diagnostic_context, problem_description, ctx
-            )
-        elif detected_workflow == "health_check":
-            return await self.dynamic_coordinator.execute_health_check(
-                diagnostic_context, ctx
-            )
-        else:
-            raise ValueError(f"Unknown workflow type: {detected_workflow}")
+        logger.info(f"Executing {detected_workflow} workflow using handoff-based orchestration")
+        
+        # Set the context for tool calls
+        self.tool_registry.set_context(ctx)
+        
+        # Create enhanced input for the orchestrating agent
+        orchestration_input = self._create_handoff_orchestration_input(
+            problem_description, detected_workflow, diagnostic_context
+        )
+        
+        # Inspect and log context being sent to agents
+        context_inspection = self._inspect_agent_context(
+            orchestration_input, diagnostic_context, problem_description
+        )
+        
+        # Report progress before agent execution
+        await ctx.report_progress(progress=40, total=100)
+        await ctx.info(f"🤖 Starting handoff-based orchestration for {detected_workflow}")
+        await ctx.info(f"📊 Context: {context_inspection['orchestration_input']['total_length']} chars, {context_inspection['agent_context']['available_specialists']} specialists, efficiency: {context_inspection['context_optimization']['context_efficiency_score']:.2f}")
+        
+        try:
+            # Execute the orchestrating agent with handoffs
+            if OPENAI_AGENTS_AVAILABLE and custom_span:
+                with custom_span("handoff_orchestration_execution"):
+                    orchestration_result = await Runner.run(
+                        self.orchestrating_agent,
+                        input=orchestration_input,
+                        max_turns=20,  # Allow multiple turns for handoffs and coordination
+                    )
+            else:
+                orchestration_result = await Runner.run(
+                    self.orchestrating_agent,
+                    input=orchestration_input,
+                    max_turns=20,  # Allow multiple turns for handoffs and coordination
+                )
+            
+            # Report progress after orchestration
+            await ctx.report_progress(progress=80, total=100)
+            await ctx.info(f"✅ Handoff-based orchestration completed")
+            
+            # Extract findings and analysis from the orchestration result
+            orchestration_analysis = orchestration_result.final_output
+            
+            # Create structured result in the expected format
+            workflow_result = {
+                "status": "success",
+                "coordinator_type": f"handoff_based_{detected_workflow}",
+                "problem_description": problem_description,
+                "workflow_execution": {
+                    "workflow_id": f"handoff_{detected_workflow}",
+                    "overall_status": "completed",
+                    "execution_method": "handoff_orchestration",
+                    "turns_executed": len(orchestration_result.turns) if hasattr(orchestration_result, 'turns') else 1,
+                    "agents_engaged": len(self.micro_agents),
+                },
+                "orchestration_analysis": orchestration_analysis,
+                "summary": {
+                    "approach": "Handoff-based orchestration with specialized micro-agents",
+                    "agents_available": len(self.micro_agents),
+                    "orchestration_method": "OpenAI Agents SDK with handoffs",
+                    "tracing_enabled": OPENAI_AGENTS_AVAILABLE and custom_span is not None,
+                },
+                "diagnostic_context": {
+                    "earliest_time": diagnostic_context.earliest_time,
+                    "latest_time": diagnostic_context.latest_time,
+                    "focus_index": diagnostic_context.focus_index,
+                    "focus_host": diagnostic_context.focus_host,
+                    "complexity_level": diagnostic_context.complexity_level,
+                },
+                "handoff_metadata": {
+                    "orchestrating_agent": "Splunk Troubleshooting Orchestrator",
+                    "available_specialists": [agent.name for agent in self.micro_agents],
+                    "handoff_approach": "Intelligent routing based on problem analysis",
+                    "tracing_spans": OPENAI_AGENTS_AVAILABLE and custom_span is not None,
+                },
+                "context_inspection": context_inspection,
+            }
+            
+            logger.info(f"Handoff-based {detected_workflow} workflow completed successfully")
+            return workflow_result
+            
+        except Exception as e:
+            logger.error(f"Handoff-based orchestration failed: {e}", exc_info=True)
+            await ctx.error(f"❌ Handoff orchestration failed: {str(e)}")
+            
+            return {
+                "status": "error",
+                "coordinator_type": f"handoff_based_{detected_workflow}",
+                "error": str(e),
+                "error_type": "handoff_orchestration_error",
+                "workflow_execution": {
+                    "workflow_id": f"handoff_{detected_workflow}",
+                    "overall_status": "failed",
+                    "execution_method": "handoff_orchestration",
+                    "error": str(e),
+                },
+                "diagnostic_context": {
+                    "earliest_time": diagnostic_context.earliest_time,
+                    "latest_time": diagnostic_context.latest_time,
+                    "focus_index": diagnostic_context.focus_index,
+                    "focus_host": diagnostic_context.focus_host,
+                    "complexity_level": diagnostic_context.complexity_level,
+                },
+            }
+
+    def _create_handoff_orchestration_input(
+        self,
+        problem_description: str,
+        workflow_type: str,
+        diagnostic_context: SplunkDiagnosticContext,
+    ) -> str:
+        """Create enhanced input for the handoff-based orchestrating agent."""
+
+        orchestration_input = f"""
+**SPLUNK TROUBLESHOOTING ORCHESTRATION REQUEST**
+
+**Problem Description:**
+{problem_description}
+
+**Detected Workflow Type:** {workflow_type}
+
+**Diagnostic Context:**
+- Time Range: {diagnostic_context.earliest_time} to {diagnostic_context.latest_time}
+- Focus Index: {diagnostic_context.focus_index or "All indexes"}
+- Focus Host: {diagnostic_context.focus_host or "All hosts"}
+- Complexity Level: {diagnostic_context.complexity_level}
+
+**Available Context Information:**
+- Indexes: {', '.join(diagnostic_context.indexes) if diagnostic_context.indexes else "Not specified"}
+- Sourcetypes: {', '.join(diagnostic_context.sourcetypes) if diagnostic_context.sourcetypes else "Not specified"}
+- Sources: {', '.join(diagnostic_context.sources) if diagnostic_context.sources else "Not specified"}
+
+**Orchestration Instructions:**
+
+Based on the problem description and workflow type, you should:
+
+1. **Analyze the Problem**: Understand the specific symptoms and scope of the issue
+2. **Determine Agent Strategy**: Based on the workflow type "{workflow_type}", decide which specialized agents to engage
+3. **Coordinate Handoffs**: Hand off specific diagnostic tasks to the appropriate micro-agents
+4. **Synthesize Results**: Combine findings from all engaged agents into a comprehensive analysis
+5. **Provide Recommendations**: Generate prioritized, actionable recommendations
+
+**Handoff Strategy for {workflow_type.title()} Issues:**
+"""
+
+        # Add workflow-specific guidance
+        if workflow_type == "missing_data":
+            orchestration_input += """
+For missing data issues, systematically engage these agents:
+- **License Verification Agent**: Check for license limitations affecting data access
+- **Index Verification Agent**: Verify target indexes exist and are accessible
+- **Permissions Agent**: Analyze user permissions and role-based access control
+- **Time Range Agent**: Check data availability in specified time ranges
+- **Forwarder Connectivity Agent**: Analyze data flow from forwarders
+- **Search Head Configuration Agent**: Verify distributed search setup
+
+Start with license and permissions, then move to index and time range analysis, followed by connectivity checks.
+"""
+        elif workflow_type == "performance":
+            orchestration_input += """
+For performance issues, systematically engage these agents:
+- **System Resource Agent**: Analyze CPU, memory, and disk usage patterns
+- **Search Concurrency Agent**: Check search performance and concurrency limits
+- **Indexing Performance Agent**: Analyze indexing pipeline and throughput
+
+Start with system resources to establish baseline, then analyze search and indexing performance.
+"""
+        elif workflow_type == "health_check":
+            orchestration_input += """
+For health check requests, engage these agents:
+- **Connectivity Agent**: Verify basic Splunk server connectivity and health
+- **Data Availability Agent**: Check recent data ingestion and availability
+
+Start with connectivity verification, then check data availability.
+"""
+
+        orchestration_input += """
+
+**Expected Output:**
+After engaging the appropriate agents and receiving their findings, provide:
+
+1. **Executive Summary**: High-level assessment of the situation
+2. **Detailed Findings**: Comprehensive analysis from all engaged agents
+3. **Root Cause Analysis**: Identification of underlying issues
+4. **Prioritized Recommendations**: Specific, actionable steps organized by priority
+5. **Next Steps**: Follow-up actions and monitoring guidance
+
+**Important**: Ensure you engage the relevant specialists and wait for their complete analysis before providing your final synthesis and recommendations.
+"""
+
+        return orchestration_input

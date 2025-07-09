@@ -17,6 +17,7 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -299,9 +300,16 @@ class ClientConfigMiddleware(Middleware):
 mcp.add_middleware(ClientConfigMiddleware())
 
 
-# Health check endpoint for Docker
+# Health check endpoint for Docker using custom route (recommended pattern)
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request) -> JSONResponse:
+    """Health check endpoint for Docker and load balancers"""
+    return JSONResponse({"status": "OK", "service": "MCP for Splunk"})
+
+
+# Legacy health check resource for MCP Inspector compatibility
 @mcp.resource("health://status")
-def health_check() -> str:
+def health_check_resource() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
 
@@ -363,23 +371,18 @@ async def main():
 
     # Create custom ASGI middleware list to capture HTTP headers
     from starlette.middleware import Middleware as StarletteMiddleware
-    from starlette.applications import Starlette
 
     custom_middleware = [
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-    # Get the FastMCP ASGI app
-    mcp_app = mcp.http_app(path="/mcp/")
-    
-    # Create a Starlette wrapper app with proper lifespan handling
-    app = Starlette(
+    # Create the FastMCP ASGI app with proper middleware and transport
+    # Use the recommended Streamable HTTP transport (default for 'http')
+    app = mcp.http_app(
+        path="/mcp/", 
         middleware=custom_middleware,
-        lifespan=mcp_app.lifespan  # Pass the FastMCP lifespan to the parent app
+        transport="http"  # Explicitly use Streamable HTTP transport
     )
-    
-    # Mount the MCP app
-    app.mount("/", mcp_app)
 
     # Import uvicorn to run the server
     try:
@@ -418,10 +421,16 @@ if __name__ == "__main__":
     try:
         if args.transport == "stdio":
             logger.info("Running in stdio mode for direct MCP client communication")
-            asyncio.run(mcp.run())
+            # Use FastMCP's built-in run method for stdio
+            mcp.run(transport="stdio")
         else:
-            # HTTP mode: use Streamable HTTP transport for web-based communication
+            # HTTP mode: Use FastMCP's recommended approach for HTTP transport
             logger.info("Running in HTTP mode with Streamable HTTP transport")
+            
+            # Option 1: Use FastMCP's built-in HTTP server (recommended for simple cases)
+            # mcp.run(transport="http", host=args.host, port=args.port, path="/mcp/")
+            
+            # Option 2: Use custom uvicorn setup for advanced middleware (current approach)
             asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
