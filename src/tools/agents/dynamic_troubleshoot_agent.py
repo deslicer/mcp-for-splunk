@@ -9,25 +9,24 @@ It includes comprehensive tracing, parallel orchestration, and results analysis.
 import logging
 import os
 import time
-from typing import Any
-from datetime import datetime
+from typing import Any, Optional
 
 from fastmcp import Context
 from openai import OpenAI
 
 from src.core.base import BaseTool, ToolMetadata
+
 from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
-from .shared.workflow_manager import WorkflowManager
 from .shared.parallel_executor import ParallelWorkflowExecutor
+from .shared.workflow_manager import WorkflowManager
 from .summarization_tool import create_summarization_tool
 
 logger = logging.getLogger(__name__)
 
 # Only import OpenAI agents if available
 try:
-    from agents import Agent, Runner, function_tool
     # Import tracing capabilities
-    from agents import trace, custom_span
+    from agents import Agent, Runner, custom_span, function_tool, trace
 
     OPENAI_AGENTS_AVAILABLE = True
     logger.info("OpenAI agents SDK loaded successfully for parallel execution")
@@ -75,9 +74,9 @@ class DynamicTroubleshootAgentTool(BaseTool):
     """
     Enhanced Dynamic Troubleshooting Agent with Parallel Execution and Comprehensive Tracing.
 
-    This tool provides a sophisticated parallel execution system for efficient Splunk 
+    This tool provides a sophisticated parallel execution system for efficient Splunk
     troubleshooting using dependency-aware task orchestration. It leverages asyncio.gather
-    for maximum performance while respecting task dependencies and comprehensive tracing 
+    for maximum performance while respecting task dependencies and comprehensive tracing
     throughout the entire diagnostic process.
 
     ## Key Features:
@@ -314,27 +313,27 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
     def _map_workflow_type(self, workflow_type: str) -> str:
         """
         Map user-friendly workflow type names to actual workflow IDs.
-        
+
         Args:
             workflow_type: User-friendly workflow type name
-            
+
         Returns:
             str: Actual workflow ID used by WorkflowManager
         """
         workflow_mapping = {
             "missing_data": "missing_data_troubleshooting",
-            "performance": "performance_analysis", 
+            "performance": "performance_analysis",
             "health_check": "health_check",
             # Also accept actual IDs
             "missing_data_troubleshooting": "missing_data_troubleshooting",
             "performance_analysis": "performance_analysis",
         }
-        
+
         mapped_workflow = workflow_mapping.get(workflow_type, workflow_type)
-        
+
         if mapped_workflow != workflow_type:
             logger.debug(f"Mapped workflow type '{workflow_type}' to '{mapped_workflow}'")
-        
+
         return mapped_workflow
 
     def _analyze_problem_type(self, problem_description: str) -> str:
@@ -438,7 +437,7 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
 
         # Format task results for analysis
         task_analysis = []
-        
+
         # Handle both dictionary and list formats for task_results
         if isinstance(task_results, dict):
             # New format: task_results is a dict with task_id as keys
@@ -484,8 +483,8 @@ Recommendations:
 **Analysis Context:**
 - Workflow Type: {workflow_type}
 - Time Range: {diagnostic_context.earliest_time} to {diagnostic_context.latest_time}
-- Focus Index: {diagnostic_context.focus_index or "All indexes"}
-- Focus Host: {diagnostic_context.focus_host or "All hosts"}
+- Focus Index: {diagnostic_context.focus_index or "main"}
+- Focus Host: {diagnostic_context.focus_host or "main"}
 - Complexity Level: {diagnostic_context.complexity_level}
 
 **Workflow Execution Summary:**
@@ -524,7 +523,7 @@ Focus on providing actionable insights that address the original problem while c
         problem_description: str,
     ) -> dict[str, Any]:
         """Inspect and return detailed information about context being sent to agents."""
-        
+
         context_inspection = {
             "orchestration_input": {
                 "total_length": len(orchestration_input),
@@ -562,7 +561,7 @@ Focus on providing actionable insights that address the original problem while c
                 "recommendations": self._get_context_optimization_recommendations(orchestration_input, diagnostic_context),
             }
         }
-        
+
         # Log context inspection for debugging
         logger.info("=" * 80)
         logger.info("AGENT CONTEXT INSPECTION")
@@ -576,25 +575,25 @@ Focus on providing actionable insights that address the original problem while c
         for rec in context_inspection['context_optimization']['recommendations']:
             logger.info(f"  - {rec}")
         logger.info("=" * 80)
-        
+
         return context_inspection
 
     def _calculate_context_efficiency(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> float:
         """Calculate a context efficiency score (0-1) based on information density."""
-        
+
         if not orchestration_input:
             return 0.0
-            
+
         # Factors that contribute to efficiency
         factors = []
-        
+
         # Problem description should be substantial but not overwhelming (20-40% of total)
         problem_ratio = len(diagnostic_context.earliest_time or "") / len(orchestration_input)
         if 0.2 <= problem_ratio <= 0.4:
             factors.append(1.0)
         else:
             factors.append(max(0.0, 1.0 - abs(problem_ratio - 0.3) * 2))
-        
+
         # Context specificity (having focus areas is good)
         specificity_score = 0.0
         if diagnostic_context.focus_index:
@@ -606,7 +605,7 @@ Focus on providing actionable insights that address the original problem while c
         if diagnostic_context.sourcetypes:
             specificity_score += 0.2
         factors.append(specificity_score)
-        
+
         # Input length should be reasonable (not too short, not too long)
         length_score = 1.0
         if len(orchestration_input) < 500:
@@ -614,38 +613,38 @@ Focus on providing actionable insights that address the original problem while c
         elif len(orchestration_input) > 5000:
             length_score = max(0.2, 5000 / len(orchestration_input))
         factors.append(length_score)
-        
+
         return sum(factors) / len(factors)
 
     def _get_context_optimization_recommendations(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> list[str]:
         """Get recommendations for optimizing context sent to agents."""
-        
+
         recommendations = []
-        
+
         # Check input length
         if len(orchestration_input) > 5000:
             recommendations.append("Consider reducing orchestration input length for better agent performance")
         elif len(orchestration_input) < 300:
             recommendations.append("Consider adding more context details for better agent understanding")
-        
+
         # Check context specificity
         if not diagnostic_context.focus_index and not diagnostic_context.focus_host:
             recommendations.append("Consider specifying focus_index or focus_host for more targeted analysis")
-        
+
         if not diagnostic_context.indexes:
             recommendations.append("Consider providing specific indexes for more efficient searches")
-        
+
         # Check time range
         if diagnostic_context.earliest_time == "-24h" and diagnostic_context.latest_time == "now":
             recommendations.append("Consider using more specific time ranges if the issue is time-bounded")
-        
+
         # Check complexity level
         if diagnostic_context.complexity_level == "advanced":
             recommendations.append("Advanced complexity may result in longer execution times and more context")
-        
+
         if not recommendations:
             recommendations.append("Context appears well-optimized for agent processing")
-        
+
         return recommendations
 
     async def execute(
@@ -654,8 +653,8 @@ Focus on providing actionable insights that address the original problem while c
         problem_description: str,
         earliest_time: str = "-24h",
         latest_time: str = "now",
-        focus_index: str | None = None,
-        focus_host: str | None = None,
+        focus_index: Optional[str] = None,
+        focus_host: Optional[str] = None,
         complexity_level: str = "moderate",
         workflow_type: str = "auto",
     ) -> dict[str, Any]:
@@ -679,12 +678,95 @@ Focus on providing actionable insights that address the original problem while c
             Dict containing the enhanced analysis results with orchestration
         """
         execution_start_time = time.time()
-        
+
+        # ===== COMPREHENSIVE PARAMETER LOGGING =====
+        logger.info("=" * 100)
+        logger.info("DYNAMIC TROUBLESHOOT AGENT EXECUTE - PARAMETER VERIFICATION")
+        logger.info("=" * 100)
+
+        # Log all input parameters with detailed type and value information
+        logger.info("INPUT PARAMETERS RECEIVED:")
+        logger.info(f"  problem_description: '{problem_description}' (type: {type(problem_description).__name__}, length: {len(problem_description)} chars)")
+        logger.info(f"  earliest_time: '{earliest_time}' (type: {type(earliest_time).__name__})")
+        logger.info(f"  latest_time: '{latest_time}' (type: {type(latest_time).__name__})")
+        logger.info(f"  focus_index: {repr(focus_index)} (type: {type(focus_index).__name__})")
+        logger.info(f"  focus_host: {repr(focus_host)} (type: {type(focus_host).__name__})")
+        logger.info(f"  complexity_level: '{complexity_level}' (type: {type(complexity_level).__name__})")
+        logger.info(f"  workflow_type: '{workflow_type}' (type: {type(workflow_type).__name__})")
+
+        # Special focus_index validation and logging
+        logger.info("-" * 50)
+        logger.info("FOCUS_INDEX PARAMETER ANALYSIS:")
+        if focus_index is None:
+            logger.warning("❌ focus_index is None - no specific index targeting")
+            logger.info("   → Analysis will run across all available indexes")
+            logger.info("   → Consider providing focus_index for more targeted analysis")
+        elif focus_index == "":
+            logger.warning("❌ focus_index is empty string - treating as None")
+            logger.info("   → Analysis will run across all available indexes")
+            focus_index = None  # Normalize empty string to None
+        else:
+            logger.info(f"✅ focus_index provided: '{focus_index}'")
+            logger.info(f"   → Analysis will focus on index: {focus_index}")
+            logger.info("   → This will improve performance and relevance")
+
+        # Focus_host validation and logging
+        logger.info("-" * 50)
+        logger.info("FOCUS_HOST PARAMETER ANALYSIS:")
+        if focus_host is None:
+            logger.info("ℹ️  focus_host is None - no specific host targeting")
+            logger.info("   → Analysis will run across all available hosts")
+        elif focus_host == "":
+            logger.info("ℹ️  focus_host is empty string - treating as None")
+            focus_host = None  # Normalize empty string to None
+        else:
+            logger.info(f"✅ focus_host provided: '{focus_host}'")
+            logger.info(f"   → Analysis will focus on host: {focus_host}")
+
+        # Parameter validation summary
+        logger.info("-" * 50)
+        logger.info("PARAMETER VALIDATION SUMMARY:")
+        param_status = {
+            "problem_description": "✅ Valid" if problem_description and len(problem_description.strip()) > 0 else "❌ Invalid/Empty",
+            "earliest_time": "✅ Valid" if earliest_time else "❌ Invalid/Empty",
+            "latest_time": "✅ Valid" if latest_time else "❌ Invalid/Empty",
+            "focus_index": "✅ Provided" if focus_index else "⚠️  Not provided (optional)",
+            "focus_host": "✅ Provided" if focus_host else "ℹ️  Not provided (optional)",
+            "complexity_level": "✅ Valid" if complexity_level in ["basic", "moderate", "advanced"] else f"❌ Invalid (got: {complexity_level})",
+            "workflow_type": "✅ Valid" if workflow_type in ["auto", "missing_data", "performance", "health_check"] else f"❌ Invalid (got: {workflow_type})"
+        }
+
+        for param, status in param_status.items():
+            logger.info(f"  {param}: {status}")
+
+        # Check for critical validation errors
+        validation_errors = []
+        if not problem_description or len(problem_description.strip()) == 0:
+            validation_errors.append("problem_description is required and cannot be empty")
+        if not earliest_time:
+            validation_errors.append("earliest_time is required")
+        if not latest_time:
+            validation_errors.append("latest_time is required")
+        if complexity_level not in ["basic", "moderate", "advanced"]:
+            validation_errors.append(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
+        if workflow_type not in ["auto", "missing_data", "performance", "health_check"]:
+            validation_errors.append(f"workflow_type must be 'auto', 'missing_data', 'performance', or 'health_check', got: {workflow_type}")
+
+        if validation_errors:
+            logger.error("❌ PARAMETER VALIDATION FAILED:")
+            for error in validation_errors:
+                logger.error(f"   - {error}")
+            logger.info("=" * 100)
+            raise ValueError(f"Parameter validation failed: {'; '.join(validation_errors)}")
+
+        logger.info("✅ All required parameters validated successfully")
+        logger.info("=" * 100)
+
         # Create comprehensive trace for the entire troubleshooting workflow
         # Make trace name unique to avoid "Trace already exists" warnings
         trace_timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
         trace_name = f"Splunk Dynamic Troubleshooting {trace_timestamp}"
-        
+
         # Convert all metadata values to strings for OpenAI API compatibility
         trace_metadata = {
             "problem_description": str(problem_description)[:100],
@@ -727,12 +809,22 @@ Focus on providing actionable insights that address the original problem while c
         execution_start_time: float,
     ) -> dict[str, Any]:
         """Execute the troubleshooting workflow with comprehensive tracing."""
-        
+
         logger.info("=" * 80)
         logger.info("STARTING ENHANCED DYNAMIC TROUBLESHOOT AGENT EXECUTION")
         logger.info("=" * 80)
 
         try:
+            # Log parameter propagation through the execution pipeline
+            logger.info("PARAMETER PROPAGATION VERIFICATION:")
+            logger.info(f"  ✅ problem_description: '{problem_description[:100]}...' (length: {len(problem_description)})")
+            logger.info(f"  ✅ earliest_time: '{earliest_time}'")
+            logger.info(f"  ✅ latest_time: '{latest_time}'")
+            logger.info(f"  ✅ focus_index: {repr(focus_index)} {'(NONE - will use all indexes)' if focus_index is None else f'(TARGETING: {focus_index})'}")
+            logger.info(f"  ✅ focus_host: {repr(focus_host)} {'(NONE - will use all hosts)' if focus_host is None else f'(TARGETING: {focus_host})'}")
+            logger.info(f"  ✅ complexity_level: '{complexity_level}'")
+            logger.info(f"  ✅ workflow_type: '{workflow_type}'")
+
             logger.info(f"Problem: {problem_description[:200]}...")
             logger.info(f"Time range: {earliest_time} to {latest_time}")
             logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}")
@@ -753,6 +845,15 @@ Focus on providing actionable insights that address the original problem while c
             await ctx.report_progress(progress=5, total=100)
 
             # Create diagnostic context with tracing span
+            logger.info("CREATING DIAGNOSTIC CONTEXT WITH ALL PARAMETERS:")
+            logger.info(f"  → earliest_time: '{earliest_time}'")
+            logger.info(f"  → latest_time: '{latest_time}'")
+            logger.info(f"  → focus_index: {repr(focus_index)}")
+            logger.info(f"  → focus_host: {repr(focus_host)}")
+            logger.info(f"  → complexity_level: '{complexity_level}'")
+            logger.info(f"  → problem_description: '{problem_description[:100]}...'")
+            logger.info(f"  → workflow_type: '{workflow_type}'")
+
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span("diagnostic_context_creation"):
                     diagnostic_context = SplunkDiagnosticContext(
@@ -761,8 +862,13 @@ Focus on providing actionable insights that address the original problem while c
                         focus_index=focus_index,
                         focus_host=focus_host,
                         complexity_level=complexity_level,
+                        problem_description=problem_description,
+                        workflow_type=workflow_type,
                     )
-                    logger.info(f"Diagnostic context created: {diagnostic_context}")
+                    logger.info("✅ Diagnostic context created successfully")
+                    logger.info(f"   Context focus_index: {repr(diagnostic_context.focus_index)}")
+                    logger.info(f"   Context focus_host: {repr(diagnostic_context.focus_host)}")
+                    logger.info(f"   Context problem_description: '{diagnostic_context.problem_description[:50] if diagnostic_context.problem_description else None}...'")
             else:
                 diagnostic_context = SplunkDiagnosticContext(
                     earliest_time=earliest_time,
@@ -770,8 +876,41 @@ Focus on providing actionable insights that address the original problem while c
                     focus_index=focus_index,
                     focus_host=focus_host,
                     complexity_level=complexity_level,
+                    problem_description=problem_description,
+                    workflow_type=workflow_type,
                 )
-                logger.info(f"Diagnostic context created: {diagnostic_context}")
+                logger.info("✅ Diagnostic context created successfully")
+                logger.info(f"   Context focus_index: {repr(diagnostic_context.focus_index)}")
+                logger.info(f"   Context focus_host: {repr(diagnostic_context.focus_host)}")
+                logger.info(f"   Context problem_description: '{diagnostic_context.problem_description[:50] if diagnostic_context.problem_description else None}...'")
+
+            # Verify all parameters were properly stored in the context
+            logger.info("DIAGNOSTIC CONTEXT VERIFICATION:")
+            context_verification = {
+                "earliest_time": diagnostic_context.earliest_time == earliest_time,
+                "latest_time": diagnostic_context.latest_time == latest_time,
+                "focus_index": diagnostic_context.focus_index == focus_index,
+                "focus_host": diagnostic_context.focus_host == focus_host,
+                "complexity_level": diagnostic_context.complexity_level == complexity_level,
+                "problem_description": diagnostic_context.problem_description == problem_description,
+                "workflow_type": diagnostic_context.workflow_type == workflow_type,
+            }
+
+            for param, matches in context_verification.items():
+                status = "✅ MATCH" if matches else "❌ MISMATCH"
+                logger.info(f"  {param}: {status}")
+                if not matches:
+                    original_value = locals().get(param, "NOT_FOUND")
+                    context_value = getattr(diagnostic_context, param, "NOT_FOUND")
+                    logger.error(f"    Original: {repr(original_value)}")
+                    logger.error(f"    Context:  {repr(context_value)}")
+
+            all_match = all(context_verification.values())
+            if all_match:
+                logger.info("✅ All parameters successfully stored in diagnostic context")
+            else:
+                logger.error("❌ Parameter mismatch detected in diagnostic context!")
+                raise ValueError("Diagnostic context parameter mismatch - see logs for details")
 
             # Report progress: Context created
             await ctx.report_progress(progress=10, total=100)
@@ -797,6 +936,10 @@ Focus on providing actionable insights that address the original problem while c
                     logger.info(f"Using specified workflow type: {detected_workflow}")
                     await ctx.info(f"🎯 Using specified workflow: {detected_workflow}")
 
+            # Update diagnostic context with detected workflow type
+            diagnostic_context.workflow_type = detected_workflow
+            logger.debug(f"Updated diagnostic context with detected workflow: {detected_workflow}")
+
             # Report progress: Workflow selected
             await ctx.report_progress(progress=15, total=100)
 
@@ -807,11 +950,11 @@ Focus on providing actionable insights that address the original problem while c
             )
 
             workflow_start_time = time.time()
-            
+
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"workflow_execution_{detected_workflow}"):
                     workflow_result = await self._execute_workflow_with_tracing(
-                        detected_workflow, diagnostic_context, problem_description, ctx 
+                        detected_workflow, diagnostic_context, problem_description, ctx
                     )
             else:
                 workflow_result = await self._execute_workflow_with_tracing(
@@ -1006,12 +1149,12 @@ Focus on providing actionable insights that address the original problem while c
         ctx: Context,
     ) -> dict[str, Any]:
         """Execute the workflow using parallel execution with comprehensive tracing."""
-        
+
         logger.info(f"Executing {detected_workflow} workflow using parallel execution")
-        
+
         # Set the context for tool calls
         self.tool_registry.set_context(ctx)
-        
+
         # Get workflow definition from workflow manager
         if OPENAI_AGENTS_AVAILABLE and custom_span:
             with custom_span("workflow_selection"):
@@ -1023,12 +1166,12 @@ Focus on providing actionable insights that address the original problem while c
             raise ValueError(f"No workflow definition found for: {detected_workflow}")
 
         logger.info(f"Selected workflow: {workflow_definition.name} with {len(workflow_definition.tasks)} tasks")
-        
+
         # Report progress before execution
         await ctx.report_progress(progress=40, total=100)
         await ctx.info(f"⚡ Starting parallel execution for {detected_workflow}")
         await ctx.info(f"📊 Workflow: {len(workflow_definition.tasks)} tasks to execute")
-        
+
         try:
             # Execute workflow using parallel executor
             if OPENAI_AGENTS_AVAILABLE and custom_span:
@@ -1040,11 +1183,11 @@ Focus on providing actionable insights that address the original problem while c
                 workflow_result = await self.parallel_executor.execute_workflow(
                     workflow_definition, diagnostic_context, ctx
                 )
-            
+
             # Report progress after execution
             await ctx.report_progress(progress=80, total=100)
             await ctx.info(f"✅ Parallel execution completed: {workflow_result.status}")
-            
+
             # Create structured result in the expected format
             final_result = {
                 "status": workflow_result.status,
@@ -1081,16 +1224,16 @@ Focus on providing actionable insights that address the original problem while c
                     "tracing_enabled": OPENAI_AGENTS_AVAILABLE and custom_span is not None,
                 },
             }
-            
+
             logger.info(f"Parallel {detected_workflow} workflow completed successfully")
             logger.info(f"Tasks executed: {len(workflow_result.task_results)}")
             logger.info(f"Parallel efficiency: {workflow_result.summary.get('parallel_efficiency', 0.0):.1%}")
             return final_result
-            
+
         except Exception as e:
             logger.error(f"Parallel workflow execution failed: {e}", exc_info=True)
             await ctx.error(f"❌ Parallel execution failed: {str(e)}")
-            
+
             return {
                 "status": "error",
                 "coordinator_type": f"parallel_execution_{detected_workflow}",
