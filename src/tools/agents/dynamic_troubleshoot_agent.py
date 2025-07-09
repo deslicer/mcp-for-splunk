@@ -432,14 +432,35 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
 
         # Extract key information from workflow result
         workflow_type = workflow_result.get("coordinator_type", "unknown")
-        task_results = workflow_result.get("task_results", [])
+        task_results = workflow_result.get("task_results", {})
         summary = workflow_result.get("summary", {})
-        performance_metrics = workflow_result.get("performance_metrics", {})
+        performance_metrics = workflow_result.get("workflow_execution", {})
 
         # Format task results for analysis
         task_analysis = []
-        for task in task_results:
-            task_info = f"""
+        
+        # Handle both dictionary and list formats for task_results
+        if isinstance(task_results, dict):
+            # New format: task_results is a dict with task_id as keys
+            for task_id, task_result in task_results.items():
+                task_info = f"""
+**Task: {task_id}**
+- Status: {task_result.get("status", "unknown")}
+- Findings: {len(task_result.get("findings", []))} items
+- Recommendations: {len(task_result.get("recommendations", []))} items
+
+Key Findings:
+{chr(10).join([f"  • {finding}" for finding in task_result.get("findings", [])[:3]])}
+
+Recommendations:
+{chr(10).join([f"  • {rec}" for rec in task_result.get("recommendations", [])[:3]])}
+"""
+                task_analysis.append(task_info)
+        else:
+            # Legacy format: task_results is a list of dictionaries
+            for task in task_results:
+                if isinstance(task, dict):
+                    task_info = f"""
 **Task: {task.get("task", "Unknown")}**
 - Status: {task.get("status", "unknown")}
 - Execution Time: {task.get("execution_time", 0):.2f}s
@@ -452,7 +473,7 @@ Key Findings:
 Recommendations:
 {chr(10).join([f"  • {rec}" for rec in task.get("recommendations", [])[:3]])}
 """
-            task_analysis.append(task_info)
+                    task_analysis.append(task_info)
 
         orchestration_input = f"""
 **SPLUNK TROUBLESHOOTING ANALYSIS REQUEST**
@@ -469,11 +490,12 @@ Recommendations:
 
 **Workflow Execution Summary:**
 - Overall Status: {workflow_result.get("status", "unknown")}
-- Execution Time: {performance_metrics.get("total_execution_time", 0):.2f}s
-- Tasks Completed: {performance_metrics.get("tasks_completed", 0)}
+- Execution Method: {performance_metrics.get("execution_method", "parallel_phases")}
+- Total Tasks: {performance_metrics.get("total_tasks", len(task_results))}
 - Successful Tasks: {performance_metrics.get("successful_tasks", 0)}
 - Failed Tasks: {performance_metrics.get("failed_tasks", 0)}
-- Parallel Phases: {performance_metrics.get("parallel_phases", 0)}
+- Execution Phases: {performance_metrics.get("execution_phases", 0)}
+- Parallel Efficiency: {performance_metrics.get("parallel_efficiency", 0.0):.1%}
 
 **Task Results Analysis:**
 {chr(10).join(task_analysis)}

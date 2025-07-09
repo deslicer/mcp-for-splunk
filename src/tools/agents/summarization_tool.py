@@ -372,7 +372,18 @@ Always structure your analysis comprehensively and provide practical, implementa
         status_groups = {"healthy": [], "warning": [], "critical": [], "error": []}
         
         for task_id, result in workflow_results.items():
-            status_groups[result.status].append((task_id, result))
+            # Handle both DiagnosticResult objects and plain dictionaries
+            if hasattr(result, 'status'):
+                # DiagnosticResult object
+                status = result.status
+            elif isinstance(result, dict) and 'status' in result:
+                # Plain dictionary format
+                status = result['status']
+            else:
+                # Fallback
+                status = 'unknown'
+                
+            status_groups[status].append((task_id, result))
 
         # Present results by severity (most critical first)
         for status in ["error", "critical", "warning", "healthy"]:
@@ -381,28 +392,49 @@ Always structure your analysis comprehensively and provide practical, implementa
                 
                 for task_id, result in status_groups[status]:
                     analysis_input += f"\n**Agent: {task_id}**\n"
-                    analysis_input += f"Status: {result.status}\n"
                     
-                    if result.findings:
+                    # Handle both DiagnosticResult objects and plain dictionaries
+                    if hasattr(result, 'status'):
+                        # DiagnosticResult object
+                        result_status = result.status
+                        result_findings = result.findings or []
+                        result_recommendations = result.recommendations or []
+                        result_details = result.details or {}
+                    elif isinstance(result, dict):
+                        # Plain dictionary format
+                        result_status = result.get('status', 'unknown')
+                        result_findings = result.get('findings', [])
+                        result_recommendations = result.get('recommendations', [])
+                        result_details = result.get('details', {})
+                    else:
+                        # Fallback
+                        result_status = 'unknown'
+                        result_findings = []
+                        result_recommendations = []
+                        result_details = {}
+                    
+                    analysis_input += f"Status: {result_status}\n"
+                    
+                    if result_findings:
                         analysis_input += "Findings:\n"
-                        for finding in result.findings:
+                        for finding in result_findings:
                             analysis_input += f"  - {finding}\n"
                     
-                    if result.recommendations:
+                    if result_recommendations:
                         analysis_input += "Recommendations:\n"
-                        for rec in result.recommendations:
+                        for rec in result_recommendations:
                             analysis_input += f"  - {rec}\n"
                     
                     # Include key details
-                    if result.details:
+                    if result_details:
                         important_keys = [
                             "user_info", "license_state", "total_events", "available_indexes",
                             "server_info", "error", "execution_time", "agent_output"
                         ]
                         detail_items = []
                         for key in important_keys:
-                            if key in result.details:
-                                value = result.details[key]
+                            if key in result_details:
+                                value = result_details[key]
                                 if isinstance(value, (dict, list)):
                                     detail_items.append(f"{key}: {str(value)[:200]}...")
                                 else:
@@ -453,12 +485,30 @@ Use JSON strings for array and object parameters to ensure proper parsing.
         """Format the final summarization result for return."""
         
         # Calculate additional metrics
-        total_findings = sum(len(result.findings) for result in workflow_results.values())
-        total_recommendations = sum(len(result.recommendations) for result in workflow_results.values())
-        
+        total_findings = 0
+        total_recommendations = 0
         status_breakdown = {}
+        
         for result in workflow_results.values():
-            status = result.status
+            # Handle both DiagnosticResult objects and plain dictionaries
+            if hasattr(result, 'status'):
+                # DiagnosticResult object
+                status = result.status
+                findings_count = len(result.findings or [])
+                recommendations_count = len(result.recommendations or [])
+            elif isinstance(result, dict):
+                # Plain dictionary format
+                status = result.get('status', 'unknown')
+                findings_count = len(result.get('findings', []))
+                recommendations_count = len(result.get('recommendations', []))
+            else:
+                # Fallback
+                status = 'unknown'
+                findings_count = 0
+                recommendations_count = 0
+            
+            total_findings += findings_count
+            total_recommendations += recommendations_count
             status_breakdown[status] = status_breakdown.get(status, 0) + 1
 
         return {
@@ -505,7 +555,16 @@ Use JSON strings for array and object parameters to ensure proper parsing.
                 break
         
         # Determine severity based on workflow results
-        statuses = [result.status for result in workflow_results.values()]
+        statuses = []
+        for result in workflow_results.values():
+            # Handle both DiagnosticResult objects and plain dictionaries
+            if hasattr(result, 'status'):
+                statuses.append(result.status)
+            elif isinstance(result, dict):
+                statuses.append(result.get('status', 'unknown'))
+            else:
+                statuses.append('unknown')
+        
         if "error" in statuses or "critical" in statuses:
             severity = "High"
         elif "warning" in statuses:
