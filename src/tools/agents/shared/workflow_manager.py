@@ -26,13 +26,14 @@ logger = logging.getLogger(__name__)
 
 # Import tracing capabilities if available
 try:
-    from agents import trace
+    from agents import trace, custom_span
 
     TRACING_AVAILABLE = True
     logger.info("OpenAI Agents tracing capabilities loaded successfully")
 except ImportError:
     TRACING_AVAILABLE = False
     trace = None
+    custom_span = None
     logger.warning("OpenAI Agents tracing not available")
 
 
@@ -184,7 +185,7 @@ You are verifying user permissions and access control.
                 """,
                 required_tools=["get_current_user_info", "run_splunk_search"],
                 dependencies=["license_verification"],  # Depends on license for user info
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time"],
             ),
             TaskDefinition(
                 task_id="time_range_verification",
@@ -209,7 +210,7 @@ You are verifying data availability in the specified time range and analyzing ti
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=["earliest_time", "latest_time"],
+                context_requirements=["earliest_time", "latest_time", "focus_index"],
             ),
             TaskDefinition(
                 task_id="forwarder_connectivity",
@@ -219,7 +220,7 @@ You are verifying data availability in the specified time range and analyzing ti
 You are analyzing forwarder connectivity and data flow.
 
 **Task:** Check forwarder connections and data ingestion pipeline
-**Context:** Focus host: {focus_host} if specified
+**Context:** Focus host: {focus_host} if specified, index: {focus_index} if specified
 
 **Analysis:**
 1. Verify forwarders connecting using tcpin_connections metrics
@@ -232,14 +233,14 @@ You are analyzing forwarder connectivity and data flow.
 **Searches:**
 - index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp
 - index=_internal source=*metrics.log* group=queue tcpout | stats count by name
-- | metadata type=hosts index=* | eval diff=now()-recentTime | where diff < 600
+- | metadata type=hosts index={focus_index} | eval diff=now()-recentTime | where diff < 600
 - index=_internal "Connected to idx" OR "cooked mode"
 
 **Output:** Return DiagnosticResult with forwarder connectivity status and issues.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time", "focus_index", "focus_host"],
             ),
             TaskDefinition(
                 task_id="search_head_configuration",
@@ -266,7 +267,7 @@ You are verifying search head configuration in distributed environments.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time"],
             ),
             TaskDefinition(
                 task_id="license_violations_check",
@@ -294,7 +295,7 @@ You are checking for license violations that could prevent data searching.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=["license_verification"],  # Depends on basic license info
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time"],
             ),
             TaskDefinition(
                 task_id="scheduled_search_issues",
@@ -353,7 +354,7 @@ You are validating search query syntax and logic for common issues.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time"],
             ),
             TaskDefinition(
                 task_id="field_extraction_issues",
@@ -382,7 +383,7 @@ You are analyzing field extraction issues and configuration problems.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=[],
+                context_requirements=["earliest_time", "latest_time"],
             ),
         ]
 
@@ -561,32 +562,46 @@ You are performing a basic data availability check.
         execution_metadata: dict[str, Any] = None,
     ) -> WorkflowResult:
         """
-        Execute a workflow using dynamic micro-agents with comprehensive tracing.
+        Execute a workflow with comprehensive tracing support.
 
         Args:
             workflow_id: ID of the workflow to execute
-            diagnostic_context: Context for the diagnostic session
-            execution_metadata: Additional metadata for execution
+            diagnostic_context: Context for the diagnostic analysis
+            execution_metadata: Optional metadata for execution
 
         Returns:
-            WorkflowResult with execution results and analysis
+            WorkflowResult with execution details and task results
         """
         start_time = time.time()
-
+        
         if execution_metadata is None:
             execution_metadata = {}
 
-        logger.info("=" * 80)
-        logger.info(f"STARTING WORKFLOW EXECUTION: {workflow_id}")
-        logger.info("=" * 80)
+        logger.info(f"Starting workflow execution: {workflow_id}")
+        logger.debug(f"Diagnostic context: {diagnostic_context}")
+        logger.debug(f"Execution metadata: {execution_metadata}")
 
-        # Start tracing if available - use simple trace context manager
-        if TRACING_AVAILABLE:
-            with trace(f"workflow_execution_{workflow_id}"):
+        # Create comprehensive trace for workflow execution
+        if TRACING_AVAILABLE and trace:
+            workflow_name = f"Splunk Workflow: {workflow_id}"
+            trace_metadata = {
+                "workflow_id": workflow_id,
+                "diagnostic_context": {
+                    "earliest_time": diagnostic_context.earliest_time,
+                    "latest_time": diagnostic_context.latest_time,
+                    "focus_index": diagnostic_context.focus_index,
+                    "focus_host": diagnostic_context.focus_host,
+                    "complexity_level": diagnostic_context.complexity_level,
+                },
+                "execution_metadata": execution_metadata,
+            }
+            
+            with trace(workflow_name=workflow_name, metadata=trace_metadata):
                 return await self._execute_workflow_core(
                     workflow_id, diagnostic_context, execution_metadata, start_time
                 )
         else:
+            logger.debug("Tracing not available, executing workflow without traces")
             return await self._execute_workflow_core(
                 workflow_id, diagnostic_context, execution_metadata, start_time
             )
@@ -598,181 +613,259 @@ You are performing a basic data availability check.
         execution_metadata: dict[str, Any],
         start_time: float,
     ) -> WorkflowResult:
-        """Core workflow execution logic."""
-        logger.info("Diagnostic context:")
-        logger.info(
-            f"  - Time range: {diagnostic_context.earliest_time} to {diagnostic_context.latest_time}"
-        )
-        logger.info(f"  - Focus index: {diagnostic_context.focus_index}")
-        logger.info(f"  - Focus host: {diagnostic_context.focus_host}")
-        logger.info(f"  - Complexity level: {diagnostic_context.complexity_level}")
-        logger.info(f"  - Indexes: {diagnostic_context.indexes}")
-        logger.info(f"  - Sourcetypes: {diagnostic_context.sourcetypes}")
-        logger.info(f"  - Sources: {diagnostic_context.sources}")
-        logger.info(f"Execution metadata: {execution_metadata}")
+        """Core workflow execution with tracing spans."""
+        
+        try:
+            # Get workflow definition with tracing
+            if TRACING_AVAILABLE and custom_span:
+                with custom_span("workflow_definition_lookup") as span:
+                    span.set_attribute("workflow_id", workflow_id)
+                    
+                    workflow = self.get_workflow(workflow_id)
+                    if not workflow:
+                        span.set_attribute("workflow_found", False)
+                        raise ValueError(f"Workflow '{workflow_id}' not found")
+                    
+                    span.set_attribute("workflow_found", True)
+                    span.set_attribute("task_count", len(workflow.tasks))
+                    logger.info(f"Found workflow: {workflow.name} with {len(workflow.tasks)} tasks")
+            else:
+                workflow = self.get_workflow(workflow_id)
+                if not workflow:
+                    raise ValueError(f"Workflow '{workflow_id}' not found")
+                logger.info(f"Found workflow: {workflow.name} with {len(workflow.tasks)} tasks")
 
-        # Get workflow definition
-        workflow = self.get_workflow(workflow_id)
-        if not workflow:
-            error_msg = f"Workflow not found: {workflow_id}"
-            logger.error(error_msg)
-            logger.error(f"Available workflows: {list(self.workflows.keys())}")
-            raise ValueError(error_msg)
+            # Build dependency graph with tracing
+            if TRACING_AVAILABLE and custom_span:
+                with custom_span("dependency_analysis") as span:
+                    dependency_graph = self._build_dependency_graph(workflow.tasks)
+                    execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
+                    
+                    span.set_attribute("total_tasks", len(workflow.tasks))
+                    span.set_attribute("execution_phases", len(execution_phases))
+                    span.set_attribute("parallel_efficiency", 
+                                     self._calculate_parallel_efficiency(workflow.tasks, execution_phases))
+                    
+                    logger.info(f"Dependency analysis complete:")
+                    logger.info(f"  - Total tasks: {len(workflow.tasks)}")
+                    logger.info(f"  - Execution phases: {len(execution_phases)}")
+                    logger.info(f"  - Dependency graph: {dependency_graph}")
+                    logger.info(f"  - Execution order: {execution_phases}")
+            else:
+                dependency_graph = self._build_dependency_graph(workflow.tasks)
+                execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
+                
+                logger.info(f"Dependency analysis complete:")
+                logger.info(f"  - Total tasks: {len(workflow.tasks)}")
+                logger.info(f"  - Execution phases: {len(execution_phases)}")
+                logger.info(f"  - Dependency graph: {dependency_graph}")
+                logger.info(f"  - Execution order: {execution_phases}")
 
-        logger.info(f"Found workflow: {workflow.name}")
-        logger.info(f"Description: {workflow.description}")
-        logger.info(f"Total tasks: {len(workflow.tasks)}")
+            # Execute tasks in phases with comprehensive tracing
+            task_results: dict[str, DiagnosticResult] = {}
+            
+            for phase_idx, phase_tasks in enumerate(execution_phases):
+                phase_name = f"execution_phase_{phase_idx + 1}"
+                logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}")
+                
+                if TRACING_AVAILABLE and custom_span:
+                    with custom_span(phase_name) as phase_span:
+                        phase_span.set_attribute("phase_number", phase_idx + 1)
+                        phase_span.set_attribute("phase_tasks", phase_tasks)
+                        phase_span.set_attribute("task_count", len(phase_tasks))
+                        
+                        # Execute tasks in this phase (potentially in parallel)
+                        phase_results = await self._execute_phase_with_tracing(
+                            workflow, phase_tasks, diagnostic_context, task_results
+                        )
+                        
+                        # Update task results
+                        task_results.update(phase_results)
+                        
+                        # Add phase completion metrics
+                        successful_tasks = [task_id for task_id, result in phase_results.items() 
+                                          if result.status in ["healthy", "warning"]]
+                        failed_tasks = [task_id for task_id, result in phase_results.items() 
+                                      if result.status == "error"]
+                        
+                        phase_span.set_attribute("successful_tasks", len(successful_tasks))
+                        phase_span.set_attribute("failed_tasks", len(failed_tasks))
+                        phase_span.set_attribute("phase_success_rate", 
+                                               len(successful_tasks) / len(phase_tasks) if phase_tasks else 0)
+                        
+                        logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+                else:
+                    # Execute tasks in this phase (potentially in parallel)
+                    phase_results = await self._execute_phase_with_tracing(
+                        workflow, phase_tasks, diagnostic_context, task_results
+                    )
+                    
+                    # Update task results
+                    task_results.update(phase_results)
+                    
+                    successful_tasks = [task_id for task_id, result in phase_results.items() 
+                                      if result.status in ["healthy", "warning"]]
+                    failed_tasks = [task_id for task_id, result in phase_results.items() 
+                                  if result.status == "error"]
+                    
+                    logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
 
-        # Analyze dependencies and create execution plan
-        logger.info("Analyzing task dependencies...")
-        dependency_graph = self._build_dependency_graph(workflow.tasks)
-        logger.debug(f"Dependency graph: {dependency_graph}")
+            # Finalize workflow result with tracing
+            if TRACING_AVAILABLE and custom_span:
+                with custom_span("workflow_result_synthesis") as span:
+                    span.set_attribute("total_tasks_executed", len(task_results))
+                    
+                    workflow_result = await self._finalize_workflow_result(
+                        workflow_id, workflow, task_results, execution_phases, start_time
+                    )
+                    
+                    span.set_attribute("workflow_status", workflow_result.status)
+                    span.set_attribute("execution_time", workflow_result.execution_time)
+                    
+                    logger.info(f"Workflow result synthesis completed")
+                    logger.info(f"  - Overall status: {workflow_result.status}")
+                    logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
+                    
+                    return workflow_result
+            else:
+                workflow_result = await self._finalize_workflow_result(
+                    workflow_id, workflow, task_results, execution_phases, start_time
+                )
+                
+                logger.info(f"Workflow result synthesis completed")
+                logger.info(f"  - Overall status: {workflow_result.status}")
+                logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
+                
+                return workflow_result
 
-        logger.info("Creating execution phases...")
-        execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
-
-        logger.info(f"Workflow has {len(execution_phases)} execution phases")
-        for i, phase in enumerate(execution_phases):
-            logger.info(f"  Phase {i + 1}: {len(phase)} tasks - {', '.join(phase)}")
-
-        # Calculate parallel efficiency
-        parallel_efficiency = self._calculate_parallel_efficiency(workflow.tasks, execution_phases)
-        logger.info(f"Parallel execution efficiency: {parallel_efficiency:.1%}")
-
-        # Execute workflow in phases
-        task_results = {}
-
-        for phase_num, task_ids in enumerate(execution_phases):
-            logger.info("=" * 60)
-            logger.info(
-                f"EXECUTING PHASE {phase_num + 1}/{len(execution_phases)}: {', '.join(task_ids)}"
+        except Exception as e:
+            execution_time = time.time() - start_time
+            logger.error(f"Workflow execution failed: {e}", exc_info=True)
+            
+            # Create error result
+            return WorkflowResult(
+                workflow_id=workflow_id,
+                status="error",
+                execution_time=execution_time,
+                task_results={},
+                dependency_graph={},
+                execution_order=[],
+                summary={
+                    "error": str(e),
+                    "execution_time": execution_time,
+                    "tasks_completed": 0,
+                    "successful_tasks": 0,
+                    "failed_tasks": 0,
+                },
             )
-            logger.info("=" * 60)
 
-            # Create agents for this phase
-            phase_agents = []
-            phase_contexts = []
-
-            for task_id in task_ids:
-                logger.debug(f"Setting up task: {task_id}")
-                task_def = next(t for t in workflow.tasks if t.task_id == task_id)
-
-                logger.debug(f"  Task name: {task_def.name}")
-                logger.debug(f"  Required tools: {task_def.required_tools}")
-                logger.debug(f"  Dependencies: {task_def.dependencies}")
-
-                # Create dynamic agent for this task
-                logger.debug(f"Creating dynamic agent for task: {task_id}")
-                agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
-
-                # Create execution context with dependency results
-                dependency_results = {
-                    dep_id: task_results[dep_id]
+    async def _execute_phase_with_tracing(
+        self,
+        workflow: WorkflowDefinition,
+        phase_tasks: list[str],
+        diagnostic_context: SplunkDiagnosticContext,
+        completed_task_results: dict[str, DiagnosticResult],
+    ) -> dict[str, DiagnosticResult]:
+        """Execute a phase of tasks with individual task tracing."""
+        
+        phase_results = {}
+        
+        # Create tasks for parallel execution
+        async_tasks = []
+        
+        for task_id in phase_tasks:
+            # Find task definition
+            task_def = next((task for task in workflow.tasks if task.task_id == task_id), None)
+            if not task_def:
+                logger.error(f"Task definition not found for task_id: {task_id}")
+                continue
+            
+            # Create execution context
+            execution_context = AgentExecutionContext(
+                task_definition=task_def,
+                diagnostic_context=diagnostic_context,
+                dependency_results={
+                    dep_id: completed_task_results[dep_id]
                     for dep_id in task_def.dependencies
-                    if dep_id in task_results
-                }
-
-                if dependency_results:
-                    logger.debug(
-                        f"  Using dependency results from: {list(dependency_results.keys())}"
-                    )
-                    for dep_id, dep_result in dependency_results.items():
-                        logger.debug(
-                            f"    {dep_id}: status={dep_result.status}, findings={len(dep_result.findings)}"
-                        )
-                else:
-                    logger.debug(f"  No dependencies for task: {task_id}")
-
-                exec_context = AgentExecutionContext(
-                    task_definition=task_def,
-                    diagnostic_context=diagnostic_context,
-                    dependency_results=dependency_results,
-                    execution_metadata=execution_metadata,
-                )
-
-                phase_agents.append(agent)
-                phase_contexts.append(exec_context)
-                logger.debug(f"Task {task_id} setup complete")
-
-            # Execute phase tasks in parallel
-            logger.info(f"Starting parallel execution of {len(phase_agents)} tasks...")
-            phase_start = time.time()
-
-            try:
-                # Execute tasks with optional tracing
-                if TRACING_AVAILABLE:
-                    with trace(f"phase_{phase_num + 1}_execution"):
-                        phase_results = await asyncio.gather(
-                            *[
-                                agent.execute_task(context)
-                                for agent, context in zip(
-                                    phase_agents, phase_contexts, strict=False
-                                )
-                            ],
-                            return_exceptions=True,
-                        )
-                else:
-                    phase_results = await asyncio.gather(
-                        *[
-                            agent.execute_task(context)
-                            for agent, context in zip(phase_agents, phase_contexts, strict=False)
-                        ],
-                        return_exceptions=True,
-                    )
-
-            except Exception as e:
-                logger.error(
-                    f"Critical error during phase {phase_num + 1} execution: {e}", exc_info=True
-                )
-                raise
-
-            phase_duration = time.time() - phase_start
-            logger.info(
-                f"Phase {phase_num + 1} parallel execution completed in {phase_duration:.2f}s"
+                    if dep_id in completed_task_results
+                },
             )
-
-            # Process phase results
-            phase_success_count = 0
-            phase_error_count = 0
-
-            for i, result in enumerate(phase_results):
-                task_id = task_ids[i]
-                logger.debug(f"Processing result for task: {task_id}")
-
+            
+            # Create dynamic agent and execute task with tracing
+            if TRACING_AVAILABLE and custom_span:
+                async_tasks.append(
+                    self._execute_single_task_with_tracing(task_def, execution_context)
+                )
+            else:
+                async_tasks.append(
+                    self._execute_single_task_without_tracing(task_def, execution_context)
+                )
+        
+        # Execute tasks in parallel
+        if async_tasks:
+            logger.info(f"Executing {len(async_tasks)} tasks in parallel...")
+            results = await asyncio.gather(*async_tasks, return_exceptions=True)
+            
+            # Process results
+            for i, result in enumerate(results):
+                task_id = phase_tasks[i]
                 if isinstance(result, Exception):
-                    logger.error(f"Task {task_id} failed with exception: {result}", exc_info=True)
-                    phase_error_count += 1
-                    task_results[task_id] = DiagnosticResult(
+                    logger.error(f"Task {task_id} failed with exception: {result}")
+                    phase_results[task_id] = DiagnosticResult(
                         step=task_id,
                         status="error",
                         findings=[f"Task execution failed: {str(result)}"],
                         recommendations=["Check task configuration and retry"],
-                        details={"error": str(result), "exception_type": type(result).__name__},
+                        details={"error": str(result)},
                     )
                 else:
-                    logger.info(
-                        f"Task {task_id} completed successfully with status: {result.status}"
-                    )
-                    logger.debug(f"  Findings: {len(result.findings)} items")
-                    logger.debug(f"  Recommendations: {len(result.recommendations)} items")
-                    logger.debug(
-                        f"  Execution time: {result.details.get('execution_time', 'unknown')}"
-                    )
+                    phase_results[task_id] = result
+                    logger.debug(f"Task {task_id} completed with status: {result.status}")
+        
+        return phase_results
 
-                    if result.findings:
-                        logger.debug(f"  Key finding: {result.findings[0]}")
+    async def _execute_single_task_with_tracing(
+        self,
+        task_def: TaskDefinition,
+        execution_context: AgentExecutionContext,
+    ) -> DiagnosticResult:
+        """Execute a single task with comprehensive tracing."""
+        
+        with custom_span(f"task_execution_{task_def.task_id}") as span:
+            span.set_attribute("task_id", task_def.task_id)
+            span.set_attribute("task_name", task_def.name)
+            span.set_attribute("required_tools", task_def.required_tools)
+            span.set_attribute("dependencies", task_def.dependencies)
+            
+            # Create and execute dynamic agent
+            dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
+            
+            try:
+                result = await dynamic_agent.execute_task(execution_context)
+                
+                span.set_attribute("task_status", result.status)
+                span.set_attribute("findings_count", len(result.findings))
+                span.set_attribute("recommendations_count", len(result.recommendations))
+                
+                return result
+                
+            except Exception as e:
+                span.set_attribute("task_status", "error")
+                span.set_attribute("error", str(e))
+                
+                logger.error(f"Task {task_def.task_id} execution failed: {e}", exc_info=True)
+                raise
 
-                    phase_success_count += 1
-                    task_results[task_id] = result
-
-            logger.info(
-                f"Phase {phase_num + 1} completed: {phase_success_count} successful, {phase_error_count} failed"
-            )
-            logger.info(f"Phase {phase_num + 1} total duration: {phase_duration:.2f}s")
-
-        return await self._finalize_workflow_result(
-            workflow_id, workflow, task_results, execution_phases, start_time
-        )
+    async def _execute_single_task_without_tracing(
+        self,
+        task_def: TaskDefinition,
+        execution_context: AgentExecutionContext,
+    ) -> DiagnosticResult:
+        """Execute a single task without tracing (fallback)."""
+        
+        # Create and execute dynamic agent
+        dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
+        return await dynamic_agent.execute_task(execution_context)
 
     async def _finalize_workflow_result(
         self,
