@@ -140,35 +140,49 @@ class DynamicMicroAgent:
             agent_tools = self._create_agent_tools()
 
             # Create the OpenAI Agent with dynamic instructions
-            self.openai_agent = Agent(
-                name=self.name,
-                instructions=f"""
-You are a specialized Splunk diagnostic micro-agent executing a specific task: {self.task_definition.name}
+            instructions_template = """
+You are a specialized Splunk diagnostic micro-agent executing a specific task: {task_name}
 
-**Your Task:** {self.task_definition.description}
+**Your Task:** {task_description}
 
 **Instructions:**
-{self.task_definition.instructions}
+{task_instructions}
 
-**Available Tools:** {", ".join(self.task_definition.required_tools)}
+**Available Tools:** {available_tools}
 
 **Important Guidelines:**
 1. Follow the task instructions precisely
 2. Use the available tools to gather data and perform analysis
-3. Return results in DiagnosticResult format with:
-   - step: task identifier
-   - status: "healthy", "warning", "critical", or "error"
-   - findings: list of discovered issues or observations
-   - recommendations: list of actionable recommendations
-   - details: dictionary with additional context and data
+3. Return results in DiagnosticResult format using the return_diagnostic_result function
+4. For the return_diagnostic_result function, use JSON strings for the findings and recommendations parameters:
+   - findings: JSON array string containing discovered issues or observations
+   - recommendations: JSON array string containing actionable recommendations
+   - details: JSON object string containing additional context and data
 
-4. Be thorough but efficient in your analysis
-5. Provide specific, actionable recommendations
-6. Include relevant search queries and results in your findings
+5. Be thorough but efficient in your analysis
+6. Provide specific, actionable recommendations
+7. Include relevant search queries and results in your findings
 
 **Output Format:**
-Always return your results as a structured DiagnosticResult by calling the `return_diagnostic_result` function with appropriate parameters.
-                """,
+Always return your results as a structured DiagnosticResult by calling the `return_diagnostic_result` function with:
+- status: "healthy", "warning", "critical", or "error"
+- findings: JSON string containing array of discovered issues or observations
+- recommendations: JSON string containing array of actionable recommendations
+- details: JSON string containing object with additional context and data
+
+Use proper JSON formatting for the string parameters to ensure they can be parsed correctly.
+            """
+            
+            final_instructions = instructions_template.format(
+                task_name=self.task_definition.name,
+                task_description=self.task_definition.description,
+                task_instructions=self.task_definition.instructions,
+                available_tools=", ".join(self.task_definition.required_tools)
+            )
+            
+            self.openai_agent = Agent(
+                name=self.name,
+                instructions=final_instructions,
                 model=self.config.model,
                 tools=agent_tools,
             )
@@ -237,18 +251,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Search failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool without schema modification
         try:
             tool = function_tool(
                 run_splunk_search,
                 name_override="run_splunk_search",
                 description_override="Execute a Splunk search query with progress tracking"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create run_splunk_search tool: {e}")
@@ -300,18 +309,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Oneshot search failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool without schema modification
         try:
             tool = function_tool(
                 run_oneshot_search,
                 name_override="run_oneshot_search",
                 description_override="Execute a quick Splunk oneshot search"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create run_oneshot_search tool: {e}")
@@ -342,18 +346,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to list indexes: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool without schema modification
         try:
             tool = function_tool(
                 list_splunk_indexes,
                 name_override="list_splunk_indexes", 
                 description_override="List available Splunk indexes"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create list_splunk_indexes tool: {e}")
@@ -384,18 +383,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Failed to get user info: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool without schema modification
         try:
             tool = function_tool(
                 get_current_user_info,
                 name_override="get_current_user_info",
                 description_override="Get current user information including roles and capabilities"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create get_current_user_info tool: {e}")
@@ -426,18 +420,13 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 else:
                     return f"Health check failed: {result.get('error', 'Unknown error')}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool without schema modification
         try:
             tool = function_tool(
                 get_splunk_health,
                 name_override="get_splunk_health",
                 description_override="Check Splunk server health and connectivity"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create get_splunk_health tool: {e}")
@@ -449,65 +438,57 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 
         async def return_diagnostic_result(
             status: str, 
-            findings: list[str], 
-            recommendations: list[str], 
-            details: dict | None = None
+            findings: str, 
+            recommendations: str, 
+            details: str = ""
         ) -> str:
             """Return the diagnostic result for this task.
 
             Args:
                 status: One of "healthy", "warning", "critical", "error"
-                findings: List of discovered issues or observations
-                recommendations: List of actionable recommendations
-                details: Optional dictionary with additional context
+                findings: JSON string of discovered issues or observations (list)
+                recommendations: JSON string of actionable recommendations (list)
+                details: Optional JSON string with additional context (dict)
             """
-            if details is None:
-                details = {}
+            import json
+            
+            # Parse the JSON strings back to Python objects
+            try:
+                findings_list = json.loads(findings) if findings else []
+                recommendations_list = json.loads(recommendations) if recommendations else []
+                details_dict = json.loads(details) if details else {}
+            except json.JSONDecodeError as e:
+                logger.error(f"[{self.name}] JSON parsing error in return_diagnostic_result: {e}")
+                findings_list = [findings] if findings else []
+                recommendations_list = [recommendations] if recommendations else []
+                details_dict = {"raw_details": details} if details else {}
 
             # Store the result for later retrieval
             self._task_result = DiagnosticResult(
                 step=self.task_definition.task_id,
                 status=status,
-                findings=findings,
-                recommendations=recommendations,
-                details=details,
+                findings=findings_list,
+                recommendations=recommendations_list,
+                details=details_dict,
             )
 
             logger.debug(
-                f"[{self.name}] Task result stored: status={status}, findings={len(findings)}, recommendations={len(recommendations)}"
+                f"[{self.name}] Task result stored: status={status}, findings={len(findings_list)}, recommendations={len(recommendations_list)}"
             )
             return f"Diagnostic result recorded successfully with status: {status}"
 
-        # Create the function tool with explicit configuration
+        # Create the function tool with simpler schema that avoids additionalProperties issues
         try:
             tool = function_tool(
                 return_diagnostic_result,
                 name_override="return_diagnostic_result",
-                description_override="Return the diagnostic result for this task"
+                description_override="Return the diagnostic result for this task. Use JSON strings for lists and objects."
             )
             
-            # Fix the schema to ensure proper handling of optional parameters
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-                
-                # Additional explicit fix for the return_diagnostic_result schema
-                if tool.params_json_schema.get("type") == "object":
-                    properties = tool.params_json_schema.get("properties", {})
-                    required = tool.params_json_schema.get("required", [])
-                    
-                    # Ensure details is not in required array since it has a default
-                    if "details" in required:
-                        required = [req for req in required if req != "details"]
-                        tool.params_json_schema["required"] = required
-                    
-                    # Ensure details property allows null
-                    if "details" in properties:
-                        details_prop = properties["details"]
-                        if isinstance(details_prop, dict) and "type" in details_prop:
-                            if details_prop["type"] == "object":
-                                details_prop["type"] = ["object", "null"]
-            
+            # Don't modify the schema at all - let OpenAI Agents SDK handle it
+            logger.debug(f"[{self.name}] Created return_diagnostic_result tool successfully")
             return tool
+            
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create return_diagnostic_result tool: {e}")
             # Return a no-op tool as fallback
@@ -526,45 +507,51 @@ Always return your results as a structured DiagnosticResult by calling the `retu
                 name_override=tool_name,
                 description_override=f"Fallback for {description}"
             )
-            
-            # Fix the schema to ensure additionalProperties is false
-            if hasattr(tool, 'params_json_schema') and tool.params_json_schema:
-                self._fix_json_schema(tool.params_json_schema)
-            
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Even fallback tool creation failed for {tool_name}: {e}")
             return None
 
     def _fix_json_schema(self, schema: dict) -> None:
-        """Fix JSON schema to ensure additionalProperties is set to false recursively and fix required arrays."""
+        """Fix JSON schema to ensure proper handling of optional parameters and avoid additionalProperties issues."""
         if isinstance(schema, dict):
-            # Set additionalProperties to false for all object types
-            if schema.get("type") == "object":
-                schema["additionalProperties"] = False
+            # Remove additionalProperties if it exists to avoid OpenAI Agents SDK conflicts
+            if "additionalProperties" in schema:
+                del schema["additionalProperties"]
+            
+            # Fix the required array to only include parameters without defaults
+            if schema.get("type") == "object" and "properties" in schema and "required" in schema:
+                properties = schema["properties"]
+                required = schema["required"]
                 
-                # Fix the required array to only include parameters without defaults
-                if "properties" in schema and "required" in schema:
-                    properties = schema["properties"]
-                    required = schema["required"]
+                # For the return_diagnostic_result function, details should not be required
+                # since it has a default value
+                if "details" in properties and "details" in required:
+                    # Remove details from required since it has a default value
+                    required = [req for req in required if req != "details"]
+                    schema["required"] = required
                     
-                    # For the return_diagnostic_result function, details should not be required
-                    # since it has a default value
-                    if "details" in properties and "details" in required:
-                        # Remove details from required since it has a default value
-                        required = [req for req in required if req != "details"]
-                        schema["required"] = required
-                        
-                        # Also ensure the details parameter allows null
-                        if "details" in properties:
-                            details_prop = properties["details"]
-                            if isinstance(details_prop, dict):
-                                # Allow null for optional parameters
-                                if "type" in details_prop:
-                                    if details_prop["type"] == "object":
-                                        details_prop["type"] = ["object", "null"]
-                                    elif isinstance(details_prop["type"], str):
-                                        details_prop["type"] = [details_prop["type"], "null"]
+                    # Also ensure the details parameter allows null
+                    if "details" in properties:
+                        details_prop = properties["details"]
+                        if isinstance(details_prop, dict):
+                            # Allow null for optional parameters by using oneOf
+                            if "type" in details_prop:
+                                if details_prop["type"] == "object":
+                                    # Use oneOf to allow object or null
+                                    details_prop.clear()
+                                    details_prop["oneOf"] = [
+                                        {"type": "object"},
+                                        {"type": "null"}
+                                    ]
+                                elif isinstance(details_prop["type"], str):
+                                    # Convert single type to oneOf with null
+                                    original_type = details_prop["type"]
+                                    details_prop.clear()
+                                    details_prop["oneOf"] = [
+                                        {"type": original_type},
+                                        {"type": "null"}
+                                    ]
             
             # Recursively fix nested schemas
             for key, value in schema.items():
