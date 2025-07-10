@@ -9,10 +9,12 @@ custom troubleshooting workflows that integrate with the dynamic troubleshoot ag
 try:
     from .workflow_requirements import WorkflowRequirementsTool
     from .workflow_builder import WorkflowBuilderTool
+    from .list_workflows import ListWorkflowsTool
     
     __all__ = [
         "WorkflowRequirementsTool",
-        "WorkflowBuilderTool"
+        "WorkflowBuilderTool",
+        "ListWorkflowsTool"
     ]
 except ImportError as e:
     # Handle import errors gracefully
