@@ -63,22 +63,23 @@ def test_env_vars():
         else:
             print(f"  ⚪ {var_name}: Not set - {description}")
     
-    # Test OpenAI agent configuration
-    print("\n🤖 OpenAI Agent Configuration Test:")
+    # Test agent tools (if available)
     try:
-        from src.tools.agents.openai_agent import OpenAIAgentTool
+        from src.tools.agents.splunk_triage_agent import SplunkTriageAgentTool
+        from src.tools.agents.dynamic_troubleshoot_agent import DynamicTroubleshootAgentTool
         
-        # Try to create the agent tool (this will test config loading)
-        agent = OpenAIAgentTool("test_agent", "agents")
-        print(f"  ✅ Agent configuration loaded successfully")
-        print(f"  📊 Model: {agent.config.model}")
-        print(f"  🌡️  Temperature: {agent.config.temperature}")
-        print(f"  📏 Max tokens: {agent.config.max_tokens}")
-        print(f"  🔑 API key: {'***' + agent.config.api_key[-4:] if len(agent.config.api_key) > 4 else '***'}")
+        print("✅ Agent tools imported successfully")
         
+        # Test agent instantiation
+        triage_agent = SplunkTriageAgentTool("agent_troubleshoot", "troubleshooting")
+        dynamic_agent = DynamicTroubleshootAgentTool("dynamic_troubleshoot", "troubleshooting")
+        
+        print("✅ Agent tools instantiated successfully")
+        
+    except ImportError as e:
+        print(f"⚠️  Agent tools not available: {e}")
     except Exception as e:
-        print(f"  ❌ Failed to load OpenAI agent configuration: {e}")
-        all_good = False
+        print(f"❌ Agent tools test failed: {e}")
     
     # Test Splunk client configuration
     print("\n🔌 Splunk Client Configuration Test:")

@@ -20,8 +20,7 @@ from .workflow_manager import (
     WorkflowResult, 
     WorkflowManager,
     execute_missing_data_workflow,
-    execute_performance_workflow,
-    execute_health_check_workflow
+    execute_performance_workflow
 )
 
 __all__ = [
@@ -47,6 +46,5 @@ __all__ = [
     "WorkflowResult",
     "WorkflowManager",
     "execute_missing_data_workflow",
-    "execute_performance_workflow", 
-    "execute_health_check_workflow"
+    "execute_performance_workflow"
 ] 

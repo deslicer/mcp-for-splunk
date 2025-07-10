@@ -57,16 +57,14 @@ class ToolLoader:
         
         # Get list of modules that might contain tools
         tool_modules = [
+            "src.tools.admin.tool_enhancer",
             "src.tools.admin.apps",
             "src.tools.admin.config", 
             "src.tools.admin.users",
             "src.tools.admin.me",
             "src.tools.admin.app_management",
-            "src.tools.agents.openai_agent",
             "src.tools.agents.splunk_triage_agent",
-            "src.tools.agents.parallel_analysis_agent",
-            "src.tools.agents.reflection_agent",
-            "src.tools.agents.workflow_parser",
+            "src.tools.agents.dynamic_troubleshoot_agent",
             "src.tools.health.status",
             "src.tools.kvstore.collections",
             "src.tools.kvstore.data",

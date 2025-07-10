@@ -109,10 +109,7 @@ class WorkflowManager:
         performance_workflow = self._create_performance_workflow()
         self.register_workflow(performance_workflow)
 
-        logger.debug("Creating basic health check workflow...")
-        # Basic Health Check Workflow
-        health_check_workflow = self._create_health_check_workflow()
-        self.register_workflow(health_check_workflow)
+
 
         logger.info("All built-in workflows registered successfully")
 
@@ -716,60 +713,7 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
             tasks=tasks,
         )
 
-    def _create_health_check_workflow(self) -> WorkflowDefinition:
-        """Create a basic health check workflow."""
 
-        tasks = [
-            TaskDefinition(
-                task_id="connectivity_check",
-                name="Connectivity Check",
-                description="Verify Splunk server connectivity and health",
-                instructions="""
-You are performing a basic connectivity check.
-
-**Task:** Verify Splunk server is accessible and responsive
-**Tools:** Use get_splunk_health for server status
-
-**Analysis:**
-1. Check server connectivity and response
-2. Verify basic service availability
-3. Note any connection issues or warnings
-
-**Output:** Return DiagnosticResult with connectivity status.
-                """,
-                required_tools=["get_splunk_health"],
-                dependencies=[],
-                context_requirements=[],
-            ),
-            TaskDefinition(
-                task_id="basic_data_check",
-                name="Basic Data Check",
-                description="Verify basic data availability",
-                instructions="""
-You are performing a basic data availability check.
-
-**Task:** Check for recent data ingestion
-**Time Range:** {earliest_time} to {latest_time}
-
-**Analysis:**
-1. Run simple search for recent data
-2. Check multiple indexes if available
-3. Verify data is being ingested
-
-**Output:** Return DiagnosticResult with data availability status.
-                """,
-                required_tools=["run_splunk_search", "list_splunk_indexes"],
-                dependencies=[],
-                context_requirements=["earliest_time", "latest_time"],
-            ),
-        ]
-
-        return WorkflowDefinition(
-            workflow_id="health_check",
-            name="Basic Health Check",
-            description="Quick health check for Splunk connectivity and data availability",
-            tasks=tasks,
-        )
 
     def register_workflow(self, workflow: WorkflowDefinition):
         """Register a workflow definition."""
@@ -1389,8 +1333,4 @@ async def execute_performance_workflow(
     return await workflow_manager.execute_workflow("performance_analysis", diagnostic_context, ctx)
 
 
-async def execute_health_check_workflow(
-    workflow_manager: WorkflowManager, diagnostic_context: SplunkDiagnosticContext, ctx: Context
-) -> WorkflowResult:
-    """Execute the basic health check workflow with progress reporting."""
-    return await workflow_manager.execute_workflow("health_check", diagnostic_context, ctx)
+

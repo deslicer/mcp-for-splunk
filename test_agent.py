@@ -503,198 +503,6 @@ def display_step_summary(step_summary: Dict[str, Any]):
                 logger.info(f"       ... and {len(tools) - 5} more")
 
 
-async def test_reflection_agent(config: TestConfig):
-    """Test the ReflectionAgentTool with comprehensive monitoring."""
-    
-    progress_tracker = ProgressTracker()
-    connection_monitor = ConnectionMonitor(timeout=config.timeout)
-    
-    logger.info("="*80)
-    logger.info("STARTING REFLECTION AGENT TEST")
-    logger.info("="*80)
-    logger.info(f"Server URL: {config.server_url}")
-    logger.info(f"Test Input: {config.test_input}")
-    logger.info(f"Timeout: {config.timeout}s")
-    logger.info(f"Time Range: {config.earliest_time} to {config.latest_time}")
-    logger.info("="*80)
-    
-    start_time = time.time()
-    
-    try:
-        # Create client with progress handler and timeout
-        client = Client(
-            config.server_url,
-            progress_handler=progress_tracker.progress_handler,
-            timeout=config.timeout
-        )
-        
-        logger.info("🚀 Connecting to FastMCP server...")
-        
-        async with client:
-            # Start connection monitoring
-            await connection_monitor.start_monitoring(client)
-            
-            # Test connection
-            logger.info("📡 Testing server connection...")
-            await client.ping()
-            logger.info("✅ Server connection successful")
-            
-            # List available tools
-            logger.info("🔍 Listing available tools...")
-            tools = await client.list_tools()
-            
-            # Find the reflection tool
-            reflection_tool = None
-            for tool in tools:
-                if tool.name == "execute_reflection_agent":
-                    reflection_tool = tool
-                    break
-            
-            if not reflection_tool:
-                logger.error("❌ Reflection agent tool not found in available tools:")
-                for tool in tools:
-                    logger.error(f"  - {tool.name}: {tool.description}")
-                return
-            
-            logger.info(f"✅ Found reflection tool: {reflection_tool.name}")
-            logger.info(f"   Description: {reflection_tool.description}")
-            
-            # Prepare tool arguments for reflection agent
-            tool_args = {
-                "problem_description": config.test_input,
-                "earliest_time": config.earliest_time,
-                "latest_time": config.latest_time,
-                "max_iterations": 2,  # Limit iterations for testing
-                "improvement_threshold": 0.1,
-                "enable_validation": True,
-                "focus_areas": ["accuracy", "completeness", "actionability"]
-            }
-            
-            logger.info("🔧 Executing Reflection agent...")
-            logger.info(f"   Arguments: {tool_args}")
-            
-            # Execute the tool with timeout and progress monitoring
-            try:
-                result = await client.call_tool(
-                    reflection_tool.name,
-                    tool_args,
-                    timeout=config.timeout,
-                    progress_handler=progress_tracker.progress_handler
-                )
-                
-                execution_time = time.time() - start_time
-                logger.info(f"✅ Reflection agent execution completed in {execution_time:.1f}s")
-                
-                # Process and display results
-                await display_reflection_results(result, progress_tracker, execution_time)
-                
-            except asyncio.TimeoutError:
-                logger.error(f"❌ Reflection agent execution timed out after {config.timeout}s")
-                raise
-            except Exception as e:
-                logger.error(f"❌ Reflection agent execution failed: {e}")
-                raise
-            
-            finally:
-                connection_monitor.stop_monitoring()
-    
-    except Exception as e:
-        execution_time = time.time() - start_time
-        logger.error(f"❌ Reflection agent test failed after {execution_time:.1f}s: {e}")
-        
-        # Display progress summary even on failure
-        progress_summary = progress_tracker.get_summary()
-        logger.info("📊 Progress Summary (despite failure):")
-        logger.info(f"   Total updates: {progress_summary['progress_updates_count']}")
-        logger.info(f"   Final progress: {progress_summary['final_progress']}")
-        logger.info(f"   Longest gap: {progress_summary['longest_gap']:.1f}s")
-        
-        raise
-    
-    finally:
-        total_time = time.time() - start_time
-        logger.info("="*80)
-        logger.info(f"REFLECTION AGENT TEST COMPLETED - Total time: {total_time:.1f}s")
-        logger.info("="*80)
-
-
-async def display_reflection_results(result, progress_tracker: ProgressTracker, execution_time: float):
-    """Display the results of the reflection agent execution."""
-    
-    logger.info("="*80)
-    logger.info("REFLECTION AGENT RESULTS")
-    logger.info("="*80)
-    
-    # Display structured data if available
-    if hasattr(result, 'data') and result.data:
-        logger.info("📋 Structured Results:")
-        
-        if isinstance(result.data, dict):
-            # Display reflection-specific results
-            if "iteration_results" in result.data:
-                iterations = result.data["iteration_results"]
-                logger.info(f"   📈 Reflection Iterations: {len(iterations)}")
-                for iteration in iterations:
-                    logger.info(f"     Iteration {iteration['iteration_number']}:")
-                    logger.info(f"       - Improvement Score: {iteration['improvement_score']:.3f}")
-                    logger.info(f"       - Execution Time: {iteration['execution_time']:.2f}s")
-                    logger.info(f"       - Gaps Identified: {len(iteration['identified_gaps'])}")
-                    if iteration['identified_gaps']:
-                        logger.info(f"       - Key Gap: {iteration['identified_gaps'][0]}")
-            
-            if "final_synthesis" in result.data:
-                synthesis = result.data["final_synthesis"]
-                logger.info(f"   🎯 Final Synthesis: {synthesis[:200]}...")
-            
-            if "performance_metrics" in result.data:
-                metrics = result.data["performance_metrics"]
-                logger.info(f"   📊 Performance Metrics:")
-                logger.info(f"     - Iterations Completed: {metrics.get('iterations_completed', 0)}")
-                logger.info(f"     - Final Improvement Score: {metrics.get('final_improvement_score', 0):.3f}")
-                logger.info(f"     - Total Gaps Identified: {metrics.get('total_gaps_identified', 0)}")
-                logger.info(f"     - Convergence Achieved: {metrics.get('convergence_achieved', False)}")
-            
-            # Display other data
-            for key, value in result.data.items():
-                if key not in ["iteration_results", "final_synthesis", "performance_metrics"]:
-                    if isinstance(value, dict) and "execution_time" in value:
-                        logger.info(f"   {key}:")
-                        for time_key, time_value in value.items():
-                            if "time" in time_key.lower():
-                                logger.info(f"     {time_key}: {time_value:.2f}s")
-                            else:
-                                logger.info(f"     {time_key}: {time_value}")
-                    else:
-                        logger.info(f"   {key}: {value}")
-        else:
-            logger.info(f"   Data: {result.data}")
-    
-    # Display content blocks
-    if hasattr(result, 'content') and result.content:
-        logger.info("📄 Content Results:")
-        for i, content in enumerate(result.content):
-            if hasattr(content, 'text'):
-                logger.info(f"   Content {i+1}: {content.text[:500]}...")
-            elif hasattr(content, 'data'):
-                logger.info(f"   Binary Content {i+1}: {len(content.data)} bytes")
-    
-    # Display progress summary
-    progress_summary = progress_tracker.get_summary()
-    logger.info("📊 Progress Summary:")
-    logger.info(f"   Total execution time: {execution_time:.1f}s")
-    logger.info(f"   Progress updates: {progress_summary['progress_updates_count']}")
-    logger.info(f"   Final progress: {progress_summary['final_progress']}")
-    logger.info(f"   Average update interval: {progress_summary['average_update_interval']:.1f}s")
-    logger.info(f"   Longest gap between updates: {progress_summary['longest_gap']:.1f}s")
-    
-    # Check for timeout concerns
-    if progress_summary['longest_gap'] > 60:
-        logger.warning(f"⚠️  Long gap detected: {progress_summary['longest_gap']:.1f}s without progress")
-    
-    if progress_summary['progress_updates_count'] == 0:
-        logger.warning("⚠️  No progress updates received - check progress reporting implementation")
-
-
 async def test_dynamic_troubleshoot_agent(config: TestConfig):
     """Test the DynamicTroubleshootAgentTool with comprehensive monitoring."""
     
@@ -941,23 +749,20 @@ async def main():
         # Determine which test to run based on command line argument
         test_type = getattr(args, 'test_type', 'auto')
         
-        if test_type == 'reflection':
-            logger.info("🧠 Running Reflection Agent test (explicit selection)")
-            await test_reflection_agent(config)
+        if test_type == 'dynamic':
+            logger.info("🤖 Running Dynamic Troubleshoot Agent test (explicit selection)")
+            await test_dynamic_troubleshoot_agent(config)
         elif test_type == 'triage':
             logger.info("🔍 Running Splunk Triage Agent test (explicit selection)")
             await test_splunk_triage_agent(config)
-        elif test_type == 'dynamic':
-            logger.info("🤖 Running Dynamic Troubleshoot Agent test (explicit selection)")
-            await test_dynamic_troubleshoot_agent(config)
         else:  # auto
             logger.info("\n🤖 Auto-selecting test based on input content:")
-            logger.info("   Available: Triage Agent (original) | Reflection Agent (with dynamic coordinator) | Dynamic Troubleshoot Agent")
+            logger.info("   Available: Dynamic Troubleshoot Agent | Splunk Triage Agent")
             
-            # For automated testing, default to reflection agent if input suggests missing data
+            # For automated testing, default to dynamic troubleshoot agent if input suggests missing data
             if "missing" in test_input.lower() or "data" in test_input.lower() or "find" in test_input.lower():
-                logger.info("🧠 Auto-selected: Reflection Agent (missing data detected)")
-                await test_reflection_agent(config)
+                logger.info("🤖 Auto-selected: Dynamic Troubleshoot Agent (missing data detected)")
+                await test_dynamic_troubleshoot_agent(config)
             else:
                 logger.info("🔍 Auto-selected: Splunk Triage Agent")
                 await test_splunk_triage_agent(config)

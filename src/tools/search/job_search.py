@@ -108,7 +108,7 @@ class JobSearch(BaseTool):
                 
                 # Report progress with just the numeric value
                 await ctx.report_progress(
-                    progress=int(progress_dict["progress"]), 
+                    progress=int(progress_dict["progress"]),
                     total=100
                 )
                 

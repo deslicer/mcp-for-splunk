@@ -19,8 +19,7 @@ from .shared import (
     WorkflowDefinition,
     TaskDefinition,
     execute_missing_data_workflow,
-    execute_performance_workflow,
-    execute_health_check_workflow
+    execute_performance_workflow
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ class DynamicCoordinator:
     Dynamic coordinator that orchestrates micro-agents based on workflow definitions.
     
     This coordinator can:
-    1. Execute predefined workflows (missing data, performance, health check)
+    1. Execute predefined workflows (missing data, performance)
     2. Create custom workflows on-the-fly based on problem analysis
     3. Automatically determine optimal parallelization based on task dependencies
     4. Scale the number of agents based on the number of independent tasks
@@ -332,46 +331,4 @@ class DynamicCoordinator:
                 ]
             })
         
-        return workflows
-    
-    async def execute_health_check(self, diagnostic_context: SplunkDiagnosticContext, ctx: Context) -> Dict[str, Any]:
-        """Execute a quick health check using dynamic micro-agents with progress reporting."""
-        
-        start_time = time.time()
-        logger.info("Starting dynamic health check")
-        
-        try:
-            workflow_result = await execute_health_check_workflow(
-                self.workflow_manager,
-                diagnostic_context,
-                ctx
-            )
-            
-            execution_time = time.time() - start_time
-            
-            return {
-                "status": "success",
-                "coordinator_type": "dynamic_health_check",
-                "workflow_execution": {
-                    "workflow_id": workflow_result.workflow_id,
-                    "overall_status": workflow_result.status,
-                    "execution_time": workflow_result.execution_time,
-                    "total_tasks": len(workflow_result.task_results)
-                },
-                "summary": workflow_result.summary,
-                "performance_metrics": {
-                    "total_execution_time": execution_time,
-                    "workflow_execution_time": workflow_result.execution_time
-                }
-            }
-            
-        except Exception as e:
-            execution_time = time.time() - start_time
-            logger.error(f"Dynamic health check failed: {e}")
-            
-            return {
-                "status": "error",
-                "coordinator_type": "dynamic_health_check",
-                "error": str(e),
-                "execution_time": execution_time
-            } 
+        return workflows 
