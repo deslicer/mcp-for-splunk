@@ -1,8 +1,8 @@
 """
-Workflow Tools for MCP Server for Splunk.
+Core Workflow Tools for MCP Server for Splunk.
 
-This package contains tools for creating, validating, and managing
-custom troubleshooting workflows.
+This package contains core tools for creating, validating, and managing
+custom troubleshooting workflows that integrate with the dynamic troubleshoot agent.
 """
 
 # Import workflow tools for automatic discovery

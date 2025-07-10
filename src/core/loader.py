@@ -74,9 +74,8 @@ class ToolLoader:
             "src.tools.search.oneshot_search",
             "src.tools.search.job_search",
             "src.tools.search.saved_search_tools",
-            # Community contributed tools
-            "contrib.tools.workflows.workflow_requirements",
-            "contrib.tools.workflows.workflow_builder",
+            "src.tools.workflows.workflow_requirements",
+            "src.tools.workflows.workflow_builder",
         ]
         
         reloaded_count = 0
