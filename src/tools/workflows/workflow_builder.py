@@ -6,7 +6,7 @@ MCP Server for Splunk dynamic troubleshooting system.
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from fastmcp import Context
 
@@ -27,12 +27,14 @@ class WorkflowBuilderTool(BaseTool):
     - **Comprehensive Validation**: Structure, dependencies, and integration validation
     - **Editing Support**: Modify existing workflows with validation
     - **Multiple Output Formats**: JSON generation with proper formatting
+    - **Finished Workflow Processing**: Accept and validate complete workflow definitions
 
     ## Modes of Operation:
     - **create**: Interactive workflow creation from scratch
     - **edit**: Modify existing workflow definitions
     - **validate**: Comprehensive validation of workflow structure
     - **template**: Generate workflow templates for different use cases
+    - **process**: Process and validate finished workflow definitions
 
     ## Validation Features:
     - **Structure Validation**: Schema compliance and required fields
@@ -63,6 +65,7 @@ multiple modes of operation to accommodate different workflow development needs.
 - **edit**: Modify existing workflow definitions with validation
 - **validate**: Comprehensive validation of workflow structure and dependencies
 - **template**: Generate pre-built workflow templates for common use cases
+- **process**: Process and validate finished workflow definitions
 
 ## Key Capabilities:
 - Step-by-step workflow creation with validation
@@ -70,6 +73,7 @@ multiple modes of operation to accommodate different workflow development needs.
 - Comprehensive validation including dependency analysis
 - JSON output generation with proper formatting
 - Integration testing and compatibility verification
+- Processing of complete workflow definitions
 
 ## Validation Features:
 - Schema compliance verification
@@ -91,16 +95,16 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
         self,
         ctx: Context,
         mode: str = "create",
-        workflow_data: Optional[str] = None,
+        workflow_data: Optional[Union[str, Dict[str, Any]]] = None,
         template_type: str = "minimal",
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Build, edit, or validate workflows.
+        Build, edit, validate, or process workflows.
 
         Args:
-            mode: Operation mode - "create", "edit", "validate", or "template"
-            workflow_data: JSON string of workflow data (for edit/validate modes)
+            mode: Operation mode - "create", "edit", "validate", "template", or "process"
+            workflow_data: Workflow data as JSON string or dict (for edit/validate/process modes)
             template_type: Template type for template mode ("minimal", "security", "performance", etc.)
             file_path: Path to workflow file (for validate mode)
 
@@ -121,13 +125,81 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
                     return self.format_success_response(self._validate_workflow_file(file_path))
                 else:
                     return self.format_error_response("workflow_data or file_path required for validate mode")
+            elif mode == "process":
+                if not workflow_data:
+                    return self.format_error_response("workflow_data required for process mode")
+                return self.format_success_response(await self._process_finished_workflow(ctx, workflow_data))
             elif mode == "template":
                 return self.format_success_response(self._generate_template(template_type))
             else:
-                return self.format_error_response(f"Unknown mode: {mode}. Use 'create', 'edit', 'validate', or 'template'")
+                return self.format_error_response(f"Unknown mode: {mode}. Use 'create', 'edit', 'validate', 'process', or 'template'")
 
         except Exception as e:
             return self.format_error_response(f"Workflow builder error: {str(e)}")
+
+    def _normalize_workflow_data(self, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Normalize workflow data from string or dict to dict."""
+        if isinstance(workflow_data, str):
+            try:
+                return json.loads(workflow_data)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON format: {str(e)}")
+        elif isinstance(workflow_data, dict):
+            return workflow_data
+        else:
+            raise ValueError(f"workflow_data must be a string or dict, got {type(workflow_data)}")
+
+    async def _process_finished_workflow(self, ctx: Context, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Process and validate a finished workflow definition."""
+        
+        await ctx.info("🔧 Processing finished workflow definition...")
+        
+        # Normalize the input data
+        try:
+            workflow = self._normalize_workflow_data(workflow_data)
+        except ValueError as e:
+            return {"error": str(e)}
+
+        # Perform comprehensive validation
+        validation_result = self._validate_workflow_structure(workflow)
+        
+        if validation_result["valid"]:
+            await ctx.info("✅ Workflow validation successful!")
+            
+            # Generate additional metadata for the processed workflow
+            processed_workflow = {
+                "workflow": workflow,
+                "validation": validation_result,
+                "processing_metadata": {
+                    "processed_at": "timestamp",
+                    "validation_passed": True,
+                    "ready_for_execution": True,
+                    "compatible_with_runner": True
+                },
+                "usage_instructions": {
+                    "workflow_runner": f"Use workflow_id='{workflow.get('workflow_id', 'unknown')}' with the workflow_runner tool",
+                    "dynamic_troubleshoot": f"Use workflow_type='{workflow.get('workflow_id', 'unknown')}' with dynamic_troubleshoot_agent",
+                    "file_save": "Save this workflow as JSON in contrib/workflows/category/ directory"
+                },
+                "integration_ready": True
+            }
+            
+            return processed_workflow
+        else:
+            await ctx.error("❌ Workflow validation failed!")
+            return {
+                "workflow": workflow,
+                "validation": validation_result,
+                "processing_metadata": {
+                    "processed_at": "timestamp",
+                    "validation_passed": False,
+                    "ready_for_execution": False,
+                    "compatible_with_runner": False
+                },
+                "integration_ready": False,
+                "errors": validation_result["errors"],
+                "fix_suggestions": validation_result["suggestions"]
+            }
 
     async def _create_workflow_interactive(self, ctx: Context) -> Dict[str, Any]:
         """Create a workflow interactively with guided prompts."""
@@ -256,13 +328,13 @@ await dynamic_troubleshoot_agent.execute(
         await ctx.info("✅ Workflow creation completed successfully!")
         return result
 
-    async def _edit_workflow(self, ctx: Context, workflow_data: str) -> Dict[str, Any]:
+    async def _edit_workflow(self, ctx: Context, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """Edit an existing workflow with validation."""
         
         try:
-            workflow = json.loads(workflow_data)
-        except json.JSONDecodeError as e:
-            return {"error": f"Invalid JSON: {str(e)}"}
+            workflow = self._normalize_workflow_data(workflow_data)
+        except ValueError as e:
+            return {"error": str(e)}
 
         await ctx.info("🔧 Starting workflow editing mode...")
         
@@ -309,15 +381,15 @@ You are performing additional analysis as part of the workflow.
         await ctx.info("✅ Workflow editing completed successfully!")
         return result
 
-    def _validate_workflow_data(self, workflow_data: str) -> Dict[str, Any]:
-        """Validate workflow data from JSON string."""
+    def _validate_workflow_data(self, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Validate workflow data from JSON string or dict."""
         
         try:
-            workflow = json.loads(workflow_data)
-        except json.JSONDecodeError as e:
+            workflow = self._normalize_workflow_data(workflow_data)
+        except ValueError as e:
             return {
                 "valid": False,
-                "errors": [f"Invalid JSON format: {str(e)}"],
+                "errors": [str(e)],
                 "warnings": [],
                 "suggestions": ["Check JSON syntax and formatting"]
             }
@@ -345,6 +417,62 @@ You are performing additional analysis as part of the workflow.
                 "warnings": [],
                 "suggestions": ["Check file permissions and format"]
             }
+
+    def _get_available_tools(self) -> Dict[str, str]:
+        """Get available Splunk tools with descriptions - synchronized with workflow_requirements.py."""
+        return {
+            # Search Tools
+            "run_splunk_search": "Execute comprehensive Splunk searches with full SPL support",
+            "run_oneshot_search": "Execute quick, lightweight searches for immediate results",
+            "run_saved_search": "Execute predefined saved searches",
+            
+            # Metadata Tools
+            "list_splunk_indexes": "Get list of available Splunk indexes",
+            "list_splunk_sources": "Get list of available data sources",
+            "list_splunk_sourcetypes": "Get list of available sourcetypes",
+            
+            # Administrative Tools
+            "get_current_user_info": "Get current user information, roles, and permissions",
+            "get_splunk_health": "Check Splunk server health and connectivity status",
+            "get_splunk_apps": "List installed Splunk applications",
+            "get_configurations": "Retrieve Splunk configuration settings from .conf files",
+            
+            # Alert Tools
+            "get_alert_status": "Check alert configurations and firing status",
+            "list_triggered_alerts": "List all triggered alerts in Splunk",
+            
+            # KV Store Tools
+            "get_kvstore_data": "Retrieve data from KV Store collections",
+            "list_kvstore_collections": "List all KV Store collections",
+            "create_kvstore_collection": "Create new KV Store collections",
+            
+            # Workflow Tools
+            "list_workflows": "List available workflows",
+            "workflow_runner": "Execute workflows by ID",
+            
+            # Utility Tools
+            "report_specialist_progress": "Report progress during task execution",
+        }
+
+    def _get_context_variables(self) -> Dict[str, str]:
+        """Get available context variables with descriptions - synchronized with workflow_requirements.py."""
+        return {
+            # Time Context
+            "earliest_time": "Start time for analysis (e.g., '-24h', '2023-01-01T00:00:00')",
+            "latest_time": "End time for analysis (e.g., 'now', '-1h', '@d')",
+            
+            # Focus Context
+            "focus_index": "Target index for focused analysis",
+            "focus_host": "Target host for focused analysis",
+            "focus_sourcetype": "Target sourcetype for focused analysis",
+            
+            # User Context
+            "complexity_level": "Analysis depth level ('basic', 'moderate', 'advanced')",
+            
+            # Custom Context
+            # Note: Custom context variables can be defined in default_context
+            "custom_variable_example": "Example of custom context variable from default_context"
+        }
 
     def _validate_workflow_structure(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive workflow structure validation."""
@@ -537,20 +665,8 @@ You are performing additional analysis as part of the workflow.
         errors = []
         warnings = []
         
-        # Available tools (from workflow_requirements.py)
-        available_tools = {
-            "run_splunk_search",
-            "run_oneshot_search", 
-            "run_saved_search",
-            "list_splunk_indexes",
-            "list_splunk_sources",
-            "list_splunk_sourcetypes",
-            "get_current_user_info",
-            "get_splunk_health",
-            "get_splunk_apps",
-            "get_alert_status",
-            "report_specialist_progress"
-        }
+        # Get available tools from the updated list
+        available_tools = set(self._get_available_tools().keys())
         
         for task in workflow.get("tasks", []):
             task_id = task.get("task_id", "unknown")
@@ -578,15 +694,8 @@ You are performing additional analysis as part of the workflow.
         errors = []
         warnings = []
         
-        # Available context variables
-        available_context = {
-            "earliest_time",
-            "latest_time", 
-            "focus_index",
-            "focus_host",
-            "focus_sourcetype",
-            "complexity_level"
-        }
+        # Get available context variables
+        available_context = set(self._get_context_variables().keys())
         
         # Add custom context variables from default_context
         default_context = workflow.get("default_context", {})

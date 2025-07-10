@@ -518,9 +518,20 @@ for creating custom diagnostic workflows.""",
             "get_current_user_info": "Get current user information, roles, and permissions",
             "get_splunk_health": "Check Splunk server health and connectivity status",
             "get_splunk_apps": "List installed Splunk applications",
+            "get_configurations": "Retrieve Splunk configuration settings from .conf files",
             
             # Alert Tools
             "get_alert_status": "Check alert configurations and firing status",
+            "list_triggered_alerts": "List all triggered alerts in Splunk",
+            
+            # KV Store Tools
+            "get_kvstore_data": "Retrieve data from KV Store collections",
+            "list_kvstore_collections": "List all KV Store collections",
+            "create_kvstore_collection": "Create new KV Store collections",
+            
+            # Workflow Tools
+            "list_workflows": "List available workflows",
+            "workflow_runner": "Execute workflows by ID",
             
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
@@ -544,4 +555,4 @@ for creating custom diagnostic workflows.""",
             # Custom Context
             # Note: Custom context variables can be defined in default_context
             "custom_variable_example": "Example of custom context variable from default_context"
-        } 
+        }
