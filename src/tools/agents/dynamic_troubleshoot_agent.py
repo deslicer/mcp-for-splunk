@@ -72,149 +72,131 @@ class RetryConfig:
 
 class DynamicTroubleshootAgentTool(BaseTool):
     """
-    Enhanced Dynamic Troubleshooting Agent with Parallel Execution and Comprehensive Tracing.
+    Dynamic Splunk Troubleshooting Agent for Comprehensive Problem Analysis.
 
-    This tool provides a sophisticated parallel execution system for efficient Splunk
-    troubleshooting using dependency-aware task orchestration. It leverages asyncio.gather
-    for maximum performance while respecting task dependencies and comprehensive tracing
-    throughout the entire diagnostic process.
+    This tool provides intelligent troubleshooting capabilities for Splunk environments by 
+    automatically analyzing problem descriptions and executing appropriate diagnostic workflows.
+    It combines systematic troubleshooting methodologies with AI-powered analysis to identify 
+    root causes and provide actionable recommendations.
 
     ## Key Features:
-    - **Parallel Execution**: Uses asyncio.gather with dependency phases for maximum performance
-    - **Dependency Management**: Respects task dependencies while maximizing parallel execution
-    - **Specialized Micro-Agents**: Individual agents for specific diagnostic tasks (license, permissions, performance, etc.)
-    - **Comprehensive Tracing**: Full observability of parallel execution flows and agent interactions
-    - **Intelligent Workflow Detection**: Automatically selects appropriate workflows based on problem symptoms
-    - **Context Preservation**: Passes dependency results between agents as input context
-    - **Progress Reporting**: Real-time updates throughout the parallel execution process
-    - **Summarization Tool**: Standalone tool for comprehensive analysis and recommendations
+    - **Intelligent Problem Analysis**: Automatically categorizes issues and selects optimal diagnostic approach
+    - **Systematic Workflows**: Follows proven troubleshooting methodologies for comprehensive analysis
+    - **Contextual Focus**: Supports targeted analysis by index, host, or sourcetype for efficient diagnosis
+    - **Multi-Level Complexity**: Adjustable analysis depth from basic checks to advanced diagnostics
+    - **Comprehensive Reporting**: Detailed findings, recommendations, and executive summaries
+    - **Time-Range Flexibility**: Configurable time windows for historical and real-time analysis
 
-    ## Parallel Execution Architecture:
+    ## Diagnostic Workflows:
 
-    ### 🎯 Parallel Workflow Executor
-    Core engine that executes tasks in dependency-aware parallel phases:
-    - Analyzes task dependencies to create execution phases
-    - Runs independent tasks in parallel within each phase using asyncio.gather
-    - Passes dependency results to dependent tasks as input context
-    - Provides comprehensive error handling and progress reporting
-    - Maintains full tracing and observability throughout execution
+    ### 🔍 Missing Data Analysis
+    Systematic investigation of data visibility issues:
+    - **License & Edition Verification**: Splunk licensing and capacity analysis
+    - **Index & Permissions Analysis**: Data access and authorization verification
+    - **Time Range & Timestamp Issues**: Temporal data availability assessment
+    - **Forwarder & Connectivity Analysis**: Data ingestion pipeline diagnostics
+    - **Search Configuration**: Search head and distributed search verification
+    - **Query & Field Extraction**: Search syntax and parsing validation
 
-    ### 🔍 Missing Data Workflow Tasks
-    Parallel execution of specialized diagnostic tasks:
-    - **License Verification**: Splunk license and edition verification
-    - **Index Verification**: Index accessibility and configuration verification
-    - **Permissions Verification**: User permissions and role-based access control analysis
-    - **Time Range Verification**: Time-related data availability and timestamp issues
-    - **Forwarder Connectivity**: Forwarder connections and data ingestion pipeline
-    - **Search Head Configuration**: Search head setup and distributed search verification
-    - **Scheduled Search Issues**: Scheduled search and alert analysis
-    - **Search Query Validation**: Search syntax and performance validation
-    - **Field Extraction Issues**: Field extraction and parsing analysis
+    ### 🚀 Performance Analysis
+    Comprehensive system performance diagnostics:
+    - **Resource Utilization**: CPU, memory, and disk usage patterns
+    - **Search Performance**: Query execution and concurrency analysis
+    - **Indexing Pipeline**: Data ingestion throughput and bottlenecks
+    - **Queue Analysis**: Processing delays and backlog identification
+    - **Storage Performance**: Disk I/O and storage optimization
+    - **Configuration Optimization**: Settings and tuning recommendations
 
-    ### 🚀 Performance Analysis Workflow Tasks
-    Parallel execution of performance diagnostic tasks:
-    - **System Resource Analysis**: CPU, memory, and disk usage analysis
-    - **Search Concurrency Analysis**: Search performance and concurrency analysis
-    - **Indexing Performance Analysis**: Indexing pipeline and throughput analysis
+    ### 📊 Analysis & Reporting
+    Advanced result synthesis and recommendations:
+    - **Pattern Recognition**: Identifies correlations across diagnostic findings
+    - **Severity Assessment**: Prioritizes issues by impact and urgency
+    - **Actionable Recommendations**: Specific steps organized by priority
+    - **Executive Summaries**: High-level assessments for stakeholders
+    - **Monitoring Guidance**: Ongoing observation recommendations
 
-    ### 🏥 Health Check Workflow Tasks
-    Parallel execution of health assessment tasks:
-    - **Connectivity Verification**: Basic Splunk server connectivity verification
-    - **Data Availability Check**: Recent data ingestion and availability checks
+    ## Parameters:
 
-    ### 📊 Summarization Tool
-    Standalone reusable tool for comprehensive result analysis:
-    - Analyzes results from all executed diagnostic agents
-    - Identifies patterns and correlations across findings
-    - Provides executive-level summaries and technical deep-dives
-    - Generates prioritized action items and recommendations
-    - Assesses severity and provides resolution timelines
+    - **problem_description** (str, required): Detailed description of the Splunk issue or symptoms. 
+      Be specific about error messages, expected vs actual behavior, and affected components.
 
-    ## Tracing and Observability:
+    - **earliest_time** (str, optional): Start time for diagnostic searches in Splunk time format. 
+      Examples: "-24h", "-7d@d", "2023-01-01T00:00:00". Default: "-24h"
 
-    The tool provides comprehensive tracing through:
-    - **OpenAI Agents SDK Tracing**: Native trace integration with the agents framework
-    - **Parallel Execution Tracking**: Visibility into phase execution and task parallelization
-    - **Dependency Flow**: Tracking of dependency results passed between agents
-    - **Performance Metrics**: Execution times, parallel efficiency, and task completion statistics
-    - **Agent Interaction Analysis**: Detailed view of individual agent executions and results
+    - **latest_time** (str, optional): End time for diagnostic searches in Splunk time format. 
+      Examples: "now", "-1h", "@d", "2023-01-01T23:59:59". Default: "now"
 
-    ## Arguments:
+    - **focus_index** (str, optional): Specific Splunk index to focus the analysis on. 
+      Useful when the problem is isolated to a particular data source.
 
-    - **problem_description** (str, required): Detailed description of the Splunk issue or symptoms. Be specific about error messages, expected vs actual behavior, and affected components.
+    - **focus_host** (str, optional): Specific host or server to focus the analysis on. 
+      Helpful for distributed environment troubleshooting.
 
-    - **earliest_time** (str, optional): Start time for diagnostic searches in Splunk time format. Examples: "-24h", "-7d@d", "2023-01-01T00:00:00". Default: "-24h"
+    - **focus_sourcetype** (str, optional): Specific sourcetype to focus the analysis on. 
+      Useful when the problem is related to a particular data format or source type.
 
-    - **latest_time** (str, optional): End time for diagnostic searches in Splunk time format. Examples: "now", "-1h", "@d", "2023-01-01T23:59:59". Default: "now"
+    - **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced". 
+      Affects the comprehensiveness of diagnostic checks. Default: "moderate"
 
-    - **focus_index** (str, optional): Specific Splunk index to focus the analysis on. Useful when the problem is isolated to a particular data source.
+    - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "auto". 
+      Default: "auto" (automatic detection based on problem description)
 
-    - **focus_host** (str, optional): Specific host or server to focus the analysis on. Helpful for distributed environment troubleshooting.
-
-    - **focus_sourcetype** (str, optional): Specific sourcetype to focus the analysis on. Useful when the problem is related to a particular data format or source type.
-
-    - **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced". Affects the comprehensiveness of diagnostic checks. Default: "moderate"
-
-    - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "health_check", "auto". Default: "auto" (automatic detection)
-
-    ## How Parallel Execution Works:
-    1. **Problem Analysis**: Analyzes the problem description to determine appropriate workflow type
-    2. **Workflow Selection**: Automatically selects the best workflow (missing_data, performance, health_check)
-    3. **Dependency Resolution**: Builds dependency graph and creates execution phases for maximum parallelization
-    4. **Parallel Execution**: Uses asyncio.gather to run independent tasks in parallel within each phase
-    5. **Context Passing**: Passes dependency results to dependent tasks as enhanced input context
-    6. **Summarization**: Uses standalone summarization tool to analyze and synthesize all results
-    7. **Comprehensive Analysis**: Returns detailed analysis with actionable recommendations and performance metrics
+    ## How It Works:
+    1. **Problem Analysis**: Analyzes the problem description to understand symptoms and context
+    2. **Workflow Selection**: Automatically selects the most appropriate diagnostic workflow
+    3. **Systematic Execution**: Runs comprehensive diagnostic tasks following proven methodologies
+    4. **Result Analysis**: Synthesizes findings across all diagnostic areas
+    5. **Recommendation Generation**: Provides prioritized, actionable recommendations
+    6. **Comprehensive Reporting**: Delivers detailed analysis with executive summary
 
     ## Example Use Cases:
-    - "My dashboard shows no data for the last 2 hours" → Missing data workflow with parallel task execution
-    - "Searches are running very slowly since yesterday" → Performance analysis workflow with parallel diagnostics
-    - "I can't see events from my forwarders in index=security" → Missing data workflow focusing on connectivity
-    - "Getting license violation warnings but don't know why" → Missing data workflow with license analysis
+    - "My dashboard shows no data for the last 2 hours" → Missing data workflow with connectivity analysis
+    - "Searches are running very slowly since yesterday" → Performance analysis with resource diagnostics
+    - "I can't see events from my forwarders in index=security" → Missing data workflow with forwarder analysis
+    - "Getting license violation warnings but don't know why" → Missing data workflow with license verification
     - "High CPU usage on search heads affecting performance" → Performance workflow with resource analysis
 
-    ## Parallel Execution Benefits:
-    - **Maximum Performance**: 70%+ faster execution through parallel task execution
-    - **Dependency Management**: Intelligent dependency resolution with result passing
-    - **Scalability**: Easy to add new tasks and workflows without architectural changes
-    - **Error Resilience**: Graceful handling of partial failures with continued execution
-    - **Comprehensive Analysis**: Standalone summarization tool provides deep insights across all results
+    ## Benefits:
+    - **Comprehensive Coverage**: Systematic approach ensures no diagnostic area is overlooked
+    - **Intelligent Routing**: Automatic workflow selection based on problem symptoms
+    - **Actionable Results**: Specific recommendations with clear next steps
+    - **Flexible Scope**: Configurable focus areas and complexity levels
+    - **Expert Knowledge**: Built-in Splunk troubleshooting best practices
     """
 
     METADATA = ToolMetadata(
         name="dynamic_troubleshoot",
-        description="""Enhanced dynamic troubleshooting agent with parallel execution and comprehensive tracing for efficient Splunk analysis.
-This tool uses asyncio.gather with dependency-aware task orchestration to execute specialized diagnostic agents in parallel phases for maximum performance. It provides end-to-end tracing of parallel execution and passes dependency results between agents.
+        description="""Dynamic Splunk troubleshooting agent for comprehensive problem analysis and resolution.
+This tool intelligently analyzes Splunk issues and executes systematic diagnostic workflows to identify root causes and provide actionable recommendations.
 
-## Parallel Execution Architecture:
-- **Parallel Workflow Executor**: Core engine that executes tasks in dependency-aware parallel phases
-- **Specialized Micro-Agents**: Individual agents for license, permissions, performance, connectivity, and health checks
-- **Dependency Management**: Intelligent dependency resolution with result passing between agents
-- **Summarization Tool**: Standalone tool for comprehensive analysis and recommendations
+## Core Capabilities:
+- **Intelligent Problem Analysis**: Automatically categorizes issues and selects optimal diagnostic workflows
+- **Missing Data Diagnostics**: Comprehensive analysis of data visibility, permissions, and ingestion issues
+- **Performance Analysis**: System resource, search performance, and indexing pipeline diagnostics
+- **Systematic Methodology**: Follows proven troubleshooting frameworks for thorough investigation
+- **Contextual Focus**: Supports targeted analysis by index, host, or sourcetype for efficient diagnosis
 
 ## Workflow Types:
-- **Missing Data Analysis**: Parallel execution of comprehensive data visibility diagnostic tasks
-- **Performance Analysis**: Parallel system performance diagnosis with specialized performance agents
-- **Health Check Analysis**: Parallel system health assessment with connectivity and data availability agents
+- **Missing Data Analysis**: Comprehensive data visibility and access diagnostic workflow
+- **Performance Analysis**: System performance and resource utilization diagnostic workflow
 - **Auto-Detection**: Automatically selects the best workflow based on problem symptoms
 
 ## Key Benefits:
-- Parallel execution for 70%+ performance improvement over sequential approaches
-- Dependency-aware task orchestration with result passing
-- Comprehensive tracing with OpenAI Agents SDK integration
-- Real-time progress reporting throughout parallel execution
-- Standalone summarization tool for deep analysis across all results
-- End-to-end visibility of parallel diagnostic process
+- Systematic approach ensures comprehensive diagnostic coverage
+- Intelligent workflow selection based on problem description analysis
+- Actionable recommendations with prioritized next steps
+- Flexible scope control with configurable focus areas and complexity levels
+- Built-in Splunk troubleshooting expertise and best practices
 
 ## Parameters:
-- problem_description (required): Detailed issue description
+- problem_description (required): Detailed issue description with symptoms and context
 - earliest_time (optional): Start time for analysis (default: "-24h")
 - latest_time (optional): End time for analysis (default: "now")
-- focus_index (optional): Specific index to focus on
-- focus_host (optional): Specific host to focus on
-- focus_sourcetype (optional): Specific sourcetype to focus on
+- focus_index (optional): Specific index to focus analysis on
+- focus_host (optional): Specific host to focus analysis on
+- focus_sourcetype (optional): Specific sourcetype to focus analysis on
 - complexity_level (optional): "basic", "moderate", "advanced" (default: "moderate")
-- workflow_type (optional): "missing_data", "performance", "health_check", "auto" (default: "auto")
+- workflow_type (optional): "missing_data", "performance", "auto" (default: "auto")
 """,
         category="troubleshooting",
     )
@@ -326,7 +308,6 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
         workflow_mapping = {
             "missing_data": "missing_data_troubleshooting",
             "performance": "performance_analysis",
-            "health_check": "health_check",
             # Also accept actual IDs
             "missing_data_troubleshooting": "missing_data_troubleshooting",
             "performance_analysis": "performance_analysis",
@@ -347,7 +328,7 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
             problem_description: The user's problem description
 
         Returns:
-            str: The recommended workflow type ("missing_data_troubleshooting", "performance_analysis", or "health_check")
+            str: The recommended workflow type ("missing_data_troubleshooting" or "performance_analysis")
         """
         problem_lower = problem_description.lower()
 
@@ -393,30 +374,16 @@ This tool uses asyncio.gather with dependency-aware task orchestration to execut
             "latency",
         ]
 
-        # Health check indicators (simple/quick checks)
-        health_keywords = [
-            "health check",
-            "status",
-            "connectivity",
-            "basic check",
-            "quick check",
-            "overall status",
-            "system status",
-        ]
-
         # Count keyword matches
         missing_data_score = sum(1 for keyword in missing_data_keywords if keyword in problem_lower)
         performance_score = sum(1 for keyword in performance_keywords if keyword in problem_lower)
-        health_score = sum(1 for keyword in health_keywords if keyword in problem_lower)
 
         logger.debug(
-            f"Problem analysis scores - Missing Data: {missing_data_score}, Performance: {performance_score}, Health: {health_score}"
+            f"Problem analysis scores - Missing Data: {missing_data_score}, Performance: {performance_score}"
         )
 
         # Determine the best workflow - use actual workflow IDs
-        if health_score > 0 and "health check" in problem_lower:
-            return "health_check"
-        elif missing_data_score > performance_score:
+        if missing_data_score > performance_score:
             return "missing_data_troubleshooting"
         elif performance_score > 0:
             return "performance_analysis"
@@ -689,8 +656,8 @@ Focus on providing actionable insights that address the original problem while c
             raise ValueError("problem_description is required and cannot be empty")
         if complexity_level not in ["basic", "moderate", "advanced"]:
             raise ValueError(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
-        if workflow_type not in ["auto", "missing_data", "performance", "health_check"]:
-            raise ValueError(f"workflow_type must be 'auto', 'missing_data', 'performance', or 'health_check', got: {workflow_type}")
+        if workflow_type not in ["auto", "missing_data", "performance"]:
+            raise ValueError(f"workflow_type must be 'auto', 'missing_data', or 'performance', got: {workflow_type}")
 
         # Normalize empty strings to None
         focus_index = focus_index if focus_index and focus_index.strip() else None

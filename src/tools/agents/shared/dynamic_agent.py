@@ -851,9 +851,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         context = execution_context.diagnostic_context
         instructions = instructions.replace("{earliest_time}", context.earliest_time)
         instructions = instructions.replace("{latest_time}", context.latest_time)
-        instructions = instructions.replace("{focus_index}", context.focus_index or "all indexes")
-        instructions = instructions.replace("{focus_host}", context.focus_host or "all hosts")
-        instructions = instructions.replace("{focus_sourcetype}", context.focus_sourcetype or "all sourcetypes")
+        instructions = instructions.replace("{focus_index}", context.focus_index or "*")
+        instructions = instructions.replace("{focus_host}", context.focus_host or "*")
+        instructions = instructions.replace("{focus_sourcetype}", context.focus_sourcetype or "*")
         instructions = instructions.replace("{problem_description}", context.problem_description or "No specific problem description provided")
         instructions = instructions.replace("{workflow_type}", context.workflow_type or "unknown")
         instructions = instructions.replace("{complexity_level}", context.complexity_level)

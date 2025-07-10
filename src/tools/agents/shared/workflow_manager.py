@@ -117,27 +117,29 @@ class WorkflowManager:
         logger.info("All built-in workflows registered successfully")
 
     def _create_missing_data_workflow(self) -> WorkflowDefinition:
-        """Create the missing data troubleshooting workflow."""
+        """Create the missing data troubleshooting workflow following Splunk's official 10-step checklist."""
 
         tasks = [
             TaskDefinition(
-                task_id="license_verification",
-                name="License & Edition Verification",
-                description="Check Splunk license and edition status",
+                task_id="splunk_license_edition_verification",
+                name="Splunk License & Edition Verification",
+                description="Check Splunk license and edition status - Step 1 of official workflow",
                 instructions="""
-You are verifying Splunk license and edition information.
+You are performing Step 1 of the official Splunk missing data troubleshooting workflow.
 
-**Task:** Check Splunk license state and edition type
-**Tools:** Use run_splunk_search to query server info
-**Query:** | rest /services/server/info | fields splunk_version, product_type, license_state
+**Check if running Splunk Free:**
+- Splunk Free doesn't support multiple users, distributed searching, or alerting
+- Saved searches from other users may not be accessible
+- Use search: `| rest /services/server/info | fields splunk_version, product_type, license_state`
 
 **Analysis:**
-1. Check if running Splunk Free (has limitations)
-2. Verify license state (OK, expired, violation)
-3. Note version and product type
-4. Identify any license-related issues that could affect data access
+1. Execute the search to get server info
+2. Check if product_type indicates Splunk Free
+3. Verify license_state is valid
+4. Note version and product type
+5. Identify any license-related limitations that could affect data access
 
-**Output:** Return DiagnosticResult with license status and any issues found.
+**Output:** Return DiagnosticResult with license status, edition type, and any limitations found.
                 """,
                 required_tools=["run_splunk_search", "get_current_user_info"],
                 dependencies=[],  # No dependencies - can run in parallel
@@ -146,68 +148,84 @@ You are verifying Splunk license and edition information.
             TaskDefinition(
                 task_id="index_verification",
                 name="Index Verification",
-                description="Verify target indexes exist and are accessible",
+                description="Verify data was added to correct indexes - Step 2 of official workflow",
                 instructions="""
-You are verifying index existence and accessibility.
+You are performing Step 2 of the official Splunk missing data troubleshooting workflow.
 
-**Task:** Check if target indexes {indexes} exist and are accessible
-**Tools:** Use list_indexes and run_splunk_search for access testing
+
+**Was data added to a different index?**
+- Some apps write to specific indexes (e.g., *nix/Windows apps use "os" index)
+- Check available indexes and verify you're searching the right one
+- Use search: `| eventcount summarize=false index={focus_index} | dedup index | table index`
+- Try searching specific indexes: `index=os` or `index=main`
 
 **Analysis:**
-1. Get list of available indexes
-2. Check if target indexes {indexes} exist
-3. Test accessibility with simple metadata search for each index
-4. Identify missing or inaccessible indexes
+1. Get list of all available indexes using eventcount
+2. Check if target indexes {focus_index} exist (if specified)
+3. Test accessibility with simple searches on key indexes
+4. Identify missing or unexpected indexes
+5. Check for data in common indexes like main, os, etc.
 
-**Output:** Return DiagnosticResult with index status and accessibility issues.
+**Output:** Return DiagnosticResult with index availability and accessibility status.
                 """,
                 required_tools=["list_splunk_indexes", "run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=["indexes"],
+                context_requirements=["focus_index"],
             ),
             TaskDefinition(
-                task_id="permissions_verification",
+                task_id="permissions_access_control",
                 name="Permissions & Access Control",
-                description="Verify user permissions and role-based access",
+                description="Verify user permissions allow data access - Step 3 of official workflow",
                 instructions="""
-You are verifying user permissions and access control.
-
-**Task:** Check user permissions for data access
-**Dependencies:** Use license verification results if available for user info
+You are performing Step 3 of the official Splunk missing data troubleshooting workflow.
+**Do your permissions allow you to see the data?**
+- **STEP 3A:** First, get current user information: Use tool `get_current_user_info()` to get the user's roles and capabilities
+- **STEP 3B:** Extract the role names from the user info response (look for the "roles" field)
+- **STEP 3C:** Check role-based index access restrictions using the actual role names
+- **Example workflow:**
+  1. Call `get_current_user_info()` and note the roles (e.g., ["admin", "power"])
+  2. Then use: `| rest /services/authorization/roles | search title IN ("admin", "power") | table title, srchIndexesAllowed, srchIndexesDefault`
+  3. Or check each role individually: `| rest /services/authorization/roles | search title="admin" | table title, srchIndexesAllowed, srchIndexesDefault`
+- **Alternative for overview:** `| rest /services/authorization/roles | table title, srchIndexesAllowed, srchIndexesDefault`
+- Verify search filters aren't blocking data based on the role's index access
 
 **Analysis:**
-1. Get current user information and roles
-2. Test basic search permissions
-3. Check access to target indexes {indexes} if specified
-4. Verify role-based index access restrictions
-5. Check search filters based on role permissions
+1. Get current user information and extract roles
+2. Query role permissions for index access
+3. Check if user roles allow access to target indexes
+4. Verify search filters and restrictions
+5. Test basic search permissions
 
-**Output:** Return DiagnosticResult with permission status and access issues.
+**Output:** Return DiagnosticResult with permission status and access control issues.
                 """,
                 required_tools=["get_current_user_info", "run_splunk_search"],
-                dependencies=["license_verification"],  # Depends on license for user info
-                context_requirements=["earliest_time", "latest_time"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=[],
             ),
             TaskDefinition(
-                task_id="time_range_verification",
-                name="Time Range Issues Analysis",
-                description="Check data availability in specified time range and time-related problems",
+                task_id="time_range_issues",
+                name="Time Range Issues",
+                description="Check time-related problems - Step 4 of official workflow",
                 instructions="""
-You are verifying data availability in the specified time range and analyzing time-related issues.
-
+You are performing Step 4 of the official Splunk missing data troubleshooting workflow.
 **Task:** Check for data in time range {earliest_time} to {latest_time} and identify time-related problems
-**Context:** Target indexes: {indexes}, sourcetypes: {sourcetypes}
+**Context:** Target indexes: {focus_index}, sourcetypes: {focus_sourcetype}
+**Check time-related problems:**
+- Verify events exist in your search time window
+- Try "All time" search to catch future-timestamped events
+- Check for indexing delays (replace `YOUR_INDEX` with specific index or use `index=*`):
+  `index={focus_index} | eval lag=_indextime-_time | stats avg(lag) max(lag) by index`
+- Verify timezone settings for scheduled searches
 
 **Analysis:**
-1. Build appropriate search query based on available context
+1. Build search query for specified time range {earliest_time} to {latest_time}
 2. Execute count query for the time range
-3. Check for data gaps or missing recent data
-4. Analyze time distribution if significant data found
-5. Check for indexing delays using _indextime vs _time
-6. Verify timezone settings and future-timestamped events
-7. Try "All time" search to catch timing issues
+3. Try broader time range (All time) to check for future timestamps
+4. Check indexing delays using _indextime vs _time comparison
+5. Analyze time distribution patterns
+6. Identify timezone or timestamp issues
 
-**Output:** Return DiagnosticResult with data availability status and time-related recommendations.
+**Output:** Return DiagnosticResult with time range analysis and indexing delay information.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
@@ -215,46 +233,47 @@ You are verifying data availability in the specified time range and analyzing ti
             ),
             TaskDefinition(
                 task_id="forwarder_connectivity",
-                name="Forwarder Connectivity Analysis",
-                description="Check forwarder connections and data flow",
+                name="Forwarder Connectivity",
+                description="Check forwarder connections if using forwarders - Step 5 of official workflow",
                 instructions="""
-You are analyzing forwarder connectivity and data flow.
-
-**Task:** Check forwarder connections and data ingestion pipeline
+You are performing Step 5 of the official Splunk missing data troubleshooting workflow.
 **Context:** Focus host: {focus_host} if specified, index: {focus_index} if specified
+**Check forwarder connections:**
+- Verify forwarders connecting `index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp`
+- Check output queues: `index=_internal source=*metrics.log* group=queue tcpout | stats count by name`
+- Verify recent host activity:
+  `| metadata type=hosts index={focus_index} | eval diff=now()-recentTime | where diff < 600`
+- Check connection logs: `index=_internal "Connected to idx" OR "cooked mode"`
 
 **Analysis:**
-1. Verify forwarders connecting using tcpin_connections metrics
-2. Check output queues for tcpout connections
+1. Check forwarder connections using tcpin_connections metrics
+2. Analyze output queue status for tcpout connections
 3. Verify recent host activity using metadata
-4. Check connection logs for "Connected to idx" or "cooked mode"
-5. Analyze forwarder throughput and connection stability
-6. Identify connection drops or network issues
+4. Check connection logs for forwarder connectivity
+5. Identify connection drops or network issues
+6. Focus on specific host {focus_host} if provided
 
-**Searches:**
-- index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp
-- index=_internal source=*metrics.log* group=queue tcpout | stats count by name
-- | metadata type=hosts index={focus_index} | eval diff=now()-recentTime | where diff < 600
-- index=_internal "Connected to idx" OR "cooked mode"
-
-**Output:** Return DiagnosticResult with forwarder connectivity status and issues.
+**Output:** Return DiagnosticResult with forwarder connectivity status and connection issues.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=["earliest_time", "latest_time", "focus_index", "focus_host"],
+                context_requirements=["focus_index", "focus_host"],
             ),
             TaskDefinition(
                 task_id="search_head_configuration",
-                name="Search Head Configuration Verification",
-                description="Verify search head setup in distributed environments",
+                name="Search Head Configuration",
+                description="Verify search head setup in distributed environment - Step 6 of official workflow",
                 instructions="""
-You are verifying search head configuration in distributed environments.
+You are performing Step 6 of the official Splunk missing data troubleshooting workflow.
 
-**Task:** Check search head setup and distributed search configuration
+**Verify search head setup:**
+- Check search heads are connected to correct indexers
+- Verify distributed search configuration
+- Use search: `| rest /services/search/distributed/peers | table title, status, is_https`
 
 **Analysis:**
-1. Check search heads are connected to correct indexers
-2. Verify distributed search configuration
+1. Check distributed search peer configuration
+2. Verify search head connections to indexers
 3. Check search head cluster status if applicable
 4. Identify search head connectivity issues
 5. Verify search head can reach all required indexers
@@ -268,23 +287,27 @@ You are verifying search head configuration in distributed environments.
                 """,
                 required_tools=["run_splunk_search"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=["earliest_time", "latest_time"],
+                context_requirements=[],
             ),
             TaskDefinition(
-                task_id="license_violations_check",
-                name="License Violations Analysis",
-                description="Check for license violations that prevent searching",
+                task_id="license_violations",
+                name="License Violations",
+                description="Check for license violations that prevent searching - Step 7 of official workflow",
                 instructions="""
-You are checking for license violations that could prevent data searching.
+You are performing Step 7 of the official Splunk missing data troubleshooting workflow.
 
-**Task:** Analyze license usage and violations that block search functionality
+**Check for license issues:**
+- License violations prevent searching (but indexing continues)
+- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool`
+- Verify license status
+- Use search: `| rest /services/licenser/messages | table category, message`
 
 **Analysis:**
-1. Check for license violations that prevent searching (indexing continues)
-2. Analyze license pool usage and quotas
-3. Check license violation messages and warnings
-4. Identify license-related search restrictions
-5. Verify license compliance across pools
+1. Check license usage by pool to identify violations
+2. Query license manager messages for warnings/errors
+3. Verify license compliance across pools
+4. Check for license-related search restrictions
+5. Identify any license violations blocking search functionality
 
 **Searches:**
 - index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool
@@ -294,28 +317,30 @@ You are checking for license violations that could prevent data searching.
 
 **Output:** Return DiagnosticResult with license violation status and impact on search capability.
                 """,
-                required_tools=["run_splunk_search"],
-                dependencies=["license_verification"],  # Depends on basic license info
-                context_requirements=["earliest_time", "latest_time"],
+                required_tools=["run_splunk_search", "report_specialist_progress"],
+                dependencies=["splunk_license_edition_verification"],  # Depends on basic license info
+                context_requirements=[],
             ),
             TaskDefinition(
                 task_id="scheduled_search_issues",
-                name="Scheduled Search Issues Analysis",
-                description="Analyze scheduled search performance and configuration",
+                name="Scheduled Search Issues",
+                description="Analyze scheduled search problems - Step 8 of official workflow",
                 instructions="""
-You are analyzing scheduled search issues and performance.
-
-**Task:** Check scheduled search configuration and execution issues
+You are performing Step 8 of the official Splunk missing data troubleshooting workflow.
 **Context:** Time range: {earliest_time} to {latest_time}
 
-**Analysis:**
-1. Verify time ranges aren't excluding events in scheduled searches
-2. Check for indexing lag affecting recent data in schedules
-3. Examine scheduler performance and queue status
-4. Identify failed or slow scheduled searches
-5. Check search concurrency limits affecting schedules
-6. Analyze scheduler.log for performance issues
+**For scheduled searches:**
+- Verify time ranges aren't excluding events
+- Check for indexing lag affecting recent data
+- Examine scheduler performance
+- Use search: `index=_internal source=*scheduler.log* | stats count by status`
 
+**Analysis:**
+1. Check scheduler.log for search execution status
+2. Identify failed or slow scheduled searches
+3. Verify time ranges in scheduled searches aren't excluding data
+4. Check for indexing lag affecting recent data in schedules
+5. Analyze scheduler performance and queue status
 **Searches:**
 - index=_internal source=*scheduler.log* | stats count by status
 - index=_internal source=*scheduler.log* | search status=failed | head 10
@@ -330,21 +355,24 @@ You are analyzing scheduled search issues and performance.
             ),
             TaskDefinition(
                 task_id="search_query_validation",
-                name="Search Query Syntax Validation",
-                description="Validate search query syntax and logic",
+                name="Search Query Validation",
+                description="Verify search syntax and logic - Step 9 of official workflow",
                 instructions="""
-You are validating search query syntax and logic for common issues.
+You are performing Step 9 of the official Splunk missing data troubleshooting workflow.
 
-**Task:** Check for common search syntax problems that prevent data retrieval
+**Verify search syntax:**
+- Check logic operators (NOT, AND, OR) usage
+- Verify quote usage and escape characters
+- Confirm correct index, source, sourcetype, host specifications
+- Test subsearch ordering and field passing
+- Check for intentions framework rewrites in drilldowns
 
 **Analysis:**
-1. Check logic operators (NOT, AND, OR) usage patterns
-2. Verify quote usage and escape characters in searches
-3. Confirm correct index, source, sourcetype, host specifications
-4. Test subsearch ordering and field passing
-5. Check for intentions framework rewrites in drilldowns
-6. Validate field names and search syntax
-7. Look for common syntax errors in user searches
+1. Check audit logs for recent search patterns and syntax errors
+2. Look for common search syntax problems
+3. Verify field names and search logic
+4. Check for search parser errors
+5. Validate query construction and operator usage
 
 **Searches:**
 - index=_audit action=search | search search!="*typeahead*" | head 10
@@ -359,118 +387,332 @@ You are validating search query syntax and logic for common issues.
             ),
             TaskDefinition(
                 task_id="field_extraction_issues",
-                name="Field Extraction Issues Analysis",
-                description="Check field extraction problems and configuration",
+                name="Field Extraction Issues",
+                description="Check field extraction problems - Step 10 of official workflow",
                 instructions="""
-You are analyzing field extraction issues and configuration problems.
-
-**Task:** Check field extraction configuration and functionality
+You are performing Step 10 of the official Splunk missing data troubleshooting workflow.
+**Context:** Focus sourcetype: {focus_sourcetype} if specified, index: {focus_index} if specified
+Check field extraction configuration and functionality
+**For field extraction problems:**
+- Test regex patterns with rex command
+- Verify extraction permissions and sharing
+- Check extractions applied to correct source/sourcetype/host
+- Use search: `| rest /services/data/props/extractions | search stanza={focus_sourcetype} | table stanza, attribute, value`
 
 **Analysis:**
-1. Test regex patterns with rex command for field extractions
+1. Check field extraction configuration using props/extractions
 2. Verify extraction permissions and sharing settings
-3. Check extractions applied to correct source/sourcetype/host
-4. Analyze field extraction performance and conflicts
-5. Check for search-time vs index-time extraction issues
-6. Verify field extraction precedence and ordering
+3. Test regex patterns and field extraction functionality
+4. Check extractions applied to correct source/sourcetype/host
+5. Analyze field extraction performance and conflicts
 
-**Searches:**
-- | rest /services/data/props/extractions | search stanza=* | table stanza, attribute, value
-- | rest /services/data/transforms/extractions | table stanza, regex, format
-- index=_internal source=*splunkd.log* component=AggregatorMiningProcessor
-- index=_internal source=*splunkd.log* "Field extraction"
 
 **Output:** Return DiagnosticResult with field extraction status and configuration issues.
                 """,
-                required_tools=["run_splunk_search"],
+                required_tools=["run_splunk_search", "report_specialist_progress"],
                 dependencies=[],  # No dependencies - can run in parallel
-                context_requirements=["earliest_time", "latest_time"],
+                context_requirements=["focus_sourcetype"],
             ),
         ]
 
         return WorkflowDefinition(
             workflow_id="missing_data_troubleshooting",
             name="Missing Data Troubleshooting",
-            description="Systematic troubleshooting for missing data issues following Splunk's official workflow",
+            description="Systematic troubleshooting for missing data issues following Splunk's official 10-step workflow",
             tasks=tasks,
         )
 
     def _create_performance_workflow(self) -> WorkflowDefinition:
-        """Create the performance analysis workflow."""
+        """Create the performance analysis workflow following Splunk Platform Instrumentation 10-step checklist."""
 
         tasks = [
             TaskDefinition(
                 task_id="system_resource_baseline",
                 name="System Resource Baseline",
-                description="Analyze system resource usage patterns",
+                description="Analyze system resource usage patterns - Step 1 of performance workflow",
                 instructions="""
-You are analyzing system resource baseline.
+You are performing Step 1 of the systematic performance troubleshooting workflow.
 
-**Task:** Check system CPU, memory, and disk usage patterns
-**Tools:** Use run_splunk_search to query introspection data
+**Check overall CPU, memory, and disk usage patterns:**
+- Search: `index=_introspection component=Hostwide | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used by host`
+- Establish baseline resource utilization across all Splunk instances
+- Look for hosts with consistently high resource usage (>80% CPU or memory)
 
 **Analysis:**
 1. Query _introspection index for Hostwide component data
 2. Check CPU usage patterns (system and user)
-3. Analyze memory utilization
-4. Identify hosts with high resource usage (>80%)
+3. Analyze memory utilization across hosts
+4. Identify hosts with high resource usage (>80% CPU or memory)
+5. Focus on specific host {focus_host} if provided
 
 **Output:** Return DiagnosticResult with resource usage status and bottlenecks.
                 """,
                 required_tools=["run_splunk_search"],
-                dependencies=[],
-                context_requirements=["earliest_time", "latest_time"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
             ),
             TaskDefinition(
-                task_id="search_concurrency_analysis",
-                name="Search Concurrency Analysis",
-                description="Analyze search concurrency and performance",
+                task_id="splunk_process_resource_analysis",
+                name="Splunk Process Resource Analysis",
+                description="Analyze resource usage specific to Splunk processes - Step 2 of performance workflow",
                 instructions="""
-You are analyzing search concurrency and performance.
+You are performing Step 2 of the systematic performance troubleshooting workflow.
 
-**Task:** Check search concurrency patterns and limits
-**Time Range:** {earliest_time} to {latest_time}
+**Analyze resource usage specific to Splunk processes:**
+- Identify processes consuming excessive resources
+- Use search: `index=_introspection component=PerProcess data.process_class=search | stats median(data.pct_cpu) as median_cpu, median(data.pct_memory) as median_memory by data.search_type`
+- Check for memory leaks or CPU spikes in splunkd processes
+- Use search: `index=_introspection component=PerProcess data.process=splunkd | stats avg(data.pct_cpu) as avg_splunkd_cpu, avg(data.pct_memory) as avg_splunkd_memory by host`
 
 **Analysis:**
-1. Query _introspection for search concurrency data
-2. Check if hitting configured limits
-3. Analyze scheduler.log for search performance
+1. Query _introspection for PerProcess component data
+2. Analyze search process resource consumption by search type
+3. Check splunkd process resource usage patterns
+4. Identify processes consuming excessive resources
+5. Look for memory leaks or CPU spikes
+6. Focus on specific host {focus_host} if provided
+
+**Output:** Return DiagnosticResult with Splunk process resource usage and issues.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
+            ),
+            TaskDefinition(
+                task_id="search_concurrency_performance",
+                name="Search Concurrency and Performance",
+                description="Examine search concurrency patterns and limits - Step 3 of performance workflow",
+                instructions="""
+You are performing Step 3 of the systematic performance troubleshooting workflow.
+
+**Examine search concurrency patterns and limits:**
+- Check if search concurrency is hitting configured limits
+- Use search: `index=_introspection component=Hostwide | stats median(data.splunk_search_concurrency) as median_search_concurrency by host`
+- Identify slow or failed scheduled searches
+- Use search: `index=_internal source=*scheduler.log* | stats count by status, search_type | sort -count`
+
+**Analysis:**
+1. Query search concurrency metrics from _introspection
+2. Check if hitting configured concurrency limits
+3. Analyze scheduler.log for search performance patterns
 4. Identify slow or failed searches
+5. Focus on specific host {focus_host} if provided
 
-**Output:** Return DiagnosticResult with search performance status and issues.
+**Output:** Return DiagnosticResult with search concurrency status and performance issues.
                 """,
                 required_tools=["run_splunk_search"],
-                dependencies=[],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
+            ),
+            TaskDefinition(
+                task_id="disk_usage_io_performance",
+                name="Disk Usage and I/O Performance",
+                description="Analyze disk space utilization and I/O patterns - Step 4 of performance workflow",
+                instructions="""
+You are performing Step 4 of the systematic performance troubleshooting workflow.
+
+**Analyze disk space utilization and I/O patterns:**
+- Check for disk space issues (>85% usage)
+- Use search: `index=_introspection component=DiskObjects | stats latest(data.capacity) as capacity, latest(data.available) as available by data.mount_point, host | eval pct_used=round(((capacity-available)/capacity)*100,2)`
+- Monitor I/O wait times and disk performance bottlenecks
+- Use search: `index=_introspection component=Hostwide | stats avg(data.read_ops) as avg_read_ops, avg(data.write_ops) as avg_write_ops by host`
+
+**Analysis:**
+1. Query DiskObjects component for disk space utilization
+2. Calculate disk usage percentages and identify >85% usage
+3. Monitor I/O operations and performance patterns
+4. Identify disk performance bottlenecks
+5. Focus on specific host {focus_host} if provided
+
+**Output:** Return DiagnosticResult with disk usage and I/O performance status.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
+            ),
+            TaskDefinition(
+                task_id="indexing_pipeline_performance",
+                name="Indexing Pipeline Performance",
+                description="Analyze indexing delays and throughput issues - Step 5 of performance workflow",
+                instructions="""
+You are performing Step 5 of the systematic performance troubleshooting workflow.
+
+**Analyze indexing delays and throughput issues:**
+- Check for indexing delays or pipeline bottlenecks
+- Use search: `index=_internal source=*metrics.log* group=per_index_thruput | stats avg(kb) as avg_kb_per_sec by series`
+- Identify indexes with low throughput or high processing times
+- Use search: `index=_internal source=*metrics.log* group=pipeline | stats avg(cpu_seconds) as avg_cpu_seconds, avg(executes) as avg_executes by processor`
+
+**Analysis:**
+1. Query per_index_thruput metrics for throughput analysis
+2. Calculate average throughput by index series
+3. Analyze pipeline processor performance
+4. Identify indexes with low throughput or high processing times
+5. Focus on specific index {focus_index} if provided
+
+**Output:** Return DiagnosticResult with indexing pipeline performance status and recommendations.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_index"],
+            ),
+            TaskDefinition(
+                task_id="queue_analysis_processing_delays",
+                name="Queue Analysis and Processing Delays",
+                description="Examine queue depths and processing delays - Step 6 of performance workflow",
+                instructions="""
+You are performing Step 6 of the systematic performance troubleshooting workflow.
+
+**Examine queue depths and processing delays:**
+- Look for consistently full queues (parsing, indexing, typing)
+- Use search: `index=_internal source=*metrics.log* group=queue | stats max(current_size) as max_queue_size, avg(current_size) as avg_queue_size by name`
+- Identify queue bottlenecks affecting performance
+- Use search: `index=_internal source=*metrics.log* group=queue | where current_size > 0 | stats count by name | sort -count`
+
+**Analysis:**
+1. Query queue metrics for current sizes and patterns
+2. Identify consistently full queues (parsing, indexing, typing)
+3. Calculate maximum and average queue sizes by queue name
+4. Identify queue bottlenecks affecting performance
+5. Focus on queues related to specific index {focus_index} if provided
+
+**Output:** Return DiagnosticResult with queue analysis and processing delay information.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_index"],
+            ),
+            TaskDefinition(
+                task_id="search_head_kvstore_performance",
+                name="Search Head and KV Store Performance",
+                description="Analyze search head cluster and KV Store performance - Step 7 of performance workflow",
+                instructions="""
+You are performing Step 7 of the systematic performance troubleshooting workflow.
+
+**Analyze search head cluster and KV Store performance:**
+- Check KV Store health and connectivity issues
+- Use search: `index=_internal source=*splunkd.log* component=KVStoreMgr | stats count by log_level | sort -count`
+- Monitor file descriptor usage for splunkweb processes
+- Use search: `index=_introspection component=Hostwide | stats avg(data.splunkweb_fd_used) as avg_fd_used by host`
+
+**Analysis:**
+1. Query KV Store manager logs for health status
+2. Check KV Store connectivity and error patterns
+3. Monitor file descriptor usage for splunkweb processes
+4. Identify search head performance issues
+5. Focus on specific host {focus_host} if provided
+
+**Output:** Return DiagnosticResult with search head and KV Store performance status.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
+            ),
+            TaskDefinition(
+                task_id="license_capacity_constraints",
+                name="License and Capacity Constraints",
+                description="Check for license violations affecting performance - Step 8 of performance workflow",
+                instructions="""
+You are performing Step 8 of the systematic performance troubleshooting workflow.
+
+**Check for license violations affecting performance:**
+- Identify license pool violations that may throttle indexing
+- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) as total_bytes by pool | eval total_gb=round(total_bytes/1024/1024/1024,2)`
+- Check for capacity planning issues
+- Use search: `index=_internal source=*splunkd.log* LicenseManager | search "pool quota" | head 20`
+
+**Analysis:**
+1. Query license usage by pool to identify violations
+2. Calculate total bytes and GB usage by license pool
+3. Check for license pool quota violations
+4. Identify capacity planning issues affecting performance
+5. Analyze license manager logs for quota warnings
+
+**Output:** Return DiagnosticResult with license and capacity constraint status.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[],  # No dependencies - can run in parallel
                 context_requirements=["earliest_time", "latest_time"],
             ),
             TaskDefinition(
-                task_id="indexing_performance_analysis",
-                name="Indexing Performance Analysis",
-                description="Analyze indexing pipeline performance",
+                task_id="network_forwarder_performance",
+                name="Network and Forwarder Performance",
+                description="Examine forwarder connectivity and network performance - Step 9 of performance workflow",
                 instructions="""
-You are analyzing indexing pipeline performance.
+You are performing Step 9 of the systematic performance troubleshooting workflow.
 
-**Task:** Check indexing throughput and pipeline performance
-**Context:** Focus on indexes: {indexes}
+**Examine forwarder connectivity and network performance:**
+- Check forwarder connection stability and throughput
+- Use search: `index=_internal source=*metrics.log* group=tcpin_connections | stats dc(connectionType) as connection_types, avg(kb) as avg_kb_per_sec by sourceHost`
+- Identify network bottlenecks or connection issues
+- Use search: `index=_internal source=*splunkd.log* component=TcpInputProc | stats count by log_level | sort -count`
 
 **Analysis:**
-1. Query _internal metrics.log for per_index_thruput
-2. Check pipeline processor performance
-3. Analyze queue sizes and delays
-4. Identify indexing bottlenecks
+1. Query tcpin_connections metrics for forwarder performance
+2. Calculate connection types and throughput by source host
+3. Check TcpInputProc logs for connection issues
+4. Identify network bottlenecks or connection problems
+5. Focus on specific host {focus_host} if provided
 
-**Output:** Return DiagnosticResult with indexing performance status and recommendations.
+**Output:** Return DiagnosticResult with network and forwarder performance status.
                 """,
                 required_tools=["run_splunk_search"],
-                dependencies=[],
-                context_requirements=["earliest_time", "latest_time"],
+                dependencies=[],  # No dependencies - can run in parallel
+                context_requirements=["earliest_time", "latest_time", "focus_host"],
+            ),
+            TaskDefinition(
+                task_id="performance_recommendations_optimization",
+                name="Performance Recommendations and Optimization",
+                description="Correlate findings and provide optimization recommendations - Step 10 of performance workflow",
+                instructions="""
+You are performing Step 10 of the systematic performance troubleshooting workflow.
+
+**Correlate findings and provide specific optimization recommendations:**
+- Use search: `index=_internal source=*splunkd.log* log_level=WARN OR log_level=ERROR | stats count by component | sort -count | head 10`
+- Provide tuning recommendations based on identified bottlenecks
+- Suggest configuration changes with expected performance impact
+- Document baseline metrics for future comparison
+
+**Analysis:**
+1. Query splunkd.log for warning and error patterns by component
+2. Correlate findings from previous performance analysis steps
+3. Identify top components generating warnings/errors
+4. Provide specific tuning recommendations based on bottlenecks
+5. Suggest configuration changes with expected impact
+6. Document baseline metrics for future monitoring
+
+**Critical Performance Indicators to address:**
+- CPU usage >80% sustained
+- Memory usage >85% sustained
+- Disk usage >85% of capacity
+- Search concurrency at configured limits
+- Queue sizes consistently >0
+- Indexing throughput below expected rates
+- License pool violations
+- Network connection drops or errors
+
+**Output:** Return DiagnosticResult with performance optimization recommendations and tuning suggestions.
+                """,
+                required_tools=["run_splunk_search"],
+                dependencies=[
+                    "system_resource_baseline",
+                    "splunk_process_resource_analysis",
+                    "search_concurrency_performance",
+                    "disk_usage_io_performance",
+                    "indexing_pipeline_performance",
+                    "queue_analysis_processing_delays",
+                    "search_head_kvstore_performance",
+                    "license_capacity_constraints",
+                    "network_forwarder_performance"
+                ],  # Depends on all previous analysis steps
+                context_requirements=["earliest_time", "latest_time", "focus_host", "focus_index"],
             ),
         ]
 
         return WorkflowDefinition(
             workflow_id="performance_analysis",
             name="Performance Analysis",
-            description="Comprehensive performance analysis using Splunk Platform Instrumentation",
+            description="Comprehensive performance analysis using Splunk Platform Instrumentation 10-step workflow",
             tasks=tasks,
         )
 
@@ -576,7 +818,7 @@ You are performing a basic data availability check.
             WorkflowResult containing execution results and summary
         """
         start_time = time.time()
-        
+
         if execution_metadata is None:
             execution_metadata = {}
 
@@ -589,7 +831,7 @@ You are performing a basic data availability check.
             # Create unique trace name to avoid conflicts
             trace_timestamp = int(time.time() * 1000)
             trace_name = f"Workflow Execution {workflow_id} {trace_timestamp}"
-            
+
             # Convert metadata to strings for OpenAI API compatibility
             trace_metadata = {
                 "workflow_id": str(workflow_id),
@@ -600,7 +842,7 @@ You are performing a basic data availability check.
                 "complexity_level": str(diagnostic_context.complexity_level),
                 "trace_timestamp": str(trace_timestamp),
             }
-            
+
             with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_workflow_core(
                     workflow_id, diagnostic_context, ctx, execution_metadata, start_time
@@ -621,19 +863,19 @@ You are performing a basic data availability check.
         start_time: float,
     ) -> WorkflowResult:
         """Core workflow execution with tracing spans and progress reporting."""
-        
+
         try:
             # Report initial progress
             await ctx.report_progress(progress=0, total=100)
             await ctx.info(f"🚀 Starting workflow: {workflow_id}")
-            
+
             # Get workflow definition with tracing
             if TRACING_AVAILABLE and custom_span:
                 with custom_span("workflow_definition_lookup"):
                     workflow = self.get_workflow(workflow_id)
                     if not workflow:
                         raise ValueError(f"Workflow '{workflow_id}' not found")
-                    
+
                     logger.info(f"Found workflow: {workflow.name} with {len(workflow.tasks)} tasks")
             else:
                 workflow = self.get_workflow(workflow_id)
@@ -650,7 +892,7 @@ You are performing a basic data availability check.
                 with custom_span("dependency_analysis"):
                     dependency_graph = self._build_dependency_graph(workflow.tasks)
                     execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
-                    
+
                     logger.info(f"Dependency analysis complete:")
                     logger.info(f"  - Total tasks: {len(workflow.tasks)}")
                     logger.info(f"  - Execution phases: {len(execution_phases)}")
@@ -659,7 +901,7 @@ You are performing a basic data availability check.
             else:
                 dependency_graph = self._build_dependency_graph(workflow.tasks)
                 execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
-                
+
                 logger.info(f"Dependency analysis complete:")
                 logger.info(f"  - Total tasks: {len(workflow.tasks)}")
                 logger.info(f"  - Execution phases: {len(execution_phases)}")
@@ -673,32 +915,32 @@ You are performing a basic data availability check.
             # Execute tasks in phases with comprehensive tracing
             task_results: dict[str, DiagnosticResult] = {}
             phase_progress_step = 60 / len(execution_phases)  # 60% of progress for task execution
-            
+
             for phase_idx, phase_tasks in enumerate(execution_phases):
                 phase_name = f"execution_phase_{phase_idx + 1}"
                 logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}")
-                
+
                 # Report progress for this phase
                 phase_progress = 20 + (phase_idx * phase_progress_step)
                 await ctx.report_progress(progress=phase_progress, total=100)
                 await ctx.info(f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
-                
+
                 if TRACING_AVAILABLE and custom_span:
                     with custom_span(phase_name):
                         # Execute tasks in this phase (potentially in parallel)
                         phase_results = await self._execute_phase_with_tracing(
                             workflow, phase_tasks, diagnostic_context, task_results, ctx
                         )
-                        
+
                         # Update task results
                         task_results.update(phase_results)
-                        
+
                         # Add phase completion metrics
-                        successful_tasks = [task_id for task_id, result in phase_results.items() 
+                        successful_tasks = [task_id for task_id, result in phase_results.items()
                                           if result.status in ["healthy", "warning"]]
-                        failed_tasks = [task_id for task_id, result in phase_results.items() 
+                        failed_tasks = [task_id for task_id, result in phase_results.items()
                                       if result.status == "error"]
-                        
+
                         logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                         await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                 else:
@@ -706,16 +948,16 @@ You are performing a basic data availability check.
                     phase_results = await self._execute_phase_with_tracing(
                         workflow, phase_tasks, diagnostic_context, task_results, ctx
                     )
-                    
+
                     # Update task results
                     task_results.update(phase_results)
-                    
+
                     # Add phase completion metrics
-                    successful_tasks = [task_id for task_id, result in phase_results.items() 
+                    successful_tasks = [task_id for task_id, result in phase_results.items()
                                       if result.status in ["healthy", "warning"]]
-                    failed_tasks = [task_id for task_id, result in phase_results.items() 
+                    failed_tasks = [task_id for task_id, result in phase_results.items()
                                   if result.status == "error"]
-                    
+
                     logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                     await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
 
@@ -729,7 +971,7 @@ You are performing a basic data availability check.
                     workflow_result = await self._finalize_workflow_result(
                         workflow_id, workflow, task_results, execution_phases, start_time
                     )
-                    
+
                     logger.info(f"Workflow execution completed successfully")
                     logger.info(f"  - Status: {workflow_result.status}")
                     logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
@@ -738,7 +980,7 @@ You are performing a basic data availability check.
                 workflow_result = await self._finalize_workflow_result(
                     workflow_id, workflow, task_results, execution_phases, start_time
                 )
-                
+
                 logger.info(f"Workflow execution completed successfully")
                 logger.info(f"  - Status: {workflow_result.status}")
                 logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
@@ -754,7 +996,7 @@ You are performing a basic data availability check.
             execution_time = time.time() - start_time
             logger.error(f"Workflow execution failed: {e}", exc_info=True)
             await ctx.error(f"❌ Workflow {workflow_id} failed: {str(e)}")
-            
+
             # Create error result
             return WorkflowResult(
                 workflow_id=workflow_id,
@@ -781,19 +1023,19 @@ You are performing a basic data availability check.
         ctx: Context,
     ) -> dict[str, DiagnosticResult]:
         """Execute a phase of tasks with individual task tracing and progress reporting."""
-        
+
         phase_results = {}
-        
+
         # Create tasks for parallel execution
         async_tasks = []
-        
+
         for task_id in phase_tasks:
             # Find task definition
             task_def = next((task for task in workflow.tasks if task.task_id == task_id), None)
             if not task_def:
                 logger.error(f"Task definition not found for task_id: {task_id}")
                 continue
-            
+
             # Create execution context
             execution_context = AgentExecutionContext(
                 task_definition=task_def,
@@ -804,7 +1046,7 @@ You are performing a basic data availability check.
                     if dep_id in completed_task_results
                 },
             )
-            
+
             # Create dynamic agent and execute task with tracing
             if TRACING_AVAILABLE and custom_span:
                 async_tasks.append(
@@ -814,12 +1056,12 @@ You are performing a basic data availability check.
                 async_tasks.append(
                     self._execute_single_task_without_tracing(task_def, execution_context, ctx)
                 )
-        
+
         # Execute tasks in parallel
         if async_tasks:
             logger.info(f"Executing {len(async_tasks)} tasks in parallel...")
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
-            
+
             # Process results
             for i, result in enumerate(results):
                 task_id = phase_tasks[i]
@@ -836,7 +1078,7 @@ You are performing a basic data availability check.
                 else:
                     phase_results[task_id] = result
                     logger.debug(f"Task {task_id} completed with status: {result.status}")
-        
+
         return phase_results
 
     async def _execute_single_task_with_tracing(
@@ -846,15 +1088,15 @@ You are performing a basic data availability check.
         ctx: Context,
     ) -> DiagnosticResult:
         """Execute a single task with comprehensive tracing and progress reporting."""
-        
+
         with custom_span(f"task_execution_{task_def.task_id}"):
             # Create and execute dynamic agent
             dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
-            
+
             try:
                 result = await dynamic_agent.execute_task(execution_context, ctx)
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Task {task_def.task_id} execution failed: {e}", exc_info=True)
                 await ctx.error(f"❌ Task {task_def.task_id} failed: {str(e)}")
@@ -867,7 +1109,7 @@ You are performing a basic data availability check.
         ctx: Context,
     ) -> DiagnosticResult:
         """Execute a single task without tracing (fallback) but with progress reporting."""
-        
+
         # Create and execute dynamic agent
         dynamic_agent = create_dynamic_agent(self.config, self.tool_registry, task_def)
         return await dynamic_agent.execute_task(execution_context, ctx)

@@ -8,10 +8,11 @@ across different workflows and agent systems.
 
 import json
 import logging
-from typing import Any, Dict, List
 from dataclasses import dataclass
+from typing import Any
 
 from fastmcp import Context
+
 from .shared.config import AgentConfig
 from .shared.context import DiagnosticResult, SplunkDiagnosticContext
 from .shared.tools import SplunkToolRegistry
@@ -20,8 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Import OpenAI agents if available
 try:
-    from agents import Agent, Runner, function_tool
-    from agents import custom_span
+    from agents import Agent, Runner, custom_span, function_tool
 
     OPENAI_AGENTS_AVAILABLE = True
     logger.info("OpenAI agents SDK loaded successfully for summarization tool")
@@ -39,15 +39,15 @@ except ImportError:
 @dataclass
 class SummarizationResult:
     """Result of the summarization analysis."""
-    
+
     executive_summary: str
     root_cause_analysis: str
-    action_items: List[str]
-    priority_recommendations: List[str]
+    action_items: list[str]
+    priority_recommendations: list[str]
     severity_assessment: str
     resolution_timeline: str
-    follow_up_actions: List[str]
-    technical_details: Dict[str, Any]
+    follow_up_actions: list[str]
+    technical_details: dict[str, Any]
     confidence_score: float
 
 
@@ -67,9 +67,9 @@ class SummarizationTool:
     def __init__(self, config: AgentConfig, tool_registry: SplunkToolRegistry = None):
         self.config = config
         self.tool_registry = tool_registry
-        
+
         logger.info("Initializing SummarizationTool...")
-        
+
         if not OPENAI_AGENTS_AVAILABLE:
             logger.error("OpenAI agents SDK is required for summarization tool")
             raise ImportError(
@@ -79,12 +79,12 @@ class SummarizationTool:
 
         # Create the summarization agent
         self._create_summarization_agent()
-        
+
         logger.info("SummarizationTool initialized successfully")
 
     def _create_summarization_agent(self):
         """Create the OpenAI Agent for summarization analysis."""
-        
+
         instructions = """
 You are an expert Splunk diagnostic analyst and technical writer specializing in comprehensive result analysis and executive reporting.
 
@@ -117,22 +117,22 @@ You are an expert Splunk diagnostic analyst and technical writer specializing in
 
 Always structure your analysis comprehensively and provide practical, implementable recommendations.
         """
-        
+
         # Create tools for the summarization agent
         tools = [self._create_return_summary_tool()]
-        
+
         self.summarization_agent = Agent(
             name="DiagnosticSummarizationAgent",
             instructions=instructions,
             model=self.config.model,
             tools=tools,
         )
-        
+
         logger.debug("Created summarization agent with specialized analysis instructions")
 
     def _create_return_summary_tool(self):
         """Create tool for returning structured summarization results."""
-        
+
         @function_tool
         async def return_summarization_result(
             executive_summary: str,
@@ -187,17 +187,17 @@ Always structure your analysis comprehensively and provide practical, implementa
 
             logger.debug(f"Summarization result stored with confidence: {confidence_score:.2f}")
             return f"Summarization analysis completed with confidence: {confidence_score:.2f}"
-        
+
         return return_summarization_result
 
     async def execute(
         self,
         ctx: Context,
-        workflow_results: Dict[str, DiagnosticResult],
+        workflow_results: dict[str, DiagnosticResult],
         problem_description: str,
         diagnostic_context: SplunkDiagnosticContext,
-        execution_metadata: Dict[str, Any] = None,
-    ) -> Dict[str, Any]:
+        execution_metadata: dict[str, Any] = None,
+    ) -> dict[str, Any]:
         """
         Execute comprehensive summarization analysis of diagnostic results.
 
@@ -238,7 +238,7 @@ Always structure your analysis comprehensively and provide practical, implementa
         except Exception as e:
             logger.error(f"Summarization execution failed: {e}", exc_info=True)
             await ctx.error(f"❌ Summarization failed: {str(e)}")
-            
+
             return {
                 "status": "error",
                 "error": str(e),
@@ -250,13 +250,13 @@ Always structure your analysis comprehensively and provide practical, implementa
     async def _execute_summarization_core(
         self,
         ctx: Context,
-        workflow_results: Dict[str, DiagnosticResult],
+        workflow_results: dict[str, DiagnosticResult],
         problem_description: str,
         diagnostic_context: SplunkDiagnosticContext,
-        execution_metadata: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        execution_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
         """Core summarization execution with comprehensive analysis."""
-        
+
         # Initialize result storage
         self._summarization_result = None
 
@@ -273,7 +273,7 @@ Always structure your analysis comprehensively and provide practical, implementa
 
         # Report progress: Analysis input prepared
         await ctx.report_progress(progress=20, total=100)
-        await ctx.info(f"📋 Analysis framework prepared, executing summarization agent...")
+        await ctx.info("📋 Analysis framework prepared, executing summarization agent...")
 
         # Execute summarization agent
         if OPENAI_AGENTS_AVAILABLE and custom_span:
@@ -296,16 +296,16 @@ Always structure your analysis comprehensively and provide practical, implementa
         # Extract structured result
         if hasattr(self, "_summarization_result") and self._summarization_result:
             logger.debug("Retrieved structured summarization result")
-            await ctx.info(f"✅ Comprehensive analysis completed")
-            
+            await ctx.info("✅ Comprehensive analysis completed")
+
             # Convert to final result format
             result = self._format_final_result(
                 self._summarization_result, workflow_results, execution_metadata
             )
         else:
             logger.warning("No structured result stored, creating from agent output")
-            await ctx.warning(f"⚠️ Summarization completed without structured result")
-            
+            await ctx.warning("⚠️ Summarization completed without structured result")
+
             # Create fallback result from agent output
             result = self._create_fallback_result(
                 agent_result, workflow_results, execution_metadata
@@ -327,13 +327,13 @@ Always structure your analysis comprehensively and provide practical, implementa
 
     def _build_analysis_input(
         self,
-        workflow_results: Dict[str, DiagnosticResult],
+        workflow_results: dict[str, DiagnosticResult],
         problem_description: str,
         diagnostic_context: SplunkDiagnosticContext,
-        execution_metadata: Dict[str, Any],
+        execution_metadata: dict[str, Any],
     ) -> str:
         """Build comprehensive analysis input for the summarization agent."""
-        
+
         # Start with problem context
         analysis_input = f"""
 **DIAGNOSTIC ANALYSIS REQUEST**
@@ -347,7 +347,11 @@ Always structure your analysis comprehensively and provide practical, implementa
 - Focus Index: {diagnostic_context.focus_index or 'All indexes'}
 - Focus Host: {diagnostic_context.focus_host or 'All hosts'}
 """
-        
+
+        if diagnostic_context.problem_description:
+            analysis_input += f"- Original Problem: {diagnostic_context.problem_description}\n"
+        if diagnostic_context.workflow_type:
+            analysis_input += f"- Workflow Type: {diagnostic_context.workflow_type}\n"
         if diagnostic_context.indexes:
             analysis_input += f"- Target Indexes: {', '.join(diagnostic_context.indexes)}\n"
         if diagnostic_context.sourcetypes:
@@ -357,7 +361,7 @@ Always structure your analysis comprehensively and provide practical, implementa
 
         # Add execution metadata
         if execution_metadata:
-            analysis_input += f"\n**Execution Metadata:**\n"
+            analysis_input += "\n**Execution Metadata:**\n"
             if "total_execution_time" in execution_metadata:
                 analysis_input += f"- Total Execution Time: {execution_metadata['total_execution_time']:.2f}s\n"
             if "execution_phases" in execution_metadata:
@@ -367,10 +371,10 @@ Always structure your analysis comprehensively and provide practical, implementa
 
         # Add diagnostic results
         analysis_input += f"\n**DIAGNOSTIC RESULTS ({len(workflow_results)} agents):**\n\n"
-        
+
         # Categorize results by status
         status_groups = {"healthy": [], "warning": [], "critical": [], "error": []}
-        
+
         for task_id, result in workflow_results.items():
             # Handle both DiagnosticResult objects and plain dictionaries
             if hasattr(result, 'status'):
@@ -382,17 +386,17 @@ Always structure your analysis comprehensively and provide practical, implementa
             else:
                 # Fallback
                 status = 'unknown'
-                
+
             status_groups[status].append((task_id, result))
 
         # Present results by severity (most critical first)
         for status in ["error", "critical", "warning", "healthy"]:
             if status_groups[status]:
                 analysis_input += f"**{status.upper()} STATUS ({len(status_groups[status])} agents):**\n"
-                
+
                 for task_id, result in status_groups[status]:
                     analysis_input += f"\n**Agent: {task_id}**\n"
-                    
+
                     # Handle both DiagnosticResult objects and plain dictionaries
                     if hasattr(result, 'status'):
                         # DiagnosticResult object
@@ -412,19 +416,19 @@ Always structure your analysis comprehensively and provide practical, implementa
                         result_findings = []
                         result_recommendations = []
                         result_details = {}
-                    
+
                     analysis_input += f"Status: {result_status}\n"
-                    
+
                     if result_findings:
                         analysis_input += "Findings:\n"
                         for finding in result_findings:
                             analysis_input += f"  - {finding}\n"
-                    
+
                     if result_recommendations:
                         analysis_input += "Recommendations:\n"
                         for rec in result_recommendations:
                             analysis_input += f"  - {rec}\n"
-                    
+
                     # Include key details
                     if result_details:
                         important_keys = [
@@ -439,12 +443,12 @@ Always structure your analysis comprehensively and provide practical, implementa
                                     detail_items.append(f"{key}: {str(value)[:200]}...")
                                 else:
                                     detail_items.append(f"{key}: {value}")
-                        
+
                         if detail_items:
                             analysis_input += "Key Details:\n"
                             for item in detail_items[:5]:  # Limit to top 5 details
                                 analysis_input += f"  - {item}\n"
-                    
+
                     analysis_input += "\n"
 
         # Add analysis instructions
@@ -479,16 +483,16 @@ Use JSON strings for array and object parameters to ensure proper parsing.
     def _format_final_result(
         self,
         summarization_result: SummarizationResult,
-        workflow_results: Dict[str, DiagnosticResult],
-        execution_metadata: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        workflow_results: dict[str, DiagnosticResult],
+        execution_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
         """Format the final summarization result for return."""
-        
+
         # Calculate additional metrics
         total_findings = 0
         total_recommendations = 0
         status_breakdown = {}
-        
+
         for result in workflow_results.values():
             # Handle both DiagnosticResult objects and plain dictionaries
             if hasattr(result, 'status'):
@@ -506,7 +510,7 @@ Use JSON strings for array and object parameters to ensure proper parsing.
                 status = 'unknown'
                 findings_count = 0
                 recommendations_count = 0
-            
+
             total_findings += findings_count
             total_recommendations += recommendations_count
             status_breakdown[status] = status_breakdown.get(status, 0) + 1
@@ -535,25 +539,25 @@ Use JSON strings for array and object parameters to ensure proper parsing.
     def _create_fallback_result(
         self,
         agent_result: Any,
-        workflow_results: Dict[str, DiagnosticResult],
-        execution_metadata: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        workflow_results: dict[str, DiagnosticResult],
+        execution_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
         """Create fallback result when structured output is not available."""
-        
+
         # Extract agent output
         output = agent_result.final_output if hasattr(agent_result, 'final_output') else str(agent_result)
-        
+
         # Simple parsing for basic structure
         lines = output.split('\n')
         executive_summary = "Analysis completed with partial results."
         action_items = ["Review diagnostic results manually"]
-        
+
         # Look for key sections in output
         for i, line in enumerate(lines):
             if 'summary' in line.lower() and i + 1 < len(lines):
                 executive_summary = lines[i + 1].strip()
                 break
-        
+
         # Determine severity based on workflow results
         statuses = []
         for result in workflow_results.values():
@@ -564,7 +568,7 @@ Use JSON strings for array and object parameters to ensure proper parsing.
                 statuses.append(result.get('status', 'unknown'))
             else:
                 statuses.append('unknown')
-        
+
         if "error" in statuses or "critical" in statuses:
             severity = "High"
         elif "warning" in statuses:
@@ -594,4 +598,4 @@ Use JSON strings for array and object parameters to ensure proper parsing.
 # Factory function for easy instantiation
 def create_summarization_tool(config: AgentConfig, tool_registry: SplunkToolRegistry = None) -> SummarizationTool:
     """Factory function to create a summarization tool."""
-    return SummarizationTool(config, tool_registry) 
+    return SummarizationTool(config, tool_registry)
