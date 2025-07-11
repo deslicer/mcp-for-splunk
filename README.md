@@ -16,7 +16,10 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 - **🔌 Universal AI Connection**: One protocol connects any AI to Splunk data
 - **⚡ Zero Custom Integration**: No more months of custom API development
 - **🛡️ Production-Ready Security**: Client-scoped access with no credential exposure
+- **🤖 AI-Powered Workflows**: Intelligent troubleshooting agents that work like experts
 - **🤝 Community-Driven**: Extensible framework with contribution examples
+
+> **🚀 NEW: [AI-Powered Troubleshooting Agents](docs/agents-as-tools-readme.md)** - Transform reactive firefighting into intelligent, systematic problem-solving with specialist AI workflows.
 
 ## 🚀 Quick Start
 
@@ -75,6 +78,23 @@ open http://localhost:3001  # MCP Inspector
 
 ## 🎯 What You Can Do
 
+### 🤖 **AI-Powered Troubleshooting** (NEW!)
+```python
+# Instead of manual troubleshooting procedures:
+# 1. Check server health
+# 2. Verify data ingestion
+# 3. Analyze search performance
+# 4. Review configurations
+# 5. Generate recommendations
+
+# Your AI agent intelligently handles everything:
+await dynamic_troubleshoot_agent.execute(
+    problem_description="Dashboard shows no data for the last 2 hours",
+    workflow_type="missing_data_troubleshooting"
+)
+# → Parallel execution, expert analysis, actionable recommendations
+```
+
 ### For AI Developers
 ```python
 # Instead of complex Splunk SDK integration:
@@ -87,11 +107,13 @@ results = job.results()
 ```
 
 ### For Splunk Administrators
+- **🧠 Intelligent Workflows**: AI specialists that follow proven troubleshooting procedures
 - **Health Monitoring**: AI agents that detect degraded features
 - **Automated Analysis**: Natural language queries to SPL conversion
 - **Configuration Management**: AI-assisted Splunk administration
 
 ### For Security Teams
+- **🛡️ AI-Driven Investigation**: Specialist workflows for threat hunting and incident response
 - **Threat Hunting**: AI-powered investigation workflows
 - **Incident Response**: Automated data gathering and analysis
 - **Compliance Reporting**: AI-generated security reports
@@ -100,6 +122,7 @@ results = job.results()
 
 | Document | Purpose | Audience | Time |
 |----------|---------|----------|------|
+| **[🤖 AI-Powered Troubleshooting](docs/agents-as-tools-readme.md)** | **Intelligent workflows and specialist agents** | **All users** | **5 min** |
 | **[Getting Started](docs/getting-started/)** | First-time setup and tutorial | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
@@ -110,6 +133,13 @@ results = job.results()
 | **[Architecture](docs/architecture/)** | Technical deep-dive | Architects | Reference |
 
 ## 🔧 Available Tools & Capabilities
+
+### 🤖 **AI Workflows & Specialists** (NEW!)
+- **Dynamic Troubleshoot Agent**: Intelligent problem routing to specialist workflows
+- **Missing Data Troubleshooting**: 10-step systematic analysis following Splunk best practices
+- **Performance Analysis**: Comprehensive system diagnostics with parallel execution
+- **Workflow Builder**: Create custom troubleshooting procedures for your organization
+- **Workflow Runner**: Execute any workflow with full parameter control
 
 ### 🔍 Search & Analytics
 - **Smart Search**: Natural language to SPL conversion
