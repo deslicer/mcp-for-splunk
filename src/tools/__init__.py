@@ -31,7 +31,7 @@ __all__ = [
     # Admin tools
     "ListApps",
     "ListUsers",
-    "GetConfigurations", 
+    "GetConfigurations",
     "ToolDescriptionEnhancer",
     # Alerts tools
     "ListTriggeredAlerts",

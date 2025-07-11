@@ -7,4 +7,4 @@ listing triggered alerts, alert status monitoring, and alert configuration.
 
 from .alerts import ListTriggeredAlerts
 
-__all__ = ["ListTriggeredAlerts"] 
+__all__ = ["ListTriggeredAlerts"]

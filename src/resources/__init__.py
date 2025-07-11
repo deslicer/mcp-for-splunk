@@ -23,8 +23,8 @@ def register_all_resources():
 
     try:
         # Register core Splunk configuration resources
-        from ..core.registry import resource_registry
         from ..core.base import ResourceMetadata
+        from ..core.registry import resource_registry
         from .splunk_config import (
             SplunkAppsResource,
             SplunkConfigResource,
@@ -65,7 +65,7 @@ def register_all_resources():
                     logger.warning(f"Could not register {resource_class.__name__} with discovery: {e}")
 
         logger.info(f"Pre-registered {len(splunk_resources)} core Splunk resources with discovery system")
-        
+
     except ImportError as e:
         logger.warning(f"Could not import core Splunk configuration resources: {e}")
     except Exception as e:

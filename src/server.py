@@ -9,9 +9,9 @@ import argparse
 import asyncio
 import os
 import sys
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-import time
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -198,7 +198,7 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
         results = component_loader.load_all_components()
 
         logger.info(f"Successfully loaded components: {results}")
-        
+
         # Store component loading results on the MCP server instance globally for health endpoints to access
         # This ensures health endpoints can access the data even when called outside the lifespan context
         server._component_loading_results = results
@@ -218,44 +218,44 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
 async def ensure_components_loaded(server: FastMCP) -> None:
     """Ensure components are loaded at server startup, not just during MCP lifespan"""
     logger.info("Ensuring components are loaded at server startup...")
-    
+
     try:
         # Check if components are already loaded
         if hasattr(server, '_component_loading_results') and server._component_loading_results:
             logger.info("Components already loaded, skipping startup loading")
             return
-        
+
         # Initialize Splunk context for component loading
         client_config = extract_client_config_from_env()
-        
+
         # Import the safe version that doesn't raise exceptions
         from src.client.splunk_client import get_splunk_service_safe
-        
+
         service = get_splunk_service_safe(client_config)
         is_connected = service is not None
-        
+
         if service:
             config_source = "client environment" if client_config else "server environment"
             logger.info(f"Splunk connection established for startup loading using {config_source}")
         else:
             logger.warning("Splunk connection failed during startup - components will still load")
-        
+
         # Create context for component loading
         context = SplunkContext(
             service=service, is_connected=is_connected, client_config=client_config
         )
-        
+
         # Load components at startup
         logger.info("Loading MCP components at server startup...")
         component_loader = ComponentLoader(server)
         results = component_loader.load_all_components()
-        
+
         # Store results for health endpoints
         server._component_loading_results = results
         server._splunk_context = context
-        
+
         logger.info(f"Successfully loaded components at startup: {results}")
-        
+
     except Exception as e:
         logger.error(f"Error during startup component loading: {str(e)}")
         logger.exception("Full traceback:")
@@ -269,6 +269,7 @@ mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
 
 # Import and setup health routes
 from src.routes import setup_health_routes
+
 setup_health_routes(mcp)
 
 
@@ -386,16 +387,16 @@ def hot_reload() -> dict:
     """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
     if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
         return {"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"}
-    
+
     try:
         # Get the component loader from the server context
         # This is a simple approach - in production you'd want proper context management
         logger.info("Triggering hot reload of MCP components...")
-        
+
         # Create a new component loader and reload
         component_loader = ComponentLoader(mcp)
         results = component_loader.reload_all_components()
-        
+
         return {
             "status": "success",
             "message": "Components hot reloaded successfully",
@@ -433,7 +434,7 @@ async def main():
 
     # Get the FastMCP app with HTTP transport
     mcp_app = mcp.http_app(middleware=custom_middleware)
-    
+
     # Use uvicorn to run the server
     try:
         import uvicorn
