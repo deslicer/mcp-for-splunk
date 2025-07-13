@@ -10,6 +10,7 @@ from .alerts import *
 from .health import *
 from .kvstore import *
 from .metadata import *
+from .resources import *
 from .search import *
 
 __all__ = [
@@ -39,4 +40,12 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
+    # Embedded Documentation tools
+    "ListEmbeddedDocsTool",
+    "GetEmbeddedDocTool",
+    "SearchEmbeddedDocsTool",
+    "GetSplunkCheatSheetTool",
+    "GetSPLReferenceTool",
+    "GetTroubleshootingGuideTool",
+    "GetAdminGuideTool",
 ]

@@ -30,6 +30,14 @@ def register_all_resources():
         logger.warning(f"Could not import embedded resources: {e}")
 
     try:
+        # Register embedded Splunk documentation
+        from .embedded_splunk_docs import register_embedded_splunk_docs
+        register_embedded_splunk_docs()
+        logger.debug("Registered embedded Splunk documentation")
+    except ImportError as e:
+        logger.warning(f"Could not import embedded Splunk documentation: {e}")
+
+    try:
         # Register core Splunk configuration resources
         from ..core.registry import resource_registry
         from ..core.base import ResourceMetadata
