@@ -552,16 +552,18 @@ run_local_server() {
         echo
         print_status "🎯 Testing Instructions:"
         echo "   1. Open http://localhost:6274 in your browser"
-        echo "   2. Click 'Connect to Server'"
-        echo "   3. Enter server URL: http://localhost:$mcp_port"
-        echo "   4. Test tools and resources interactively"
+        echo "   2. Ensure that Streamable HTTP is set"
+        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   4. Click 'Connect' button at the bottom"
+        echo "   5. Test tools and resources interactively"
     else
         echo
         print_status "🎯 Alternative Testing:"
         echo "   1. Open https://inspector.mcp.dev/ in your browser"
-        echo "   2. Click 'Connect to Server'"
-        echo "   3. Enter server URL: http://localhost:$mcp_port"
-        echo "   4. Test tools and resources interactively"
+        echo "   2. Ensure that Streamable HTTP is set"
+        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   4. Click 'Connect' button at the bottom"
+        echo "   5. Test tools and resources interactively"
         echo
         print_warning "💡 MCP Inspector Troubleshooting:"
         echo "   • Check if Node.js is installed: node --version"

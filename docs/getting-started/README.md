@@ -138,7 +138,10 @@ uv run python scripts/test_setup.py
 ### Interactive Testing
 
 1. **Open MCP Inspector**: http://localhost:6274
-2. **Connect to MCP server**: Enter URL `http://localhost:8001`
+2. **Configure connection**:
+   - Ensure that Streamable HTTP is set
+   - Update URL from default to: `http://localhost:8001/mcp/`
+   - Click "Connect" button at the bottom
 3. **Test a basic tool**: Try `get_splunk_health`
 
 Expected result:
