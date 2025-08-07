@@ -49,6 +49,9 @@ Configuration:
 
 Write-Host "🚀 Building and Running MCP Server for Splunk (Windows)" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📚 Need help with prerequisites? See: docs/getting-started/installation.md" -ForegroundColor Yellow
+Write-Host ""
 
 # Color functions for consistent output
 function Write-Status {
@@ -225,6 +228,9 @@ function Install-UV {
         Write-Error "  Option 1: pip install uv"
         Write-Error "  Option 2: Download from https://astral.sh/uv/"
         Write-Error "  Option 3: winget install astral-sh.uv"
+        Write-Host ""
+        Write-Error "📚 For detailed installation instructions, see:"
+        Write-Error "   docs/getting-started/installation.md#-uv-package-manager-installation"
         exit 1
     }
 }
@@ -447,6 +453,9 @@ function Start-LocalServer {
     } else {
         Write-Warning "Node.js/npx not found. MCP Inspector will not be available."
         Write-Warning "To install Node.js: https://nodejs.org/"
+        Write-Host ""
+        Write-Warning "📚 For detailed installation instructions, see:"
+        Write-Warning "   docs/getting-started/installation.md#-nodejs-installation-optional---for-mcp-inspector"
     }
     
     Write-Host ""
@@ -515,6 +524,12 @@ function Start-LocalServer {
             Write-Host "2. Verify FastMCP installation: uv run python -c 'import fastmcp'"
             Write-Host "3. Try running manually: uv run fastmcp run src/server.py --help"
             Write-Host "4. Check Python environment: uv run python --version"
+            Write-Host ""
+            Write-Error "📚 For prerequisite installation help, see:"
+            Write-Error "   docs/getting-started/installation.md"
+            Write-Host ""
+            Write-Error "🔧 Run the prerequisite checker to see what's missing:"
+            Write-Error "   .\scripts\check-prerequisites.ps1"
             
             Stop-AllProcesses
             exit 1
@@ -693,6 +708,9 @@ function Start-DockerSetup {
     if (-not (Get-Command "docker-compose" -ErrorAction SilentlyContinue)) {
         Write-Error "docker-compose not found. Please install docker-compose or use local mode."
         Write-Error "To install docker-compose: https://docs.docker.com/compose/install/"
+        Write-Host ""
+        Write-Error "📚 For detailed installation instructions, see:"
+        Write-Error "   docs/getting-started/installation.md#-docker-installation-optional---for-full-stack"
         exit 1
     }
     
@@ -936,7 +954,15 @@ try {
             Start-LocalServer
         } else {
             # Neither Docker nor uv available
-            Write-Warning "Neither Docker nor uv is available. Installing uv for local development..."
+            Write-Warning "Neither Docker nor uv is available."
+            Write-Host ""
+            Write-Warning "📚 For detailed installation instructions, see:"
+            Write-Warning "   docs/getting-started/installation.md"
+            Write-Host ""
+            Write-Warning "🔧 You can also run our prerequisite checker to see what's missing:"
+            Write-Warning "   .\scripts\check-prerequisites.ps1"
+            Write-Host ""
+            Write-Status "Attempting to install uv automatically..."
             Install-UV
             Setup-LocalEnv
             Start-LocalServer

@@ -10,6 +10,9 @@ cd "$(dirname "$0")/.."
 
 echo "🚀 Building and Running MCP Server for Splunk"
 echo "============================================="
+echo
+echo "📚 Need help with prerequisites? See: docs/getting-started/installation.md"
+echo
 
 # Colors for output
 RED='\033[0;31m'
@@ -164,6 +167,9 @@ install_uv() {
     else
         print_error "Neither curl nor wget found. Please install uv manually:"
         print_error "  pip install uv"
+        echo
+        print_error "📚 For detailed installation instructions, see:"
+        print_error "   docs/getting-started/installation.md#-uv-package-manager-installation"
         exit 1
     fi
 
@@ -172,6 +178,9 @@ install_uv() {
         print_success "uv installed successfully!"
     else
         print_error "Failed to install uv. Please install manually and try again."
+        echo
+        print_error "📚 For detailed installation instructions, see:"
+        print_error "   docs/getting-started/installation.md#-uv-package-manager-installation"
         exit 1
     fi
 }
@@ -362,6 +371,9 @@ run_local_server() {
     else
         print_warning "Node.js/npx not found. MCP Inspector will not be available."
         print_warning "To install Node.js: https://nodejs.org/"
+        echo
+        print_warning "📚 For detailed installation instructions, see:"
+        print_warning "   docs/getting-started/installation.md#-nodejs-installation-optional---for-mcp-inspector"
     fi
 
 
@@ -418,6 +430,12 @@ run_local_server() {
         echo "2. Verify FastMCP installation: uv run python -c 'import fastmcp'"
         echo "3. Try running manually: uv run fastmcp run src/server.py --help"
         echo "4. Check Python environment: uv run python --version"
+        echo
+        print_error "📚 For prerequisite installation help, see:"
+        print_error "   docs/getting-started/installation.md"
+        echo
+        print_error "🔧 Run the prerequisite checker to see what's missing:"
+        print_error "   ./scripts/check-prerequisites.sh"
 
         cleanup
         exit 1
@@ -626,6 +644,9 @@ run_docker_setup() {
     if ! command -v docker-compose &> /dev/null; then
         print_error "docker-compose not found. Please install docker-compose or use local mode."
         print_error "To install docker-compose: https://docs.docker.com/compose/install/"
+        echo
+        print_error "📚 For detailed installation instructions, see:"
+        print_error "   docs/getting-started/installation.md#-docker-installation-optional---for-full-stack"
         exit 1
     fi
 
@@ -868,5 +889,11 @@ else
     print_error "Please install one of the following:"
     print_error "1. Docker: https://docs.docker.com/get-docker/"
     print_error "2. uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo
+    print_error "📚 For detailed installation instructions, see:"
+    print_error "   docs/getting-started/installation.md"
+    print_error ""
+    print_error "🔧 You can also run our prerequisite checker to see what's missing:"
+    print_error "   ./scripts/check-prerequisites.sh"
     exit 1
 fi
