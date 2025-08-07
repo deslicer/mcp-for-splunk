@@ -89,7 +89,7 @@ class GetSplunkHealth(BaseTool):
             # Try to get Splunk service with client config or fallback to server default
             service = await self.get_splunk_service(ctx, client_config)
 
-            
+
             # If we got here, we have a working connection
             info = {
                 "status": "connected",

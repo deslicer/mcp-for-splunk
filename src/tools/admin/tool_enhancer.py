@@ -290,7 +290,7 @@ class ToolDescriptionEnhancer(BaseTool):
     def _generate_generic_example(self, param_name: str, param_info: dict) -> Any:
         """Generate a generic example for a parameter."""
         param_type = param_info.get("type", "str")
-        
+
         if "bool" in param_type:
             return [True, False]
         elif "int" in param_type:
@@ -333,27 +333,27 @@ class ToolDescriptionEnhancer(BaseTool):
         self, ctx: Context | None, tool_name: str, tool_metadata: ToolMetadata, analysis: dict
     ) -> str:
         """Generate an enhanced description based on analysis."""
-        
+
         description_parts = []
-        
+
         # Start with original description (cleaned up)
         original_desc = tool_metadata.description.split("\n\nArgs:")[0]  # Remove existing Args if present
         description_parts.append(original_desc)
-        
+
         # Add parameter documentation
         if analysis["parameters"]:
             description_parts.append("\n\nArgs:")
             for param_name, param_info in analysis["parameters"].items():
                 param_line = f"    {param_name}"
-                
+
                 # Add type information
                 if param_info["type"] != "Any":
                     param_line += f" ({param_info['type']})"
-                
+
                 # Add required/optional indicator
                 if not param_info["required"]:
                     param_line += ", optional"
-                
+
                 # Add description
                 if param_info["description"]:
                     param_line += f": {param_info['description']}"
@@ -363,13 +363,13 @@ class ToolDescriptionEnhancer(BaseTool):
                     if isinstance(examples, list) and examples:
                         example_str = ", ".join(str(ex) for ex in examples[:3])
                         param_line += f": Parameter for {param_name}. Examples: {example_str}"
-                
+
                 # Add default value
                 if param_info["default"] and param_info["default"] != "None":
                     param_line += f" (default: {param_info['default']})"
-                
+
                 description_parts.append(param_line)
-        
+
         # Add examples section
         if analysis["examples"]:
             description_parts.append("\n\nExample Values:")
@@ -377,7 +377,7 @@ class ToolDescriptionEnhancer(BaseTool):
                 if isinstance(examples, list) and examples:
                     example_values = ", ".join(f'"{ex}"' for ex in examples[:3])
                     description_parts.append(f"    {param_name}: {example_values}")
-        
+
         # Add response format information
         if analysis["response_format"]:
             description_parts.append("\n\nResponse Format:")
@@ -385,13 +385,13 @@ class ToolDescriptionEnhancer(BaseTool):
             if analysis["response_format"].get("common_fields"):
                 common_fields = ", ".join(analysis["response_format"]["common_fields"])
                 description_parts.append(f"    Common fields: {common_fields}")
-        
+
         return "".join(description_parts)
 
     def _generate_recommendations(self, analysis: dict) -> list[str]:
         """Generate recommendations for improving the tool."""
         recommendations = []
-        
+
         # Check if all parameters have descriptions
         undocumented_params = [
             param for param, info in analysis["parameters"].items()
@@ -401,19 +401,19 @@ class ToolDescriptionEnhancer(BaseTool):
             recommendations.append(
                 f"Add descriptions for parameters: {', '.join(undocumented_params)}"
             )
-        
+
         # Check if examples are comprehensive
         if not analysis["examples"]:
             recommendations.append("Add parameter examples to improve usability")
-        
+
         # Category-specific recommendations
         category = analysis["metadata"]["category"]
         if category == "search" and "query" in analysis["parameters"]:
             recommendations.append("Consider adding query validation and syntax examples")
         elif category == "admin" and analysis["metadata"]["requires_connection"]:
             recommendations.append("Document connection requirements and error handling")
-        
+
         if not recommendations:
             recommendations.append("Tool description appears comprehensive")
-        
-        return recommendations 
+
+        return recommendations

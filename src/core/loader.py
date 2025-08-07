@@ -7,8 +7,8 @@ with the FastMCP server instance.
 
 import inspect
 import logging
-import sys
 import os
+import sys
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
