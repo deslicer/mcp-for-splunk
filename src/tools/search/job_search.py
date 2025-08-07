@@ -68,6 +68,7 @@ class JobSearch(BaseTool):
 
         self.logger.info(f"Starting normal search with query: {query}")
         await ctx.info(f"Starting normal search with query: {query}")
+        await ctx.report_progress(progress=0, total=100)
 
         try:
             start_time = time.time()
@@ -121,6 +122,7 @@ class JobSearch(BaseTool):
                 time.sleep(2)
 
             # Final check for job failure after completion
+            await ctx.report_progress(progress=100, total=100)
             final_stats = job.content
             if final_stats.get("isFailed", "0") == "1":
                 # Job failed, get error messages

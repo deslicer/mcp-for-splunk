@@ -65,6 +65,8 @@ services:
       - DEFAULT_SERVER_URL=http://mcp-server-dev:8000/mcp
       - MCP_SERVER_URL=http://mcp-server-dev:8000/mcp
       - DEFAULT_TRANSPORT=streamable-http
+      - MCP_SERVER_REQUEST_TIMEOUT=100000
+      - MCP_REQUEST_MAX_TOTAL_TIMEOUT=600000
     depends_on:
       - traefik
       - mcp-server-dev

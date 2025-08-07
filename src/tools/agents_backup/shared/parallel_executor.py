@@ -175,8 +175,9 @@ class ParallelWorkflowExecutor:
 
                 # Report progress for this phase
                 phase_progress = 10 + (phase_idx * phase_progress_step)
-                await ctx.report_progress(progress=phase_progress, total=100)
+                await ctx.report_progress(progress=phase_progress, total=100, message=f"Starting phase {phase_idx + 1}/{len(execution_phases)}")
                 await ctx.info(f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
+                await ctx.info(f"📋 Phase tasks: {[task.task_id for task in phase_tasks]}")
 
                 if OPENAI_AGENTS_AVAILABLE and custom_span:
                     with custom_span(phase_name):
@@ -204,6 +205,10 @@ class ParallelWorkflowExecutor:
 
                 logger.info(f"Phase {phase_idx + 1} completed in {phase_execution_time:.2f}s: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
                 await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed ({phase_execution_time:.1f}s)")
+
+                # Report progress after phase completion
+                phase_completion_progress = 10 + ((phase_idx + 1) * phase_progress_step)
+                await ctx.report_progress(progress=phase_completion_progress, total=100, message=f"Completed phase {phase_idx + 1}/{len(execution_phases)}")
 
             # Report progress: Task execution complete
             await ctx.report_progress(progress=90, total=100)
@@ -282,12 +287,17 @@ class ParallelWorkflowExecutor:
 
         phase_results = {}
 
+        # Report phase start
+        await ctx.info(f"⚡ Starting phase with {len(phase_tasks)} parallel tasks")
+        await ctx.info(f"📋 Phase tasks: {[task.task_id for task in phase_tasks]}")
+
         # Create async tasks for parallel execution
         async_tasks = []
         task_definitions = []
 
         for task_def in phase_tasks:
             logger.debug(f"Creating agent for task: {task_def.task_id}")
+            await ctx.info(f"🔧 Preparing task: {task_def.task_id} ({task_def.name})")
 
             # Create agent from task definition
             agent = self._create_agent_from_task(task_def)
@@ -303,18 +313,29 @@ class ParallelWorkflowExecutor:
         # Execute all tasks in parallel
         if async_tasks:
             logger.info(f"Executing {len(async_tasks)} tasks in parallel...")
+            await ctx.info(f"🚀 Executing {len(async_tasks)} tasks in parallel...")
+
+            # Report progress at start of parallel execution
+            await ctx.report_progress(progress=0, total=len(async_tasks), message=f"Starting parallel execution of {len(async_tasks)} tasks")
 
             # Use return_exceptions=True to handle individual task failures gracefully
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
 
             # Process results
+            successful_tasks = 0
+            failed_tasks = 0
+            
             for i, result in enumerate(results):
                 task_def = task_definitions[i]
                 task_id = task_def.task_id
 
+                # Report progress for each completed task
+                await ctx.report_progress(progress=i + 1, total=len(async_tasks), message=f"Completed task {task_id} ({task_def.name})")
+
                 if isinstance(result, Exception):
                     logger.error(f"Task {task_id} failed with exception: {result}")
                     await ctx.error(f"❌ Task {task_id} failed: {str(result)}")
+                    failed_tasks += 1
 
                     # Create error diagnostic result
                     phase_results[task_id] = DiagnosticResult(
@@ -326,7 +347,13 @@ class ParallelWorkflowExecutor:
                     )
                 else:
                     phase_results[task_id] = result
+                    successful_tasks += 1
                     logger.debug(f"Task {task_id} completed with status: {result.status}")
+                    await ctx.info(f"✅ Task {task_id} completed: {result.status}")
+
+            # Report phase completion
+            await ctx.info(f"🎯 Phase completed: {successful_tasks} successful, {failed_tasks} failed")
+            await ctx.report_progress(progress=len(async_tasks), total=len(async_tasks), message=f"Phase completed: {successful_tasks} successful, {failed_tasks} failed")
 
         return phase_results
 
@@ -371,6 +398,7 @@ class ParallelWorkflowExecutor:
         """Execute a single agent with dependency context injection."""
 
         logger.debug(f"Executing agent for task: {task.task_id}")
+        await ctx.info(f"🎯 Executing task: {task.task_id} ({task.name})")
 
         try:
             # Inject dependency results and context into instructions
@@ -384,21 +412,44 @@ class ParallelWorkflowExecutor:
             # Update agent instructions with enhanced context
             agent_with_context = agent.clone(instructions=enhanced_instructions)
 
+            # Report task start with dependencies info
+            if task.dependencies:
+                await ctx.info(f"📋 Task {task.task_id} dependencies: {task.dependencies}")
+            else:
+                await ctx.info(f"📋 Task {task.task_id} has no dependencies")
+
+            # Report agent execution start
+            await ctx.report_progress(progress=0, total=1, message=f"Starting agent execution for {task.task_id}")
+
             # Execute the agent
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"agent_execution_{task.task_id}"):
+                    await ctx.info(f"🤖 Starting agent execution for {task.task_id}...")
                     result = await Runner.run(agent_with_context, enhanced_instructions)
             else:
+                await ctx.info(f"🤖 Starting agent execution for {task.task_id}...")
                 result = await Runner.run(agent_with_context, enhanced_instructions)
 
             # Convert agent result to DiagnosticResult
             diagnostic_result = self._parse_agent_result_to_diagnostic(result, task)
 
             logger.debug(f"Agent {task.task_id} completed with status: {diagnostic_result.status}")
+            await ctx.info(f"✅ Task {task.task_id} completed: {diagnostic_result.status}")
+
+            # Report agent execution completion
+            await ctx.report_progress(progress=1, total=1, message=f"Completed agent execution for {task.task_id}")
+
+            # Report key findings if any
+            if diagnostic_result.findings:
+                key_findings = diagnostic_result.findings[:2]  # Show first 2 findings
+                await ctx.info(f"🔍 Key findings for {task.task_id}: {key_findings}")
+
             return diagnostic_result
 
         except Exception as e:
             logger.error(f"Agent execution failed for task {task.task_id}: {e}", exc_info=True)
+            await ctx.error(f"❌ Task {task.task_id} execution failed: {str(e)}")
+            await ctx.report_progress(progress=1, total=1, message=f"Failed agent execution for {task.task_id}")
             raise
 
     def _inject_dependency_context(

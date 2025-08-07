@@ -613,14 +613,14 @@ should_run_splunk_docker() {
 # Function to get Docker compose command with profiles
 get_docker_compose_cmd() {
     local mode=$1
-    local base_cmd="docker-compose"
+    local base_cmd="docker compose"
 
     case $mode in
         "dev")
-            base_cmd="docker-compose -f docker-compose-dev.yml"
+            base_cmd="docker compose -f docker-compose-dev.yml"
             ;;
         "prod"|"")
-            base_cmd="docker-compose"
+            base_cmd="docker compose"
             ;;
     esac
 

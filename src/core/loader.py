@@ -63,8 +63,6 @@ class ToolLoader:
             "src.tools.admin.users",
             "src.tools.admin.me",
             "src.tools.admin.app_management",
-            "src.tools.agents.splunk_triage_agent",
-            "src.tools.agents.dynamic_troubleshoot_agent",
             "src.tools.health.status",
             "src.tools.kvstore.collections",
             "src.tools.kvstore.data",
@@ -77,6 +75,7 @@ class ToolLoader:
             "src.tools.workflows.workflow_requirements",
             "src.tools.workflows.workflow_builder",
             "src.tools.workflows.list_workflows",
+            "src.tools.workflows.workflow_runner",
         ]
 
         reloaded_count = 0

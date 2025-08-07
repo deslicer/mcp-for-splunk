@@ -1,0 +1,108 @@
+{
+  "workflow_id": "performance_analysis",
+  "name": "Performance Analysis",
+  "description": "Comprehensive performance analysis using Splunk Platform Instrumentation 10-step workflow",
+  "tasks": [
+    {
+      "task_id": "system_resource_baseline",
+      "name": "System Resource Baseline",
+      "description": "Analyze system resource usage patterns - Step 1 of performance workflow",
+      "instructions": "You are performing Step 1 of the systematic performance troubleshooting workflow.\n\n**Check overall CPU, memory, and disk usage patterns:**\n- Search: `index=_introspection component=Hostwide | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used by host`\n- Establish baseline resource utilization across all Splunk instances\n- Look for hosts with consistently high resource usage (>80% CPU or memory)\n\n**Analysis:**\n1. Query _introspection index for Hostwide component data\n2. Check CPU usage patterns (system and user)\n3. Analyze memory utilization across hosts\n4. Identify hosts with high resource usage (>80% CPU or memory)\n5. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with resource usage status and bottlenecks.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "splunk_process_resource_analysis",
+      "name": "Splunk Process Resource Analysis",
+      "description": "Analyze resource usage specific to Splunk processes - Step 2 of performance workflow",
+      "instructions": "You are performing Step 2 of the systematic performance troubleshooting workflow.\n\n**Analyze resource usage specific to Splunk processes:**\n- Identify processes consuming excessive resources\n- Use search: `index=_introspection component=PerProcess data.process_class=search | stats median(data.pct_cpu) as median_cpu, median(data.pct_memory) as median_memory by data.search_type`\n- Check for memory leaks or CPU spikes in splunkd processes\n- Use search: `index=_introspection component=PerProcess data.process=splunkd | stats avg(data.pct_cpu) as avg_splunkd_cpu, avg(data.pct_memory) as avg_splunkd_memory by host`\n\n**Analysis:**\n1. Query _introspection for PerProcess component data\n2. Analyze search process resource consumption by search type\n3. Check splunkd process resource usage patterns\n4. Identify processes consuming excessive resources\n5. Look for memory leaks or CPU spikes\n6. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with Splunk process resource usage and issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "search_concurrency_performance",
+      "name": "Search Concurrency and Performance",
+      "description": "Examine search concurrency patterns and limits - Step 3 of performance workflow",
+      "instructions": "You are performing Step 3 of the systematic performance troubleshooting workflow.\n\n**Examine search concurrency patterns and limits:**\n- Check if search concurrency is hitting configured limits\n- Use search: `index=_introspection component=Hostwide | stats median(data.splunk_search_concurrency) as median_search_concurrency by host`\n- Identify slow or failed scheduled searches\n- Use search: `index=_internal source=*scheduler.log* | stats count by status, search_type | sort -count`\n\n**Analysis:**\n1. Query search concurrency metrics from _introspection\n2. Check if hitting configured concurrency limits\n3. Analyze scheduler.log for search performance patterns\n4. Identify slow or failed searches\n5. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with search concurrency status and performance issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "disk_usage_io_performance",
+      "name": "Disk Usage and I/O Performance",
+      "description": "Analyze disk space utilization and I/O patterns - Step 4 of performance workflow",
+      "instructions": "You are performing Step 4 of the systematic performance troubleshooting workflow.\n\n**Analyze disk space utilization and I/O patterns:**\n- Check for disk space issues (>85% usage)\n- Use search: `index=_introspection component=DiskObjects | stats latest(data.capacity) as capacity, latest(data.available) as available by data.mount_point, host | eval pct_used=round(((capacity-available)/capacity)*100,2)`\n- Monitor I/O wait times and disk performance bottlenecks\n- Use search: `index=_introspection component=Hostwide | stats avg(data.read_ops) as avg_read_ops, avg(data.write_ops) as avg_write_ops by host`\n\n**Analysis:**\n1. Query DiskObjects component for disk space utilization\n2. Calculate disk usage percentages and identify >85% usage\n3. Monitor I/O operations and performance patterns\n4. Identify disk performance bottlenecks\n5. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with disk usage and I/O performance status.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "indexing_pipeline_performance",
+      "name": "Indexing Pipeline Performance",
+      "description": "Analyze indexing delays and throughput issues - Step 5 of performance workflow",
+      "instructions": "You are performing Step 5 of the systematic performance troubleshooting workflow.\n\n**Analyze indexing delays and throughput issues:**\n- Check for indexing delays or pipeline bottlenecks\n- Use search: `index=_internal source=*metrics.log* group=per_index_thruput | stats avg(kb) as avg_kb_per_sec by series`\n- Identify indexes with low throughput or high processing times\n- Use search: `index=_internal source=*metrics.log* group=pipeline | stats avg(cpu_seconds) as avg_cpu_seconds, avg(executes) as avg_executes by processor`\n\n**Analysis:**\n1. Query per_index_thruput metrics for throughput analysis\n2. Calculate average throughput by index series\n3. Analyze pipeline processor performance\n4. Identify indexes with low throughput or high processing times\n5. Focus on specific index {focus_index} if provided\n\n**Output:** Return DiagnosticResult with indexing pipeline performance status and recommendations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_index"]
+    },
+    {
+      "task_id": "queue_analysis_processing_delays",
+      "name": "Queue Analysis and Processing Delays",
+      "description": "Examine queue depths and processing delays - Step 6 of performance workflow",
+      "instructions": "You are performing Step 6 of the systematic performance troubleshooting workflow.\n\n**Examine queue depths and processing delays:**\n- Look for consistently full queues (parsing, indexing, typing)\n- Use search: `index=_internal source=*metrics.log* group=queue | stats max(current_size) as max_queue_size, avg(current_size) as avg_queue_size by name`\n- Identify queue bottlenecks affecting performance\n- Use search: `index=_internal source=*metrics.log* group=queue | where current_size > 0 | stats count by name | sort -count`\n\n**Analysis:**\n1. Query queue metrics for current sizes and patterns\n2. Identify consistently full queues (parsing, indexing, typing)\n3. Calculate maximum and average queue sizes by queue name\n4. Identify queue bottlenecks affecting performance\n5. Focus on queues related to specific index {focus_index} if provided\n\n**Output:** Return DiagnosticResult with queue analysis and processing delay information.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_index"]
+    },
+    {
+      "task_id": "search_head_kvstore_performance",
+      "name": "Search Head and KV Store Performance",
+      "description": "Analyze search head cluster and KV Store performance - Step 7 of performance workflow",
+      "instructions": "You are performing Step 7 of the systematic performance troubleshooting workflow.\n\n**Analyze search head cluster and KV Store performance:**\n- Check KV Store health and connectivity issues\n- Use search: `index=_internal source=*splunkd.log* component=KVStoreMgr | stats count by log_level | sort -count`\n- Monitor file descriptor usage for splunkweb processes\n- Use search: `index=_introspection component=Hostwide | stats avg(data.splunkweb_fd_used) as avg_fd_used by host`\n\n**Analysis:**\n1. Query KV Store manager logs for health status\n2. Check KV Store connectivity and error patterns\n3. Monitor file descriptor usage for splunkweb processes\n4. Identify search head performance issues\n5. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with search head and KV Store performance status.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "license_capacity_constraints",
+      "name": "License and Capacity Constraints",
+      "description": "Check for license violations affecting performance - Step 8 of performance workflow",
+      "instructions": "You are performing Step 8 of the systematic performance troubleshooting workflow.\n\n**Check for license violations affecting performance:**\n- Identify license pool violations that may throttle indexing\n- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) as total_bytes by pool | eval total_gb=round(total_bytes/1024/1024/1024,2)`\n- Check for capacity planning issues\n- Use search: `index=_internal source=*splunkd.log* LicenseManager | search \"pool quota\" | head 20`\n\n**Analysis:**\n1. Query license usage by pool to identify violations\n2. Calculate total bytes and GB usage by license pool\n3. Check for license pool quota violations\n4. Identify capacity planning issues affecting performance\n5. Analyze license manager logs for quota warnings\n\n**Output:** Return DiagnosticResult with license and capacity constraint status.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time"]
+    },
+    {
+      "task_id": "network_forwarder_performance",
+      "name": "Network and Forwarder Performance",
+      "description": "Examine forwarder connectivity and network performance - Step 9 of performance workflow",
+      "instructions": "You are performing Step 9 of the systematic performance troubleshooting workflow.\n\n**Examine forwarder connectivity and network performance:**\n- Check forwarder connection stability and throughput\n- Use search: `index=_internal source=*metrics.log* group=tcpin_connections | stats dc(connectionType) as connection_types, avg(kb) as avg_kb_per_sec by sourceHost`\n- Identify network bottlenecks or connection issues\n- Use search: `index=_internal source=*splunkd.log* component=TcpInputProc | stats count by log_level | sort -count`\n\n**Analysis:**\n1. Query tcpin_connections metrics for forwarder performance\n2. Calculate connection types and throughput by source host\n3. Check TcpInputProc logs for connection issues\n4. Identify network bottlenecks or connection problems\n5. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with network and forwarder performance status.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host"]
+    },
+    {
+      "task_id": "performance_recommendations_optimization",
+      "name": "Performance Recommendations and Optimization",
+      "description": "Correlate findings and provide optimization recommendations - Step 10 of performance workflow",
+      "instructions": "You are performing Step 10 of the systematic performance troubleshooting workflow.\n\n**Correlate findings and provide specific optimization recommendations:**\n- Use search: `index=_internal source=*splunkd.log* log_level=WARN OR log_level=ERROR | stats count by component | sort -count | head 10`\n- Provide tuning recommendations based on identified bottlenecks\n- Suggest configuration changes with expected performance impact\n- Document baseline metrics for future comparison\n\n**Analysis:**\n1. Query splunkd.log for warning and error patterns by component\n2. Correlate findings from previous performance analysis steps\n3. Identify top components generating warnings/errors\n4. Provide specific tuning recommendations based on bottlenecks\n5. Suggest configuration changes with expected impact\n6. Document baseline metrics for future monitoring\n\n**Critical Performance Indicators to address:**\n- CPU usage >80% sustained\n- Memory usage >85% sustained\n- Disk usage >85% of capacity\n- Search concurrency at configured limits\n- Queue sizes consistently >0\n- Indexing throughput below expected rates\n- License pool violations\n- Network connection drops or errors\n\n**Output:** Return DiagnosticResult with performance optimization recommendations and tuning suggestions.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [
+        "system_resource_baseline",
+        "splunk_process_resource_analysis",
+        "search_concurrency_performance",
+        "disk_usage_io_performance",
+        "indexing_pipeline_performance",
+        "queue_analysis_processing_delays",
+        "search_head_kvstore_performance",
+        "license_capacity_constraints",
+        "network_forwarder_performance"
+      ],
+      "context_requirements": ["earliest_time", "latest_time", "focus_host", "focus_index"]
+    }
+  ],
+  "default_context": {}
+}

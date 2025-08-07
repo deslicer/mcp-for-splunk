@@ -1,6 +1,6 @@
 """List Workflows Tool
 
-Provides a comprehensive listing of all available workflows from both core (built-in) 
+Provides a comprehensive listing of all available workflows from both core (built-in)
 and contrib (user-contributed) sources in the MCP Server for Splunk.
 """
 
@@ -12,9 +12,9 @@ from typing import Any, Dict, List, Optional
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.tools.agents.shared.config import AgentConfig
-from src.tools.agents.shared.tools import SplunkToolRegistry
-from src.tools.agents.shared.workflow_manager import WorkflowManager
+from .shared.config import AgentConfig
+from .shared.tools import SplunkToolRegistry
+from .shared.workflow_manager import WorkflowManager
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class ListWorkflowsTool(BaseTool):
     """
     List Available Workflows Tool.
 
-    This tool provides a comprehensive listing of all available workflows in the 
-    MCP Server for Splunk system, including both core (built-in) workflows and 
+    This tool provides a comprehensive listing of all available workflows in the
+    MCP Server for Splunk system, including both core (built-in) workflows and
     contrib (user-contributed) workflows.
 
     ## Key Features:
@@ -57,7 +57,7 @@ class ListWorkflowsTool(BaseTool):
     - **missing_data_troubleshooting**: Systematic troubleshooting for missing data issues
     - **performance_analysis**: Comprehensive system performance diagnostics
 
-    ### Contrib Workflows  
+    ### Contrib Workflows
     User-contributed workflows from contrib/workflows/:
     - Automatically discovered from JSON files
     - Validated against workflow schema
@@ -130,7 +130,7 @@ workflow for specific Splunk problems.""",
         Args:
             format_type: Output format - "detailed", "summary", "ids_only", or "by_category"
             include_core: Whether to include core (built-in) workflows
-            include_contrib: Whether to include contrib (user-contributed) workflows  
+            include_contrib: Whether to include contrib (user-contributed) workflows
             category_filter: Optional category filter (e.g., "security", "performance")
 
         Returns:
@@ -220,16 +220,16 @@ workflow for specific Splunk problems.""",
                 temperature=0.7,
                 max_tokens=4000
             )
-            
+
             # Create tool registry (also not needed for workflow discovery)
             tool_registry = SplunkToolRegistry()
-            
+
             # Create WorkflowManager to get built-in workflows
             workflow_manager = WorkflowManager(config, tool_registry)
-            
+
             # Get all workflows from the manager
             workflows = workflow_manager.list_workflows()
-            
+
             core_workflows = {}
             for workflow in workflows:
                 core_workflows[workflow.workflow_id] = {
@@ -255,10 +255,10 @@ workflow for specific Splunk problems.""",
                     "validation_status": "valid",  # Core workflows are always valid
                     "file_path": "built-in"
                 }
-            
+
             logger.info(f"Discovered {len(core_workflows)} core workflows")
             return core_workflows
-            
+
         except Exception as e:
             logger.error(f"Error discovering core workflows: {e}", exc_info=True)
             raise
@@ -272,19 +272,19 @@ workflow for specific Splunk problems.""",
         try:
             # Create workflow loader
             loader = WorkflowLoader("contrib/workflows")
-            
+
             # Load all workflows
             workflows = loader.load_all_workflows()
-            
+
             # Get loading report for validation info
             loading_report = loader.get_loading_report()
-            
+
             contrib_workflows = {}
             for workflow_id, workflow in workflows.items():
                 # Determine file path and category from loader
                 file_path = "unknown"
                 category = "custom"
-                
+
                 # Try to determine category from file structure
                 workflow_files = loader.discover_workflows()
                 for file in workflow_files:
@@ -300,52 +300,58 @@ workflow for specific Splunk problems.""",
                                 break
                     except:
                         continue
-                
-                contrib_workflows[workflow_id] = {
-                    "workflow_id": workflow.workflow_id,
-                    "name": workflow.name,
-                    "description": workflow.description,
-                    "source": "contrib",
-                    "category": category,
-                    "task_count": len(workflow.tasks),
-                    "has_dependencies": any(task.dependencies for task in workflow.tasks),
-                    "default_context": workflow.default_context or {},
-                    "tasks": [
-                        {
-                            "task_id": task.task_id,
-                            "name": task.name,
-                            "description": task.description,
-                            "required_tools": task.required_tools,
-                            "dependencies": task.dependencies,
-                            "context_requirements": task.context_requirements
-                        }
-                        for task in workflow.tasks
-                    ],
-                    "validation_status": "valid",  # Successfully loaded workflows are valid
-                    "file_path": file_path
-                }
-            
-            # Add information about any failed workflows
+
+                # Only include workflows that are actually from contrib directory
+                # Check if the file path is in the contrib/workflows directory
+                if "contrib/workflows" in file_path or file_path.startswith("contrib/workflows"):
+                    contrib_workflows[workflow_id] = {
+                        "workflow_id": workflow.workflow_id,
+                        "name": workflow.name,
+                        "description": workflow.description,
+                        "source": "contrib",
+                        "category": category,
+                        "task_count": len(workflow.tasks),
+                        "has_dependencies": any(task.dependencies for task in workflow.tasks),
+                        "default_context": workflow.default_context or {},
+                        "tasks": [
+                            {
+                                "task_id": task.task_id,
+                                "name": task.name,
+                                "description": task.description,
+                                "required_tools": task.required_tools,
+                                "dependencies": task.dependencies,
+                                "context_requirements": task.context_requirements
+                            }
+                            for task in workflow.tasks
+                        ],
+                        "validation_status": "valid",  # Successfully loaded workflows are valid
+                        "file_path": file_path
+                    }
+
+            # Add information about any failed workflows (only contrib ones)
             for error in loading_report.get("errors", []):
-                error_workflow_id = f"error_{Path(error['file']).stem}"
-                contrib_workflows[error_workflow_id] = {
-                    "workflow_id": error_workflow_id,
-                    "name": f"Failed: {Path(error['file']).name}",
-                    "description": f"Workflow failed to load: {error['error']}",
-                    "source": "contrib",
-                    "category": "error",
-                    "task_count": 0,
-                    "has_dependencies": False,
-                    "default_context": {},
-                    "tasks": [],
-                    "validation_status": "error",
-                    "validation_error": error['error'],
-                    "file_path": error['file']
-                }
-            
-            logger.info(f"Discovered {len(workflows)} valid contrib workflows, {len(loading_report.get('errors', []))} errors")
+                error_file = error['file']
+                # Only include errors from contrib directory
+                if "contrib/workflows" in error_file or error_file.startswith("contrib/workflows"):
+                    error_workflow_id = f"error_{Path(error_file).stem}"
+                    contrib_workflows[error_workflow_id] = {
+                        "workflow_id": error_workflow_id,
+                        "name": f"Failed: {Path(error_file).name}",
+                        "description": f"Workflow failed to load: {error['error']}",
+                        "source": "contrib",
+                        "category": "error",
+                        "task_count": 0,
+                        "has_dependencies": False,
+                        "default_context": {},
+                        "tasks": [],
+                        "validation_status": "error",
+                        "validation_error": error['error'],
+                        "file_path": error_file
+                    }
+
+            logger.info(f"Discovered {len(contrib_workflows)} valid contrib workflows, {len([e for e in loading_report.get('errors', []) if 'contrib/workflows' in e.get('file', '')])} errors")
             return contrib_workflows
-            
+
         except Exception as e:
             logger.error(f"Error discovering contrib workflows: {e}", exc_info=True)
             raise
@@ -353,7 +359,7 @@ workflow for specific Splunk problems.""",
     def _determine_workflow_category(self, workflow_id: str, workflow_name: str) -> str:
         """Determine workflow category based on ID and name."""
         workflow_lower = f"{workflow_id} {workflow_name}".lower()
-        
+
         if any(keyword in workflow_lower for keyword in ["security", "auth", "login", "access", "permission"]):
             return "security"
         elif any(keyword in workflow_lower for keyword in ["performance", "resource", "cpu", "memory", "slow"]):
@@ -392,7 +398,7 @@ workflow for specific Splunk problems.""",
                 "has_dependencies": workflow["has_dependencies"],
                 "validation_status": workflow["validation_status"]
             }
-        
+
         return {
             "format": "summary",
             "discovery_metadata": metadata,
@@ -405,7 +411,7 @@ workflow for specific Splunk problems.""",
         """Format workflow IDs only."""
         core_ids = [wf_id for wf_id, wf in workflows.items() if wf["source"] == "core"]
         contrib_ids = [wf_id for wf_id, wf in workflows.items() if wf["source"] == "contrib"]
-        
+
         return {
             "format": "ids_only",
             "discovery_metadata": metadata,
@@ -427,7 +433,7 @@ workflow for specific Splunk problems.""",
             if category not in by_category:
                 by_category[category] = {}
             by_category[category][workflow_id] = workflow
-        
+
         return {
             "format": "by_category",
             "discovery_metadata": metadata,
@@ -448,15 +454,15 @@ workflow for specific Splunk problems.""",
                     "contrib_count": 0,
                     "workflow_ids": []
                 }
-            
+
             category_summary[category]["count"] += 1
             category_summary[category]["workflow_ids"].append(workflow["workflow_id"])
-            
+
             if workflow["source"] == "core":
                 category_summary[category]["core_count"] += 1
             else:
                 category_summary[category]["contrib_count"] += 1
-        
+
         return category_summary
 
 
@@ -469,25 +475,25 @@ def create_list_workflows_tool() -> ListWorkflowsTool:
 # Main execution for testing
 if __name__ == "__main__":
     import asyncio
-    
+
     async def test_list_workflows():
         """Test the list workflows tool."""
         tool = create_list_workflows_tool()
-        
+
         # Mock context for testing
         class MockContext:
             async def info(self, msg): print(f"INFO: {msg}")
             async def error(self, msg): print(f"ERROR: {msg}")
             async def report_progress(self, progress, total): pass
-        
+
         ctx = MockContext()
-        
+
         print("Testing list workflows tool...")
         print("=" * 50)
-        
+
         # Test different formats
         formats = ["detailed", "summary", "ids_only", "by_category"]
-        
+
         for fmt in formats:
             print(f"\n🔧 Testing {fmt} format:")
             result = await tool.execute(ctx, format_type=fmt)
@@ -498,7 +504,7 @@ if __name__ == "__main__":
                 print(f"Format: {data.get('format', 'unknown')}")
                 if 'categories' in data:
                     print(f"Categories: {list(data['categories'].keys())}")
-        
+
         print("\n✅ Test completed!")
-    
-    asyncio.run(test_list_workflows()) 
+
+    asyncio.run(test_list_workflows())

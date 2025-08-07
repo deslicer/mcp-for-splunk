@@ -11,12 +11,15 @@ try:
     from .workflow_builder import WorkflowBuilderTool
     from .list_workflows import ListWorkflowsTool
     from .workflow_runner import WorkflowRunnerTool
+    from .summarization_tool import create_summarization_tool, SummarizationTool
     
     __all__ = [
         "WorkflowRequirementsTool",
         "WorkflowBuilderTool",
         "ListWorkflowsTool",
-        "WorkflowRunnerTool"
+        "WorkflowRunnerTool",
+        "create_summarization_tool",
+        "SummarizationTool"
     ]
 except ImportError as e:
     # Handle import errors gracefully

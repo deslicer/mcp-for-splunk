@@ -1,0 +1,98 @@
+{
+  "workflow_id": "missing_data_troubleshooting",
+  "name": "Missing Data Troubleshooting",
+  "description": "Systematic troubleshooting for missing data issues following Splunk's official 10-step workflow",
+  "tasks": [
+    {
+      "task_id": "splunk_license_edition_verification",
+      "name": "Splunk License & Edition Verification",
+      "description": "Check Splunk license and edition status - Step 1 of official workflow",
+      "instructions": "You are performing Step 1 of the official Splunk missing data troubleshooting workflow.\n\n**Check if running Splunk Free:**\n- Splunk Free doesn't support multiple users, distributed searching, or alerting\n- Saved searches from other users may not be accessible\n- Use search: `| rest /services/server/info | fields splunk_version, product_type, license_state`\n\n**Analysis:**\n1. Execute the search to get server info\n2. Check if product_type indicates Splunk Free\n3. Verify license_state is valid\n4. Note version and product type\n5. Identify any license-related limitations that could affect data access\n\n**Output:** Return DiagnosticResult with license status, edition type, and any limitations found.",
+      "required_tools": ["run_splunk_search", "me"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "index_verification",
+      "name": "Index Verification",
+      "description": "Verify data was added to correct indexes - Step 2 of official workflow",
+      "instructions": "You are performing Step 2 of the official Splunk missing data troubleshooting workflow.\n\n\n**Was data added to a different index?**\n- Some apps write to specific indexes (e.g., *nix/Windows apps use \"os\" index)\n- Check available indexes and verify you're searching the right one\n- Use search: `| eventcount summarize=false index={focus_index} | dedup index | table index`\n- Try searching specific indexes: `index=os` or `index=main`\n\n**Analysis:**\n1. Get list of all available indexes using eventcount\n2. Check if target indexes {focus_index} exist (if specified)\n3. Test accessibility with simple searches on key indexes\n4. Identify missing or unexpected indexes\n5. Check for data in common indexes like main, os, etc.\n\n**Output:** Return DiagnosticResult with index availability and accessibility status.",
+      "required_tools": ["list_indexes", "run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["focus_index"]
+    },
+    {
+      "task_id": "permissions_access_control",
+      "name": "Permissions & Access Control",
+      "description": "Verify user permissions allow data access - Step 3 of official workflow",
+      "instructions": "You are performing Step 3 of the official Splunk missing data troubleshooting workflow.\n**Do your permissions allow you to see the data?**\n- **STEP 3A:** First, get current user information: Use tool `get_current_user_info()` to get the user's roles and capabilities\n- **STEP 3B:** Extract the role names from the user info response (look for the \"roles\" field)\n- **STEP 3C:** Check role-based index access restrictions using the actual role names\n- **Example workflow:**\n  1. Call `get_current_user_info()` and note the roles (e.g., [\"admin\", \"power\"])\n  2. Then use: `| rest /services/authorization/roles | search title IN (\"admin\", \"power\") | table title, srchIndexesAllowed, srchIndexesDefault`\n  3. Or check each role individually: `| rest /services/authorization/roles | search title=\"admin\" | table title, srchIndexesAllowed, srchIndexesDefault`\n- **Alternative for overview:** `| rest /services/authorization/roles | table title, srchIndexesAllowed, srchIndexesDefault`\n- Verify search filters aren't blocking data based on the role's index access\n\n**Analysis:**\n1. Get current user information and extract roles\n2. Query role permissions for index access\n3. Check if user roles allow access to target indexes\n4. Verify search filters and restrictions\n5. Test basic search permissions\n\n**Output:** Return DiagnosticResult with permission status and access control issues.",
+      "required_tools": ["me", "run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "time_range_issues",
+      "name": "Time Range Issues",
+      "description": "Check time-related problems - Step 4 of official workflow",
+      "instructions": "You are performing Step 4 of the official Splunk missing data troubleshooting workflow.\n**Task:** Check for data in time range {earliest_time} to {latest_time} and identify time-related problems\n**Context:** Target indexes: {focus_index}, sourcetypes: {focus_sourcetype}\n**Check time-related problems:**\n- Verify events exist in your search time window\n- Try \"All time\" search to catch future-timestamped events\n- Check for indexing delays (replace `YOUR_INDEX` with specific index or use `index=*`):\n  `index={focus_index} | eval lag=_indextime-_time | stats avg(lag) max(lag) by index`\n- Verify timezone settings for scheduled searches\n\n**Analysis:**\n1. Build search query for specified time range {earliest_time} to {latest_time}\n2. Execute count query for the time range\n3. Try broader time range (All time) to check for future timestamps\n4. Check indexing delays using _indextime vs _time comparison\n5. Analyze time distribution patterns\n6. Identify timezone or timestamp issues\n\n**Output:** Return DiagnosticResult with time range analysis and indexing delay information.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time", "focus_index"]
+    },
+    {
+      "task_id": "forwarder_connectivity",
+      "name": "Forwarder Connectivity",
+      "description": "Check forwarder connections if using forwarders - Step 5 of official workflow",
+      "instructions": "You are performing Step 5 of the official Splunk missing data troubleshooting workflow.\n**Context:** Focus host: {focus_host} if specified, index: {focus_index} if specified\n**Check forwarder connections:**\n- Verify forwarders connecting `index=_internal source=*metrics.log* tcpin_connections | stats count by sourceIp`\n- Check output queues: `index=_internal source=*metrics.log* group=queue tcpout | stats count by name`\n- Verify recent host activity:\n  `| metadata type=hosts index={focus_index} | eval diff=now()-recentTime | where diff < 600`\n- Check connection logs: `index=_internal \"Connected to idx\" OR \"cooked mode\"`\n\n**Analysis:**\n1. Check forwarder connections using tcpin_connections metrics\n2. Analyze output queue status for tcpout connections\n3. Verify recent host activity using metadata\n4. Check connection logs for forwarder connectivity\n5. Identify connection drops or network issues\n6. Focus on specific host {focus_host} if provided\n\n**Output:** Return DiagnosticResult with forwarder connectivity status and connection issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["focus_index", "focus_host"]
+    },
+    {
+      "task_id": "search_head_configuration",
+      "name": "Search Head Configuration",
+      "description": "Verify search head setup in distributed environment - Step 6 of official workflow",
+      "instructions": "You are performing Step 6 of the official Splunk missing data troubleshooting workflow.\n\n**Verify search head setup:**\n- Check search heads are connected to correct indexers\n- Verify distributed search configuration\n- Use search: `| rest /services/search/distributed/peers | table title, status, is_https`\n\n**Analysis:**\n1. Check distributed search peer configuration\n2. Verify search head connections to indexers\n3. Check search head cluster status if applicable\n4. Identify search head connectivity issues\n5. Verify search head can reach all required indexers\n\n**Searches:**\n- | rest /services/search/distributed/peers | table title, status, is_https\n- | rest /services/shcluster/status | table label, status\n- index=_internal source=*splunkd.log* component=DistributedSearch\n\n**Output:** Return DiagnosticResult with search head configuration status and issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "license_violations",
+      "name": "License Violations",
+      "description": "Check for license violations that prevent searching - Step 7 of official workflow",
+      "instructions": "You are performing Step 7 of the official Splunk missing data troubleshooting workflow.\n\n**Check for license issues:**\n- License violations prevent searching (but indexing continues)\n- Use search: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool`\n- Verify license status\n- Use search: `| rest /services/licenser/messages | table category, message`\n\n**Analysis:**\n1. Check license usage by pool to identify violations\n2. Query license manager messages for warnings/errors\n3. Verify license compliance across pools\n4. Check for license-related search restrictions\n5. Identify any license violations blocking search functionality\n\n**Searches:**\n- index=_internal source=*license_usage.log* type=Usage | stats sum(b) by pool\n- | rest /services/licenser/messages | table category, message\n- index=_internal source=*splunkd.log* LicenseManager | search \"pool quota\"\n- index=_internal source=*license_usage.log* type=RolloverSummary\n\n**Output:** Return DiagnosticResult with license violation status and impact on search capability.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": ["splunk_license_edition_verification"],
+      "context_requirements": []
+    },
+    {
+      "task_id": "scheduled_search_issues",
+      "name": "Scheduled Search Issues",
+      "description": "Analyze scheduled search problems - Step 8 of official workflow",
+      "instructions": "You are performing Step 8 of the official Splunk missing data troubleshooting workflow.\n**Context:** Time range: {earliest_time} to {latest_time}\n\n**For scheduled searches:**\n- Verify time ranges aren't excluding events\n- Check for indexing lag affecting recent data\n- Examine scheduler performance\n- Use search: `index=_internal source=*scheduler.log* | stats count by status`\n\n**Analysis:**\n1. Check scheduler.log for search execution status\n2. Identify failed or slow scheduled searches\n3. Verify time ranges in scheduled searches aren't excluding data\n4. Check for indexing lag affecting recent data in schedules\n5. Analyze scheduler performance and queue status\n**Searches:**\n- index=_internal source=*scheduler.log* | stats count by status\n- index=_internal source=*scheduler.log* | search status=failed | head 10\n- index=_internal source=*scheduler.log* | stats avg(run_time) by search_type\n- index=_internal source=*metrics.log* group=searchscheduler\n\n**Output:** Return DiagnosticResult with scheduled search status and performance issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time"]
+    },
+    {
+      "task_id": "search_query_validation",
+      "name": "Search Query Validation",
+      "description": "Verify search syntax and logic - Step 9 of official workflow",
+      "instructions": "You are performing Step 9 of the official Splunk missing data troubleshooting workflow.\n\n**Verify search syntax:**\n- Check logic operators (NOT, AND, OR) usage\n- Verify quote usage and escape characters\n- Confirm correct index, source, sourcetype, host specifications\n- Test subsearch ordering and field passing\n- Check for intentions framework rewrites in drilldowns\n\n**Analysis:**\n1. Check audit logs for recent search patterns and syntax errors\n2. Look for common search syntax problems\n3. Verify field names and search logic\n4. Check for search parser errors\n5. Validate query construction and operator usage\n\n**Searches:**\n- index=_audit action=search | search search!=\"*typeahead*\" | head 10\n- index=_internal source=*splunkd.log* component=SearchParser\n- index=_internal source=*splunkd.log* \"syntax error\" OR \"parse error\"\n\n**Output:** Return DiagnosticResult with search syntax validation status and common issues found.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time"]
+    },
+    {
+      "task_id": "field_extraction_issues",
+      "name": "Field Extraction Issues",
+      "description": "Check field extraction problems - Step 10 of official workflow",
+      "instructions": "You are performing Step 10 of the official Splunk missing data troubleshooting workflow.\n**Context:** Focus sourcetype: {focus_sourcetype} if specified, index: {focus_index} if specified\nCheck field extraction configuration and functionality\n**For field extraction problems:**\n- Test regex patterns with rex command\n- Verify extraction permissions and sharing\n- Check extractions applied to correct source/sourcetype/host\n- Use search: `| rest /services/data/props/extractions | search stanza={focus_sourcetype} | table stanza, attribute, value`\n\n**Analysis:**\n1. Check field extraction configuration using props/extractions\n2. Verify extraction permissions and sharing settings\n3. Test regex patterns and field extraction functionality\n4. Check extractions applied to correct source/sourcetype/host\n5. Analyze field extraction performance and conflicts\n\n\n**Output:** Return DiagnosticResult with field extraction status and configuration issues.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["focus_sourcetype"]
+    }
+  ],
+  "default_context": {}
+}

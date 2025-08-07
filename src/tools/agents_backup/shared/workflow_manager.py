@@ -97,21 +97,14 @@ class WorkflowManager:
             logger.debug(f"  - {workflow_id}: {workflow.name} ({len(workflow.tasks)} tasks)")
 
     def _register_builtin_workflows(self):
-        """Register built-in workflows for common Splunk troubleshooting scenarios."""
-
-        logger.debug("Creating missing data troubleshooting workflow...")
-        # Missing Data Troubleshooting Workflow
-        missing_data_workflow = self._create_missing_data_workflow()
-        self.register_workflow(missing_data_workflow)
-
-        logger.debug("Creating performance analysis workflow...")
-        # Performance Analysis Workflow
-        performance_workflow = self._create_performance_workflow()
-        self.register_workflow(performance_workflow)
-
-
-
-        logger.info("All built-in workflows registered successfully")
+        """Register built-in workflows by loading from JSON files."""
+        from contrib.workflows.loaders import load_and_register_workflows
+        
+        # Load and register core workflows from src/tools/workflows/core/
+        loaded_count = load_and_register_workflows(self, "src/tools/workflows/core/")
+        logger.info(f"Loaded {loaded_count} core workflows from JSON")
+        
+        # Optionally load contrib workflows here if desired, but keep separate as per plan
 
     def _create_missing_data_workflow(self) -> WorkflowDefinition:
         """Create the missing data troubleshooting workflow following Splunk's official 10-step checklist."""
