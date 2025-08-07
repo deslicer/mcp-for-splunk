@@ -25,10 +25,23 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 
 ### Prerequisites
 - Python 3.10+ and UV package manager
-- Docker (optional, for full stack)
-- Splunk instance with API access
+- Docker (optional but recommended for full stack)
+- Splunk instance with API access (or use included Docker Splunk)
 
 > **📖 Complete Setup Guide**: [Installation Guide](docs/getting-started/installation.md)
+
+### Configuration
+
+**Before running the setup, configure your Splunk connection:**
+
+```bash
+# Copy the example configuration
+cp env.example .env
+
+# Edit .env with your Splunk credentials
+# - Use your existing Splunk instance (local, cloud, or Splunk Cloud)
+# - OR use the included Docker Splunk (requires Docker)
+```
 
 ### One-Command Setup
 
@@ -46,33 +59,47 @@ cd mcp-server-for-splunk
 ./scripts/build_and_run.sh
 ```
 
+> **💡 Deployment Options**: The script will prompt you to choose:
+> - **Docker** (Option 1): Full stack with Splunk, Traefik, MCP Inspector - recommended if Docker is installed
+> - **Local** (Option 2): Lightweight FastMCP server only - for users without Docker
+
 ### First Success Test
 
-**Step 1: Initialize MCP Session**
+**Run the automated test script:**
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"roots":{"listChanged":false}},"clientInfo":{"name":"test-client","version":"1.0.0"}}}' \
-  http://localhost:8001/mcp/ -D /tmp/mcp_headers.txt
+# The setup script should have installed all dependencies
+uv run python scripts/test_setup.py
 ```
 
-**Step 2: Get Server Info (extract session ID from headers)**
-```bash
-SESSION_ID=$(grep -i "mcp-session-id:" /tmp/mcp_headers.txt | cut -d' ' -f2 | tr -d '\r\n')
-curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-  -H "mcp-session-id: $SESSION_ID" \
-  -d '{"jsonrpc":"2.0","id":"test","method":"resources/read","params":{"uri":"info://server"}}' \
-  http://localhost:8001/mcp/
+**Expected output:**
+```
+🔍 Testing MCP Server at http://localhost:8001/mcp/
+--------------------------------------------------
+✓ Connected to MCP Server
+
+📋 Available Tools:
+  1. run_oneshot_search
+     Run a Splunk search and return results immediately...
+  2. get_splunk_health
+     Get Splunk server health information...
+  ... and 27 more tools
+
+📚 Available Resources:
+  1. info://server
+     Server Information
+  ... and 8 more resources
+
+✅ MCP Server is running and responding correctly!
 ```
 
-**Expected response:**
-```json
-{"jsonrpc":"2.0","id":"test","result":{"contents":[{"uri":"info://server","text":"{\"name\":\"MCP Server for Splunk\",\"version\":\"2.0.0\",\"status\":\"running\"}"}]}}
+**Interactive testing with MCP Inspector:**
+```bash
+open http://localhost:6274  # MCP Inspector web interface
 ```
 
-**Interactive testing:**
-```bash
-open http://localhost:3001  # MCP Inspector
-```
+1. Click "Connect to Server"
+2. Enter server URL: `http://localhost:8001`
+3. Test tools and resources interactively
 
 **✅ Success**: You now have AI agents that can search, analyze, and manage Splunk data!
 

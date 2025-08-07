@@ -218,6 +218,29 @@ setup_local_env() {
 # Function to run local server
 run_local_server() {
     print_local "Starting MCP server locally with FastMCP CLI..."
+    
+    # Define cleanup function early to be available for error handling
+    cleanup() {
+        print_local "Cleaning up..."
+        
+        # Kill MCP Inspector if PID file exists
+        if [ -f .inspector_pid ]; then
+            local pid=$(cat .inspector_pid)
+            if kill -0 $pid 2>/dev/null; then
+                print_local "Stopping MCP Inspector (PID: $pid)..."
+                kill $pid 2>/dev/null
+            fi
+            rm -f .inspector_pid
+        fi
+        
+        # Clean up any server processes
+        pkill -f "fastmcp run" 2>/dev/null || true
+        
+        # Clean up log files
+        rm -f logs/inspector.log logs/mcp_server.log
+        
+        print_success "Cleanup complete!"
+    }
 
     # Check if Node.js/npm is available for MCP Inspector
     local inspector_available=false
@@ -236,15 +259,26 @@ run_local_server() {
         else
             # Try to install and run MCP Inspector with proper configuration
             print_local "Installing/updating MCP Inspector..."
+            print_local "This may take a moment on first install..."
 
             # Set environment variables for the inspector (this is the correct way)
             export DANGEROUSLY_OMIT_AUTH=true
+            # Prevent browser from opening automatically when running in background
+            export BROWSER=none
 
             # Ensure logs directory exists
             ensure_logs_dir
 
+            # Check if inspector package needs to be installed
+            if ! ls ~/.npm/_npx/*/node_modules/@modelcontextprotocol/inspector 2>/dev/null | grep -q inspector; then
+                print_local "MCP Inspector not found in cache. Downloading package..."
+            else
+                print_local "MCP Inspector found in cache. Starting..."
+            fi
+
             # Start inspector (it will use its default ports: 6274 for UI, 6277 for proxy)
-            npx @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
+            # Use --yes to automatically install if not present
+            npx --yes @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
             local inspector_pid=$!
 
             # Give inspector more time to start and check multiple times
@@ -252,6 +286,7 @@ run_local_server() {
             local attempts=0
             local max_attempts=10
             local inspector_running=false
+            local last_log_size=0
 
             while [ $attempts -lt $max_attempts ]; do
                 sleep 2
@@ -260,6 +295,19 @@ run_local_server() {
                 if ! kill -0 $inspector_pid 2>/dev/null; then
                     print_error "MCP Inspector process died. Check inspector.log for details."
                     break
+                fi
+
+                # Show progress by monitoring log file
+                if [ -f logs/inspector.log ]; then
+                    local current_log_size=$(wc -c < logs/inspector.log 2>/dev/null || echo 0)
+                    if [ $current_log_size -gt $last_log_size ]; then
+                        # New content in log, show last meaningful line
+                        local last_line=$(tail -1 logs/inspector.log | grep -v "^$" || true)
+                        if [ -n "$last_line" ]; then
+                            print_local "Inspector: $last_line"
+                        fi
+                        last_log_size=$current_log_size
+                    fi
                 fi
 
                 # Check if the inspector's default port (6274) is listening
@@ -332,10 +380,11 @@ run_local_server() {
 
     # Start the server with uv and better error handling
     print_local "Finding available port for MCP server..."
-    local mcp_port=$(find_available_port 8000)
+    # Start from 8001 to avoid conflict with Splunk Web UI (port 8000)
+    local mcp_port=$(find_available_port 8001)
 
-    if [ $mcp_port -ne 8000 ]; then
-        print_warning "Port 8000 is in use. Using port $mcp_port instead."
+    if [ "$mcp_port" -ne 8001 ] 2>/dev/null; then
+        print_warning "Port 8001 is in use. Using port $mcp_port instead."
     else
         print_local "Using port $mcp_port for MCP server."
     fi
@@ -439,7 +488,7 @@ run_local_server() {
         exec uv run fastmcp run src/server.py --transport http --port $mcp_port
     fi
 
-    # Update cleanup to kill server process
+    # Update cleanup function to include server PID
     cleanup() {
         print_local "Shutting down services..."
 
@@ -689,7 +738,7 @@ run_docker_setup() {
         echo "   🌐 External Splunk:   $SPLUNK_HOST (configured in .env)"
     fi
     echo "   🔌 MCP Server:        http://localhost:8001/mcp/"
-    echo "   📊 MCP Inspector:     http://localhost:3001"
+    echo "   📊 MCP Inspector:     http://localhost:6274"
     echo
     print_status "🔍 To check logs:"
     echo "   $compose_cmd logs -f $service_name"
@@ -713,30 +762,60 @@ find_available_port() {
     local port=$start_port
 
     for ((i=0; i<max_attempts; i++)); do
+        local port_available=true
+        
+        # Check if any process is actively listening on the port
         if command -v lsof &> /dev/null; then
-            if ! lsof -i :$port &> /dev/null; then
-                echo $port
-                return 0
+            # Only check for LISTEN state, ignore CLOSED connections
+            if lsof -i :$port 2>/dev/null | grep -q "LISTEN"; then
+                port_available=false
             fi
         elif command -v netstat &> /dev/null; then
-            if ! netstat -an | grep ":$port " | grep LISTEN &> /dev/null; then
-                echo $port
-                return 0
-            fi
-        else
-            # Fallback: try to bind to the port
-            if (echo >/dev/tcp/localhost/$port) 2>/dev/null; then
-                # Port is in use
-                :
-            else
-                echo $port
-                return 0
+            # netstat is more reliable - only shows LISTEN state
+            if netstat -an | grep ":$port " | grep -q "LISTEN"; then
+                port_available=false
             fi
         fi
+        
+        # If port seems available, try a more direct test
+        if [ "$port_available" = true ]; then
+            # Try to bind to the port using Python (most reliable cross-platform)
+            if command -v python3 &> /dev/null; then
+                if python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1', $port)); s.close()" 2>/dev/null; then
+                    echo $port
+                    return 0
+                else
+                    port_available=false
+                fi
+            elif command -v nc &> /dev/null; then
+                # Fallback to nc if Python not available
+                # Try to connect first - if we can't connect, port is likely free
+                if ! nc -z -w 1 localhost $port 2>/dev/null; then
+                    echo $port
+                    return 0
+                else
+                    port_available=false
+                fi
+            else
+                # Last resort: try /dev/tcp
+                if ! (echo >/dev/tcp/localhost/$port) 2>/dev/null; then
+                    echo $port
+                    return 0
+                else
+                    port_available=false
+                fi
+            fi
+        fi
+        
+        if [ "$port_available" = false ]; then
+            print_local "Port $port is in use, trying next port..." >&2
+        fi
+        
         port=$((port + 1))
     done
 
     # If we can't find a port, return the original
+    print_warning "Could not find an available port after $max_attempts attempts" >&2
     echo $start_port
     return 1
 }

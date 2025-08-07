@@ -116,7 +116,7 @@ uv run python scripts/test_setup.py
 
 **Expected output:**
 ```
-🔍 Testing MCP Server at http://localhost:8000/mcp/
+🔍 Testing MCP Server at http://localhost:8001/mcp/
 --------------------------------------------------
 ✓ Connected to MCP Server
 
@@ -138,7 +138,7 @@ uv run python scripts/test_setup.py
 ### Interactive Testing
 
 1. **Open MCP Inspector**: http://localhost:6274
-2. **Connect to MCP server**: Enter URL `http://localhost:8000`
+2. **Connect to MCP server**: Enter URL `http://localhost:8001`
 3. **Test a basic tool**: Try `get_splunk_health`
 
 Expected result:
@@ -259,7 +259,7 @@ For connecting different AI clients to different Splunk instances:
 curl -H "X-Splunk-Host: prod-splunk.company.com" \
      -H "X-Splunk-Username: prod-user" \
      -H "X-Splunk-Password: prod-password" \
-     http://localhost:8000/mcp/
+     http://localhost:8001/mcp/
 ```
 
 ## 🚨 Troubleshooting
@@ -282,7 +282,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 **"Port already in use"**
 - The scripts auto-detect available ports
-- Check what's running: `netstat -tulpn | grep 8000`
+- Check what's running: `netstat -tulpn | grep 8001`
 - Or use a different port: `fastmcp run src/server.py --port 8002`
 
 **"Splunk connection failed"**

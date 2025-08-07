@@ -16,7 +16,7 @@ except ImportError:
     sys.exit(1)
 
 
-async def test_server_connection(url: str = "http://localhost:8000/mcp/"):
+async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
     """Test the MCP server connection and basic functionality."""
     
     print(f"🔍 Testing MCP Server at {url}")
@@ -107,7 +107,7 @@ async def test_server_connection(url: str = "http://localhost:8000/mcp/"):
 def main():
     """Main entry point."""
     # Check if a custom URL was provided
-    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000/mcp/"
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8001/mcp/"
     
     # Run the async test
     asyncio.run(test_server_connection(url))

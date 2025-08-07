@@ -284,23 +284,54 @@ function Setup-LocalEnv {
 
 # Function to find an available port
 function Find-AvailablePort {
-    param([int]$StartPort = 8000)
+    param([int]$StartPort = 8001)
     
     $maxAttempts = 10
     $port = $StartPort
     
     for ($i = 0; $i -lt $maxAttempts; $i++) {
+        $portAvailable = $true
+        
+        # First check if anything is listening on the port
         try {
-            $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
-            $listener.Start()
-            $listener.Stop()
-            return $port
+            $tcpConnections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            if ($tcpConnections) {
+                $portAvailable = $false
+            }
         } catch {
-            $port++
+            # If Get-NetTCPConnection isn't available, try TcpListener
+            try {
+                $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
+                $listener.Start()
+                $listener.Stop()
+                # If we got here, port is available
+                return $port
+            } catch {
+                $portAvailable = $false
+            }
         }
+        
+        if ($portAvailable) {
+            # Double-check by trying to bind
+            try {
+                $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
+                $listener.Start()
+                $listener.Stop()
+                return $port
+            } catch {
+                $portAvailable = $false
+            }
+        }
+        
+        if (-not $portAvailable) {
+            Write-Local "Port $port is in use, trying next port..."
+        }
+        
+        $port++
     }
     
     # If we can't find a port, return the original
+    Write-Warning "Could not find an available port after $maxAttempts attempts"
     return $StartPort
 }
 
@@ -340,16 +371,28 @@ function Start-LocalServer {
         } else {
             # Try to install and run MCP Inspector
             Write-Local "Installing/updating MCP Inspector..."
+            Write-Local "This may take a moment on first install..."
+            
+            # Check if inspector package needs to be installed
+            $inspectorCachePath = Join-Path $env:USERPROFILE ".npm\_npx\*\node_modules\@modelcontextprotocol\inspector"
+            if (-not (Get-ChildItem -Path (Join-Path $env:USERPROFILE ".npm\_npx") -Recurse -Filter "inspector" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*@modelcontextprotocol*" })) {
+                Write-Local "MCP Inspector not found in cache. Downloading package..."
+            } else {
+                Write-Local "MCP Inspector found in cache. Starting..."
+            }
             
             # Set environment variables for the inspector
             $env:DANGEROUSLY_OMIT_AUTH = "true"
+            # Prevent browser from opening automatically when running in background
+            $env:BROWSER = "none"
             
             # Ensure logs directory exists
             Ensure-LogsDir
             
             # Start inspector in background
             try {
-                $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "@modelcontextprotocol/inspector" -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
+                # Use --yes to automatically install if not present
+                $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector" -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
                 
                 # Give inspector time to start and check multiple times
                 Write-Local "Waiting for MCP Inspector to start..."
@@ -429,10 +472,11 @@ function Start-LocalServer {
     
     # Start the server with uv and better error handling
     Write-Local "Finding available port for MCP server..."
-    $mcpPort = Find-AvailablePort -StartPort 8000
+    # Start from 8001 to avoid conflict with Splunk Web UI (port 8000)
+    $mcpPort = Find-AvailablePort -StartPort 8001
     
-    if ($mcpPort -ne 8000) {
-        Write-Warning "Port 8000 is in use. Using port $mcpPort instead."
+    if ($mcpPort -ne 8001) {
+        Write-Warning "Port 8001 is in use. Using port $mcpPort instead."
     } else {
         Write-Local "Using port $mcpPort for MCP server."
     }

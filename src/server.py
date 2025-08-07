@@ -363,8 +363,8 @@ def personalized_greeting(name: str) -> str:
 
 async def main():
     """Main function for running the MCP server"""
-    # Get the port from environment variable, default to 8000
-    port = int(os.environ.get("MCP_SERVER_PORT", 8000))
+    # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
+    port = int(os.environ.get("MCP_SERVER_PORT", 8001))
     host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
 
     logger.info(f"Starting modular MCP server on {host}:{port}")
@@ -410,8 +410,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind the HTTP server (only for http transport)",
+        default=8001,
+        help="Port to bind the HTTP server (only for http transport, default 8001 to avoid conflict with Splunk)",
     )
 
     args = parser.parse_args()
