@@ -1,0 +1,25 @@
+{
+  "workflow_id": "authentication_analysis",
+  "name": "Authentication Security Analysis",
+  "description": "Comprehensive analysis of authentication events to detect security threats and anomalies",
+  "tasks": [
+    {
+      "task_id": "failed_login_analysis",
+      "name": "Failed Login Analysis",
+      "description": "Analyze failed authentication attempts and identify potential brute force attacks",
+      "instructions": "You are analyzing failed authentication events for security threats.\n\n**Context:** Analyzing authentication in index {focus_index} from {earliest_time} to {latest_time}\n\n**Analysis Steps:**\n1. Search for failed authentication attempts\n2. Identify patterns of brute force attacks\n3. Check for successful logins after failures\n4. Analyze geographic and temporal patterns\n\n**Searches to Execute:**\n- index={focus_index} sourcetype=auth* OR sourcetype=linux_secure OR sourcetype=WinEventLog:Security EventCode=4625 action=failure | stats count by src_ip, user | sort -count\n- index={focus_index} sourcetype=auth* | timechart count by action\n\n**What to Look For:**\n- High numbers of failed attempts from single IP (>10)\n- Unusual login patterns outside business hours\n- Geographic anomalies in login sources\n- Targeted user accounts with multiple failures\n\n**Output:** Return DiagnosticResult with authentication analysis and security recommendations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+    },
+    {
+      "task_id": "privilege_escalation_check",
+      "name": "Privilege Escalation Check",
+      "description": "Check for privilege escalation attempts and unauthorized administrative access",
+      "instructions": "You are checking for privilege escalation attempts.\n\n**Context:** Analyzing privilege changes in index {focus_index} from {earliest_time} to {latest_time}\n\n**Analysis Steps:**\n1. Search for sudo and administrative command usage\n2. Check for role changes and permission modifications\n3. Identify unusual administrative activity\n4. Analyze privilege usage patterns\n\n**Searches to Execute:**\n- index={focus_index} sourcetype=linux_secure \"sudo\" | stats count by user, command | sort -count\n- index={focus_index} sourcetype=WinEventLog:Security EventCode=4672 | stats count by user\n\n**What to Look For:**\n- Unusual sudo command usage\n- Administrative commands from non-admin users\n- Privilege modification events\n- Cross-system privilege requests\n\n**Output:** Return DiagnosticResult with privilege escalation findings and security recommendations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+    }
+  ]
+} 

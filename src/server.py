@@ -17,6 +17,7 @@ from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 # Add import for Starlette responses at the top
 
@@ -34,7 +35,7 @@ os.makedirs(log_dir, exist_ok=True)
 
 # Enhanced logging configuration
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.path.join(log_dir, "mcp_splunk_server.log")),
@@ -66,6 +67,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
 
             # Store headers in context variable
             http_headers_context.set(headers)
+            logger.debug(f"Captured headers: {list(headers.keys())}")
 
             # Log header extraction for debugging
             splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith("x-splunk-")}
@@ -360,9 +362,16 @@ class ClientConfigMiddleware(Middleware):
 mcp.add_middleware(ClientConfigMiddleware())
 
 
-# Health check endpoint for Docker
+# Health check endpoint for Docker using custom route (recommended pattern)
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request) -> JSONResponse:
+    """Health check endpoint for Docker and load balancers"""
+    return JSONResponse({"status": "OK", "service": "MCP for Splunk"})
+
+
+# Legacy health check resource for MCP Inspector compatibility
 @mcp.resource("health://status")
-def health_check() -> str:
+def health_check_resource() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
 
@@ -416,8 +425,8 @@ def personalized_greeting(name: str) -> str:
 
 async def main():
     """Main function for running the MCP server"""
-    # Get the port from environment variable, default to 8000
-    port = int(os.environ.get("MCP_SERVER_PORT", 8000))
+    # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
+    port = int(os.environ.get("MCP_SERVER_PORT", 8001))
     host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
 
     logger.info(f"Starting modular MCP server on {host}:{port}")
@@ -432,8 +441,14 @@ async def main():
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-    # Get the FastMCP app with HTTP transport
-    mcp_app = mcp.http_app(middleware=custom_middleware)
+
+    # Create the FastMCP ASGI app with proper middleware and transport
+    # Use the recommended Streamable HTTP transport (default for 'http')
+    app = mcp.http_app(
+        path="/mcp/", 
+        middleware=custom_middleware,
+        transport="http"  # Explicitly use Streamable HTTP transport
+    )
 
     # Use uvicorn to run the server
     try:
@@ -461,8 +476,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind the HTTP server (only for http transport)",
+        default=8001,
+        help="Port to bind the HTTP server (only for http transport, default 8001 to avoid conflict with Splunk)",
     )
 
     args = parser.parse_args()
@@ -472,10 +487,16 @@ if __name__ == "__main__":
     try:
         if args.transport == "stdio":
             logger.info("Running in stdio mode for direct MCP client communication")
-            asyncio.run(mcp.run())
+            # Use FastMCP's built-in run method for stdio
+            mcp.run(transport="stdio")
         else:
-            # HTTP mode: use Streamable HTTP transport for web-based communication
+            # HTTP mode: Use FastMCP's recommended approach for HTTP transport
             logger.info("Running in HTTP mode with Streamable HTTP transport")
+            
+            # Option 1: Use FastMCP's built-in HTTP server (recommended for simple cases)
+            # mcp.run(transport="http", host=args.host, port=args.port, path="/mcp/")
+            
+            # Option 2: Use custom uvicorn setup for advanced middleware (current approach)
             asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Server stopped by user")

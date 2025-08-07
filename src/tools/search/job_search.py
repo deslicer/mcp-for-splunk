@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
@@ -60,48 +60,102 @@ class JobSearch(BaseTool):
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
-            ctx.error(f"Search job failed: {error_msg}")
+            await ctx.error(f"Search job failed: {error_msg}")
             return self.format_error_response(error_msg)
 
         # Sanitize and prepare the query
         query = sanitize_search_query(query)
 
         self.logger.info(f"Starting normal search with query: {query}")
-        ctx.info(f"Starting normal search with query: {query}")
+        await ctx.info(f"Starting normal search with query: {query}")
 
         try:
             start_time = time.time()
 
             # Create the search job
             job = service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            ctx.info(f"Search job created: {job.sid}")
+            await ctx.info(f"Search job created: {job.sid}")
 
             # Poll for completion
             while not job.is_done():
                 stats = job.content
-                progress = {
+                
+                # Check if job failed during execution
+                if stats.get("isFailed", "0") == "1":
+                    # Job failed, get error messages
+                    error_messages = []
+                    if "messages" in stats:
+                        for message in stats["messages"]:
+                            # Handle both dictionary and string message formats
+                            if isinstance(message, dict):
+                                if message.get("type") == "ERROR":
+                                    error_messages.append(message.get("text", "Unknown error"))
+                            elif isinstance(message, str):
+                                # String messages are typically error messages
+                                error_messages.append(message)
+                    
+                    error_detail = "; ".join(error_messages) if error_messages else "Job failed with no specific error message"
+                    self.logger.error(f"Search job {job.sid} failed: {error_detail}")
+                    await ctx.error(f"Search job {job.sid} failed: {error_detail}")
+                    return self.format_error_response(f"Search job failed: {error_detail}")
+                
+                progress_dict = {
                     "done": stats.get("isDone", "0") == "1",
                     "progress": float(stats.get("doneProgress", 0)) * 100,
                     "scan_progress": float(stats.get("scanCount", 0)),
                     "event_progress": float(stats.get("eventCount", 0)),
                 }
-                ctx.report_progress(progress)
+                
+                # Report progress with just the numeric value
+                await ctx.report_progress(
+                    progress=int(progress_dict["progress"]),
+                    total=100
+                )
+                
                 self.logger.info(
                     f"Search job {job.sid} in progress... "
-                    f"Progress: {progress['progress']:.1f}%, "
-                    f"Scanned: {progress['scan_progress']} events, "
-                    f"Matched: {progress['event_progress']} events"
+                    f"Progress: {progress_dict['progress']:.1f}%, "
+                    f"Scanned: {progress_dict['scan_progress']} events, "
+                    f"Matched: {progress_dict['event_progress']} events"
                 )
                 time.sleep(2)
 
-            # Get the results using ResultsReader for consistent parsing
+            # Final check for job failure after completion
+            final_stats = job.content
+            if final_stats.get("isFailed", "0") == "1":
+                # Job failed, get error messages
+                error_messages = []
+                if "messages" in final_stats:
+                    for message in final_stats["messages"]:
+                        # Handle both dictionary and string message formats
+                        if isinstance(message, dict):
+                            if message.get("type") == "ERROR":
+                                error_messages.append(message.get("text", "Unknown error"))
+                        elif isinstance(message, str):
+                            # String messages are typically error messages
+                            error_messages.append(message)
+                
+                error_detail = "; ".join(error_messages) if error_messages else "Job failed with no specific error message"
+                self.logger.error(f"Search job {job.sid} failed after completion: {error_detail}")
+                await ctx.error(f"Search job {job.sid} failed: {error_detail}")
+                return self.format_error_response(f"Search job failed: {error_detail}")
+
+            # Get the results using JSONResultsReader with output_mode=json
             results = []
             result_count = 0
-            ctx.info(f"Getting results for search job: {job.sid}")
-            for result in ResultsReader(job.results()):
-                if isinstance(result, dict):
-                    results.append(result)
-                    result_count += 1
+            await ctx.info(f"Getting results for search job: {job.sid}")
+            
+            try:
+                # Request results in JSON format and use JSONResultsReader
+                reader = JSONResultsReader(job.results(output_mode="json"))
+                for result in reader:
+                    if isinstance(result, dict):
+                        results.append(result)
+                        result_count += 1
+            except Exception as results_error:
+                self.logger.error(f"Error reading results for job {job.sid}: {str(results_error)}")
+                await ctx.error(f"Error reading search results: {str(results_error)}")
+                return self.format_error_response(f"Error reading search results: {str(results_error)}")
 
             # Get final job stats
             stats = job.content
@@ -119,7 +173,7 @@ class JobSearch(BaseTool):
                     "results_count": result_count,
                     "query_executed": query,
                     "duration": round(duration, 3),
-                    "status": {
+                    "job_status": {
                         "progress": 100,
                         "is_finalized": stats.get("isFinalized", "0") == "1",
                         "is_failed": stats.get("isFailed", "0") == "1",
@@ -128,6 +182,17 @@ class JobSearch(BaseTool):
             )
 
         except Exception as e:
-            self.logger.error(f"Search failed: {str(e)}")
-            ctx.error(f"Search failed: {str(e)}")
-            return self.format_error_response(str(e))
+            # Enhanced exception logging
+            self.logger.error(f"Search failed with exception: {str(e)}", exc_info=True)
+            await ctx.error(f"Search failed: {str(e)}")
+            
+            # Try to provide more context about the error
+            error_detail = str(e)
+            if "Connection" in error_detail or "connection" in error_detail:
+                error_detail += " (Check Splunk server connectivity and credentials)"
+            elif "Authentication" in error_detail or "authentication" in error_detail:
+                error_detail += " (Check Splunk username and password)"
+            elif "Permission" in error_detail or "permission" in error_detail:
+                error_detail += " (Check user permissions for search and index access)"
+            
+            return self.format_error_response(error_detail)

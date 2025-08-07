@@ -57,10 +57,14 @@ class ToolLoader:
 
         # Get list of modules that might contain tools
         tool_modules = [
+            "src.tools.admin.tool_enhancer",
             "src.tools.admin.apps",
             "src.tools.admin.config",
             "src.tools.admin.users",
+            "src.tools.admin.me",
             "src.tools.admin.app_management",
+            "src.tools.agents.splunk_triage_agent",
+            "src.tools.agents.dynamic_troubleshoot_agent",
             "src.tools.health.status",
             "src.tools.kvstore.collections",
             "src.tools.kvstore.data",
@@ -70,6 +74,9 @@ class ToolLoader:
             "src.tools.search.oneshot_search",
             "src.tools.search.job_search",
             "src.tools.search.saved_search_tools",
+            "src.tools.workflows.workflow_requirements",
+            "src.tools.workflows.workflow_builder",
+            "src.tools.workflows.list_workflows",
         ]
 
         reloaded_count = 0
@@ -326,7 +333,7 @@ Failed to retrieve troubleshooting documentation for `{topic}` (version {version
 
 Please check:
 - Topic name spelling
-- Version availability  
+- Version availability
 - Network connectivity
 
 Try using the discovery resource: `splunk-docs://discovery`
@@ -1038,7 +1045,7 @@ class ComponentLoader:
     def reload_all_components(self) -> dict[str, int]:
         """
         Hot reload all components for development.
-        
+
         Returns:
             Dict containing counts of reloaded components by type
         """

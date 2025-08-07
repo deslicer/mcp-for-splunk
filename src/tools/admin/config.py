@@ -34,7 +34,7 @@ class GetConfigurations(BaseTool):
     )
 
     async def execute(
-        self, ctx: Context, conf_file: str, stanza: str | None = None
+        self, ctx: Context, conf_file: str, stanza: str = ""
     ) -> dict[str, Any]:
         """
         Get Splunk configurations from specific configuration files.
@@ -56,7 +56,7 @@ class GetConfigurations(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info(f"Retrieving configurations from {conf_file}")
-        ctx.info(f"Retrieving configurations from {conf_file}")
+        await ctx.info(f"Retrieving configurations from {conf_file}")
 
         try:
             confs = service.confs[conf_file]
@@ -64,18 +64,18 @@ class GetConfigurations(BaseTool):
             if stanza:
                 stanza_obj = confs[stanza]
                 result = {"stanza": stanza, "settings": dict(stanza_obj.content)}
-                ctx.info(f"Retrieved configuration for stanza: {stanza}")
+                await ctx.info(f"Retrieved configuration for stanza: {stanza}")
                 return self.format_success_response(result)
 
             all_stanzas = {}
             for stanza_obj in confs:
                 all_stanzas[stanza_obj.name] = dict(stanza_obj.content)
 
-            ctx.info(f"Retrieved {len(all_stanzas)} stanzas from {conf_file}")
+            await ctx.info(f"Retrieved {len(all_stanzas)} stanzas from {conf_file}")
             return self.format_success_response({"file": conf_file, "stanzas": all_stanzas})
         except Exception as e:
             self.logger.error(f"Failed to get configurations: {str(e)}")
-            ctx.error(f"Failed to get configurations: {str(e)}")
+            await ctx.error(f"Failed to get configurations: {str(e)}")
             return self.format_error_response(str(e))
 
 
