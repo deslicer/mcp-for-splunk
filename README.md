@@ -123,10 +123,10 @@ results = job.results()
 | Document | Purpose | Audience | Time |
 |----------|---------|----------|------|
 | **[🤖 AI-Powered Troubleshooting](docs/agents-as-tools-readme.md)** | **Intelligent workflows and specialist agents** | **All users** | **5 min** |
-| **[Getting Started](docs/getting-started/)** | First-time setup and tutorial | New users | 15 min |
+| **[Getting Started](docs/getting-started/)** | Complete setup guide with prerequisites | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
-| **[Rate Limiting Guide](docs/guides/openai-rate-limiting.md)** | Configure OpenAI retry behavior | Operators | 10 min |
+| **[OpenAI Agent Integration](docs/guides/openai-agent-integration.md)** | Configure OpenAI agents and retry behavior | Developers | 10 min |
 | **[Template Replacement Guide](docs/guides/template-replacement-guide.md)** | Handle agent instruction templates | Developers | 5 min |
 | **[API Reference](docs/api/)** | Complete tool documentation | Integrators | Reference |
 | **[Contributing](docs/community/contributing.md)** | Add your own tools | Contributors | 60 min |
@@ -249,7 +249,7 @@ splunk_agent = LlmAgent(
 - **🔧 Interactive Testing**: MCP Inspector for real-time testing
 
 ### Windows Support
-Windows users get first-class support with PowerShell scripts and comprehensive troubleshooting guides. See our [Windows Setup Guide](docs/getting-started/windows.md).
+Windows users get first-class support with PowerShell scripts and comprehensive troubleshooting guides. See our [Windows Setup Guide](docs/WINDOWS_GUIDE.md).
 
 ## 📈 Project Stats
 

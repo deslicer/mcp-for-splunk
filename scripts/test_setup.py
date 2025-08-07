@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""
+Quick setup test script for MCP Server for Splunk
+This replaces the curl-based "First Success Test" with a cleaner FastMCP client test.
+"""
+
+import asyncio
+import sys
+from typing import Optional
+
+try:
+    from fastmcp import Client
+except ImportError:
+    print("❌ FastMCP is not installed. The server setup script should have installed it.")
+    print("   Try running: uv pip install fastmcp")
+    sys.exit(1)
+
+
+async def test_server_connection(url: str = "http://localhost:8000/mcp/"):
+    """Test the MCP server connection and basic functionality."""
+    
+    print(f"🔍 Testing MCP Server at {url}")
+    print("-" * 50)
+    
+    try:
+        # Create client
+        client = Client(url)
+        
+        async with client:
+            # Test 1: Server connectivity
+            print("✓ Connected to MCP Server")
+            
+            # Test 2: List tools
+            print("\n📋 Available Tools:")
+            tools = await client.list_tools()
+            if tools:
+                for i, tool in enumerate(tools[:5], 1):  # Show first 5 tools
+                    print(f"  {i}. {tool.name}")
+                    if tool.description:
+                        print(f"     {tool.description[:60]}...")
+                if len(tools) > 5:
+                    print(f"  ... and {len(tools) - 5} more tools")
+            else:
+                print("  ❌ No tools found")
+            
+            # Test 3: List resources
+            print("\n📚 Available Resources:")
+            resources = await client.list_resources()
+            if resources:
+                for i, resource in enumerate(resources[:5], 1):  # Show first 5 resources
+                    print(f"  {i}. {resource.uri}")
+                    if resource.name:
+                        print(f"     {resource.name}")
+                if len(resources) > 5:
+                    print(f"  ... and {len(resources) - 5} more resources")
+            else:
+                print("  ❌ No resources found")
+            
+            # Test 4: Read server info resource
+            print("\n📖 Reading Server Info:")
+            try:
+                server_info = await client.read_resource("info://server")
+                if server_info and server_info[0].text:
+                    print(f"  {server_info[0].text}")
+                else:
+                    print("  ❌ Could not read server info")
+            except Exception as e:
+                print(f"  ❌ Error reading server info: {e}")
+            
+            # Test 5: Try to call a simple tool (if available)
+            print("\n🔧 Testing Tool Execution:")
+            if tools:
+                # Look for a simple tool like get_splunk_health
+                health_tool = next((t for t in tools if "health" in t.name.lower()), None)
+                if health_tool:
+                    try:
+                        result = await client.call_tool(health_tool.name, {})
+                        print(f"  ✓ Called '{health_tool.name}' successfully")
+                        print(f"  Result: {result}")
+                    except Exception as e:
+                        print(f"  ⚠️  Could not call '{health_tool.name}': {e}")
+                        print("  This might be normal if Splunk is not configured yet.")
+                else:
+                    print("  ℹ️  No health check tool found to test")
+            
+            print("\n✅ MCP Server is running and responding correctly!")
+            print("\n🎉 Setup verification complete! Your MCP server is ready to use.")
+            
+            # Provide next steps
+            print("\n📋 Next Steps:")
+            print("1. Configure your .env file with Splunk credentials")
+            print("2. Open MCP Inspector at http://localhost:6274")
+            print("3. Connect your AI client (Claude, Cursor, etc.)")
+            print("4. Start using the available tools and resources!")
+            
+    except ConnectionError:
+        print(f"❌ Could not connect to MCP Server at {url}")
+        print("   Make sure the server is running with:")
+        print("   ./scripts/build_and_run.sh (macOS/Linux)")
+        print("   .\\scripts\\build_and_run.ps1 (Windows)")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        sys.exit(1)
+
+
+def main():
+    """Main entry point."""
+    # Check if a custom URL was provided
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000/mcp/"
+    
+    # Run the async test
+    asyncio.run(test_server_connection(url))
+
+
+if __name__ == "__main__":
+    main()

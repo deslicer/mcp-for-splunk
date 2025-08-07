@@ -56,21 +56,32 @@ git clone https://github.com/your-org/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
 ```
 
-### Step 2: Choose Your Deployment Mode
+### Step 2: Configure Your Environment
+
+```bash
+# Copy the example configuration
+cp env.example .env
+
+# Edit .env with your Splunk credentials
+# - Use your existing Splunk instance (local, cloud, or Splunk Cloud)
+# - OR use the included Docker Splunk (requires Docker)
+```
+
+### Step 3: Choose Your Deployment Mode
 
 The setup script will automatically detect your environment and present options:
 
-#### Option A: Docker (Recommended for Testing)
+#### Option A: Docker (Default if Docker is installed)
 - **Includes**: Complete stack with Splunk, MCP Inspector, monitoring
 - **Best for**: Testing, development, multi-client access
 - **Startup**: ~2 minutes
 
-#### Option B: Local (Lightweight)
+#### Option B: Local (For users without Docker)
 - **Includes**: MCP server only
-- **Best for**: AI client integration, development
+- **Best for**: AI client integration, lightweight development
 - **Startup**: ~10 seconds
 
-### Step 3: Run the Setup
+### Step 4: Run the Setup
 
 **Windows (PowerShell):**
 ```powershell
@@ -90,39 +101,44 @@ The setup script will automatically detect your environment and present options:
 The script will:
 1. Check prerequisites and install missing tools
 2. Set up your environment
-3. Configure Splunk connection
+3. Load configuration from .env file
 4. Start the MCP server
-5. Launch MCP Inspector for testing
+5. Launch MCP Inspector for testing (if Node.js is installed)
 
 ## ✅ First Success Test
 
 ### Verify Server Health
 
-**Step 1: Initialize MCP Session**
+**Run the automated test script:**
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"roots":{"listChanged":false}},"clientInfo":{"name":"test-client","version":"1.0.0"}}}' \
-  http://localhost:8001/mcp/ -D /tmp/mcp_headers.txt
+uv run python scripts/test_setup.py
 ```
 
-**Step 2: Get Server Info**
-```bash
-SESSION_ID=$(grep -i "mcp-session-id:" /tmp/mcp_headers.txt | cut -d' ' -f2 | tr -d '\r\n')
-curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-  -H "mcp-session-id: $SESSION_ID" \
-  -d '{"jsonrpc":"2.0","id":"test","method":"resources/read","params":{"uri":"info://server"}}' \
-  http://localhost:8001/mcp/
+**Expected output:**
 ```
+🔍 Testing MCP Server at http://localhost:8000/mcp/
+--------------------------------------------------
+✓ Connected to MCP Server
 
-**Expected response:**
-```json
-{"jsonrpc":"2.0","id":"test","result":{"contents":[{"uri":"info://server","text":"{\"name\":\"MCP Server for Splunk\",\"version\":\"2.0.0\",\"status\":\"running\"}"}]}}
+📋 Available Tools:
+  1. run_oneshot_search
+     Run a Splunk search and return results immediately...
+  2. get_splunk_health
+     Get Splunk server health information...
+  ... and 27 more tools
+
+📚 Available Resources:
+  1. info://server
+     Server Information
+  ... and 8 more resources
+
+✅ MCP Server is running and responding correctly!
 ```
 
 ### Interactive Testing
 
-1. **Open MCP Inspector**: http://localhost:3001
-2. **Connect to MCP server**: `http://localhost:8001/mcp/`
+1. **Open MCP Inspector**: http://localhost:6274
+2. **Connect to MCP server**: Enter URL `http://localhost:8000`
 3. **Test a basic tool**: Try `get_splunk_health`
 
 Expected result:
@@ -243,7 +259,7 @@ For connecting different AI clients to different Splunk instances:
 curl -H "X-Splunk-Host: prod-splunk.company.com" \
      -H "X-Splunk-Username: prod-user" \
      -H "X-Splunk-Password: prod-password" \
-     http://localhost:8001/mcp/
+     http://localhost:8000/mcp/
 ```
 
 ## 🚨 Troubleshooting
@@ -266,7 +282,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 **"Port already in use"**
 - The scripts auto-detect available ports
-- Check what's running: `netstat -tulpn | grep 8001`
+- Check what's running: `netstat -tulpn | grep 8000`
 - Or use a different port: `fastmcp run src/server.py --port 8002`
 
 **"Splunk connection failed"**
