@@ -16,7 +16,7 @@ services:
       # Configure entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.mcp.address=:8000
-      - --entrypoints.inspector.address=:3002
+      - --entrypoints.inspector.address=:6274
       # Enable API and dashboard (optional, for debugging)
       - --api.dashboard=true
       - --api.insecure=true
@@ -25,8 +25,7 @@ services:
       - --accesslog=true
     ports:
       - "80:80"           # HTTP
-      - "8001:8000"       # MCP Server port
-      - "3002:3002"       # MCP Inspector port
+      - "8001:8000"       # MCP Server port (8001 to avoid conflict with Splunk)
       - "8080:8080"       # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -46,7 +45,7 @@ services:
     networks:
       - splunk-network
     ports:
-      - "3001:6274"       # Inspector UI direct access
+      - "6274:6274"       # Inspector UI (same port as local mode)
       - "6277:6277"       # Inspector Proxy server access
     command: >
       sh -c "
@@ -60,7 +59,7 @@ services:
       - DANGEROUSLY_OMIT_AUTH=true
       # Fix binding and origin issues per MCP Inspector docs
       - HOST=0.0.0.0
-      - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+      - ALLOWED_ORIGINS=http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
     depends_on:
       - traefik
       - mcp-server
@@ -93,7 +92,7 @@ services:
     networks:
       - splunk-network
     ports:
-      - "8002:8000"       # MCP Server direct access (optional)
+      - "8001:8000"       # MCP Server (8001 to avoid conflict with Splunk)
     env_file:
       - .env              # Load environment variables from .env file
     environment:
