@@ -454,7 +454,7 @@ async def main():
     try:
         import uvicorn
 
-        config = uvicorn.Config(mcp_app, host=host, port=port, log_level="info")
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
         server = uvicorn.Server(config)
         await server.serve()
     except ImportError:

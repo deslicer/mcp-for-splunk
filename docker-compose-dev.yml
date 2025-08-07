@@ -16,7 +16,7 @@ services:
       # Configure entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.mcp.address=:8000
-      - --entrypoints.inspector.address=:3002
+      - --entrypoints.inspector.address=:6274
       # Enable API and dashboard (optional, for debugging)
       - --api.dashboard=true
       - --api.insecure=true
@@ -46,7 +46,7 @@ services:
     networks:
       - splunk-network
     ports:
-      - "3001:6274"       # Inspector UI direct access
+      - "6274:6274"       # Inspector UI (same port as local mode)
       - "6277:6277"       # Inspector Proxy server access
     command: >
       sh -c "
@@ -60,7 +60,11 @@ services:
       - DANGEROUSLY_OMIT_AUTH=true
       # Fix binding and origin issues per MCP Inspector docs
       - HOST=0.0.0.0
-      - ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+      - ALLOWED_ORIGINS=http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+      # Default MCP server configuration for Docker environment
+      - DEFAULT_SERVER_URL=http://mcp-server-dev:8000/mcp
+      - MCP_SERVER_URL=http://mcp-server-dev:8000/mcp
+      - DEFAULT_TRANSPORT=streamable-http
     depends_on:
       - traefik
       - mcp-server-dev
