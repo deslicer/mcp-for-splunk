@@ -50,7 +50,7 @@ class ListIndexes(BaseTool):
             customer_indexes = filter_customer_indexes(service.indexes)
             index_names = [index.name for index in customer_indexes]
 
-            ctx.info(f"Customer indexes: {index_names}")
+            await ctx.info(f"Customer indexes: {index_names}")
             return self.format_success_response(
                 {
                     "indexes": sorted(index_names),
@@ -60,5 +60,5 @@ class ListIndexes(BaseTool):
             )
         except Exception as e:
             self.logger.error(f"Failed to list indexes: {str(e)}")
-            ctx.error(f"Failed to list indexes: {str(e)}")
+            await ctx.error(f"Failed to list indexes: {str(e)}")
             return self.format_error_response(str(e), indexes=[], count=0)

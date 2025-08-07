@@ -48,7 +48,7 @@ class ListUsers(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info("Retrieving list of Splunk users")
-        ctx.info("Retrieving list of Splunk users")
+        await ctx.info("Retrieving list of Splunk users")
 
         try:
             users = []
@@ -64,9 +64,9 @@ class ListUsers(BaseTool):
                     }
                 )
 
-            ctx.info(f"Found {len(users)} users")
+            await ctx.info(f"Found {len(users)} users")
             return self.format_success_response({"count": len(users), "users": users})
         except Exception as e:
             self.logger.error(f"Failed to list users: {str(e)}")
-            ctx.error(f"Failed to list users: {str(e)}")
+            await ctx.error(f"Failed to list users: {str(e)}")
             return self.format_error_response(str(e))

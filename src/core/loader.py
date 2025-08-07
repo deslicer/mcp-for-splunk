@@ -7,8 +7,8 @@ with the FastMCP server instance.
 
 import inspect
 import logging
-import sys
 import os
+import sys
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -35,43 +35,50 @@ class ToolLoader:
         Useful for development hot reload.
         """
         self.logger.info("Hot reloading tools...")
-        
+
         # Clear the tool registry to force rediscovery
         tool_registry._tools.clear()
-        tool_registry._metadata.clear() 
+        tool_registry._metadata.clear()
         tool_registry._instances.clear()
-        
+
         # Clear our tracking
         self._loaded_tools.clear()
-        
+
         # Reload tool modules if in development mode
         if os.environ.get("MCP_RELOAD_MODULES", "false").lower() == "true":
             self._reload_tool_modules()
-        
+
         # Rediscover and load tools
         return self.load_tools()
-    
+
     def _reload_tool_modules(self):
         """Reload Python modules containing tools to pick up changes."""
         import importlib
-        
+
         # Get list of modules that might contain tools
         tool_modules = [
+            "src.tools.admin.tool_enhancer",
             "src.tools.admin.apps",
-            "src.tools.admin.config", 
+            "src.tools.admin.config",
             "src.tools.admin.users",
+            "src.tools.admin.me",
             "src.tools.admin.app_management",
+            "src.tools.agents.splunk_triage_agent",
+            "src.tools.agents.dynamic_troubleshoot_agent",
             "src.tools.health.status",
             "src.tools.kvstore.collections",
             "src.tools.kvstore.data",
             "src.tools.metadata.indexes",
-            "src.tools.metadata.sources", 
+            "src.tools.metadata.sources",
             "src.tools.metadata.sourcetypes",
             "src.tools.search.oneshot_search",
             "src.tools.search.job_search",
             "src.tools.search.saved_search_tools",
+            "src.tools.workflows.workflow_requirements",
+            "src.tools.workflows.workflow_builder",
+            "src.tools.workflows.list_workflows",
         ]
-        
+
         reloaded_count = 0
         for module_name in tool_modules:
             try:
@@ -81,7 +88,7 @@ class ToolLoader:
                     reloaded_count += 1
             except Exception as e:
                 self.logger.warning(f"Failed to reload module {module_name}: {e}")
-        
+
         self.logger.info(f"Reloaded {reloaded_count} tool modules")
 
     def _create_tool_wrapper(self, tool_class: type[BaseTool], tool_name: str):
@@ -326,7 +333,7 @@ Failed to retrieve troubleshooting documentation for `{topic}` (version {version
 
 Please check:
 - Topic name spelling
-- Version availability  
+- Version availability
 - Network connectivity
 
 Try using the discovery resource: `splunk-docs://discovery`
@@ -424,12 +431,12 @@ Try using the discovery resource: `splunk-docs://discovery`
                 # Skip template resources that are already handled by dynamic handlers
                 if any(pattern in metadata.uri for pattern in [
                     "splunk-docs://{version}/troubleshooting/{topic}",
-                    "splunk-docs://{version}/spl-reference/{command}", 
+                    "splunk-docs://{version}/spl-reference/{command}",
                     "splunk-docs://{version}/admin/{topic}"
                 ]):
                     self.logger.debug(f"Skipping template resource {metadata.uri} - already handled by dynamic handlers")
                     return 0
-                
+
                 # Handle other template resources (like config templates)
                 self._register_template_resource(resource_class, metadata.uri)
                 self._registered_resources[metadata.uri] = f"{resource_class.__name__} (template)"
@@ -1034,11 +1041,11 @@ class ComponentLoader:
         self.logger.info(f"Loaded {total_loaded} total components: {results}")
 
         return results
-    
+
     def reload_all_components(self) -> dict[str, int]:
         """
         Hot reload all components for development.
-        
+
         Returns:
             Dict containing counts of reloaded components by type
         """

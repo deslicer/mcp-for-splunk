@@ -4,8 +4,10 @@ Alerts management tools for Splunk MCP Server.
 This module provides tools for managing and querying Splunk alerts.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from fastmcp import Context
+
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
 
@@ -40,7 +42,7 @@ class ListTriggeredAlerts(BaseTool):
         earliest_time: str = "-24h@h",
         latest_time: str = "now",
         search: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute the list triggered alerts tool.
 
@@ -75,12 +77,12 @@ class ListTriggeredAlerts(BaseTool):
 
             alerts_data = []
             processed_count = 0
-            
+
             for alert_group in fired_alerts:
                 # Stop if we've reached the count limit
                 if processed_count >= count:
                     break
-                    
+
                 try:
                     # Get alert group properties
                     alert_name = getattr(alert_group, 'name', 'Unknown')

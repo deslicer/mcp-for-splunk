@@ -163,7 +163,7 @@ def print_usage_examples():
        python src/server.py --transport http --port 8000
 
 🐳 **Docker Mode** (full production setup):
-   docker-compose -f docker-compose-modular.yml up
+   docker-compose up
 
 🧪 **Testing with Python Client**:
    ```python

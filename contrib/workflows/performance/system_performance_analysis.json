@@ -1,0 +1,25 @@
+{
+  "workflow_id": "system_performance_analysis",
+  "name": "System Performance Analysis",
+  "description": "Comprehensive system performance monitoring and bottleneck identification workflow",
+  "tasks": [
+    {
+      "task_id": "resource_utilization_check",
+      "name": "Resource Utilization Check",
+      "description": "Analyze system resource utilization patterns",
+      "instructions": "You are analyzing system resource utilization.\n\n**Context:** Analyzing performance from {earliest_time} to {latest_time}\n\n**Analysis Steps:**\n1. Check CPU, memory, and disk usage patterns\n2. Identify resource bottlenecks\n3. Analyze usage trends over time\n4. Compare against baseline metrics\n\n**Searches to Execute:**\n- index=_introspection component=Hostwide | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used by host\n- index=_introspection component=Hostwide | timechart avg(data.cpu_system_pct) as cpu_system, avg(data.mem_used) as memory by host\n\n**What to Look For:**\n- High CPU or memory usage (>80%)\n- Resource usage spikes\n- Unusual resource consumption patterns\n- Hosts with consistently high resource usage\n\n**Output:** Return DiagnosticResult with resource utilization analysis and optimization recommendations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time"]
+    },
+    {
+      "task_id": "search_performance_analysis",
+      "name": "Search Performance Analysis",
+      "description": "Analyze search performance and concurrency",
+      "instructions": "You are analyzing search performance metrics.\n\n**Context:** Analyzing search performance from {earliest_time} to {latest_time}\n\n**Analysis Steps:**\n1. Check search execution times and concurrency\n2. Identify slow or failed searches\n3. Analyze search queue performance\n4. Check for search optimization opportunities\n\n**Searches to Execute:**\n- index=_audit action=search | stats avg(total_run_time) as avg_runtime, max(total_run_time) as max_runtime, count by user, search_type\n- index=_internal source=*scheduler.log* | stats count by status\n- index=_internal source=*searchscheduler.log* | stats count by status\n\n**What to Look For:**\n- Long-running searches (>300 seconds)\n- High search concurrency\n- Failed or cancelled searches\n- Users with consistently slow searches\n\n**Output:** Return DiagnosticResult with search performance analysis and optimization recommendations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": ["earliest_time", "latest_time"]
+    }
+  ]
+} 

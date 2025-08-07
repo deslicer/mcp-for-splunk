@@ -784,10 +784,10 @@ class SplunkSearchResultsResource(BaseResource):
             # Get recent jobs
             jobs = service.jobs
             recent_results = []
-            
+
             # Debug logging
             self.logger.info(f"Attempting to retrieve jobs for client {identity.client_id}")
-            
+
             # Check if jobs collection exists and is iterable
             if not jobs:
                 self.logger.warning("No jobs collection found")
@@ -805,7 +805,7 @@ class SplunkSearchResultsResource(BaseResource):
                 # Convert to list to check if there are any jobs
                 jobs_list = list(jobs)
                 self.logger.info(f"Found {len(jobs_list)} total jobs")
-                
+
                 if not jobs_list:
                     return {
                         "client_id": identity.client_id,
@@ -816,7 +816,7 @@ class SplunkSearchResultsResource(BaseResource):
                         "status": "success",
                         "message": "No jobs found in collection"
                     }
-                    
+
             except Exception as list_error:
                 self.logger.error(f"Error converting jobs to list: {list_error}")
                 return {
@@ -831,11 +831,11 @@ class SplunkSearchResultsResource(BaseResource):
 
             count = 0
             processed_jobs = 0
-            
+
             for job in jobs_list:
                 if count >= 10:  # Limit to 10 recent searches
                     break
-                    
+
                 processed_jobs += 1
                 self.logger.debug(f"Processing job {processed_jobs}: {getattr(job, 'sid', 'unknown')}")
 
@@ -859,7 +859,7 @@ class SplunkSearchResultsResource(BaseResource):
                     recent_results.append(job_info)
                     count += 1
                     self.logger.debug(f"Successfully processed job {job_info['search_id']}")
-                    
+
                 except Exception as job_error:
                     # Log individual job errors but continue processing
                     self.logger.warning(f"Error processing job {getattr(job, 'sid', 'unknown')}: {job_error}")
@@ -893,7 +893,7 @@ class SplunkSearchResultsResource(BaseResource):
             if search_query is None:
                 # Try accessing from content
                 search_query = getattr(job, 'content', {}).get('search', 'N/A')
-            
+
             search_str = str(search_query)
             if len(search_str) > 200:
                 return search_str[:200] + "..."
@@ -908,13 +908,13 @@ class SplunkSearchResultsResource(BaseResource):
             count_value = getattr(job, count_attr, None)
             if count_value is not None:
                 return int(count_value)
-            
+
             # Try accessing from content
             content = getattr(job, 'content', {})
             if hasattr(content, 'get'):
                 count_value = content.get(count_attr, 0)
                 return int(count_value)
-            
+
             return 0
         except (ValueError, TypeError, AttributeError):
             return 0
@@ -926,13 +926,13 @@ class SplunkSearchResultsResource(BaseResource):
             time_value = getattr(job, time_attr, None)
             if time_value is not None:
                 return str(time_value)
-            
+
             # Try accessing from content
             content = getattr(job, 'content', {})
             if hasattr(content, 'get'):
                 time_value = content.get(time_attr, 'N/A')
                 return str(time_value)
-            
+
             return 'N/A'
         except (AttributeError, TypeError):
             return 'N/A'

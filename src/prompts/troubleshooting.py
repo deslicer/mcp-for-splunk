@@ -1440,7 +1440,7 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
                 "type": "string"
             },
             {
-                "name": "latest_time", 
+                "name": "latest_time",
                 "description": "End time for analysis (ISO format or relative like now, -1h)",
                 "required": False,
                 "type": "string"
@@ -1482,7 +1482,7 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
         self,
         ctx: Context,
         earliest_time: str = "-24h",
-        latest_time: str = "now", 
+        latest_time: str = "now",
         focus_index: str | None = None,
         focus_host: str | None = None,
         analysis_depth: str = "standard",
@@ -2017,16 +2017,16 @@ For identified issues, implement systematic root cause analysis:
 """
 
     def _generate_delay_analysis_section(
-        self, 
-        include_delay: bool, 
-        focus_context: dict[str, Any], 
-        earliest_time: str, 
+        self,
+        include_delay: bool,
+        focus_context: dict[str, Any],
+        earliest_time: str,
         latest_time: str
     ) -> str:
         """Generate indexing delay analysis section."""
         if not include_delay:
             return ""
-            
+
         return f"""
 
 ### Step 2.1a: Advanced Indexing Delay Analysis
@@ -2082,7 +2082,7 @@ For identified issues, implement systematic root cause analysis:
         """Generate platform instrumentation analysis section."""
         if not include_platform:
             return ""
-            
+
         return """
 
 ### Step 0.2a: Platform Instrumentation Documentation
