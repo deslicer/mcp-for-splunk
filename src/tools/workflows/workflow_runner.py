@@ -2,7 +2,7 @@
 Workflow Runner Tool for Executing Custom and Built-in Workflows.
 
 This tool provides the capability to execute any available workflow in the system,
-including both built-in core workflows and user-contributed workflows, with 
+including both built-in core workflows and user-contributed workflows, with
 comprehensive parameter support and parallel execution.
 """
 
@@ -10,6 +10,7 @@ import logging
 import os
 import time
 from typing import Any, Optional
+import traceback
 
 from fastmcp import Context
 from openai import OpenAI
@@ -17,10 +18,10 @@ from openai import OpenAI
 from src.core.base import BaseTool, ToolMetadata
 
 # Import workflow execution infrastructure
-from ..agents.shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
-from ..agents.shared.parallel_executor import ParallelWorkflowExecutor
-from ..agents.shared.workflow_manager import WorkflowManager
-from ..agents.summarization_tool import create_summarization_tool
+from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
+from .shared.parallel_executor import ParallelWorkflowExecutor
+from .shared.workflow_manager import WorkflowManager
+from .summarization_tool import create_summarization_tool
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +231,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
 
         # Initialize Splunk tools for the registry
         logger.info("Setting up Splunk tools for workflow execution...")
-        from ..agents.shared.tools import create_splunk_tools
+        from .shared.tools import create_splunk_tools
 
         tools = create_splunk_tools(self.tool_registry)
         logger.info(f"Initialized {len(tools)} Splunk tools for workflow execution")
@@ -320,7 +321,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
             with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_with_tracing(
                     ctx, workflow_id, problem_description, earliest_time, latest_time,
-                    focus_index, focus_host, focus_sourcetype, complexity_level, 
+                    focus_index, focus_host, focus_sourcetype, complexity_level,
                     enable_summarization, execution_start_time
                 )
         else:
@@ -328,7 +329,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
             logger.warning("OpenAI Agents tracing not available, executing without traces")
             return await self._execute_with_tracing(
                 ctx, workflow_id, problem_description, earliest_time, latest_time,
-                focus_index, focus_host, focus_sourcetype, complexity_level, 
+                focus_index, focus_host, focus_sourcetype, complexity_level,
                 enable_summarization, execution_start_time
             )
 
@@ -385,7 +386,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                 # Get available workflows for error message
                 available_workflows = self.workflow_manager.list_workflows()
                 available_ids = [w.workflow_id for w in available_workflows]
-                
+
                 error_msg = f"Workflow '{workflow_id}' not found. Available workflows: {', '.join(available_ids)}"
                 logger.error(error_msg)
                 await ctx.error(error_msg)
@@ -441,8 +442,20 @@ you need to run, or for building automated troubleshooting pipelines.""",
 
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"workflow_execution_{workflow_id}"):
-                    workflow_result = await self.parallel_executor.execute_workflow(
-                        workflow_definition, diagnostic_context, ctx
+                    # Add retry for workflow execution
+                    from .shared.retry import retry_with_exponential_backoff, RetryConfig
+
+                    async def execute_workflow_func():
+                        return await self.parallel_executor.execute_workflow(
+                            workflow_definition, diagnostic_context, ctx
+                        )
+
+                    retry_config = RetryConfig(max_retries=3)
+
+                    workflow_result = await retry_with_exponential_backoff(
+                        func=execute_workflow_func,
+                        retry_config=retry_config,
+                        ctx=ctx
                     )
             else:
                 workflow_result = await self.parallel_executor.execute_workflow(
@@ -451,6 +464,10 @@ you need to run, or for building automated troubleshooting pipelines.""",
 
             workflow_execution_time = time.time() - workflow_start_time
             logger.info(f"Workflow execution completed in {workflow_execution_time:.2f}s")
+
+            # Add progress during execution - for long-running, add a loop or per-task progress
+            # Assuming parallel_executor handles internal progress, but add overall
+            await ctx.report_progress(progress=50, total=100)  # Mid-execution estimate
 
             # Report progress: Workflow execution complete
             await ctx.report_progress(progress=70, total=100)
@@ -498,7 +515,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     summarization_execution_time = time.time() - summarization_start_time
 
             # Report progress: Summarization complete
-            await ctx.report_progress(progress=90, total=100)
+            await ctx.report_progress(progress=85, total=100)  # During summarization
 
             total_execution_time = time.time() - execution_start_time
 
@@ -615,4 +632,4 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     "summarization_traced": False,
                     "error": error_msg,
                 },
-            } 
+            }

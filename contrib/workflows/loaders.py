@@ -10,8 +10,9 @@ import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import re # Added for regex in _validate_task
 
-from src.tools.agents.shared.workflow_manager import WorkflowDefinition, TaskDefinition
+from src.tools.workflows.shared.workflow_manager import WorkflowDefinition, TaskDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -102,20 +103,27 @@ class WorkflowLoader:
             List of Path objects pointing to workflow JSON files
         """
         workflow_files = []
-
-        if not self.workflows_directory.exists():
-            logger.warning(f"Workflows directory not found: {self.workflows_directory}")
-            return workflow_files
-
-        # Search for JSON files in all subdirectories
-        for json_file in self.workflows_directory.rglob("*.json"):
-            # Skip hidden files and directories
-            if any(part.startswith('.') for part in json_file.parts):
+        
+        # Directories to scan
+        directories = [
+            self.workflows_directory,  # contrib/workflows
+            Path("src/tools/workflows/core/")  # core workflows
+        ]
+        
+        for dir_path in directories:
+            if not dir_path.exists():
+                logger.warning(f"Workflows directory not found: {dir_path}")
                 continue
-            
-            workflow_files.append(json_file)
-            logger.debug(f"Discovered workflow file: {json_file}")
-
+                
+            # Search for JSON files in all subdirectories
+            for json_file in dir_path.rglob("*.json"):
+                # Skip hidden files and directories
+                if any(part.startswith('.') for part in json_file.parts):
+                    continue
+                    
+                workflow_files.append(json_file)
+                logger.debug(f"Discovered workflow file: {json_file}")
+        
         logger.info(f"Discovered {len(workflow_files)} workflow files")
         return workflow_files
 
@@ -282,10 +290,23 @@ class WorkflowLoader:
         errors.extend(context_errors)
         warnings.extend(context_warnings)
 
+        # Performance limits
+        if "tasks" in workflow_data and len(workflow_data["tasks"]) > 20:
+            warnings.append("Workflow has more than 20 tasks - consider splitting for better performance")
+        
+        # Add suggestions based on errors
+        suggestions = []
+        if errors:
+            if any("Missing required field" in e for e in errors):
+                suggestions.append("Ensure all required fields are present: workflow_id, name, description, tasks")
+            if any("Duplicate task_id" in e for e in errors):
+                suggestions.append("Make task_ids unique within the workflow")
+
         return {
             "valid": len(errors) == 0,
             "errors": errors,
-            "warnings": warnings
+            "warnings": warnings,
+            "suggestions": suggestions
         }
 
     def _validate_task(self, task: Any, index: int) -> Tuple[List[str], List[str]]:
@@ -320,6 +341,29 @@ class WorkflowLoader:
                 errors.append(f"Task {index}: instructions must be a string")
             elif len(instructions.strip()) < 20:
                 warnings.append(f"Task {index}: instructions seem very brief")
+
+        # Instruction alignment checks
+        if "instructions" in task and isinstance(task["instructions"], str):
+            instructions = task["instructions"]
+            
+            # Check for context vars
+            used_vars = set(re.findall(r'\{(\w+)\}', instructions))
+            required_context = set(task.get("context_requirements", []))
+            missing_context = required_context - used_vars
+            if missing_context:
+                warnings.append(f"Task {index}: Required context {missing_context} not used in instructions")
+            
+            # Check for tools
+            required_tools = set(task.get("required_tools", []))
+            mentioned_tools = {tool for tool in required_tools if tool in instructions}
+            missing_tools = required_tools - mentioned_tools
+            if missing_tools:
+                warnings.append(f"Task {index}: Required tools {missing_tools} not mentioned in instructions")
+        
+        # Basic security scan
+        dangerous_keywords = {"delete", "rm", "drop", "shutdown", "restart"}
+        if "instructions" in task and any(kw in task["instructions"].lower() for kw in dangerous_keywords):
+            warnings.append(f"Task {index}: Instructions contain potentially dangerous keywords")
 
         # Optional fields validation
         if "required_tools" in task:
@@ -421,55 +465,60 @@ class WorkflowLoader:
         return None
 
     def _validate_tools(self, workflow_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
-        """Validate tool availability and usage."""
+        from src.core.registry import tool_registry  # Import here to avoid circular imports
+        from src.core.discovery import discover_tools  # Import here to avoid circular imports
+        
         errors = []
         warnings = []
-
-        for task in workflow_data.get("tasks", []):
-            if not isinstance(task, dict):
-                continue
-
-            task_id = task.get("task_id", "unknown")
+        
+        # Get dynamic list of available tools
+        available_tools = {tool_metadata.name for tool_metadata in tool_registry.list_tools()}
+        
+        # If no tools found, try to discover them
+        if not available_tools:
+            try:
+                discover_tools()
+                available_tools = {tool_metadata.name for tool_metadata in tool_registry.list_tools()}
+            except Exception as e:
+                logger.warning(f"Failed to discover tools: {e}")
+        
+        for i, task in enumerate(workflow_data.get("tasks", [])):
             required_tools = task.get("required_tools", [])
-
-            if not isinstance(required_tools, list):
-                continue
-
             for tool in required_tools:
-                if not isinstance(tool, str):
-                    errors.append(f"Task '{task_id}': tool name must be a string")
-                elif tool not in self.available_tools:
-                    warnings.append(f"Task '{task_id}': tool '{tool}' may not be available")
-
+                if tool not in available_tools:
+                    errors.append(f"Task {i} ({task.get('task_id', 'unknown')}): unknown tool '{tool}'")
+    
         return errors, warnings
 
     def _validate_context(self, workflow_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
         """Validate context variable usage."""
         errors = []
         warnings = []
-
-        # Include custom context variables from default_context
-        available_context = self.available_context.copy()
-        default_context = workflow_data.get("default_context", {})
-        if isinstance(default_context, dict):
-            available_context.update(default_context.keys())
-
+        
+        # Dynamic available context: base known vars + default_context keys
+        base_context = {
+            "earliest_time", "latest_time", "focus_index", "focus_host",
+            "focus_sourcetype", "complexity_level", "problem_description"
+        }
+        default_context = set(workflow_data.get("default_context", {}).keys())
+        available_context = base_context.union(default_context)
+        
         for task in workflow_data.get("tasks", []):
             if not isinstance(task, dict):
                 continue
-
+                
             task_id = task.get("task_id", "unknown")
             context_requirements = task.get("context_requirements", [])
-
+            
             if not isinstance(context_requirements, list):
                 continue
-
+                
             for var in context_requirements:
                 if not isinstance(var, str):
                     errors.append(f"Task '{task_id}': context variable name must be a string")
                 elif var not in available_context:
                     warnings.append(f"Task '{task_id}': context variable '{var}' may not be available")
-
+        
         return errors, warnings
 
     def _create_workflow_definition(self, workflow_data: Dict[str, Any], file_path: Path) -> WorkflowDefinition:

@@ -13,7 +13,7 @@ import urllib.request
 import urllib.error
 
 
-def trigger_hot_reload_via_mcp(base_url: str = "http://localhost:8002") -> bool:
+def trigger_hot_reload_via_mcp(base_url: str = "http://localhost:8001") -> bool:
     """
     Trigger hot reload via MCP JSON-RPC protocol.
     

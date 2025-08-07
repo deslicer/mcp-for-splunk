@@ -5,11 +5,14 @@ that integrate with the MCP Server for Splunk dynamic troubleshooting system.
 """
 
 import json
+import logging
 from typing import Any, Dict, Optional
 
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowRequirementsTool(BaseTool):
@@ -502,7 +505,23 @@ for creating custom diagnostic workflows.""",
         }
 
     def _get_available_tools(self) -> Dict[str, str]:
-        """Get available Splunk tools with descriptions."""
+        """Get available Splunk tools with descriptions - dynamically from tool_registry."""
+        try:
+            # Try to get tools dynamically from tool_registry
+            from src.core.registry import tool_registry
+            available_tools = {}
+            
+            for tool_metadata in tool_registry.list_tools():
+                # tool_metadata is a ToolMetadata object
+                available_tools[tool_metadata.name] = tool_metadata.description
+            
+            if available_tools:
+                return available_tools
+        except (ImportError, AttributeError, Exception) as e:
+            # Fallback to static list if dynamic discovery fails
+            logger.warning(f"Dynamic tool discovery failed: {e}. Using static tool list.")
+        
+        # Fallback static list (keep for backward compatibility)
         return {
             # Search Tools
             "run_splunk_search": "Execute comprehensive Splunk searches with full SPL support",

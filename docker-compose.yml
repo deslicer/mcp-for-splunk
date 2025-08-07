@@ -60,6 +60,10 @@ services:
       # Fix binding and origin issues per MCP Inspector docs
       - HOST=0.0.0.0
       - ALLOWED_ORIGINS=http://localhost:6274,http://127.0.0.1:6274,http://localhost:6277,http://127.0.0.1:6277
+      # Default MCP server configuration for Docker environment
+      - DEFAULT_SERVER_URL=http://mcp-server:8000/mcp
+      - MCP_SERVER_URL=http://mcp-server:8000/mcp
+      - DEFAULT_TRANSPORT=streamable-http
     depends_on:
       - traefik
       - mcp-server

@@ -6,12 +6,12 @@ This module contains the core tools maintained by the project team.
 
 # Import all core tools to make them discoverable
 from .admin import *
-from .agents import *
 from .alerts import *
 from .health import *
 from .kvstore import *
 from .metadata import *
 from .search import *
+from .workflows import *
 
 __all__ = [
     # Search tools
@@ -41,7 +41,11 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
-    # Agent tools
-    "SplunkTriageAgentTool", 
-    "DynamicTroubleshootAgentTool",
+    # Workflow tools
+    "WorkflowRunnerTool",
+    "ListWorkflowsTool", 
+    "WorkflowBuilderTool",
+    "WorkflowRequirementsTool",
+    "create_summarization_tool",
+    "SummarizationTool",
 ]
