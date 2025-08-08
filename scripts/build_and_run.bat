@@ -52,6 +52,9 @@ if %POWERSHELL_EXIT_CODE% equ 0 (
     echo   1. Run as Administrator if you encounter permission issues
     echo   2. Check prerequisites: .\scripts\check-prerequisites.ps1
     echo   3. Try running PowerShell script directly: powershell -File .\scripts\build_and_run.ps1
+    echo   4. To manually start MCP Inspector (after server is running):
+    echo      set DANGEROUSLY_OMIT_AUTH=true&& set DEFAULT_TRANSPORT=streamable-http&& set DEFAULT_SERVER_URL=http://localhost:YOUR_PORT/mcp&& npx @modelcontextprotocol/inspector
+    echo      ^(replace YOUR_PORT with the MCP server port printed above^)
 )
 
 echo.

@@ -362,94 +362,10 @@ function Start-LocalServer {
     
     # Check if Node.js/npm is available for MCP Inspector
     $inspectorAvailable = $false
+    $inspectorSupported = $true
     if (Get-Command "npx" -ErrorAction SilentlyContinue) {
-        $inspectorAvailable = $true
-        Write-Local "Node.js/npx detected. Starting MCP Inspector..."
-        
-        # Start MCP Inspector in the background
-        Write-Status "Starting MCP Inspector..."
-        
-        # Check if inspector is already running
-        if (Test-PortListening -Port 6274) {
-            Write-Warning "MCP Inspector appears to already be running on port 6274"
-            Write-Success "Using existing MCP Inspector instance"
-            $inspectorAvailable = $true
-        } else {
-            # Try to install and run MCP Inspector
-            Write-Local "Installing/updating MCP Inspector..."
-            Write-Local "This may take a moment on first install..."
-            
-            # Check if inspector package needs to be installed
-            $inspectorCachePath = Join-Path $env:USERPROFILE ".npm\_npx\*\node_modules\@modelcontextprotocol\inspector"
-            if (-not (Get-ChildItem -Path (Join-Path $env:USERPROFILE ".npm\_npx") -Recurse -Filter "inspector" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*@modelcontextprotocol*" })) {
-                Write-Local "MCP Inspector not found in cache. Downloading package..."
-            } else {
-                Write-Local "MCP Inspector found in cache. Starting..."
-            }
-            
-            # Set environment variables for the inspector
-            $env:DANGEROUSLY_OMIT_AUTH = "true"
-            # Prevent browser from opening automatically when running in background
-            $env:MCP_AUTO_OPEN_ENABLED = "false"
-            
-            # Ensure logs directory exists
-            Ensure-LogsDir
-            
-            # Start inspector in background
-            try {
-                # Use --yes to automatically install if not present
-                $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector", "-e", "DEFAULT_SERVER_URL=http://localhost:8001/mcp", "-e", "DEFAULT_TRANSPORT=streamable-http",  -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
-                
-                # Give inspector time to start and check multiple times
-                Write-Local "Waiting for MCP Inspector to start..."
-                $attempts = 0
-                $maxAttempts = 10
-                $inspectorRunning = $false
-                
-                while ($attempts -lt $maxAttempts) {
-                    Start-Sleep -Seconds 2
-                    
-                    # Check if process is still running
-                    if ($inspectorProcess.HasExited) {
-                        Write-Error "MCP Inspector process died. Check logs/inspector.log for details."
-                        break
-                    }
-                    
-                    # Check if the inspector's default port (6274) is listening
-                    if (Test-PortListening -Port 6274) {
-                        $inspectorRunning = $true
-                        break
-                    }
-                    
-                    $attempts++
-                    Write-Local "Attempt $attempts/$maxAttempts - waiting for inspector..."
-                }
-                
-                if ($inspectorRunning) {
-                    Write-Success "MCP Inspector started successfully on port 6274"
-                    # Save PID for cleanup
-                    $inspectorProcess.Id | Out-File ".inspector_pid" -Encoding ASCII
-                } else {
-                    Write-Warning "Failed to start MCP Inspector"
-                    Write-Warning "Checking what went wrong..."
-                    
-                    # Show last few lines of log for debugging
-                    if (Test-Path "logs/inspector.log") {
-                        Write-Warning "Inspector log (last 10 lines):"
-                        Get-Content "logs/inspector.log" -Tail 10 | Write-Host
-                    }
-                    
-                    # Kill the failed process
-                    if (-not $inspectorProcess.HasExited) {
-                        $inspectorProcess.Kill()
-                    }
-                    $inspectorAvailable = $false
-                }
-            } catch {
-                Write-Warning "Failed to start MCP Inspector: $_"
-                $inspectorAvailable = $false
-            }
-        }
+        $inspectorSupported = $true
+        Write-Local "Node.js/npx detected. MCP Inspector will start after MCP server is running..."
     } else {
         Write-Warning "Node.js/npx not found. MCP Inspector will not be available."
         Write-Warning "To install Node.js: https://nodejs.org/"
@@ -562,6 +478,61 @@ function Start-LocalServer {
             } catch {
                 Write-Warning "Server running but HTTP request failed: $_"
             }
+            
+            # Start MCP Inspector now that the actual port is known
+            if ($inspectorSupported) {
+                Write-Status "Starting MCP Inspector..."
+                if (Test-PortListening -Port 6274) {
+                    Write-Warning "MCP Inspector appears to already be running on port 6274"
+                    Write-Success "Using existing MCP Inspector instance"
+                    $inspectorAvailable = $true
+                } else {
+                    # Configure environment for inspector (env vars, not CLI flags)
+                    $env:DANGEROUSLY_OMIT_AUTH = "true"
+                    $env:MCP_AUTO_OPEN_ENABLED = "false"
+                    $env:DEFAULT_TRANSPORT = "streamable-http"
+                    $env:DEFAULT_SERVER_URL = "http://localhost:$mcpPort/mcp"
+
+                    Ensure-LogsDir
+
+                    try {
+                        $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector" -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
+                        Write-Local "Waiting for MCP Inspector to start..."
+                        $attempts = 0
+                        $maxAttempts = 10
+                        $inspectorRunning = $false
+                        while ($attempts -lt $maxAttempts) {
+                            Start-Sleep -Seconds 2
+                            if ($inspectorProcess.HasExited) {
+                                Write-Error "MCP Inspector process died. Check logs/inspector.log for details."
+                                break
+                            }
+                            if (Test-PortListening -Port 6274) {
+                                $inspectorRunning = $true
+                                break
+                            }
+                            $attempts++
+                            Write-Local "Attempt $attempts/$maxAttempts - waiting for inspector..."
+                        }
+                        if ($inspectorRunning) {
+                            Write-Success "MCP Inspector started successfully on port 6274"
+                            $inspectorProcess.Id | Out-File ".inspector_pid" -Encoding ASCII
+                            $inspectorAvailable = $true
+                        } else {
+                            Write-Warning "Failed to start MCP Inspector"
+                            if (Test-Path "logs/inspector.log") {
+                                Write-Warning "Inspector log (last 10 lines):"
+                                Get-Content "logs/inspector.log" -Tail 10 | Write-Host
+                            }
+                            if (-not $inspectorProcess.HasExited) { $inspectorProcess.Kill() }
+                            $inspectorAvailable = $false
+                        }
+                    } catch {
+                        Write-Warning "Failed to start MCP Inspector: $_"
+                        $inspectorAvailable = $false
+                    }
+                }
+            }
         } else {
             Write-Error "MCP server is not listening on port $mcpPort"
             Write-Error "Server process ID: $($serverProcess.Id)"
@@ -598,7 +569,7 @@ function Start-LocalServer {
         Write-Host "   🔌 MCP Server (stdio): Available for MCP clients"
         Write-Host "   🔌 MCP Server (HTTP):  http://localhost:$mcpPort"
         
-        if ($inspectorAvailable) {
+        if ($inspectorSupported) {
             Write-Host "   📊 MCP Inspector:      http://localhost:6274"
             Write-Host ""
             Write-Status "🎯 Testing Instructions:"
@@ -620,13 +591,13 @@ function Start-LocalServer {
             Write-Host "   • Check if Node.js is installed: node --version"
             Write-Host "   • Check inspector logs: Get-Content logs/inspector.log"
             Write-Host "   • Try manual install: npm install -g @modelcontextprotocol/inspector"
-            Write-Host "   • Manual start: `$env:DANGEROUSLY_OMIT_AUTH='true'; npx @modelcontextprotocol/inspector"
+            Write-Host "   • Manual start: `$env:DANGEROUSLY_OMIT_AUTH='true'; `$env:DEFAULT_TRANSPORT='streamable-http'; `$env:DEFAULT_SERVER_URL='http://localhost:$mcpPort/mcp'; npx @modelcontextprotocol/inspector"
         }
         
         Write-Host ""
         Write-Status "📊 Log Files:"
         Write-Host "   📄 MCP Server:    logs/mcp_server.log"
-        if ($inspectorAvailable) {
+        if ($inspectorSupported) {
             Write-Host "   📄 MCP Inspector: logs/inspector.log"
         }
         
@@ -828,7 +799,7 @@ function Start-DockerSetup {
         Write-Host "   🌐 External Splunk:   $env:SPLUNK_HOST (configured in .env)"
     }
     Write-Host "   🔌 MCP Server:        http://localhost:8001/mcp/"
-    Write-Host "   📊 MCP Inspector:     http://localhost:3001"
+    Write-Host "   📊 MCP Inspector:     http://localhost:6274"
     Write-Host ""
     Write-Status "🔍 To check logs:"
     Write-Host "   $composeCmd logs -f $serviceName"
