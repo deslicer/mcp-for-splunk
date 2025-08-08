@@ -390,7 +390,7 @@ function Start-LocalServer {
             # Set environment variables for the inspector
             $env:DANGEROUSLY_OMIT_AUTH = "true"
             # Prevent browser from opening automatically when running in background
-            $env:BROWSER = "none"
+            $env:MCP_AUTO_OPEN_ENABLED = "false"
             
             # Ensure logs directory exists
             Ensure-LogsDir
@@ -398,7 +398,7 @@ function Start-LocalServer {
             # Start inspector in background
             try {
                 # Use --yes to automatically install if not present
-                $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector" -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
+                $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector", "-e", "DEFAULT_SERVER_URL=http://localhost:8001/mcp", "-e", "DEFAULT_TRANSPORT=streamable-http",  -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
                 
                 # Give inspector time to start and check multiple times
                 Write-Local "Waiting for MCP Inspector to start..."

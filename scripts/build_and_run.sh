@@ -273,7 +273,7 @@ run_local_server() {
             # Set environment variables for the inspector (this is the correct way)
             export DANGEROUSLY_OMIT_AUTH=true
             # Prevent browser from opening automatically when running in background
-            export BROWSER=none
+            export MCP_AUTO_OPEN_ENABLED=false
 
             # Ensure logs directory exists
             ensure_logs_dir
@@ -287,7 +287,7 @@ run_local_server() {
 
             # Start inspector (it will use its default ports: 6274 for UI, 6277 for proxy)
             # Use --yes to automatically install if not present
-            npx --yes @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
+            npx --yes @modelcontextprotocol/inspector -e DEFAULT_SERVER_URL=http://localhost:8001/mcp -e DEFAULT_TRANSPORT=streamable-http > logs/inspector.log 2>&1 &
             local inspector_pid=$!
 
             # Give inspector more time to start and check multiple times
