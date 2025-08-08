@@ -362,7 +362,7 @@ function Start-LocalServer {
     
     # Check if Node.js/npm is available for MCP Inspector
     $inspectorAvailable = $false
-    $inspectorSupported = $true
+    $inspectorSupported = $false
     if (Get-Command "npx" -ErrorAction SilentlyContinue) {
         $inspectorSupported = $true
         Write-Local "Node.js/npx detected. MCP Inspector will start after MCP server is running..."
@@ -372,6 +372,7 @@ function Start-LocalServer {
         Write-Host ""
         Write-Warning "📚 For detailed installation instructions, see:"
         Write-Warning "   docs/getting-started/installation.md#-nodejs-installation-optional---for-mcp-inspector"
+        $inspectorSupported = $false
     }
     
     Write-Host ""
