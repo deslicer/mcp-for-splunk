@@ -61,4 +61,4 @@ echo.
 echo Press any key to exit...
 pause >nul
 
-exit /b %POWERSHELL_EXIT_CODE% 
+exit /b %POWERSHELL_EXIT_CODE%
