@@ -97,9 +97,10 @@ uv run python scripts/test_setup.py
 open http://localhost:6274  # MCP Inspector web interface
 ```
 
-1. Click "Connect to Server"
-2. Enter server URL: `http://localhost:8001`
-3. Test tools and resources interactively
+1. Ensure that Streamable HTTP is set
+2. Update URL from default to: `http://localhost:8001/mcp/`
+3. Click "Connect" button at the bottom
+4. Test tools and resources interactively
 
 **✅ Success**: You now have AI agents that can search, analyze, and manage Splunk data!
 
@@ -225,7 +226,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 splunk_agent = LlmAgent(
     model='gemini-2.0-flash',
     tools=[MCPToolset(connection_params=StdioServerParameters(
-        command='fastmcp', 
+        command='fastmcp',
         args=['run', '/path/to/src/server.py']
     ))]
 )

@@ -251,123 +251,12 @@ run_local_server() {
         print_success "Cleanup complete!"
     }
 
-    # Check if Node.js/npm is available for MCP Inspector
+    # Check if Node.js/npm is available for MCP Inspector (start after server port is known)
     local inspector_available=false
+    local inspector_supported=false
     if command -v npx &> /dev/null; then
-        inspector_available=true
-        print_local "Node.js/npx detected. Starting MCP Inspector..."
-
-        # Start MCP Inspector in the background
-        print_status "Starting MCP Inspector..."
-
-        # Check if inspector is already running
-        if (command -v lsof &> /dev/null && lsof -i :6274 &> /dev/null) || (command -v netstat &> /dev/null && netstat -an | grep ":6274 " | grep LISTEN &> /dev/null); then
-            print_warning "MCP Inspector appears to already be running on port 6274"
-            print_success "Using existing MCP Inspector instance"
-            inspector_available=true
-        else
-            # Try to install and run MCP Inspector with proper configuration
-            print_local "Installing/updating MCP Inspector..."
-            print_local "This may take a moment on first install..."
-
-            # Set environment variables for the inspector (this is the correct way)
-            export DANGEROUSLY_OMIT_AUTH=true
-            # Prevent browser from opening automatically when running in background
-            export BROWSER=none
-
-            # Ensure logs directory exists
-            ensure_logs_dir
-
-            # Check if inspector package needs to be installed
-            if ! ls ~/.npm/_npx/*/node_modules/@modelcontextprotocol/inspector 2>/dev/null | grep -q inspector; then
-                print_local "MCP Inspector not found in cache. Downloading package..."
-            else
-                print_local "MCP Inspector found in cache. Starting..."
-            fi
-
-            # Start inspector (it will use its default ports: 6274 for UI, 6277 for proxy)
-            # Use --yes to automatically install if not present
-            npx --yes @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
-            local inspector_pid=$!
-
-            # Give inspector more time to start and check multiple times
-            print_local "Waiting for MCP Inspector to start..."
-            local attempts=0
-            local max_attempts=10
-            local inspector_running=false
-            local last_log_size=0
-
-            while [ $attempts -lt $max_attempts ]; do
-                sleep 2
-
-                # Check if process is still running
-                if ! kill -0 $inspector_pid 2>/dev/null; then
-                    print_error "MCP Inspector process died. Check inspector.log for details."
-                    break
-                fi
-
-                # Show progress by monitoring log file
-                if [ -f logs/inspector.log ]; then
-                    local current_log_size=$(wc -c < logs/inspector.log 2>/dev/null || echo 0)
-                    if [ $current_log_size -gt $last_log_size ]; then
-                        # New content in log, show last meaningful line
-                        local last_line=$(tail -1 logs/inspector.log | grep -v "^$" || true)
-                        if [ -n "$last_line" ]; then
-                            print_local "Inspector: $last_line"
-                        fi
-                        last_log_size=$current_log_size
-                    fi
-                fi
-
-                # Check if the inspector's default port (6274) is listening
-                if command -v lsof &> /dev/null; then
-                    if lsof -i :6274 &> /dev/null; then
-                        inspector_running=true
-                        break
-                    fi
-                elif command -v netstat &> /dev/null; then
-                    if netstat -an | grep ":6274 " | grep LISTEN &> /dev/null; then
-                        inspector_running=true
-                        break
-                    fi
-                else
-                    # If no port checking tools, check the log for success message
-                    if [ -f logs/inspector.log ] && grep -q "MCP Inspector is up and running" logs/inspector.log; then
-                        inspector_running=true
-                        break
-                    fi
-                    # Also check for the simple case after some attempts
-                    if [ $attempts -ge 5 ]; then
-                        inspector_running=true
-                        break
-                    fi
-                fi
-
-                attempts=$((attempts + 1))
-                print_local "Attempt $attempts/$max_attempts - waiting for inspector..."
-            done
-
-            if [ "$inspector_running" = true ]; then
-                print_success "MCP Inspector started successfully on port 6274"
-                echo $inspector_pid > .inspector_pid  # Save PID for cleanup
-            else
-                print_warning "Failed to start MCP Inspector"
-                print_warning "Checking what went wrong..."
-
-                # Show last few lines of log for debugging
-                if [ -f logs/inspector.log ]; then
-                    print_warning "Inspector log (last 10 lines):"
-                    tail -10 logs/inspector.log
-                    echo
-                fi
-
-                # Kill the failed process
-                if kill -0 $inspector_pid 2>/dev/null; then
-                    kill $inspector_pid 2>/dev/null
-                fi
-                inspector_available=false
-            fi
-        fi
+        inspector_supported=true
+        print_local "Node.js/npx detected. MCP Inspector will be started after the MCP server is running..."
     else
         print_warning "Node.js/npx not found. MCP Inspector will not be available."
         print_warning "To install Node.js: https://nodejs.org/"
@@ -484,6 +373,94 @@ run_local_server() {
                 print_warning "Server running but HTTP request failed"
             fi
         fi
+        # Start MCP Inspector now that the actual port is known
+        if [ "$inspector_supported" = true ]; then
+            print_status "Starting MCP Inspector..."
+            # If inspector is already running, reuse it
+            if (command -v lsof &> /dev/null && lsof -i :6274 &> /dev/null) || (command -v netstat &> /dev/null && netstat -an | grep ":6274 " | grep LISTEN &> /dev/null); then
+                print_warning "MCP Inspector appears to already be running on port 6274"
+                print_success "Using existing MCP Inspector instance"
+                inspector_available=true
+            else
+                # Configure environment for inspector (env vars, not CLI flags)
+                export DANGEROUSLY_OMIT_AUTH=true
+                export MCP_AUTO_OPEN_ENABLED=false
+                export DEFAULT_TRANSPORT=streamable-http
+                export DEFAULT_SERVER_URL="http://localhost:$mcp_port/mcp"
+
+                ensure_logs_dir
+
+                npx --yes @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
+                local inspector_pid=$!
+
+                print_local "Waiting for MCP Inspector to start..."
+                local attempts=0
+                local max_attempts=10
+                local inspector_running=false
+                local last_log_size=0
+
+                while [ $attempts -lt $max_attempts ]; do
+                    sleep 2
+
+                    if ! kill -0 $inspector_pid 2>/dev/null; then
+                        print_error "MCP Inspector process died. Check inspector.log for details."
+                        break
+                    fi
+
+                    if [ -f logs/inspector.log ]; then
+                        local current_log_size=$(wc -c < logs/inspector.log 2>/dev/null || echo 0)
+                        if [ $current_log_size -gt $last_log_size ]; then
+                            local last_line=$(tail -1 logs/inspector.log | grep -v "^$" || true)
+                            if [ -n "$last_line" ]; then
+                                print_local "Inspector: $last_line"
+                            fi
+                            last_log_size=$current_log_size
+                        fi
+                    fi
+
+                    if command -v lsof &> /dev/null; then
+                        if lsof -i :6274 &> /dev/null; then
+                            inspector_running=true
+                            break
+                        fi
+                    elif command -v netstat &> /dev/null; then
+                        if netstat -an | grep ":6274 " | grep LISTEN &> /dev/null; then
+                            inspector_running=true
+                            break
+                        fi
+                    else
+                        if [ -f logs/inspector.log ] && grep -q "MCP Inspector is up and running" logs/inspector.log; then
+                            inspector_running=true
+                            break
+                        fi
+                        if [ $attempts -ge 5 ]; then
+                            inspector_running=true
+                            break
+                        fi
+                    fi
+
+                    attempts=$((attempts + 1))
+                    print_local "Attempt $attempts/$max_attempts - waiting for inspector..."
+                done
+
+                if [ "$inspector_running" = true ]; then
+                    print_success "MCP Inspector started successfully on port 6274"
+                    echo $inspector_pid > .inspector_pid
+                    inspector_available=true
+                else
+                    print_warning "Failed to start MCP Inspector"
+                    if [ -f logs/inspector.log ]; then
+                        print_warning "Inspector log (last 10 lines):"
+                        tail -10 logs/inspector.log
+                        echo
+                    fi
+                    if kill -0 $inspector_pid 2>/dev/null; then
+                        kill $inspector_pid 2>/dev/null
+                    fi
+                    inspector_available=false
+                fi
+            fi
+        fi
     else
         print_error "MCP server is not listening on port $mcp_port"
         print_error "Server process ID: $server_pid"
@@ -552,16 +529,18 @@ run_local_server() {
         echo
         print_status "🎯 Testing Instructions:"
         echo "   1. Open http://localhost:6274 in your browser"
-        echo "   2. Click 'Connect to Server'"
-        echo "   3. Enter server URL: http://localhost:$mcp_port"
-        echo "   4. Test tools and resources interactively"
+        echo "   2. Ensure that Streamable HTTP is set"
+        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   4. Click 'Connect' button at the bottom"
+        echo "   5. Test tools and resources interactively"
     else
         echo
         print_status "🎯 Alternative Testing:"
         echo "   1. Open https://inspector.mcp.dev/ in your browser"
-        echo "   2. Click 'Connect to Server'"
-        echo "   3. Enter server URL: http://localhost:$mcp_port"
-        echo "   4. Test tools and resources interactively"
+        echo "   2. Ensure that Streamable HTTP is set"
+        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   4. Click 'Connect' button at the bottom"
+        echo "   5. Test tools and resources interactively"
         echo
         print_warning "💡 MCP Inspector Troubleshooting:"
         echo "   • Check if Node.js is installed: node --version"
