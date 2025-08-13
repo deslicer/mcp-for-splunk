@@ -1,102 +1,116 @@
-# MCP Server for Splunk: Workflow Improvement Plan
+# Test Suite Action Plan
 
 ## Overview
-This plan outlines improvements to the workflow system, focusing on consistency, validation, testing, error handling, and performance. Priorities are based on impact and dependencies. Track status here and update as we progress.
+Based on the test run using `make test`, there are 43 failed tests, 117 passed, 14 errors, and various warnings. The failures primarily stem from:
+- Splunk connection issues (Connection refused, degraded mode).
+- Code refactoring (e.g., agents moved to workflows, missing attributes).
+- Assertion mismatches (e.g., expected keys not in responses, description mismatches).
+- TypeErrors in handling tool results.
 
-## Phase 1: Migrate All Workflows to JSON Format (Priority: High)
-- **Status**: DONE
-- **Rationale**: Standardize all workflows as JSON for simplicity, hot-reloading, and consistency. Core workflows remain separate from contrib.
-- **Steps**:
-  1. ✅ Create `src/tools/workflows/core/` dir for core JSON files (e.g., `missing_data_troubleshooting.json`, `performance_analysis.json`)
-  2. ✅ Extract workflow definitions from `workflow_manager.py` to JSON format
-  3. ✅ Update `contrib/workflows/loaders.py` to scan both `contrib/workflows/` and `src/tools/workflows/core/`
-  4. ✅ Update `workflow_manager.py` to load from JSON instead of hardcoded methods
-  5. ✅ Test core workflow loading and execution
+The errors in `test_workflow_runner.py` indicate outdated imports/references after potential refactoring (e.g., agents to workflows).
 
-## Phase 2: Enhance Workflow Validation (Priority: High)
-- **Status**: DONE
-- **Rationale**: Improve validation to catch issues early and provide better error messages.
-- **Steps**:
-  1. ✅ Implement dynamic context validation (include common vars + default_context)
-  2. ✅ Add instruction alignment checks (regex scan for {var} and tool mentions)
-  3. ✅ Add performance limits check (warn if >20 tasks)
-  4. ✅ Add suggestions to validation_result
-  5. ✅ Add basic security scan (warn on dangerous keywords)
-  6. ✅ Create comprehensive unit tests for validation
+This plan categorizes failures, proposes troubleshooting steps, and suggests updates/removals to achieve a clean test suite. Prioritize fixes that enable Splunk-dependent tests, then address refactoring impacts.
 
-## Phase 3: Improve Workflow Runner with Progress Reporting (Priority: High)
-- **Status**: DONE
-- **Rationale**: Long-running workflows need progress reporting to avoid timeouts.
-- **Steps**:
-  1. ✅ Add `ctx.report_progress()` calls at key points (0%, 5%, 10%, 15%, 50%, 70%, 85%, 100%)
-  2. ✅ Ensure reports every <60s during long operations
-  3. ✅ Add progress reporting tests
-  4. ✅ Update documentation with progress reporting guide
+## Step 1: Environment Setup and Verification
+Many failures are due to Splunk not being available. Tests assume a connected Splunk instance but run in degraded mode.
 
-## Phase 4: Improve Error Handling and Logging (Priority: Medium)
-- **Status**: DONE
-- **Rationale**: Better error handling and logging for debugging and user experience.
-- **Steps**:
-  1. ✅ Add try-except blocks in key areas
-  2. ✅ Implement structured error responses
-  3. ✅ Add retry logic for transient errors
-  4. ✅ Improve logging with more info levels
-  5. ✅ Add error handling tests
+### Actions:
+- Verify if tests require Splunk Docker: Run `make docker-up` before tests to start Splunk container.
+- Update Makefile: Add a new target `test-with-splunk` that runs `docker-up`, waits for Splunk health, then runs tests, and `docker-down` after.
+- For CI: Ensure Docker Compose starts Splunk in test workflows.
+- Retest after fix: Rerun `make test` with Splunk up to confirm which failures resolve.
 
-## Phase 5: Documentation and Examples (Priority: Medium)
-- **Status**: DONE
-- **Rationale**: Comprehensive documentation and examples for users.
-- **Steps**:
-  1. ✅ Create workflow runner guide
-  2. ✅ Update README with workflow information
-  3. ✅ Add usage examples and best practices
-  4. ✅ Document progress reporting features
+### Expected Impact:
+- Resolves ~30-35 failures related to {'empty_result': True} responses from tools expecting Splunk data.
 
-## Phase 6: Dynamic Tool Discovery (Priority: High) - **NEW**
-- **Status**: DONE
-- **Rationale**: Ensure all workflow tools use dynamic tool discovery instead of static lists.
-- **Steps**:
-  1. ✅ Update `workflow_builder.py` to use `tool_registry.list_tools()` dynamically
-  2. ✅ Update `workflow_requirements.py` to use `tool_registry.list_tools()` dynamically
-  3. ✅ Update `contrib/workflows/loaders.py` to call `discover_tools()` if needed
-  4. ✅ Add proper error handling and fallback to static lists
-  5. ✅ Test dynamic tool discovery across all components
-  6. ✅ Ensure consistent tool lists across all workflow tools
+## Step 2: Categorize and Fix Failing Tests
 
-## Phase 7: Testing and Validation (Priority: High)
-- **Status**: TODO
-- **Rationale**: Comprehensive testing ensures reliability and catches regressions.
-- **Steps**:
-  1. Create FastMCP client tests for workflow execution
-  2. Add integration tests for workflow validation
-  3. Test progress reporting with long-running workflows
-  4. Test error handling scenarios
-  5. Test dynamic tool discovery
-  6. Add performance benchmarks
+### Category 1: Splunk Connection-Dependent Failures
+Affected tests (examples):
+- test_health_check_before_operations
+- test_health_check_success
+- test_list_indexes_success
+- test_run_oneshot_search_basic
+- test_list_apps_success
+- All tests asserting on 'status', 'results', etc., but getting {'empty_result': True}
 
-## Phase 8: Performance Optimization (Priority: Medium)
-- **Status**: TODO
-- **Rationale**: Optimize workflow execution for better performance.
-- **Steps**:
-  1. Profile workflow execution performance
-  2. Optimize parallel execution
-  3. Implement caching for frequently used workflows
-  4. Add performance monitoring
-  5. Optimize tool discovery and loading
+#### Troubleshooting:
+- Confirm Splunk is running and accessible (e.g., curl http://localhost:8000).
+- Check test fixtures: Ensure `conftest.py` or test setup connects to Splunk properly.
+- If connection still fails: Debug `src/client/splunk_client.py` for connection logic; possible config issues (env vars like SPLUNK_HOST, port).
 
-## Phase 9: Advanced Features (Priority: Low)
-- **Status**: TODO
-- **Rationale**: Advanced features for power users.
-- **Steps**:
-  1. Add workflow versioning
-  2. Implement workflow templates
-  3. Add workflow composition
-  4. Add workflow scheduling
-  5. Add workflow monitoring and alerting
+#### Updates:
+- Update tests to handle degraded mode: Add assertions for degraded responses or skip if not connected (use pytest.mark.skipif).
+- Mock Splunk client for unit tests: Use `unittest.mock` to simulate responses without real connection.
+- Do not remove: These test core functionality; fix to make them pass.
 
-## Notes
-- All phases are designed to be backward compatible
-- Testing is integrated throughout all phases
-- Documentation is updated as features are implemented
-- Progress reporting is critical for long-running workflows (>60s)
-- Dynamic tool discovery ensures consistency across all workflow tools
+### Category 2: Refactoring-Related Errors
+Affected: All 14 errors in `tests/test_workflow_runner.py` (AttributeError: module 'src.tools.agents.shared' has no attribute 'tools').
+
+#### Troubleshooting:
+- Search codebase: Agents seem moved to `src/tools/agents_backup/` or integrated into `src/tools/workflows/shared/`.
+- Check git history: Review commits for agent refactoring (e.g., AGENTS_REMOVAL_SUMMARY.md was deleted, indicating removal).
+
+#### Updates:
+- Update imports: Change to `src.tools.workflows.shared` or equivalent.
+- Refactor tests: Align with new workflow structure (e.g., use `workflow_manager` instead of old agent tools).
+- If agents were removed: Consider removing these tests if functionality is deprecated, or migrate to test workflow equivalents.
+- Priority: High – These are errors, not failures; fix to unblock suite.
+
+### Category 3: Assertion Mismatches
+Affected:
+- contrib/health/test_get_degraded_splunk_features.py: Description mismatch (expected vs. actual tool description).
+
+#### Troubleshooting:
+- Compare expected vs. actual: The actual has more details; possibly updated in code.
+- Check source: Look in `contrib/tools/health/get_degraded_splunk_features.py` for description.
+
+#### Updates:
+- Update expected string in test to match current description.
+- Do not remove: Keeps test relevant.
+
+### Category 4: TypeErrors in Comprehensive Tests
+Affected: ~10 tests in `test_mcp_server_comprehensive.py` (e.g., 'CallToolResult' object is not subscriptable).
+
+#### Troubleshooting:
+- Inspect code: Likely treating a result object as a dict; check how `CallToolResult` is used/returned.
+- Possible change: Recent updates to tool calling/return types.
+
+#### Updates:
+- Modify assertions: Use object attributes (e.g., result.data['status']) instead of subscripting.
+- Add type checks: Ensure responses are dicts before asserting.
+- Do not remove: These are integration tests; critical for coverage.
+
+## Step 3: General Improvements
+- Reduce warnings: Investigate overwriting registrations; possibly refactor registry to avoid duplicates.
+- Add test categories: Mark tests as unit/integration/Splunk-dependent for selective running.
+- Coverage: After fixes, run with `--cov` to ensure >80% coverage; add tests for new features.
+- Removal criteria: Only remove if functionality is deprecated (e.g., old agent tests); document in changelog.
+
+## Step 4: CI/CD Integration and Quality Checks
+To ensure ongoing test reliability and code quality, integrate GitHub Actions for automated testing and linting. Start with basic test running on push, then expand to include linting and pre-commits.
+
+### Actions:
+- Create GitHub Workflow: Add `.github/workflows/test.yml` for running on push and pull requests.
+  - Steps:
+    - Checkout code.
+    - Set up Python and uv.
+    - Install dependencies: `uv sync --dev`.
+    - Run linting: `uv run ruff check .` and `uv run mypy .` (fix any issues found).
+    - Run tests: Use `make test-with-splunk` (from Step 1) or directly `uv run pytest tests/ -v` with Splunk service in workflow (use Docker Compose as a service).
+  - Handle Splunk: Define a service in the workflow to start Splunk container for integration tests.
+- Add Pre-Commit Hooks: Install pre-commit and add `.pre-commit-config.yaml` with hooks for Ruff, Black, mypy, and trailing whitespace checks. Run `pre-commit install` locally.
+- Scope: This is in scope as it prevents regressions and enforces quality post-fixes.
+- Retest: After implementation, push a test commit to verify the workflow runs successfully.
+
+### Expected Impact:
+- Automates verification, catches issues early, and ensures the project remains in working state.
+
+## Timeline
+1. Day 1: Fix environment (Splunk setup), retest.
+2. Day 2: Fix refactoring errors and TypeErrors.
+3. Day 3: Address mismatches, clean warnings, final run.
+
+## Verification
+- Run `make test` after each step; aim for 0 failures/errors.
+- If blocked (e.g., persistent connection issues), document and seek user input.

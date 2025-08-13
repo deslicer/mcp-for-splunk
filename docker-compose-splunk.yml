@@ -1,5 +1,3 @@
-version: "3.8"
-
 networks:
   splunk-network:
     driver: bridge
@@ -24,6 +22,7 @@ services:
     restart: unless-stopped
     environment:
       - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
       - SPLUNK_HEC_TOKEN=26898dec-83d1-49f1-b06e-90eabff7f543
       - SPLUNK_PASSWORD=Chang3d!
     ports:

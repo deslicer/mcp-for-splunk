@@ -85,3 +85,19 @@ test-apps: ## Test Splunk apps and users
 
 test-kvstore: ## Test KV Store functionality
 	uv run pytest tests/test_mcp_server.py::TestKVStore -v 
+
+test-with-splunk: ## Run tests with Splunk container
+	docker-compose -f docker-compose-splunk.yml up -d
+	@echo "Waiting for Splunk to start (timeout 120s)..."
+	@for i in $(shell seq 1 60); do \
+		if curl -k -s -u admin:Chang3d! https://localhost:8089/services/server/info > /dev/null; then \
+			echo "Splunk is ready!"; \
+			exit 0; \
+		fi; \
+		echo "Attempt $$i failed"; \
+		sleep 5; \
+	done; \
+	echo "Timeout waiting for Splunk"; \
+	docker-compose -f docker-compose-splunk.yml down -v --remove-orphans || true; \
+	docker network rm mcp-server-for-splunk_splunk-network || true; \
+	exit 1 

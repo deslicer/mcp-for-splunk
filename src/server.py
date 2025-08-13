@@ -445,7 +445,7 @@ async def main():
     # Create the FastMCP ASGI app with proper middleware and transport
     # Use the recommended Streamable HTTP transport (default for 'http')
     app = mcp.http_app(
-        path="/mcp/", 
+        path="/mcp/",
         middleware=custom_middleware,
         transport="http"  # Explicitly use Streamable HTTP transport
     )
@@ -492,10 +492,10 @@ if __name__ == "__main__":
         else:
             # HTTP mode: Use FastMCP's recommended approach for HTTP transport
             logger.info("Running in HTTP mode with Streamable HTTP transport")
-            
+
             # Option 1: Use FastMCP's built-in HTTP server (recommended for simple cases)
             # mcp.run(transport="http", host=args.host, port=args.port, path="/mcp/")
-            
+
             # Option 2: Use custom uvicorn setup for advanced middleware (current approach)
             asyncio.run(main())
     except KeyboardInterrupt:

@@ -4,9 +4,8 @@ Provides comprehensive requirements and schema information for creating custom w
 that integrate with the MCP Server for Splunk dynamic troubleshooting system.
 """
 
-import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastmcp import Context
 
@@ -245,19 +244,28 @@ for creating custom diagnostic workflows.""",
                     ]
                 },
                 "integration_information": {
-                    "dynamic_troubleshoot_agent": {
-                        "usage": "Users execute custom workflows via workflow_type parameter",
-                        "example": "await agent.execute(ctx=ctx, problem_description='...', workflow_type='your_workflow_id')",
-                        "automatic_loading": "Workflows are automatically discovered from contrib/workflows/ directory",
-                        "registration": "Workflows are registered with WorkflowManager during system startup"
+                    "workflow_execution": {
+                        "usage": "Execute workflows via the workflow_runner tool by workflow_id",
+                        "example": {
+                            "tool": "workflow_runner",
+                            "params": {
+                                "workflow_id": "your_workflow_id",
+                                "earliest_time": "-24h",
+                                "latest_time": "now",
+                                "focus_index": "optional-index",
+                                "complexity_level": "moderate"
+                            }
+                        },
+                        "discovery": "Use list_workflows tool to list available workflow IDs (core and contrib)",
+                        "loading": "WorkflowManager loads JSON workflows from src/tools/workflows/core/ and contrib/workflows/ during startup"
                     },
                     "execution_flow": [
-                        "1. User specifies workflow_type parameter",
-                        "2. WorkflowLoader discovers and validates workflow",
-                        "3. WorkflowManager registers workflow",
-                        "4. Dynamic troubleshoot agent executes workflow",
-                        "5. Tasks execute in parallel phases based on dependencies",
-                        "6. Results are synthesized and returned to user"
+                        "1. User calls list_workflows to discover workflow IDs (optional)",
+                        "2. User invokes workflow_runner with workflow_id and context parameters",
+                        "3. WorkflowManager returns the registered WorkflowDefinition",
+                        "4. ParallelWorkflowExecutor executes tasks in dependency-aware phases",
+                        "5. Optional summarization synthesizes results",
+                        "6. Structured results are returned to the caller"
                     ]
                 },
                 "best_practices": {
@@ -404,9 +412,12 @@ for creating custom diagnostic workflows.""",
                 },
                 "available_tools": list(self._get_available_tools().keys()),
                 "context_variables": list(self._get_context_variables().keys()),
-                "validation_command": "python contrib/tools/workflows/workflow_builder.py --mode validate --file your_workflow.json",
-                "integration_usage": "workflow_type='your_workflow_id' in dynamic_troubleshoot_agent.execute()",
-                "file_location": "contrib/workflows/category/your_workflow.json"
+                "validation_options": {
+                    "jsonschema": "python -c \"import json,sys,jsonschema; d=json.load(open('your_workflow.json')); s=<SCHEMA_JSON>; jsonschema.validate(d,s)\"",
+                    "loader_validation": "python -c \"from contrib.workflows.loaders import WorkflowLoader; import sys; l=WorkflowLoader('contrib/workflows'); l.validate_workflow_file('your_workflow.json'); print('valid')\""
+                },
+                "integration_usage": "Use 'list_workflows' to discover IDs, then run via 'workflow_runner' with workflow_id",
+                "file_location": "contrib/workflows/<category>/your_workflow.json"
             }
         }
 
@@ -519,7 +530,7 @@ for creating custom diagnostic workflows.""",
                 return available_tools
         except (ImportError, AttributeError, Exception) as e:
             # Fallback to static list if dynamic discovery fails
-            logger.warning(f"Dynamic tool discovery failed: {e}. Using static tool list.")
+            logger.warning("Dynamic tool discovery failed: %s. Using static tool list.", e)
         
         # Fallback static list (keep for backward compatibility)
         return {

@@ -281,6 +281,17 @@ def extract_tool_result():
 
     def _extract(result):
         """Extract data from MCP tool call result"""
+        # Fast path: CallToolResult-like with .data
+        if hasattr(result, "data"):
+            return result.data
+        # Handle content-style results
+        if hasattr(result, "contents") and getattr(result, "contents", None):
+            first = result.contents[0]
+            if hasattr(first, "text"):
+                try:
+                    return json.loads(first.text)
+                except (json.JSONDecodeError, AttributeError):
+                    return {"raw_text": first.text}
         if isinstance(result, dict):
             return result
         elif isinstance(result, list) and len(result) > 0:
@@ -359,10 +370,11 @@ def mock_regular_job(mock_search_results):
 def sample_env_vars():
     """Sample environment variables for testing"""
     return {
+        # Use local Splunk container defaults when available
         "SPLUNK_HOST": "localhost",
         "SPLUNK_PORT": "8089",
         "SPLUNK_USERNAME": "admin",
-        "SPLUNK_PASSWORD": "password",
+        "SPLUNK_PASSWORD": "Chang3d!",
         "SPLUNK_VERIFY_SSL": "false",
     }
 
@@ -382,6 +394,73 @@ def setup_test_environment(sample_env_vars):
     """Set up test environment variables"""
     with patch.dict(os.environ, sample_env_vars):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_splunk_get_service(mock_splunk_service):
+    """Autouse fixture to mock Splunk service access for all tools.
+
+    This keeps tests in-memory while avoiding dependence on a running Splunk.
+    """
+    async def _get_service(*args, **kwargs):
+        return mock_splunk_service
+
+    patches = []
+    try:
+        # Import tool classes and patch their get_splunk_service
+        from src.tools.health.status import GetSplunkHealth
+        from src.tools.search.oneshot_search import OneshotSearch
+        from src.tools.search.job_search import JobSearch
+        from src.tools.admin.apps import ListApps
+        from src.tools.admin.users import ListUsers
+        from src.tools.metadata.indexes import ListIndexes
+        from src.tools.metadata.sources import ListSources
+        from src.tools.metadata.sourcetypes import ListSourcetypes
+        from src.tools.kvstore.collections import ListKvstoreCollections
+        from src.tools.kvstore.data import GetKvstoreData
+        from src.tools.search.saved_search_tools import (
+            CreateSavedSearch,
+            DeleteSavedSearch,
+            ExecuteSavedSearch,
+            GetSavedSearchDetails,
+            ListSavedSearches,
+            UpdateSavedSearch,
+        )
+
+        targets = [
+            GetSplunkHealth,
+            OneshotSearch,
+            JobSearch,
+            ListApps,
+            ListUsers,
+            ListIndexes,
+            ListSources,
+            ListSourcetypes,
+            ListKvstoreCollections,
+            GetKvstoreData,
+            CreateSavedSearch,
+            DeleteSavedSearch,
+            ExecuteSavedSearch,
+            GetSavedSearchDetails,
+            ListSavedSearches,
+            UpdateSavedSearch,
+        ]
+
+        for cls in targets:
+            p = patch.object(cls, "get_splunk_service", AsyncMock(side_effect=_get_service))
+            p.start()
+            patches.append(p)
+
+        yield
+    finally:
+        for p in patches:
+            try:
+                p.stop()
+            except Exception:
+                pass
+
+
+    
 
 
 @pytest.fixture
