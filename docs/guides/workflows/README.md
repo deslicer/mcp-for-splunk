@@ -77,3 +77,40 @@ Place contrib workflows at: `contrib/workflows/<category>/<workflow_id>.json`
 ## Examples (📎)
 
 See `examples/workflow_runner_demo.py` for a working client that loads `.env` and invokes the server using a real FastMCP client.
+
+## Hands‑On Lab (🧪)
+
+Start here for a guided, end-to-end experience creating and running your own workflow:
+
+- See: [AI Workflows Hands‑On Lab](./hands-on-lab.md)
+
+## Quick Start (🚀)
+
+1. Prepare environment
+   - Copy `.env.example` to `.env` and set `OPENAI_API_KEY`
+   - Start the server (Docker recommended): `docker compose up -d`
+2. Discover workflows
+   - Call `list_workflows` to view available IDs (core + contrib)
+3. Run a workflow
+   - Use `workflow_runner` with a workflow ID, e.g. `simple_health_check`
+
+Example (Python):
+
+```python
+from src.tools.workflows.list_workflows import create_list_workflows_tool
+from src.tools.workflows.workflow_runner import WorkflowRunnerTool
+
+# Assume you have an async FastMCP Context named ctx
+lister = create_list_workflows_tool()
+workflows = await lister.execute(ctx, format_type="summary")
+
+runner = WorkflowRunnerTool("workflow_runner", "workflows")
+result = await runner.execute(
+    ctx=ctx,
+    workflow_id="simple_health_check",
+    earliest_time="-24h",
+    latest_time="now",
+    complexity_level="moderate",
+)
+print(result["status"], result["workflow_name"])  # e.g., completed Simple Health Check
+```

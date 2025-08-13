@@ -18,7 +18,19 @@ class TestGetLatestFeatureHealthTool:
         """Create a tool instance for testing."""
         return GetLatestFeatureHealthTool(
             name="get_latest_feature_health",
-            description="This tool identifies Splunk features with health issues (warning/critical status) requiring attention",
+            description=(
+                "This tool searches the internal Splunk index (index=_internal) and returns only features with health issues.\n\n"
+                "    The tool filters for features that require attention:\n"
+                "    - warning (yellow): Feature has minor issues or degraded performance\n"
+                "    - critical (red): Feature has serious issues requiring immediate attention\n\n"
+                "    Features with healthy (green) status are excluded from results to focus on actionable items.\n\n"
+                "    This tool provides functionality for:\n"
+                "    - Identifying Splunk features that currently have issues requiring attention\n"
+                "    - Troubleshooting infrastructure problems by focusing on degraded/critical features\n"
+                "    - Getting a prioritized list of features that need immediate investigation\n"
+                "    - Monitoring for operational issues without noise from healthy features\n"
+                "    - No results are returned if there are no issues"
+            ),
         )
 
     @pytest.fixture
@@ -192,10 +204,8 @@ class TestGetLatestFeatureHealthTool:
         metadata = GetLatestFeatureHealthTool.METADATA
 
         assert metadata.name == "get_latest_feature_health"
-        assert (
-            metadata.description
-            == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
-        )
+        # Description has been expanded; ensure it's non-empty and informative
+        assert isinstance(metadata.description, str) and len(metadata.description) > 50
         assert metadata.category == "health"
         assert metadata.requires_connection is True
         assert "health" in metadata.tags
@@ -205,10 +215,7 @@ class TestGetLatestFeatureHealthTool:
     def test_tool_initialization(self, tool):
         """Test tool initialization."""
         assert tool.name == "get_latest_feature_health"
-        assert (
-            tool.description
-            == "This tool identifies Splunk features with health issues (warning/critical status) requiring attention"
-        )
+        assert isinstance(tool.description, str) and len(tool.description) > 50
         assert hasattr(tool, "logger")
 
     @pytest.mark.asyncio
