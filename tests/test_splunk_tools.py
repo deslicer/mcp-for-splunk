@@ -7,6 +7,8 @@ with the server instance for in-memory testing, avoiding external server process
 
 import pytest
 from fastmcp.exceptions import ToolError
+from unittest.mock import Mock, patch
+from splunklib.client import Service
 
 
 class TestSplunkHealthTool:

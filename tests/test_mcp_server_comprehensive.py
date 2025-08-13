@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from src.server import mcp
+from fastmcp.client import CallToolResult
 
 
 class TestMCPServerCore:
@@ -121,7 +122,10 @@ class TestHealthTools:
             mock_get_service.return_value = async_mock()
             
             result = await client.call_tool("get_splunk_health")
-            health_data = json.loads(result[0].text)
+            if isinstance(result, CallToolResult):
+                health_data = result.data
+            else:
+                health_data = json.loads(result[0].text)
             
             # Expect success when properly mocked
             assert health_data["status"] in ["connected", "error"]  # Accept both for resilience
@@ -138,7 +142,10 @@ class TestHealthTools:
                 "splunk_port": 8089,
                 "splunk_username": "test_user"
             })
-            health_data = json.loads(result[0].text)
+            if isinstance(result, CallToolResult):
+                health_data = result.data
+            else:
+                health_data = json.loads(result[0].text)
             
             # Accept both connected and error states for resilience
             assert health_data["status"] in ["connected", "error"]
@@ -149,7 +156,10 @@ class TestHealthTools:
             mock_get_service.side_effect = Exception("Connection failed")
             
             result = await client.call_tool("get_splunk_health")
-            health_data = json.loads(result[0].text)
+            if isinstance(result, CallToolResult):
+                health_data = result.data
+            else:
+                health_data = json.loads(result[0].text)
             
             assert health_data["status"] == "error"
             assert "Connection failed" in health_data["error"]
@@ -750,7 +760,10 @@ class TestErrorHandling:
             mock_get_service.side_effect = ConnectionError("Splunk not available")
             
             result = await client.call_tool("get_splunk_health")
-            health_data = json.loads(result[0].text)
+            if isinstance(result, CallToolResult):
+                health_data = result.data
+            else:
+                health_data = json.loads(result[0].text)
             
             assert health_data["status"] == "error"
             assert "Splunk not available" in health_data["error"]
@@ -961,19 +974,28 @@ class TestIntegrationWorkflows:
             
             # 1. Check overall health
             health_result = await client.call_tool("get_splunk_health")
-            health_data = json.loads(health_result[0].text)
+            if isinstance(health_result, CallToolResult):
+                health_data = health_result.data
+            else:
+                health_data = json.loads(health_result[0].text)
             # Accept either connected or error for resilience testing
             assert health_data["status"] in ["connected", "error"]
             
             # 2. Get apps information
             apps_result = await client.call_tool("list_apps")
-            apps_data = json.loads(apps_result[0].text)
+            if isinstance(apps_result, CallToolResult):
+                apps_data = apps_result.data
+            else:
+                apps_data = json.loads(apps_result[0].text)
             # Accept either success or error for resilience testing
             assert "status" in apps_data
             
             # 3. Get indexes information
             indexes_result = await client.call_tool("list_indexes")
-            indexes_data = json.loads(indexes_result[0].text)
+            if isinstance(indexes_result, CallToolResult):
+                indexes_data = indexes_result.data
+            else:
+                indexes_data = json.loads(indexes_result[0].text)
             # Accept either success or error for resilience testing
             assert "status" in indexes_data
             
@@ -1032,7 +1054,10 @@ class TestIntegrationWorkflows:
             
             # Should handle gracefully
             result = await client.call_tool("get_splunk_health")
-            health_data = json.loads(result[0].text)
+            if isinstance(result, CallToolResult):
+                health_data = result.data
+            else:
+                health_data = json.loads(result[0].text)
             assert health_data["status"] == "error"
             
             # Test that server remains functional
