@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple)](https://modelcontextprotocol.io/)
-[![Tests Passing](https://img.shields.io/badge/tests-89%20passing-green)](#)
+[![Tests Passing](https://img.shields.io/badge/tests-174%20passing-green)](#)
 [![Community](https://img.shields.io/badge/Community-Driven-orange)](#)
 
 > **Enable AI agents to interact seamlessly with Splunk environments through the Model Context Protocol (MCP)**
@@ -65,31 +65,13 @@ cd mcp-server-for-splunk
 
 ### First Success Test
 
-**Run the automated test script:**
+**Run the automated tests:**
 ```bash
-# The setup script should have installed all dependencies
-uv run python scripts/test_setup.py
-```
+# Run full test suite (fast path)
+uv run pytest -q
 
-**Expected output:**
-```
-🔍 Testing MCP Server at http://localhost:8001/mcp/
---------------------------------------------------
-✓ Connected to MCP Server
-
-📋 Available Tools:
-  1. run_oneshot_search
-     Run a Splunk search and return results immediately...
-  2. get_splunk_health
-     Get Splunk server health information...
-  ... and 27 more tools
-
-📚 Available Resources:
-  1. info://server
-     Server Information
-  ... and 8 more resources
-
-✅ MCP Server is running and responding correctly!
+# Or run with Splunk container ready
+make test-with-splunk
 ```
 
 **Interactive testing with MCP Inspector:**
@@ -98,7 +80,7 @@ open http://localhost:6274  # MCP Inspector web interface
 ```
 
 1. Ensure that Streamable HTTP is set
-2. Update URL from default to: `http://localhost:8001/mcp/`
+2. Update URL from default to: `http://localhost:8001/mcp/` (Docker) or `http://localhost:8002/mcp/` (dev compose)
 3. Click "Connect" button at the bottom
 4. Test tools and resources interactively
 
@@ -283,7 +265,7 @@ Windows users get first-class support with PowerShell scripts and comprehensive 
 
 - ✅ **20+ Production Tools** - Comprehensive Splunk operations
 - ✅ **14 Rich Resources** - System info and documentation access
-- ✅ **89% Test Coverage** - Reliable, tested codebase
+- ✅ **Comprehensive Test Suite** - 170+ tests passing locally
 - ✅ **Multi-Platform** - Windows, macOS, Linux support
 - ✅ **Community-Ready** - Structured contribution framework
 - ✅ **Enterprise-Proven** - Production deployment patterns
