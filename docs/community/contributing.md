@@ -48,12 +48,14 @@ tree src/tools/ contrib/tools/
 ### 🔧 New Tools
 
 **What we're looking for:**
+
 - Security and threat hunting tools
 - DevOps and monitoring capabilities
 - Analytics and reporting features
 - Integration helpers and utilities
 
 **Popular contribution ideas:**
+
 - User behavior analysis tools
 - Performance monitoring dashboards
 - Automated incident response workflows
@@ -62,6 +64,7 @@ tree src/tools/ contrib/tools/
 ### 📚 Documentation
 
 **Always needed:**
+
 - Usage examples and tutorials
 - Integration guides for new AI clients
 - Best practices and patterns
@@ -70,6 +73,7 @@ tree src/tools/ contrib/tools/
 ### 🐛 Bug Fixes
 
 **High-impact areas:**
+
 - Splunk API compatibility issues
 - Tool error handling improvements
 - Performance optimizations
@@ -78,6 +82,7 @@ tree src/tools/ contrib/tools/
 ### 💡 Feature Enhancements
 
 **Welcome improvements:**
+
 - Better error messages and debugging
 - New MCP protocol features
 - Enhanced configuration options
@@ -147,6 +152,7 @@ Focus on threat hunting, incident response, and security analysis.
 - Security event correlation
 
 **Template:**
+
 ```python
 class ThreatHuntingTool(BaseTool):
     METADATA = ToolMetadata(
@@ -174,6 +180,7 @@ Monitoring, alerting, and operational intelligence.
 - Service dependency mapping
 
 **Template:**
+
 ```python
 class PerformanceMonitorTool(BaseTool):
     METADATA = ToolMetadata(
@@ -201,6 +208,7 @@ Business intelligence, reporting, and data analysis.
 - Custom reporting
 
 **Template:**
+
 ```python
 class BusinessAnalyticsTool(BaseTool):
     METADATA = ToolMetadata(
@@ -232,6 +240,29 @@ make test-contrib
 # Run with coverage
 pytest --cov=contrib tests/contrib/
 ```
+
+## 🔍 Code Quality
+
+### Pre-commit Hooks
+
+Keep formatting and linting consistent automatically.
+
+```bash
+# Install git hooks
+uv run pre-commit install
+
+# Run on all files (CI equivalent)
+uv run pre-commit run --all-files
+
+# Update hooks to latest pinned versions
+uv run pre-commit autoupdate
+```
+
+Hooks configured:
+- Black (formatting)
+- Ruff (lint, auto-fix)
+- End-of-file fixer
+- Trailing whitespace
 
 ### Manual Testing
 
