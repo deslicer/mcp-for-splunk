@@ -81,7 +81,7 @@ def get_splunk_status(mcp_server: FastMCP) -> tuple[str, str, str]:
                         splunk_status = f"Connected (v{splunk_version})"
                     else:
                         splunk_status = "Unknown"
-                except:
+                except Exception:
                     splunk_status = "Unknown"
             else:
                 logger.debug("Splunk context shows disconnected state")
@@ -227,7 +227,7 @@ def setup_health_routes(mcp: FastMCP):
                                     "version": info.get("version", "unknown"),
                                     "serverName": info.get("serverName", "Unknown"),
                                 }
-                        except:
+                        except Exception:
                             pass
                     else:
                         logger.debug("Splunk context shows disconnected state")

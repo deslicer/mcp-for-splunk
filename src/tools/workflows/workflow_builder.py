@@ -152,7 +152,7 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
             try:
                 return json.loads(workflow_data)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON format: {str(e)}")
+                raise ValueError(f"Invalid JSON format: {str(e)}") from e
         elif isinstance(workflow_data, dict):
             return workflow_data
         else:

@@ -304,7 +304,7 @@ workflow for specific Splunk problems.""",
                                 if len(path_parts) >= 3 and path_parts[-3] == "workflows":
                                     category = path_parts[-2]  # Directory name
                                 break
-                    except:
+                    except Exception:
                         continue
 
                 # Only include workflows that are actually from contrib directory

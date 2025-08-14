@@ -450,7 +450,9 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             logger.info("Successfully imported function_tool from OpenAI agents")
         except ImportError as e:
             logger.error(f"Failed to import OpenAI agents components: {e}")
-            raise ImportError("OpenAI agents support required. Ensure openai-agents is installed.")
+            raise ImportError(
+                "OpenAI agents support required. Ensure openai-agents is installed."
+            ) from e
 
         # Import tool registry for direct access
         from ...core.registry import tool_registry
@@ -2048,7 +2050,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                                 import json
 
                                 arguments = json.loads(arguments)
-                            except:
+                        except Exception:
                                 arguments = {}
 
                         summary["tools_executed"].append(

@@ -139,7 +139,7 @@ class ToolLoader:
                     self.logger.error(f"Could not get current context for {tool_name}: {e}")
                     raise RuntimeError(
                         f"Tool {tool_name} can only be called within an MCP request context"
-                    )
+                    ) from e
 
                 # Bind the arguments to ensure proper parameter mapping
                 bound_args = wrapper_sig.bind(*args, **kwargs)
@@ -500,7 +500,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                     return await resource.get_content(ctx, uri)
                 except Exception as e:
                     self.logger.error(f"Error reading config template {config_file}: {e}")
-                    raise RuntimeError(f"Failed to read config: {str(e)}")
+                    raise RuntimeError(f"Failed to read config: {str(e)}") from e
 
         else:
             # Fallback for other template types
@@ -547,7 +547,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading config resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read config: {str(e)}")
+                raise RuntimeError(f"Failed to read config: {str(e)}") from e
 
     def _register_health_resource(self, resource_class, uri: str, metadata):
         """Register health resource with FastMCP"""
@@ -569,7 +569,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading health resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read health: {str(e)}")
+                raise RuntimeError(f"Failed to read health: {str(e)}") from e
 
     def _register_apps_resource(self, resource_class, uri: str, metadata):
         """Register apps resource with FastMCP"""
@@ -591,7 +591,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading apps resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read apps: {str(e)}")
+                raise RuntimeError(f"Failed to read apps: {str(e)}") from e
 
     def _register_search_resource(self, resource_class, uri: str, metadata):
         """Register search resource with FastMCP"""
@@ -613,7 +613,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading search resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read search: {str(e)}")
+                raise RuntimeError(f"Failed to read search: {str(e)}") from e
 
     def _register_generic_resource(self, resource_class, uri: str, metadata):
         """Register generic resource with FastMCP"""
@@ -635,7 +635,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read resource: {str(e)}")
+                raise RuntimeError(f"Failed to read resource: {str(e)}") from e
 
     def _get_resource_name_from_uri(self, uri: str) -> str:
         """Extract a human-readable name from URI"""
@@ -664,7 +664,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading indexes resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read indexes: {str(e)}")
+                raise RuntimeError(f"Failed to read indexes: {str(e)}") from e
 
     def _register_saved_searches_resource(self, resource_class, uri: str, metadata):
         """Register saved searches resource with FastMCP"""
@@ -686,7 +686,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading saved searches resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read saved searches: {str(e)}")
+                raise RuntimeError(f"Failed to read saved searches: {str(e)}") from e
 
     def _register_documentation_resource(self, resource_class, uri: str, metadata):
         """Register documentation resource with FastMCP"""
@@ -708,7 +708,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading documentation resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read documentation: {str(e)}")
+                raise RuntimeError(f"Failed to read documentation: {str(e)}") from e
 
 
 class PromptLoader:

@@ -86,7 +86,7 @@ class BaseTool(ABC):
                     if client_config:
                         self.logger.info("Using client config from HTTP headers")
                         return client_config
-        except:
+        except Exception:
             pass
 
         # Try to get from lifespan context (client environment)
@@ -95,7 +95,7 @@ class BaseTool(ABC):
             if hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:
                 self.logger.info("Using client config from environment variables")
                 return splunk_ctx.client_config
-        except:
+        except Exception:
             pass
 
         return None
