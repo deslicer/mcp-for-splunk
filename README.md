@@ -229,7 +229,7 @@ splunk_agent = LlmAgent(
 
 ## 🤝 Community & Contribution
 
-Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security Policy](SECURITY.md) · [License](LICENSE)
+Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security Policy](SECURITY.md) · [Governance](GOVERNANCE.md) · [License](LICENSE)
 
 ### Create Your Own Tools
 ```bash
