@@ -21,6 +21,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
 from src.core.shared_context import http_headers_context
@@ -45,6 +46,7 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
 
 # ASGI Middleware to capture HTTP headers
 class HeaderCaptureMiddleware(BaseHTTPMiddleware):
