@@ -1,6 +1,11 @@
-# MCP Server for Splunk
+<div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; padding: 1em 0;">
+  <!-- Logo -->
+  <div>
+    <img alight=left src="media/deslicer_white.svg" alt="Deslicer" width="200">
+  </div>
+</div>
 
-![Deslicer company logo](media/deslicer_white.svg)
+# MCP Server for Splunk
 
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.3.4+-blue)](https://gofastmcp.com/)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
