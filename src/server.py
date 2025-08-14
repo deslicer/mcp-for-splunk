@@ -21,6 +21,10 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from src.core.base import SplunkContext
+from src.core.loader import ComponentLoader
+from src.core.shared_context import http_headers_context
+from src.routes import setup_health_routes
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -41,12 +45,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
-
-# Import the core framework components
-from src.core.base import SplunkContext
-from src.core.loader import ComponentLoader
-from src.core.shared_context import http_headers_context
-
 
 # ASGI Middleware to capture HTTP headers
 class HeaderCaptureMiddleware(BaseHTTPMiddleware):
@@ -268,8 +266,6 @@ async def ensure_components_loaded(server: FastMCP) -> None:
 mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
 
 # Import and setup health routes
-from src.routes import setup_health_routes
-
 setup_health_routes(mcp)
 
 
