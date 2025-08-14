@@ -2050,7 +2050,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                                 import json
 
                                 arguments = json.loads(arguments)
-                        except Exception:
+                            except Exception:
                                 arguments = {}
 
                         summary["tools_executed"].append(

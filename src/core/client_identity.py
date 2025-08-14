@@ -301,7 +301,7 @@ class ClientConnectionManager:
                 session_id = headers.get("x-session-id") or headers.get("authorization", "")[:16]
                 if session_id:
                     return session_id
-        except:
+        except Exception:
             pass
 
         # Fallback to generated ID
@@ -353,7 +353,7 @@ class ClientConnectionManager:
         if client_id in self._connections:
             try:
                 self._connections[client_id].logout()
-            except:
+            except Exception:
                 pass
             del self._connections[client_id]
 

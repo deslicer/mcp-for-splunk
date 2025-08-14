@@ -21,8 +21,7 @@ from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
-# Import the shared context variable to avoid circular imports
-from .shared_context import http_headers_context
+from .shared_context import http_headers_context  # noqa: E402
 
 
 class EnhancedConfigExtractor:
