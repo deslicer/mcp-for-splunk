@@ -1,43 +1,56 @@
 # AI Workflows Hands‑On Lab
 
-Accelerate your understanding of MCP Server for Splunk by creating a custom tool and building an AI-powered troubleshooting workflow. In ~30–45 minutes, you will create a tool with helper scripts, validate and run it in MCP Inspector, then generate, validate, and execute a workflow end-to-end.
+Accelerate your understanding of MCP Server for Splunk by creating a custom tool and, optionally, building an AI-powered troubleshooting workflow. This lab is split into three parts for new users:
+
+1) Set up the project, 2) Create a custom tool, 3) (Extra) Create and run a workflow.
 
 ## Objectives
 
+- Set up the project and run the server
 - Create a custom Splunk tool using helper scripts (beginner-friendly)
 - Validate and run your tool in MCP Inspector
-- Generate a workflow and include your tool
-- Validate and save the workflow under `contrib/workflows/`
-- Execute the workflow with rich parameters and view results
+- (Extra) Generate a workflow, include your tool, validate, and execute it
 
-## Prerequisites
+---
 
-- Python 3.10+ and UV
-- `OPENAI_API_KEY` in your environment
-- Splunk instance (local/remote) or use the included Docker Splunk
+## Part 1 — Set up the project (🔧)
 
-### Setup
+Prepare your environment and run the server. See the main `README.md` for full details.
+
+### Prerequisites
+
+- Python 3.10+ and UV package manager
+- Docker (optional but recommended for full stack)
+- Splunk instance (local/cloud) if you plan to build Splunk-backed tools or run workflows
+
+### Install and start
 
 ```bash
-# From repo root
-cp env.example .env
+# Clone and enter the project (macOS/Linux)
+git clone https://github.com/your-org/mcp-server-for-splunk.git
+cd mcp-server-for-splunk
 
-# Edit .env and set at least:
-# OPENAI_API_KEY=sk-...
-# MCP_SPLUNK_HOST, MCP_SPLUNK_USERNAME, MCP_SPLUNK_PASSWORD (or use Docker Splunk)
+# Copy example env (you can skip OPENAI_API_KEY until Part 3)
+cp env.example .env
 
 # Start (Docker recommended)
 docker compose up -d
 
-# Or run the helper script
+# Or run the helper script (prompts for Docker vs local)
 ./scripts/build_and_run.sh
 ```
 
-If you prefer a UI, open MCP Inspector and connect to `http://localhost:8001/mcp/`.
+Windows users can use the PowerShell script shown in `README.md`.
+
+### MCP Inspector
+
+- Open `http://localhost:6274`
+- Set URL to `http://localhost:8001/mcp/` (Docker) or `http://localhost:8002/mcp/` (dev compose)
+- Click Connect to browse and run tools
 
 ---
 
-## Part 1 — Create a custom tool (🧩)
+## Part 2 — Create a custom tool (🧩)
 
 Build your first tool with the generator, validate it, and run it in MCP Inspector.
 
@@ -119,9 +132,18 @@ For Splunk tools, verify your `.env` connection settings. If you see connection 
 
 ---
 
-## Part 2 — Build and run a workflow with your tool (🚀)
+## Part 3 — (Extra) Create and run a workflow (🚀)
 
 Use the workflow utilities to list workflows, generate a template, include your tool, validate it, and execute the workflow in MCP Inspector.
+
+### Before you start
+
+Workflows use AI models and require an OpenAI key.
+
+```bash
+# In your .env (add now if you skipped earlier)
+OPENAI_API_KEY=sk-...
+```
 
 ### A. Discover available workflows (📚)
 
@@ -237,7 +259,7 @@ You can do Part 2 entirely in MCP Inspector:
 
 ## Troubleshooting
 
-- Missing OpenAI credentials: set `OPENAI_API_KEY` in `.env`
+- Missing OpenAI credentials (for workflows): set `OPENAI_API_KEY` in `.env`
 - Splunk connection errors: verify Splunk host/creds or use the Docker Splunk
 - Workflow not discovered: ensure file path is `contrib/workflows/<category>/<id>.json` and JSON is valid
 - Tool not discovered: confirm it lives under `contrib/tools/<category>/` and defines a `BaseTool` subclass with `METADATA`
@@ -250,4 +272,4 @@ You can do Part 2 entirely in MCP Inspector:
 - Build domain-specific workflows for your org (security, data quality, performance)
 - Contribute your workflows and tools via PRs
 
-Related docs: [Workflows Guide](README.md), [Template Replacement Guide](../template-replacement-guide.md), [Agent Tracing Guide](../agent-tracing-guide.md), [Tool Development Guide](../../contrib/tool_development.md), [Contrib Quick Start](../../../contrib/README.md).
+Related docs: [Workflows Guide](../guides/workflows/README.md), [Template Replacement Guide](../guides/template-replacement-guide.md), [Agent Tracing Guide](../guides/agent-tracing-guide.md), [Tool Development Guide](../contrib/tool_development.md), [Contrib Quick Start](../../contrib/README.md).
