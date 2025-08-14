@@ -12,6 +12,7 @@ repos:
       - id: ruff
         args: ["--fix"]
         files: ^src/
+        exclude: ^src/tools/agents_backup/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

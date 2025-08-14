@@ -22,12 +22,12 @@ from starlette.responses import JSONResponse
 # Add import for Starlette responses at the top
 
 
+import logging
+
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-import logging
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(__file__), "logs")

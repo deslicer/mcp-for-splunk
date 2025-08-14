@@ -272,8 +272,8 @@ class ResourceLoader:
     def _load_manual_splunk_resources(self) -> None:
         """Pre-register Splunk-specific resources with the discovery registry"""
         try:
-            from .base import ResourceMetadata
-            from .registry import resource_registry
+            from .base import ResourceMetadata  # noqa: F401
+            from .registry import resource_registry  # noqa: F401
 
             # First, register documentation resources
             self._register_documentation_resources()

@@ -1,18 +1,19 @@
 # AI Workflows Hands‑On Lab
 
-Accelerate your understanding of MCP Server for Splunk by creating tools and building AI-powered troubleshooting workflows. In ~30–45 minutes you will discover workflows, generate a new workflow from templates, validate it, and execute it end-to-end.
+Accelerate your understanding of MCP Server for Splunk by creating a custom tool and building an AI-powered troubleshooting workflow. In ~30–45 minutes, you will create a tool with helper scripts, validate and run it in MCP Inspector, then generate, validate, and execute a workflow end-to-end.
 
 ## Objectives
 
-- Create a custom Splunk tool (optional but recommended)
-- Generate a workflow using workflow tools
+- Create a custom Splunk tool using helper scripts (beginner-friendly)
+- Validate and run your tool in MCP Inspector
+- Generate a workflow and include your tool
 - Validate and save the workflow under `contrib/workflows/`
 - Execute the workflow with rich parameters and view results
 
 ## Prerequisites
 
 - Python 3.10+ and UV
-- OPENAI_API_KEY in your environment
+- `OPENAI_API_KEY` in your environment
 - Splunk instance (local/remote) or use the included Docker Splunk
 
 ### Setup
@@ -36,11 +37,95 @@ If you prefer a UI, open MCP Inspector and connect to `http://localhost:8001/mcp
 
 ---
 
-## Part 1 — Discover available workflows (📚)
+## Part 1 — Create a custom tool (🧩)
+
+Build your first tool with the generator, validate it, and run it in MCP Inspector.
+
+### 1. Generate a tool with the helper script (🚀)
+
+```bash
+# Interactive generator (recommended)
+./contrib/scripts/generate_tool.py
+```
+
+When prompted:
+
+- Select the template: choose either the simple example or the Splunk Search template
+- Choose a category: for example `devops` or `examples`
+- Provide a tool name: for example `hello_world` or `basic_health_search`
+
+The generator creates files under `contrib/tools/<category>/` and includes boilerplate with `BaseTool`, `ToolMetadata`, and an `execute` method. It may also add starter tests under `tests/contrib/` depending on the template.
+
+Helpful reference: see the contributor guide at `contrib/README.md` and the Tool Development Guide at `docs/contrib/tool_development.md`.
+
+### 2. Understand the tool structure (quick tour)
+
+- Your class inherits from `BaseTool`
+- Metadata lives in `METADATA = ToolMetadata(...)`
+- Main logic goes in `async def execute(self, ctx: Context, **kwargs)`
+
+Example minimal tool structure:
+
+```python
+from typing import Any, Dict
+from fastmcp import Context
+from src.core.base import BaseTool, ToolMetadata
+
+class HelloWorldTool(BaseTool):
+    """A simple example tool that returns a greeting."""
+
+    METADATA = ToolMetadata(
+        name="hello_world",
+        description="Say hello to someone",
+        category="examples",
+        tags=["example", "tutorial"],
+        requires_connection=False
+    )
+
+    async def execute(self, ctx: Context, name: str = "World") -> Dict[str, Any]:
+        message = f"Hello, {name}!"
+        return self.format_success_response({"message": message})
+```
+
+For Splunk-backed tools, set `requires_connection=True` and use `await self.get_splunk_service(ctx)` inside `execute`.
+
+### 3. Validate the tool (🔎)
+
+```bash
+# Validate your tool for structure and metadata
+./contrib/scripts/validate_tools.py contrib/tools/<category>/<your_tool>.py
+
+# Optional: run contrib tests
+./contrib/scripts/test_contrib.py
+```
+
+Expected output includes a success message or specific actionable validation errors to fix.
+
+### 4. Run the tool in MCP Inspector (🖥️)
+
+With the server running (`docker compose up -d` or `./scripts/build_and_run.sh`), open MCP Inspector and:
+
+- Select your tool by its `METADATA.name` (for example `hello_world`)
+- Provide parameters (for example `{ "name": "Splunk" }`)
+- Click Run and review the formatted result
+
+For Splunk tools, verify your `.env` connection settings. If you see connection errors, confirm `MCP_SPLUNK_HOST`, `MCP_SPLUNK_USERNAME`, and `MCP_SPLUNK_PASSWORD` are set and the Splunk instance is reachable.
+
+### 5. Troubleshooting your tool
+
+- Missing tool in Inspector: ensure the file is under `contrib/tools/<category>/` and the class inherits `BaseTool`
+- Validation errors: re-run the validator for precise hints
+- Splunk errors: verify credentials and try a simple search first
+
+---
+
+## Part 2 — Build and run a workflow with your tool (🚀)
+
+Use the workflow utilities to list workflows, generate a template, include your tool, validate it, and execute the workflow in MCP Inspector.
+
+### A. Discover available workflows (📚)
 
 Use the `list_workflows` tool to see core and contrib workflows.
-
-### Via Python (async)
 
 ```python
 from fastmcp import Context
@@ -52,17 +137,13 @@ result = await lister.execute(ctx, format_type="summary")
 print(result)
 ```
 
-### Via MCP Inspector
+In MCP Inspector:
 
 - Select tool: `list_workflows`
 - Params: `{ "format_type": "summary" }`
 - Run and note `workflow_id` values you can execute
 
----
-
-## Part 2 — Get workflow requirements and schema (🔎)
-
-Use `workflow_requirements` to understand the schema and available context variables.
+### B. Get workflow requirements and schema (🔎)
 
 ```python
 from src.tools.workflows.workflow_requirements import WorkflowRequirementsTool
@@ -78,11 +159,7 @@ Key takeaways:
 - Tasks include `task_id`, `name`, `description`, `instructions`
 - Optional fields: `required_tools`, `dependencies`, `context_requirements`
 
----
-
-## Part 3 — Generate a workflow template (🧪)
-
-Use `workflow_builder` to generate a ready-to-edit template. Supported templates: `minimal`, `security`, `performance`, `data_quality`, `parallel`, `sequential`.
+### C. Generate a workflow template and include your tool (🧪)
 
 ```python
 from src.tools.workflows.workflow_builder import WorkflowBuilderTool
@@ -94,6 +171,9 @@ template = tmpl["result"]["template"]
 template["workflow_id"] = "custom_health_check"
 template["name"] = "Custom Health Check"
 template["description"] = "Basic Splunk health verification"
+
+# Reference your tool so it’s available to tasks
+template["required_tools"] = ["hello_world"]  # replace with your tool name
 
 # Validate the workflow structure
 validation = await builder.execute(ctx, mode="validate", workflow_data=template)
@@ -115,9 +195,7 @@ Re-run discovery to see it listed:
 await lister.execute(ctx, format_type="summary")
 ```
 
----
-
-## Part 4 — Run your workflow (🚀)
+### D. Run your workflow (end-to-end)
 
 Use `workflow_runner` to execute by `workflow_id` with time and focus context.
 
@@ -144,30 +222,9 @@ Tips:
 - Set `focus_index`, `focus_host`, or `focus_sourcetype` to scope analysis
 - Keep `enable_summarization=True` for executive summaries
 
----
+### E. MCP Inspector track (no-code)
 
-## Part 5 — Optional: Create a custom tool and use it in a workflow (🧩)
-
-You can generate a Splunk search tool and then reference it in your workflow’s `required_tools`.
-
-```bash
-# Interactive generator
-./contrib/scripts/generate_tool.py
-
-# The script will create files under contrib/tools/<category>/
-```
-
-After generating your tool:
-
-- Add its tool name (from `ToolMetadata.name`) into a task’s `required_tools`
-- Validate the workflow again using `workflow_builder` (`mode="validate"`)
-- Re-run `list_workflows`, then execute with `workflow_runner`
-
----
-
-## Part 6 — MCP Inspector track (no-code) (🖥️)
-
-You can do the entire lab in MCP Inspector:
+You can do Part 2 entirely in MCP Inspector:
 
 - `workflow_requirements` → `{ "format_type": "quick" }`
 - `workflow_builder` → `{ "mode": "template", "template_type": "minimal" }`
@@ -183,6 +240,7 @@ You can do the entire lab in MCP Inspector:
 - Missing OpenAI credentials: set `OPENAI_API_KEY` in `.env`
 - Splunk connection errors: verify Splunk host/creds or use the Docker Splunk
 - Workflow not discovered: ensure file path is `contrib/workflows/<category>/<id>.json` and JSON is valid
+- Tool not discovered: confirm it lives under `contrib/tools/<category>/` and defines a `BaseTool` subclass with `METADATA`
 
 ---
 
@@ -192,4 +250,4 @@ You can do the entire lab in MCP Inspector:
 - Build domain-specific workflows for your org (security, data quality, performance)
 - Contribute your workflows and tools via PRs
 
-Related docs: [Workflows Guide](README.md), [Template Replacement Guide](../template-replacement-guide.md), [Agent Tracing Guide](../agent-tracing-guide.md).
+Related docs: [Workflows Guide](README.md), [Template Replacement Guide](../template-replacement-guide.md), [Agent Tracing Guide](../agent-tracing-guide.md), [Tool Development Guide](../../contrib/tool_development.md), [Contrib Quick Start](../../../contrib/README.md).

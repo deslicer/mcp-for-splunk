@@ -321,7 +321,7 @@ class EnhancedConfigExtractor:
 
                 # Look for client certificate in ASGI scope
                 if "client" in scope and scope["client"]:
-                    client_info = scope["client"]
+                    _client_info = scope["client"]
 
                     # Check for TLS client certificate
                     if "tls" in scope and "client_cert" in scope["tls"]:
