@@ -13,6 +13,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple)](https://modelcontextprotocol.io/)
 [![Tests Passing](https://img.shields.io/badge/tests-174%20passing-green)](#)
 [![Community](https://img.shields.io/badge/Community-Driven-orange)](#)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 > **Enable AI agents to interact seamlessly with Splunk environments through the Model Context Protocol (MCP)**
 
@@ -227,6 +228,8 @@ splunk_agent = LlmAgent(
 ```
 
 ## 🤝 Community & Contribution
+
+Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security Policy](SECURITY.md) · [License](LICENSE)
 
 ### Create Your Own Tools
 ```bash
