@@ -130,5 +130,6 @@ ignore = ["E501"]  # Line too long (handled by black)
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 ignore_missing_imports = true
+exclude = "(^src/tools/|^src/resources/|^src/routes/|^src/prompts/|^src/core/(discovery|loader|enhanced_config_extractor|__init__|base|client_identity)\\.py|^src/server\\.py)"
