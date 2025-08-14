@@ -468,7 +468,7 @@ Always structure your analysis comprehensively and provide practical, implementa
                         for key in important_keys:
                             if key in result_details:
                                 value = result_details[key]
-                                if isinstance(value, (dict, list)):
+                                if isinstance(value, dict | list):
                                     detail_items.append(f"{key}: {str(value)[:200]}...")
                                 else:
                                     detail_items.append(f"{key}: {value}")

@@ -121,6 +121,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "B", "UP"]
 ignore = ["E501"]  # Line too long (handled by black)
 

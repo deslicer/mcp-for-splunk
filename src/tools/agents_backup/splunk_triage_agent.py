@@ -144,7 +144,7 @@ async def retry_with_exponential_backoff(
                         except Exception:
                             pass
 
-                elif isinstance(e, (APIConnectionError, APITimeoutError)):
+                elif isinstance(e, APIConnectionError | APITimeoutError):
                     is_retryable = True
 
                 elif isinstance(e, APIError):

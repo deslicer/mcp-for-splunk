@@ -651,7 +651,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                                     ]
 
             # Recursively fix nested schemas
-            for key, value in schema.items():
+            for _key, value in schema.items():
                 if isinstance(value, dict):
                     self._fix_json_schema(value)
                 elif isinstance(value, list):
