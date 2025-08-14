@@ -76,6 +76,9 @@ cd mcp-server-for-splunk
 > - **Docker** (Option 1): Full stack with Splunk, Traefik, MCP Inspector - recommended if Docker is installed
 > - **Local** (Option 2): Lightweight FastMCP server only - for users without Docker
 
+> Note on Splunk licensing: When using the `so1` Splunk container, you must supply your own Splunk Enterprise license if required. The compose files include a commented example mount:
+> `# - ./lic/splunk.lic:/tmp/license/splunk.lic:ro`. Create a `lic/` directory and mount your license file, or add the license via the Splunk Web UI after startup.
+
 ### First Success Test
 
 **Run the automated tests:**

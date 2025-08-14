@@ -7,7 +7,7 @@ This guide explains how to build and run the MCP Server for Splunk using Docker 
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- Splunk Enterprise license file (if using licensed version)
+- (Optional) Splunk Enterprise license file. You must provide your own license when running the `so1` container. You can mount it into the container or add it via the Splunk Web UI after startup.
 
 ### 1. Build and Run
 
@@ -41,6 +41,17 @@ docker-compose up -d
 docker-compose ps
 docker-compose logs mcp-server
 ```
+
+#### Providing a Splunk License
+
+To mount a license file into the Splunk container, uncomment the license volume in the compose file and ensure your license is located at `./lic/splunk.lic`:
+
+```yaml
+# volumes:
+#   - ./lic/splunk.lic:/tmp/license/splunk.lic:ro
+```
+
+Alternatively, add the license via the Splunk Web UI after the container starts.
 
 ## 🔧 Configuration
 
