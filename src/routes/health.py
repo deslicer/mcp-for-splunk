@@ -9,7 +9,10 @@ import logging
 import os
 import time
 
-import tomllib
+try:  # Python 3.11+
+    import tomllib  # type: ignore[attr-defined]
+except Exception:  # Python 3.10 fallback
+    import tomli as tomllib  # type: ignore[no-redef]
 from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse
