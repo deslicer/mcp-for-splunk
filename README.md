@@ -1,5 +1,7 @@
 # MCP Server for Splunk
 
+![Deslicer company logo](media/deslicer_white.svg)
+
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.3.4+-blue)](https://gofastmcp.com/)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
