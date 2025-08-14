@@ -13,6 +13,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple)](https://modelcontextprotocol.io/)
 [![Tests Passing](https://img.shields.io/badge/tests-174%20passing-green)](#)
 [![Community](https://img.shields.io/badge/Community-Driven-orange)](#)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 > **Enable AI agents to interact seamlessly with Splunk environments through the Model Context Protocol (MCP)**
 
@@ -74,6 +75,9 @@ cd mcp-server-for-splunk
 > **💡 Deployment Options**: The script will prompt you to choose:
 > - **Docker** (Option 1): Full stack with Splunk, Traefik, MCP Inspector - recommended if Docker is installed
 > - **Local** (Option 2): Lightweight FastMCP server only - for users without Docker
+
+> Note on Splunk licensing: When using the `so1` Splunk container, you must supply your own Splunk Enterprise license if required. The compose files include a commented example mount:
+> `# - ./lic/splunk.lic:/tmp/license/splunk.lic:ro`. Create a `lic/` directory and mount your license file, or add the license via the Splunk Web UI after startup.
 
 ### First Success Test
 
@@ -227,6 +231,8 @@ splunk_agent = LlmAgent(
 ```
 
 ## 🤝 Community & Contribution
+
+Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security Policy](SECURITY.md) · [Governance](GOVERNANCE.md) · [License](LICENSE)
 
 ### Create Your Own Tools
 ```bash

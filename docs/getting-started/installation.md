@@ -387,7 +387,8 @@ Once all prerequisites are installed:
    - Create configuration files
    - Start the MCP server
    - Launch MCP Inspector (if Node.js available)
-   - Set up Docker stack (if Docker available)
+    - Set up Docker stack (if Docker available)
+    - If you enable the `so1` Splunk container, remember to provide your own Splunk Enterprise license. You can mount it by uncommenting the license volume in the compose file (e.g., `./lic/splunk.lic:/tmp/license/splunk.lic:ro`) or add it via the Splunk Web UI after startup.
 
 ## 📚 **Additional Resources**
 

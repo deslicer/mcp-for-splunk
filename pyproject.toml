@@ -26,6 +26,8 @@ dependencies = [
     "openai>=1.0.0",
     "openai-agents>=0.1.0",
 ]
+license = { file = "LICENSE" }
+urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 
 [project.scripts]
 mcp-splunk-server = "src.server:main"

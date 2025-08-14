@@ -36,6 +36,8 @@ cp env.example .env
 # Start (Docker recommended)
 docker compose up -d
 
+Note: If you enable the `so1` Splunk container, you must provide your own Splunk Enterprise license. The compose files include a commented example to mount `./lic/splunk.lic` to `/tmp/license/splunk.lic`.
+
 # Or run the helper script (prompts for Docker vs local)
 ./scripts/build_and_run.sh
 ```
