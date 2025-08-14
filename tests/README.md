@@ -56,7 +56,7 @@ uv run pytest --ignore=tests/test_mcp_server.py
 # Transport layer tests only
 uv run scripts/run_tests.sh -k transport
 
-# Splunk tools tests only  
+# Splunk tools tests only
 uv run scripts/run_tests.sh -k splunk_tools
 
 # Splunk client tests only
@@ -86,7 +86,7 @@ uv run scripts/run_tests.sh -x
 
 Current test coverage: **63% overall**
 - `src/server.py`: 59% (272 statements)
-- `src/splunk_client.py`: 85% (41 statements)  
+- `src/splunk_client.py`: 85% (41 statements)
 - `src/__init__.py`: 100% (2 statements)
 
 Coverage reports are generated in:
@@ -142,4 +142,4 @@ When adding new tests:
 - Integration tests (`test_mcp_server.py`) are excluded by default due to missing FastMCP client fixtures
 - All core functionality is thoroughly tested with unit tests
 - The test suite is compatible with both uv and traditional pip environments
-- Mock objects closely mirror real Splunk SDK behavior for accuracy 
+- Mock objects closely mirror real Splunk SDK behavior for accuracy

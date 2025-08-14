@@ -78,7 +78,7 @@ contrib/                # Community contributions
 The system supports multiple configuration sources with precedence:
 
 1. **HTTP Headers** (highest priority) - Multi-tenant scenarios
-2. **Client Environment Variables** - MCP client configuration  
+2. **Client Environment Variables** - MCP client configuration
 3. **Server Environment Variables** - Traditional server config
 4. **Configuration Files** - `.env` files and config objects
 
@@ -164,4 +164,4 @@ The system supports multiple configuration sources with precedence:
 
 ---
 
-**Next Steps**: Choose the specific architecture topic that matches your role and needs! 
+**Next Steps**: Choose the specific architecture topic that matches your role and needs!

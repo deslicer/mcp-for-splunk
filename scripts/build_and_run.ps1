@@ -91,30 +91,30 @@ function Ensure-LogsDir {
 function Load-EnvFile {
     if (Test-Path ".env") {
         Write-Local "Loading environment variables from .env file..."
-        
+
         $envVars = @{}
         $sensitiveVars = @("PASSWORD", "SECRET", "TOKEN")
-        
+
         Get-Content ".env" | ForEach-Object {
             $line = $_.Trim()
-            
+
             # Skip empty lines and comments
             if ($line -eq "" -or $line.StartsWith("#")) {
                 return
             }
-            
+
             # Parse variable assignment
             if ($line -match "^([A-Za-z_][A-Za-z0-9_]*)=(.*)$") {
                 $varName = $matches[1]
                 $varValue = $matches[2]
-                
+
                 # Remove surrounding quotes if present
                 $varValue = $varValue -replace '^"(.*)"$', '$1' -replace "^'(.*)'$", '$1'
-                
+
                 # Set environment variable
                 [Environment]::SetEnvironmentVariable($varName, $varValue, "Process")
                 $envVars[$varName] = $varValue
-                
+
                 # Only show non-sensitive variables
                 $isSensitive = $sensitiveVars | Where-Object { $varName -like "*$_*" }
                 if ($isSensitive) {
@@ -124,16 +124,16 @@ function Load-EnvFile {
                 }
             }
         }
-        
+
         Write-Success "Environment variables loaded from .env file!"
-        
+
         # Show summary of important Splunk configuration
         Write-Host ""
         Write-Status "📋 Splunk Configuration Summary:"
         Write-Host "   🌐 Host: $($env:SPLUNK_HOST ?? 'Not set')"
         Write-Host "   🔌 Port: $($env:SPLUNK_PORT ?? '8089 (default)')"
         Write-Host "   👤 User: $($env:SPLUNK_USERNAME ?? 'Not set')"
-        
+
         # Show last 3 chars of password for verification
         if ($env:SPLUNK_PASSWORD) {
             $passDisplay = "***" + $env:SPLUNK_PASSWORD.Substring([Math]::Max(0, $env:SPLUNK_PASSWORD.Length - 3))
@@ -141,16 +141,16 @@ function Load-EnvFile {
         } else {
             Write-Host "   🔐 Pass: Not set"
         }
-        
+
         Write-Host "   🔒 SSL:  $($env:SPLUNK_VERIFY_SSL ?? 'Not set')"
-        
+
         # Check for alternative MCP_SPLUNK_* variables
         if ($env:MCP_SPLUNK_HOST -or $env:MCP_SPLUNK_USERNAME -or $env:MCP_SPLUNK_PASSWORD) {
             Write-Host ""
             Write-Status "📋 Alternative MCP Splunk Configuration Found:"
             Write-Host "   🌐 Host: $($env:MCP_SPLUNK_HOST ?? 'Not set')"
             Write-Host "   👤 User: $($env:MCP_SPLUNK_USERNAME ?? 'Not set')"
-            
+
             # Show last 3 chars of MCP password for verification
             if ($env:MCP_SPLUNK_PASSWORD) {
                 $mcpPassDisplay = "***" + $env:MCP_SPLUNK_PASSWORD.Substring([Math]::Max(0, $env:MCP_SPLUNK_PASSWORD.Length - 3))
@@ -158,20 +158,20 @@ function Load-EnvFile {
             } else {
                 Write-Host "   🔐 Pass: Not set"
             }
-            
+
             Write-Local "These MCP_SPLUNK_* variables will override the SPLUNK_* variables in the MCP server."
         }
-        
+
         Write-Host ""
     } else {
         Write-Warning "No .env file found. Using system environment variables only."
-        
+
         # Check if any Splunk environment variables are set in the system
         if ($env:SPLUNK_HOST -or $env:MCP_SPLUNK_HOST) {
             Write-Status "📋 System Environment Splunk Configuration:"
             Write-Host "   🌐 Host: $($env:SPLUNK_HOST ?? $env:MCP_SPLUNK_HOST ?? 'Not set')"
             Write-Host "   👤 User: $($env:SPLUNK_USERNAME ?? $env:MCP_SPLUNK_USERNAME ?? 'Not set')"
-            
+
             # Show last 3 chars of password for verification
             $sysPassword = $env:SPLUNK_PASSWORD ?? $env:MCP_SPLUNK_PASSWORD
             if ($sysPassword) {
@@ -200,7 +200,7 @@ function Test-UV {
 # Function to install uv
 function Install-UV {
     Write-Status "Installing uv package manager..."
-    
+
     try {
         # Use the official uv installation method for Windows
         if (Get-Command "curl" -ErrorAction SilentlyContinue) {
@@ -213,10 +213,10 @@ function Install-UV {
             Write-Status "Using pip to install uv..."
             python -m pip install uv
         }
-        
+
         # Refresh PATH to ensure uv is available
         $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-        
+
         # Verify installation
         if (Test-UV) {
             Write-Success "uv installed successfully!"
@@ -238,13 +238,13 @@ function Install-UV {
 # Function to setup local environment
 function Setup-LocalEnv {
     Write-Local "Setting up local development environment..."
-    
+
     # Check if uv is available
     if (-not (Test-UV)) {
         Write-Warning "uv not found. Installing uv..."
         Install-UV
     }
-    
+
     # Check if virtual environment and dependencies are installed
     if (-not (Test-Path ".venv") -or -not (Test-Path ".venv/pyvenv.cfg")) {
         Write-Local "Creating virtual environment and installing dependencies..."
@@ -255,13 +255,13 @@ function Setup-LocalEnv {
         }
     } else {
         Write-Local "Virtual environment exists. Checking if sync is needed..."
-        
+
         # Check if uv.lock is newer than .venv (Windows compatible)
         $uvLockTime = (Get-Item "uv.lock" -ErrorAction SilentlyContinue)?.LastWriteTime
         $pyprojectTime = (Get-Item "pyproject.toml" -ErrorAction SilentlyContinue)?.LastWriteTime
         $venvTime = (Get-Item ".venv/pyvenv.cfg" -ErrorAction SilentlyContinue)?.LastWriteTime
-        
-        if (($uvLockTime -and $venvTime -and $uvLockTime -gt $venvTime) -or 
+
+        if (($uvLockTime -and $venvTime -and $uvLockTime -gt $venvTime) -or
             ($pyprojectTime -and $venvTime -and $pyprojectTime -gt $venvTime)) {
             Write-Local "Dependencies may be outdated. Running uv sync..."
             & uv sync --dev
@@ -273,7 +273,7 @@ function Setup-LocalEnv {
             Write-Local "Dependencies are up to date."
         }
     }
-    
+
     # Check if .env file exists
     if (-not (Test-Path ".env")) {
         Write-Warning ".env file not found. Creating from env.example..."
@@ -281,23 +281,23 @@ function Setup-LocalEnv {
         Write-Warning "Created .env file. You may want to edit it with your Splunk configuration."
         Write-Warning "For local development, you can also use MCP_SPLUNK_* environment variables."
     }
-    
+
     # Load environment variables from .env file
     Load-EnvFile
-    
+
     Write-Success "Local environment setup complete!"
 }
 
 # Function to find an available port
 function Find-AvailablePort {
     param([int]$StartPort = 8001)
-    
+
     $maxAttempts = 10
     $port = $StartPort
-    
+
     for ($i = 0; $i -lt $maxAttempts; $i++) {
         $portAvailable = $true
-        
+
         # First check if anything is listening on the port
         try {
             $tcpConnections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
@@ -316,7 +316,7 @@ function Find-AvailablePort {
                 $portAvailable = $false
             }
         }
-        
+
         if ($portAvailable) {
             # Double-check by trying to bind
             try {
@@ -328,14 +328,14 @@ function Find-AvailablePort {
                 $portAvailable = $false
             }
         }
-        
+
         if (-not $portAvailable) {
             Write-Local "Port $port is in use, trying next port..."
         }
-        
+
         $port++
     }
-    
+
     # If we can't find a port, return the original
     Write-Warning "Could not find an available port after $maxAttempts attempts"
     return $StartPort
@@ -344,7 +344,7 @@ function Find-AvailablePort {
 # Function to test if a port is listening
 function Test-PortListening {
     param([int]$Port)
-    
+
     try {
         $tcpClient = New-Object System.Net.Sockets.TcpClient
         $tcpClient.ConnectAsync("localhost", $Port).Wait(1000)
@@ -359,7 +359,7 @@ function Test-PortListening {
 # Function to run local server
 function Start-LocalServer {
     Write-Local "Starting MCP server locally with FastMCP CLI..."
-    
+
     # Check if Node.js/npm is available for MCP Inspector
     $inspectorAvailable = $false
     $inspectorSupported = $false
@@ -374,10 +374,10 @@ function Start-LocalServer {
         Write-Warning "   docs/getting-started/installation.md#-nodejs-installation-optional---for-mcp-inspector"
         $inspectorSupported = $false
     }
-    
+
     Write-Host ""
     Write-Status "Starting MCP server..."
-    
+
     # Test if the FastMCP command works first
     Write-Local "Testing FastMCP installation..."
     try {
@@ -395,32 +395,32 @@ function Start-LocalServer {
             exit 1
         }
     }
-    
+
     # Start the server with uv and better error handling
     Write-Local "Finding available port for MCP server..."
     # Start from 8001 to avoid conflict with Splunk Web UI (port 8000)
     $mcpPort = Find-AvailablePort -StartPort 8001
-    
+
     if ($mcpPort -ne 8001) {
         Write-Warning "Port 8001 is in use. Using port $mcpPort instead."
     } else {
         Write-Local "Using port $mcpPort for MCP server."
     }
-    
+
     Write-Local "Starting MCP server on port $mcpPort..."
     Write-Local "Command: uv run fastmcp run src/server.py --transport http --port $mcpPort"
-    
+
     # Ensure logs directory exists
     Ensure-LogsDir
-    
+
     # Start server in background to check if it starts successfully
     try {
         $serverProcess = Start-Process -FilePath "uv" -ArgumentList "run", "fastmcp", "run", "src/server.py", "--transport", "http", "--port", $mcpPort -RedirectStandardOutput "logs/mcp_server.log" -RedirectStandardError "logs/mcp_server_error.log" -PassThru -NoNewWindow
-        
+
         # Give server time to start
         Write-Local "Waiting for MCP server to start..."
         Start-Sleep -Seconds 3
-        
+
         # Check if the server process is still running
         if ($serverProcess.HasExited) {
             Write-Error "MCP server failed to start. Check the logs:"
@@ -435,7 +435,7 @@ function Start-LocalServer {
                 Get-Content "logs/mcp_server_error.log" | Write-Host
                 Write-Host ""
             }
-            
+
             Write-Error "Troubleshooting steps:"
             Write-Host "1. Check if src/server.py exists and is valid"
             Write-Host "2. Verify FastMCP installation: uv run python -c 'import fastmcp'"
@@ -447,31 +447,31 @@ function Start-LocalServer {
             Write-Host ""
             Write-Error "🔧 Run the prerequisite checker to see what's missing:"
             Write-Error "   .\scripts\check-prerequisites.ps1"
-            
+
             Stop-AllProcesses
             exit 1
         }
-        
+
         # Check if the chosen port is actually listening
         Write-Local "Checking if MCP server is listening on port $mcpPort..."
         $portCheckAttempts = 0
         $maxPortAttempts = 5
         $serverListening = $false
-        
+
         while ($portCheckAttempts -lt $maxPortAttempts) {
             if (Test-PortListening -Port $mcpPort) {
                 $serverListening = $true
                 break
             }
-            
+
             Start-Sleep -Seconds 2
             $portCheckAttempts++
             Write-Local "Port check attempt $portCheckAttempts/$maxPortAttempts..."
         }
-        
+
         if ($serverListening) {
             Write-Success "MCP server is listening on port $mcpPort!"
-            
+
             # Also test basic connectivity
             try {
                 $response = Invoke-WebRequest -Uri "http://localhost:$mcpPort" -TimeoutSec 5 -UseBasicParsing
@@ -479,7 +479,7 @@ function Start-LocalServer {
             } catch {
                 Write-Warning "Server running but HTTP request failed: $_"
             }
-            
+
             # Start MCP Inspector now that the actual port is known
             if ($inspectorSupported) {
                 Write-Status "Starting MCP Inspector..."
@@ -537,29 +537,29 @@ function Start-LocalServer {
         } else {
             Write-Error "MCP server is not listening on port $mcpPort"
             Write-Error "Server process ID: $($serverProcess.Id)"
-            
+
             # Show server logs for debugging
             if (Test-Path "logs/mcp_server.log") {
                 Write-Error "=== MCP Server Log (last 20 lines) ==="
                 Get-Content "logs/mcp_server.log" -Tail 20 | Write-Host
                 Write-Host ""
             }
-            
+
             Write-Error "Attempting to restart server in foreground for debugging..."
             $serverProcess.Kill()
             Start-Sleep -Seconds 2
-            
+
             Write-Local "Running server in foreground mode for debugging..."
             Write-Local "If this works, there might be a background process issue..."
-            
+
             # Try running in foreground (this will block)
             & uv run fastmcp run src/server.py --transport http --port $mcpPort
             exit 1
         }
-        
+
         # Save server PID for cleanup
         $serverProcess.Id | Out-File ".server_pid" -Encoding ASCII
-        
+
         # Show final summary with access points
         Write-Host ""
         Write-Success "✅ MCP Server setup complete!"
@@ -569,7 +569,7 @@ function Start-LocalServer {
         Write-Status "📋 Access Points:"
         Write-Host "   🔌 MCP Server (stdio): Available for MCP clients"
         Write-Host "   🔌 MCP Server (HTTP):  http://localhost:$mcpPort"
-        
+
         if ($inspectorSupported) {
             Write-Host "   📊 MCP Inspector:      http://localhost:6274"
             Write-Host ""
@@ -594,21 +594,21 @@ function Start-LocalServer {
             Write-Host "   • Try manual install: npm install -g @modelcontextprotocol/inspector"
             Write-Host "   • Manual start: `$env:DANGEROUSLY_OMIT_AUTH='true'; `$env:DEFAULT_TRANSPORT='streamable-http'; `$env:DEFAULT_SERVER_URL='http://localhost:$mcpPort/mcp'; npx @modelcontextprotocol/inspector"
         }
-        
+
         Write-Host ""
         Write-Status "📊 Log Files:"
         Write-Host "   📄 MCP Server:    logs/mcp_server.log"
         if ($inspectorSupported) {
             Write-Host "   📄 MCP Inspector: logs/inspector.log"
         }
-        
+
         Write-Host ""
         Write-Status "🛑 To stop the server:"
         Write-Host "   Press Ctrl+C or run Stop-Process -Name 'uv'"
-        
+
         Write-Host ""
         Write-Local "Server is running in background. Use Ctrl+C to stop."
-        
+
         # Monitor both processes
         try {
             while ($true) {
@@ -621,7 +621,7 @@ function Start-LocalServer {
                     }
                     break
                 }
-                
+
                 Start-Sleep -Seconds 5
             }
         } finally {
@@ -647,9 +647,9 @@ function Test-ShouldRunSplunkDocker {
 # Function to get Docker compose command with profiles
 function Get-DockerComposeCmd {
     param([string]$Mode)
-    
+
     $baseCmd = "docker-compose"
-    
+
     switch ($Mode) {
         "dev" {
             $baseCmd = "docker-compose -f docker-compose-dev.yml"
@@ -658,7 +658,7 @@ function Get-DockerComposeCmd {
             $baseCmd = "docker-compose"
         }
     }
-    
+
     # Add Splunk profile if needed
     if (Test-ShouldRunSplunkDocker) {
         if ($Mode -eq "dev") {
@@ -670,14 +670,14 @@ function Get-DockerComposeCmd {
     } else {
         Write-Local "Using external Splunk instance: $env:SPLUNK_HOST"
     }
-    
+
     return $baseCmd
 }
 
 # Function to run Docker setup
 function Start-DockerSetup {
     Write-Status "Using Docker deployment mode..."
-    
+
     # Check if docker-compose is available
     if (-not (Get-Command "docker-compose" -ErrorAction SilentlyContinue)) {
         Write-Error "docker-compose not found. Please install docker-compose or use local mode."
@@ -687,15 +687,15 @@ function Start-DockerSetup {
         Write-Error "   docs/getting-started/installation.md#-docker-installation-optional---for-full-stack"
         exit 1
     }
-    
+
     # If uv is available, ensure uv.lock is up to date for Docker build
     if (Test-UV) {
         Write-Status "uv detected. Ensuring uv.lock is up to date for Docker build..."
-        
+
         # Check if uv.lock exists and is current
         $uvLockTime = (Get-Item "uv.lock" -ErrorAction SilentlyContinue)?.LastWriteTime
         $pyprojectTime = (Get-Item "pyproject.toml" -ErrorAction SilentlyContinue)?.LastWriteTime
-        
+
         if (-not (Test-Path "uv.lock") -or ($pyprojectTime -and $uvLockTime -and $pyprojectTime -gt $uvLockTime)) {
             Write-Status "Updating uv.lock file..."
             & uv sync --dev
@@ -715,32 +715,32 @@ function Start-DockerSetup {
             Write-Warning "Consider installing uv to generate the lock file: https://astral.sh/uv/"
         }
     }
-    
+
     # Check if .env file exists
     if (-not (Test-Path ".env")) {
         Write-Warning ".env file not found. Creating from env.example..."
         Copy-Item "env.example" ".env"
         Write-Warning "Created .env file. You may want to edit it with your Splunk configuration."
     }
-    
+
     # Load environment variables from .env file for Docker Compose
     Load-EnvFile
-    
+
     # Ask user for Docker deployment mode
     Write-Host ""
     Write-Status "Choose Docker deployment mode:"
     Write-Host "  1) Production (default) - Optimized for performance, no hot reload"
     Write-Host "  2) Development - Hot reload enabled, enhanced debugging"
     Write-Host ""
-    
+
     do {
         $dockerChoice = Read-Host "Enter your choice (1 or 2, default: 1)"
         if ([string]::IsNullOrEmpty($dockerChoice)) { $dockerChoice = "1" }
     } while ($dockerChoice -notin @("1", "2"))
-    
+
     $dockerMode = ""
     $serviceName = "mcp-server"
-    
+
     switch ($dockerChoice) {
         "1" {
             $dockerMode = "prod"
@@ -752,43 +752,43 @@ function Start-DockerSetup {
             Write-Status "Using Development mode (hot reload enabled)"
         }
     }
-    
+
     # Get the appropriate docker-compose command
     $composeCmd = Get-DockerComposeCmd -Mode $dockerMode
-    
+
     Write-Status "Building Docker image..."
     $buildCmd = "$composeCmd build $serviceName"
     Invoke-Expression $buildCmd
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Docker image built successfully!"
     } else {
         Write-Error "Failed to build Docker image"
         exit 1
     }
-    
+
     Write-Status "Starting services with docker-compose..."
     $upCmd = "$composeCmd up -d"
     Invoke-Expression $upCmd
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Services started successfully!"
     } else {
         Write-Error "Failed to start services"
         exit 1
     }
-    
+
     # Wait a moment for services to start
     Start-Sleep -Seconds 5
-    
+
     Write-Status "Checking service status..."
     $psCmd = "$composeCmd ps"
     Invoke-Expression $psCmd
-    
+
     Write-Status "Checking MCP server logs..."
     $logsCmd = "$composeCmd logs $serviceName --tail=20"
     Invoke-Expression $logsCmd
-    
+
     Write-Host ""
     Write-Success "🎉 Docker setup complete!"
     Write-Host ""
@@ -807,7 +807,7 @@ function Start-DockerSetup {
     Write-Host ""
     Write-Status "🛑 To stop all services:"
     Write-Host "   $composeCmd down"
-    
+
     if ($dockerMode -eq "dev") {
         Write-Host ""
         Write-Status "🚀 Development Mode Features:"
@@ -830,7 +830,7 @@ function Test-Docker {
 # Function to stop all processes
 function Stop-AllProcesses {
     Write-Local "Shutting down services..."
-    
+
     # Kill MCP Server if it was started by this script
     if (Test-Path ".server_pid") {
         $serverPid = Get-Content ".server_pid" -ErrorAction SilentlyContinue
@@ -847,7 +847,7 @@ function Stop-AllProcesses {
         }
         Remove-Item ".server_pid" -ErrorAction SilentlyContinue
     }
-    
+
     # Kill MCP Inspector if it was started by this script
     if (Test-Path ".inspector_pid") {
         $inspectorPid = Get-Content ".inspector_pid" -ErrorAction SilentlyContinue
@@ -864,10 +864,10 @@ function Stop-AllProcesses {
         }
         Remove-Item ".inspector_pid" -ErrorAction SilentlyContinue
     }
-    
+
     # Clean up log files
     Remove-Item "logs/inspector.log", "logs/inspector_error.log", "logs/mcp_server.log", "logs/mcp_server_error.log" -ErrorAction SilentlyContinue
-    
+
     Write-Success "Cleanup complete!"
 }
 
@@ -879,7 +879,7 @@ $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
 # Main logic: Check Docker availability and choose deployment method
 try {
     Write-Status "Checking available deployment options..."
-    
+
     # Handle command line parameters
     if ($DockerOnly) {
         if (Test-Docker) {
@@ -895,7 +895,7 @@ try {
         # Auto-detect best mode
         if (Test-Docker) {
             Write-Success "Docker is available and running."
-            
+
             # Ask user preference if both Docker and uv are available
             if (Test-UV) {
                 Write-Host ""
@@ -904,15 +904,15 @@ try {
                 Write-Host "  1) Docker (full stack with Splunk, Traefik, MCP Inspector)"
                 Write-Host "  2) Local (FastMCP server only, lighter weight)"
                 Write-Host ""
-                
+
                 do {
                     $choice = Read-Host "Enter your choice (1 or 2, default: 1)"
                     if ([string]::IsNullOrEmpty($choice)) { $choice = "1" }
                 } while ($choice -notin @("1", "2"))
-                
+
                 switch ($choice) {
                     "1" { Start-DockerSetup }
-                    "2" { 
+                    "2" {
                         Setup-LocalEnv
                         Start-LocalServer
                     }
@@ -946,4 +946,4 @@ try {
     Write-Error "An error occurred: $_"
     Stop-AllProcesses
     exit 1
-} 
+}

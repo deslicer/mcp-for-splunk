@@ -28,7 +28,7 @@ splunk-docs://latest/api-reference/search-api
 ```python
 VERSION_MAPPING = {
     "9.3.0": "93",
-    "9.2.1": "92", 
+    "9.2.1": "92",
     "9.1.0": "91",
     "latest": "93"  # Current latest
 }
@@ -72,20 +72,20 @@ class DocSection:
 
 class SplunkDocsResource(BaseResource):
     """Base class for Splunk documentation resources."""
-    
+
     SPLUNK_DOCS_BASE = "https://docs.splunk.com"
     VERSION_MAPPING = {
         "9.3.0": "93",
-        "9.2.1": "92", 
+        "9.2.1": "92",
         "9.1.0": "91",
         "latest": "93"
     }
-    
+
     def __init__(self):
         super().__init__()
         self._cache = {}
         self._version_cache = {}
-    
+
     async def get_splunk_version(self, ctx: Context) -> str:
         """Detect Splunk version from connected instance."""
         try:
@@ -94,26 +94,26 @@ class SplunkDocsResource(BaseResource):
             return health_result.get("version", "latest")
         except:
             return "latest"
-    
+
     def normalize_version(self, version: str) -> str:
         """Convert version to docs URL format."""
         return self.VERSION_MAPPING.get(version, self.VERSION_MAPPING["latest"])
-    
+
     async def fetch_doc_content(self, url: str) -> str:
         """Fetch and process documentation content."""
         cache_key = f"doc_{hash(url)}"
         if cache_key in self._cache:
             return self._cache[cache_key]
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.get(url, timeout=30.0)
             response.raise_for_status()
-            
+
             # Process HTML to LLM-friendly format
             content = self.process_html_to_llm_format(response.text)
             self._cache[cache_key] = content
             return content
-    
+
     def process_html_to_llm_format(self, html: str) -> str:
         """Convert HTML documentation to LLM-optimized format."""
         # Use BeautifulSoup or similar to extract clean content
@@ -128,22 +128,22 @@ class SplunkDocsResource(BaseResource):
 
 class SPLReferenceResource(SplunkDocsResource):
     """SPL (Search Processing Language) reference documentation."""
-    
+
     METADATA = ResourceMetadata(
         name="spl_reference",
         description="Splunk SPL command and function reference",
         category="documentation",
         tags={"spl", "search", "reference", "commands"}
     )
-    
+
     @register_resource("splunk-docs://{version}/spl-reference/{command}")
     async def get_spl_command_docs(self, ctx: Context, version: str, command: str) -> str:
         """Get documentation for specific SPL command."""
         norm_version = self.normalize_version(version)
         url = f"{self.SPLUNK_DOCS_BASE}/Documentation/Splunk/{norm_version}/SearchReference/{command}"
-        
+
         content = await self.fetch_doc_content(url)
-        
+
         # Format for LLM consumption
         return f"""# SPL Command: {command}
 
@@ -164,14 +164,14 @@ This command is used in Splunk search queries (SPL). It can be combined with oth
 
 class AdminGuideResource(SplunkDocsResource):
     """Splunk administration documentation."""
-    
+
     METADATA = ResourceMetadata(
         name="admin_guide",
         description="Splunk administration and configuration guide",
-        category="documentation", 
+        category="documentation",
         tags={"admin", "configuration", "deployment"}
     )
-    
+
     @register_resource("splunk-docs://{version}/admin/{topic}")
     async def get_admin_docs(self, ctx: Context, version: str, topic: str) -> str:
         """Get administration documentation for specific topic."""
@@ -192,23 +192,23 @@ import re
 
 class SplunkDocsProcessor:
     """Process Splunk HTML documentation into LLM-optimized format."""
-    
+
     def __init__(self):
         self.section_hierarchy = []
-        
+
     def process_html(self, html: str, url: str) -> str:
         """Main processing pipeline."""
         soup = BeautifulSoup(html, 'html.parser')
-        
+
         # Extract main content area
         content_area = self.extract_main_content(soup)
-        
-        # Process sections hierarchically  
+
+        # Process sections hierarchically
         sections = self.extract_sections(content_area)
-        
+
         # Generate LLM-optimized markdown
         return self.generate_llm_markdown(sections, url)
-    
+
     def extract_main_content(self, soup: BeautifulSoup) -> BeautifulSoup:
         """Extract the main documentation content, removing navigation/footer."""
         # Splunk docs typically have main content in specific containers
@@ -219,17 +219,17 @@ class SplunkDocsProcessor:
             soup.find('main')
         )
         return main_content or soup
-    
+
     def extract_sections(self, content: BeautifulSoup) -> List[Dict]:
         """Extract hierarchical sections from documentation."""
         sections = []
         current_section = None
-        
+
         for element in content.find_all(['h1', 'h2', 'h3', 'h4', 'p', 'pre', 'code', 'ul', 'ol', 'table']):
             if element.name in ['h1', 'h2', 'h3', 'h4']:
                 if current_section:
                     sections.append(current_section)
-                
+
                 current_section = {
                     'level': int(element.name[1]),
                     'title': element.get_text().strip(),
@@ -237,12 +237,12 @@ class SplunkDocsProcessor:
                 }
             elif current_section:
                 current_section['content'].append(self.process_element(element))
-        
+
         if current_section:
             sections.append(current_section)
-            
+
         return sections
-    
+
     def process_element(self, element) -> str:
         """Process individual HTML elements."""
         if element.name == 'pre':
@@ -261,23 +261,23 @@ class SplunkDocsProcessor:
         else:
             # Regular text
             return element.get_text().strip()
-    
+
     def generate_llm_markdown(self, sections: List[Dict], url: str) -> str:
         """Generate final LLM-optimized markdown."""
         output = []
-        
+
         for section in sections:
             # Add section header
             header_prefix = '#' * section['level']
             output.append(f"{header_prefix} {section['title']}")
             output.append("")
-            
+
             # Add section content
             for content_item in section['content']:
                 if content_item.strip():
                     output.append(content_item)
                     output.append("")
-        
+
         # Add metadata footer
         output.extend([
             "---",
@@ -285,7 +285,7 @@ class SplunkDocsProcessor:
             f"**Processed**: {datetime.now().isoformat()}",
             "**Format**: Optimized for LLM consumption"
         ])
-        
+
         return '\n'.join(output)
 ```
 
@@ -301,17 +301,17 @@ from src.core.registry import resource_registry
 
 def register_documentation_resources():
     """Register all Splunk documentation resources."""
-    
+
     resources = [
         SPLReferenceResource(),
-        AdminGuideResource(), 
+        AdminGuideResource(),
         APIReferenceResource(),
         KnowledgeManagerResource(),
         DataIngestionResource(),
         SecurityGuideResource(),
         TroubleshootingResource()
     ]
-    
+
     for resource in resources:
         resource_registry.register(resource)
 
@@ -325,15 +325,15 @@ register_documentation_resources()
 @register_resource("splunk-docs://discovery")
 async def discover_documentation(ctx: Context, version: str = "latest") -> dict:
     """Discover available Splunk documentation resources."""
-    
+
     splunk_version = version if version != "auto" else await get_splunk_version(ctx)
-    
+
     categories = {
         "search-reference": {
             "description": "SPL commands, functions, and syntax reference",
             "resources": [
                 "splunk-docs://{version}/spl-reference/search",
-                "splunk-docs://{version}/spl-reference/eval", 
+                "splunk-docs://{version}/spl-reference/eval",
                 "splunk-docs://{version}/spl-reference/stats",
                 "splunk-docs://{version}/spl-reference/chart"
             ]
@@ -355,19 +355,19 @@ async def discover_documentation(ctx: Context, version: str = "latest") -> dict:
             ]
         }
     }
-    
+
     # Replace version placeholders
     formatted_categories = {}
     for category, info in categories.items():
         formatted_resources = [
-            resource.format(version=splunk_version) 
+            resource.format(version=splunk_version)
             for resource in info["resources"]
         ]
         formatted_categories[category] = {
             **info,
             "resources": formatted_resources
         }
-    
+
     return {
         "splunk_version": splunk_version,
         "categories": formatted_categories,
@@ -384,25 +384,25 @@ async def discover_documentation(ctx: Context, version: str = "latest") -> dict:
 
 class DocumentationCache:
     """Version-aware caching for Splunk documentation."""
-    
+
     def __init__(self, ttl_hours: int = 24):
         self.cache = {}
         self.version_mapping = {}
         self.ttl_hours = ttl_hours
-    
+
     def cache_key(self, version: str, category: str, topic: str) -> str:
         """Generate cache key for documentation."""
         return f"docs_{version}_{category}_{topic}"
-    
+
     async def get_or_fetch(self, version: str, category: str, topic: str, fetch_func) -> str:
         """Get from cache or fetch if expired/missing."""
         key = self.cache_key(version, category, topic)
-        
+
         if key in self.cache:
             cached_item = self.cache[key]
             if not self.is_expired(cached_item['timestamp']):
                 return cached_item['content']
-        
+
         # Fetch fresh content
         content = await fetch_func()
         self.cache[key] = {
@@ -410,9 +410,9 @@ class DocumentationCache:
             'timestamp': datetime.now(),
             'version': version
         }
-        
+
         return content
-    
+
     def invalidate_version(self, version: str):
         """Invalidate all cached docs for a specific version."""
         keys_to_remove = [k for k in self.cache.keys() if k.startswith(f"docs_{version}_")]
@@ -441,10 +441,10 @@ class ResourceRegistry:
 
 async def main():
     # ... existing code ...
-    
+
     # Register documentation resources
     registry.register_documentation_resources()
-    
+
     # ... rest of server setup ...
 ```
 
@@ -453,11 +453,11 @@ async def main():
 ### A. LLM Prompt for Documentation Access
 
 ```
-To help you with Splunk queries, I have access to Splunk documentation resources. 
+To help you with Splunk queries, I have access to Splunk documentation resources.
 
 Available documentation categories:
 - splunk-docs://latest/spl-reference/{command} - SPL command reference
-- splunk-docs://latest/admin/{topic} - Administration guides  
+- splunk-docs://latest/admin/{topic} - Administration guides
 - splunk-docs://latest/api/{endpoint} - REST API reference
 
 I can access specific documentation by topic. For example:
@@ -488,10 +488,10 @@ print(spl_docs.content[0].text)
 ## Next Steps
 
 1. **Phase 1**: Implement base infrastructure and SPL reference
-2. **Phase 2**: Add content processing pipeline  
+2. **Phase 2**: Add content processing pipeline
 3. **Phase 3**: Implement remaining documentation categories
 4. **Phase 4**: Add smart caching and optimization
 5. **Testing**: Comprehensive testing with different Splunk versions
 6. **Documentation**: Update MCP server docs with usage examples
 
-This approach provides a robust, scalable foundation for serving Splunk documentation to LLMs while maintaining version awareness and optimal content formatting. 
+This approach provides a robust, scalable foundation for serving Splunk documentation to LLMs while maintaining version awareness and optimal content formatting.

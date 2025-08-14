@@ -107,4 +107,4 @@ STEP 3B: Extract the role names from the user info response (look for "roles" fi
 STEP 3C: Check role-based index access restrictions using the actual role names
 ```
 
-This approach ensures agents can handle templates correctly and provide meaningful, executable searches to users. 
+This approach ensures agents can handle templates correctly and provide meaningful, executable searches to users.

@@ -11,7 +11,7 @@ The MCP Server for Splunk doesn't just provide tools—it provides **intelligent
 Instead of memorizing dozens of SPL queries and troubleshooting procedures, you now have:
 
 - **🧠 AI Specialists** that understand Splunk's architecture and common issues
-- **🔄 Automated Workflows** that follow proven troubleshooting methodologies  
+- **🔄 Automated Workflows** that follow proven troubleshooting methodologies
 - **⚡ Parallel Execution** that runs multiple diagnostic checks simultaneously
 - **📊 Intelligent Summarization** that provides executive-level insights
 - **🎯 Contextual Analysis** that adapts to your specific environment
@@ -26,7 +26,7 @@ Your primary AI troubleshooting partner that intelligently routes problems to sp
 ```python
 # Instead of this manual approach:
 # 1. Check server health
-# 2. Verify data ingestion  
+# 2. Verify data ingestion
 # 3. Analyze search performance
 # 4. Review indexer status
 # 5. Check forwarder connectivity
@@ -47,7 +47,7 @@ Pre-built AI workflows that embody years of Splunk expertise:
 #### 🔍 **Missing Data Troubleshooting**
 Follows Splunk's official 10-step missing data checklist:
 - License and edition verification
-- Index configuration validation  
+- Index configuration validation
 - Permissions and RBAC analysis
 - Time range and timestamp verification
 - Forwarder connectivity checks
@@ -75,7 +75,7 @@ Our workflows don't run tasks sequentially—they execute in **intelligent paral
 ```
 Phase 1 (Parallel):     Phase 2 (Depends on Phase 1):     Phase 3 (Final Analysis):
 ├── Server Health       ├── Index Analysis                 ├── Root Cause Analysis
-├── User Permissions    ├── Data Quality Check             ├── Recommendations  
+├── User Permissions    ├── Data Quality Check             ├── Recommendations
 ├── License Check       ├── Performance Metrics            └── Executive Summary
 └── Basic Connectivity  └── Configuration Review
 ```
@@ -108,88 +108,88 @@ The diagram below shows how you can build, validate, and deploy your own AI trou
 ```mermaid
 graph TD
     A[👤 User Wants Custom AI Agent] --> B{Know Requirements?}
-    
+
     B -->|No| C[🔍 WorkflowRequirementsTool]
     B -->|Yes| D[🛠️ WorkflowBuilderTool]
-    
+
     C --> C1[📋 Get Schema & Available Tools]
     C --> C2[📖 Review Context Variables]
     C --> C3[💡 See Best Practices & Examples]
     C1 --> D
     C2 --> D
     C3 --> D
-    
+
     D --> D1{Creation Mode}
     D1 -->|New Workflow| D2[🆕 Create Mode]
     D1 -->|Edit Existing| D3[✏️ Edit Mode]
     D1 -->|Use Template| D4[📝 Template Mode]
     D1 -->|Validate Only| D5[✅ Validate Mode]
     D1 -->|Process Finished| D6[⚙️ Process Mode]
-    
+
     D2 --> E[🎯 Interactive Creation]
     D3 --> E
     D4 --> E
     D5 --> F[📊 Validation Results]
     D6 --> F
-    
+
     E --> E1[📝 Define Workflow Metadata]
     E --> E2[🔧 Create Tasks with Tools]
     E --> E3[🔗 Set Dependencies]
     E --> E4[📋 Add Instructions]
-    
+
     E1 --> G[🔍 Comprehensive Validation]
     E2 --> G
     E3 --> G
     E4 --> G
-    
+
     G --> G1[✅ Schema Compliance]
     G --> G2[🛠️ Tool Availability Check]
     G --> G3[🔄 Dependency Analysis]
     G --> G4[🎯 Context Variable Validation]
     G --> G5[🔌 Integration Compatibility]
-    
+
     G1 --> H{Validation Passed?}
     G2 --> H
     G3 --> H
     G4 --> H
     G5 --> H
-    
+
     H -->|❌ Failed| I[🚨 Error Report & Fixes]
     H -->|✅ Passed| J[💾 Save Workflow Definition]
-    
+
     I --> D
     J --> K[🚀 Ready for Execution]
-    
+
     K --> L[🎯 Choose Execution Method]
     L --> L1[🤖 Dynamic Troubleshoot Agent<br/>Auto-selects workflow]
     L --> L2[⚡ Workflow Runner Tool<br/>Direct execution by ID]
     L --> L3[🔧 Agent Troubleshoot<br/>Specialist routing]
-    
+
     L1 --> M[🧠 AI Triage Analysis]
     M --> N[📋 Workflow Selection]
     N --> O[⚡ Parallel Execution]
-    
+
     L2 --> O
     L3 --> P[🎯 Specialist Agent Routing]
     P --> O
-    
+
     O --> O1[📊 Task Execution with Progress]
     O --> O2[🔄 Dependency Management]
     O --> O3[⚡ 3-5x Parallel Speed-up]
-    
+
     O1 --> Q[📈 Results Collection]
     O2 --> Q
     O3 --> Q
-    
+
     Q --> R[🤖 AI-Powered Summarization]
     R --> S[📋 Executive Summary]
     R --> T[🔧 Technical Details]
     R --> U[📝 Next Steps & Recommendations]
-    
+
     S --> V[✨ Intelligent Splunk Expert Available 24/7]
     T --> V
     U --> V
-    
+
     style A fill:#e1f5fe
     style V fill:#e8f5e8
     style C fill:#fff3e0
@@ -253,7 +253,7 @@ Comprehensive schema and validation system ensures workflow quality and compatib
 # Understand what you need to build workflows
 requirements = await workflow_requirements.execute(format_type="detailed")
 
-# Quick reference for experienced users  
+# Quick reference for experienced users
 quick_ref = await workflow_requirements.execute(format_type="quick")
 
 # Get JSON schemas for validation
@@ -286,7 +286,7 @@ result = await workflow_builder.execute(mode="create")
 ```python
 # Generate security analysis template
 security_template = await workflow_builder.execute(
-    mode="template", 
+    mode="template",
     template_type="security"
 )
 
@@ -323,7 +323,7 @@ result = await workflow_builder.execute(
         "tasks": [
             {
                 "task_id": "threat_detection",
-                "name": "Threat Detection Analysis", 
+                "name": "Threat Detection Analysis",
                 "instructions": "Analyze authentication failures...",
                 "required_tools": ["run_splunk_search"],
                 "dependencies": []
@@ -400,7 +400,7 @@ custom_workflow = {
         },
         {
             "task_id": "access_review",
-            "name": "Access Control Review", 
+            "name": "Access Control Review",
             "instructions": "Review user access patterns and identify anomalies",
             "required_tools": ["run_splunk_search", "list_users"],
             "dependencies": ["audit_trail_check"]
@@ -443,7 +443,7 @@ result = await workflow_runner.execute(
             "dependencies": []  # Runs in Phase 1
         },
         {
-            "task_id": "performance_check", 
+            "task_id": "performance_check",
             "dependencies": []  # Runs in Phase 1 (parallel)
         },
         {
@@ -637,7 +637,7 @@ workflow_builder.execute(mode="create")
 This isn't just about tools—it's about **transforming how you interact with Splunk**:
 
 - **From reactive** → **proactive** operations
-- **From manual** → **automated** diagnostics  
+- **From manual** → **automated** diagnostics
 - **From individual expertise** → **organizational intelligence**
 - **From fragmented tools** → **unified AI platform**
 
@@ -679,4 +679,4 @@ Don't let complex troubleshooting procedures slow down your team. Embrace the fu
 
 ---
 
-*Ready to see the difference? Try running a workflow and experience the power of AI-driven Splunk troubleshooting firsthand.* 
+*Ready to see the difference? Try running a workflow and experience the power of AI-driven Splunk troubleshooting firsthand.*

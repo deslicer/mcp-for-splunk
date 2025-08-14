@@ -84,7 +84,7 @@ test-apps: ## Test Splunk apps and users
 	uv run pytest tests/test_mcp_server.py::TestSplunkAppsAndUsers -v
 
 test-kvstore: ## Test KV Store functionality
-	uv run pytest tests/test_mcp_server.py::TestKVStore -v 
+	uv run pytest tests/test_mcp_server.py::TestKVStore -v
 
 test-with-splunk: ## Run tests with Splunk container
 	docker-compose -f docker-compose-splunk.yml up -d
@@ -100,4 +100,4 @@ test-with-splunk: ## Run tests with Splunk container
 	echo "Timeout waiting for Splunk"; \
 	docker-compose -f docker-compose-splunk.yml down -v --remove-orphans || true; \
 	docker network rm mcp-server-for-splunk_splunk-network || true; \
-	exit 1 
+	exit 1

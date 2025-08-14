@@ -202,4 +202,4 @@ Found a gap or error? We welcome documentation contributions!
 - **Developers**: Jump to [Integration Guide](guides/integration/)
 - **Contributors**: Check out [Contributing Guide](community/contributing.md)
 
-**Need help?** Join our [community discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - we're here to help! 
+**Need help?** Join our [community discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - we're here to help!

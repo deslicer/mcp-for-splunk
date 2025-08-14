@@ -123,7 +123,8 @@ async def demo_client_configuration():
     print("\n4️⃣  Real-World Usage Examples")
     print("-" * 50)
 
-    print("""
+    print(
+        """
     # Example 1: Cursor IDE Usage
     When using the tool in Cursor, you can provide configuration like this:
 
@@ -152,7 +153,8 @@ async def demo_client_configuration():
         splunk_password="secure-password",
         splunk_verify_ssl=True
     )
-    """)
+    """
+    )
 
     print("\n5️⃣  Benefits of Client Configuration")
     print("-" * 50)

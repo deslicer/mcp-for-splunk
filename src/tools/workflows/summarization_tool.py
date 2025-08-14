@@ -54,7 +54,7 @@ class SummarizationResult:
 class SummarizationTool:
     """
     Standalone tool for analyzing and summarizing diagnostic agent results.
-    
+
     This tool:
     1. Analyzes results from multiple diagnostic agents
     2. Identifies patterns and correlations across findings
@@ -161,16 +161,22 @@ Always structure your analysis comprehensively and provide practical, implementa
             try:
                 # Parse JSON strings
                 action_items_list = json.loads(action_items) if action_items else []
-                priority_recommendations_list = json.loads(priority_recommendations) if priority_recommendations else []
+                priority_recommendations_list = (
+                    json.loads(priority_recommendations) if priority_recommendations else []
+                )
                 follow_up_actions_list = json.loads(follow_up_actions) if follow_up_actions else []
                 technical_details_dict = json.loads(technical_details) if technical_details else {}
             except json.JSONDecodeError as e:
                 logger.error(f"JSON parsing error in summarization result: {e}")
                 # Fallback to treating as plain text
                 action_items_list = [action_items] if action_items else []
-                priority_recommendations_list = [priority_recommendations] if priority_recommendations else []
+                priority_recommendations_list = (
+                    [priority_recommendations] if priority_recommendations else []
+                )
                 follow_up_actions_list = [follow_up_actions] if follow_up_actions else []
-                technical_details_dict = {"raw_details": technical_details} if technical_details else {}
+                technical_details_dict = (
+                    {"raw_details": technical_details} if technical_details else {}
+                )
 
             # Store the result for retrieval
             self._summarization_result = SummarizationResult(
@@ -228,11 +234,19 @@ Always structure your analysis comprehensively and provide practical, implementa
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span("diagnostic_summarization"):
                     return await self._execute_summarization_core(
-                        ctx, workflow_results, problem_description, diagnostic_context, execution_metadata
+                        ctx,
+                        workflow_results,
+                        problem_description,
+                        diagnostic_context,
+                        execution_metadata,
                     )
             else:
                 return await self._execute_summarization_core(
-                    ctx, workflow_results, problem_description, diagnostic_context, execution_metadata
+                    ctx,
+                    workflow_results,
+                    problem_description,
+                    diagnostic_context,
+                    execution_metadata,
                 )
 
         except Exception as e:
@@ -243,7 +257,10 @@ Always structure your analysis comprehensively and provide practical, implementa
                 "status": "error",
                 "error": str(e),
                 "executive_summary": f"Summarization analysis failed: {str(e)}",
-                "recommendations": ["Review diagnostic results manually", "Check summarization tool configuration"],
+                "recommendations": [
+                    "Review diagnostic results manually",
+                    "Check summarization tool configuration",
+                ],
                 "execution_metadata": execution_metadata,
             }
 
@@ -363,11 +380,15 @@ Always structure your analysis comprehensively and provide practical, implementa
         if execution_metadata:
             analysis_input += "\n**Execution Metadata:**\n"
             if "total_execution_time" in execution_metadata:
-                analysis_input += f"- Total Execution Time: {execution_metadata['total_execution_time']:.2f}s\n"
+                analysis_input += (
+                    f"- Total Execution Time: {execution_metadata['total_execution_time']:.2f}s\n"
+                )
             if "execution_phases" in execution_metadata:
                 analysis_input += f"- Execution Phases: {execution_metadata['execution_phases']}\n"
             if "parallel_efficiency" in execution_metadata:
-                analysis_input += f"- Parallel Efficiency: {execution_metadata['parallel_efficiency']:.1%}\n"
+                analysis_input += (
+                    f"- Parallel Efficiency: {execution_metadata['parallel_efficiency']:.1%}\n"
+                )
 
         # Add diagnostic results
         analysis_input += f"\n**DIAGNOSTIC RESULTS ({len(workflow_results)} agents):**\n\n"
@@ -377,28 +398,30 @@ Always structure your analysis comprehensively and provide practical, implementa
 
         for task_id, result in workflow_results.items():
             # Handle both DiagnosticResult objects and plain dictionaries
-            if hasattr(result, 'status'):
+            if hasattr(result, "status"):
                 # DiagnosticResult object
                 status = result.status
-            elif isinstance(result, dict) and 'status' in result:
+            elif isinstance(result, dict) and "status" in result:
                 # Plain dictionary format
-                status = result['status']
+                status = result["status"]
             else:
                 # Fallback
-                status = 'unknown'
+                status = "unknown"
 
             status_groups[status].append((task_id, result))
 
         # Present results by severity (most critical first)
         for status in ["error", "critical", "warning", "healthy"]:
             if status_groups[status]:
-                analysis_input += f"**{status.upper()} STATUS ({len(status_groups[status])} agents):**\n"
+                analysis_input += (
+                    f"**{status.upper()} STATUS ({len(status_groups[status])} agents):**\n"
+                )
 
                 for task_id, result in status_groups[status]:
                     analysis_input += f"\n**Agent: {task_id}**\n"
 
                     # Handle both DiagnosticResult objects and plain dictionaries
-                    if hasattr(result, 'status'):
+                    if hasattr(result, "status"):
                         # DiagnosticResult object
                         result_status = result.status
                         result_findings = result.findings or []
@@ -406,13 +429,13 @@ Always structure your analysis comprehensively and provide practical, implementa
                         result_details = result.details or {}
                     elif isinstance(result, dict):
                         # Plain dictionary format
-                        result_status = result.get('status', 'unknown')
-                        result_findings = result.get('findings', [])
-                        result_recommendations = result.get('recommendations', [])
-                        result_details = result.get('details', {})
+                        result_status = result.get("status", "unknown")
+                        result_findings = result.get("findings", [])
+                        result_recommendations = result.get("recommendations", [])
+                        result_details = result.get("details", {})
                     else:
                         # Fallback
-                        result_status = 'unknown'
+                        result_status = "unknown"
                         result_findings = []
                         result_recommendations = []
                         result_details = {}
@@ -432,14 +455,20 @@ Always structure your analysis comprehensively and provide practical, implementa
                     # Include key details
                     if result_details:
                         important_keys = [
-                            "user_info", "license_state", "total_events", "available_indexes",
-                            "server_info", "error", "execution_time", "agent_output"
+                            "user_info",
+                            "license_state",
+                            "total_events",
+                            "available_indexes",
+                            "server_info",
+                            "error",
+                            "execution_time",
+                            "agent_output",
                         ]
                         detail_items = []
                         for key in important_keys:
                             if key in result_details:
                                 value = result_details[key]
-                                if isinstance(value, (dict, list)):
+                                if isinstance(value, dict | list):
                                     detail_items.append(f"{key}: {str(value)[:200]}...")
                                 else:
                                     detail_items.append(f"{key}: {value}")
@@ -495,19 +524,19 @@ Use JSON strings for array and object parameters to ensure proper parsing.
 
         for result in workflow_results.values():
             # Handle both DiagnosticResult objects and plain dictionaries
-            if hasattr(result, 'status'):
+            if hasattr(result, "status"):
                 # DiagnosticResult object
                 status = result.status
                 findings_count = len(result.findings or [])
                 recommendations_count = len(result.recommendations or [])
             elif isinstance(result, dict):
                 # Plain dictionary format
-                status = result.get('status', 'unknown')
-                findings_count = len(result.get('findings', []))
-                recommendations_count = len(result.get('recommendations', []))
+                status = result.get("status", "unknown")
+                findings_count = len(result.get("findings", []))
+                recommendations_count = len(result.get("recommendations", []))
             else:
                 # Fallback
-                status = 'unknown'
+                status = "unknown"
                 findings_count = 0
                 recommendations_count = 0
 
@@ -545,16 +574,20 @@ Use JSON strings for array and object parameters to ensure proper parsing.
         """Create fallback result when structured output is not available."""
 
         # Extract agent output
-        output = agent_result.final_output if hasattr(agent_result, 'final_output') else str(agent_result)
+        output = (
+            agent_result.final_output
+            if hasattr(agent_result, "final_output")
+            else str(agent_result)
+        )
 
         # Simple parsing for basic structure
-        lines = output.split('\n')
+        lines = output.split("\n")
         executive_summary = "Analysis completed with partial results."
         action_items = ["Review diagnostic results manually"]
 
         # Look for key sections in output
         for i, line in enumerate(lines):
-            if 'summary' in line.lower() and i + 1 < len(lines):
+            if "summary" in line.lower() and i + 1 < len(lines):
                 executive_summary = lines[i + 1].strip()
                 break
 
@@ -562,12 +595,12 @@ Use JSON strings for array and object parameters to ensure proper parsing.
         statuses = []
         for result in workflow_results.values():
             # Handle both DiagnosticResult objects and plain dictionaries
-            if hasattr(result, 'status'):
+            if hasattr(result, "status"):
                 statuses.append(result.status)
             elif isinstance(result, dict):
-                statuses.append(result.get('status', 'unknown'))
+                statuses.append(result.get("status", "unknown"))
             else:
-                statuses.append('unknown')
+                statuses.append("unknown")
 
         if "error" in statuses or "critical" in statuses:
             severity = "High"
@@ -581,7 +614,10 @@ Use JSON strings for array and object parameters to ensure proper parsing.
             "executive_summary": executive_summary,
             "root_cause_analysis": "Detailed analysis available in agent output.",
             "action_items": action_items,
-            "priority_recommendations": ["Review individual agent findings", "Implement recommended fixes"],
+            "priority_recommendations": [
+                "Review individual agent findings",
+                "Implement recommended fixes",
+            ],
             "severity_assessment": severity,
             "resolution_timeline": "To be determined based on specific issues",
             "follow_up_actions": ["Monitor system after implementing fixes"],
@@ -596,6 +632,8 @@ Use JSON strings for array and object parameters to ensure proper parsing.
 
 
 # Factory function for easy instantiation
-def create_summarization_tool(config: AgentConfig, tool_registry: SplunkToolRegistry = None) -> SummarizationTool:
+def create_summarization_tool(
+    config: AgentConfig, tool_registry: SplunkToolRegistry = None
+) -> SummarizationTool:
     """Factory function to create a summarization tool."""
     return SummarizationTool(config, tool_registry)

@@ -7,18 +7,18 @@ with the WorkflowManager system.
 
 import json
 import logging
-import os
+import re  # Added for regex in _validate_task
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-import re # Added for regex in _validate_task
+from typing import Any
 
-from src.tools.workflows.shared.workflow_manager import WorkflowDefinition, TaskDefinition
+from src.tools.workflows.shared.workflow_manager import TaskDefinition, WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowLoadError(Exception):
     """Exception raised when workflow loading fails."""
+
     pass
 
 
@@ -66,9 +66,9 @@ class WorkflowLoader:
             workflows_directory: Base directory containing workflow files
         """
         self.workflows_directory = Path(workflows_directory)
-        self.loaded_workflows: Dict[str, WorkflowDefinition] = {}
-        self.load_errors: List[Dict[str, Any]] = []
-        self.load_warnings: List[Dict[str, Any]] = []
+        self.loaded_workflows: dict[str, WorkflowDefinition] = {}
+        self.load_errors: list[dict[str, Any]] = []
+        self.load_warnings: list[dict[str, Any]] = []
 
         # Available tools for validation
         self.available_tools = {
@@ -82,7 +82,7 @@ class WorkflowLoader:
             "get_splunk_health",
             "get_splunk_apps",
             "get_alert_status",
-            "report_specialist_progress"
+            "report_specialist_progress",
         }
 
         # Available context variables
@@ -92,10 +92,10 @@ class WorkflowLoader:
             "focus_index",
             "focus_host",
             "focus_sourcetype",
-            "complexity_level"
+            "complexity_level",
         }
 
-    def discover_workflows(self) -> List[Path]:
+    def discover_workflows(self) -> list[Path]:
         """
         Discover all workflow JSON files in the workflows directory.
 
@@ -103,31 +103,31 @@ class WorkflowLoader:
             List of Path objects pointing to workflow JSON files
         """
         workflow_files = []
-        
+
         # Directories to scan
         directories = [
             self.workflows_directory,  # contrib/workflows
-            Path("src/tools/workflows/core/")  # core workflows
+            Path("src/tools/workflows/core/"),  # core workflows
         ]
-        
+
         for dir_path in directories:
             if not dir_path.exists():
                 logger.warning(f"Workflows directory not found: {dir_path}")
                 continue
-                
+
             # Search for JSON files in all subdirectories
             for json_file in dir_path.rglob("*.json"):
                 # Skip hidden files and directories
-                if any(part.startswith('.') for part in json_file.parts):
+                if any(part.startswith(".") for part in json_file.parts):
                     continue
-                    
+
                 workflow_files.append(json_file)
                 logger.debug(f"Discovered workflow file: {json_file}")
-        
+
         logger.info(f"Discovered {len(workflow_files)} workflow files")
         return workflow_files
 
-    def load_all_workflows(self) -> Dict[str, WorkflowDefinition]:
+    def load_all_workflows(self) -> dict[str, WorkflowDefinition]:
         """
         Load all discovered workflows with validation and error handling.
 
@@ -135,7 +135,7 @@ class WorkflowLoader:
             Dictionary mapping workflow_id to WorkflowDefinition objects
         """
         logger.info("Starting workflow loading process...")
-        
+
         # Clear previous state
         self.loaded_workflows.clear()
         self.load_errors.clear()
@@ -156,11 +156,7 @@ class WorkflowLoader:
                     self.loaded_workflows[workflow.workflow_id] = workflow
                     logger.info(f"Successfully loaded workflow: {workflow.workflow_id}")
             except Exception as e:
-                error = {
-                    "file": str(workflow_file),
-                    "error": str(e),
-                    "type": type(e).__name__
-                }
+                error = {"file": str(workflow_file), "error": str(e), "type": type(e).__name__}
                 self.load_errors.append(error)
                 logger.error(f"Failed to load workflow from {workflow_file}: {e}")
 
@@ -169,7 +165,7 @@ class WorkflowLoader:
 
         return self.loaded_workflows
 
-    def load_workflow_file(self, file_path: Path) -> Optional[WorkflowDefinition]:
+    def load_workflow_file(self, file_path: Path) -> WorkflowDefinition | None:
         """
         Load a single workflow file with validation.
 
@@ -184,35 +180,31 @@ class WorkflowLoader:
         """
         try:
             # Read and parse JSON
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 workflow_data = json.load(f)
 
             # Validate structure
             validation_result = self._validate_workflow_structure(workflow_data, file_path)
-            
+
             if not validation_result["valid"]:
                 # Log errors but continue with warnings
                 for error in validation_result["errors"]:
-                    self.load_errors.append({
-                        "file": str(file_path),
-                        "error": error,
-                        "type": "ValidationError"
-                    })
-                
+                    self.load_errors.append(
+                        {"file": str(file_path), "error": error, "type": "ValidationError"}
+                    )
+
                 if validation_result["errors"]:
                     raise WorkflowLoadError(f"Validation failed: {validation_result['errors'][0]}")
 
             # Log warnings
             for warning in validation_result["warnings"]:
-                self.load_warnings.append({
-                    "file": str(file_path),
-                    "warning": warning,
-                    "type": "ValidationWarning"
-                })
+                self.load_warnings.append(
+                    {"file": str(file_path), "warning": warning, "type": "ValidationWarning"}
+                )
 
             # Convert to WorkflowDefinition
             workflow = self._create_workflow_definition(workflow_data, file_path)
-            
+
             logger.debug(f"Successfully loaded and validated workflow: {workflow.workflow_id}")
             return workflow
 
@@ -223,7 +215,9 @@ class WorkflowLoader:
         except Exception as e:
             raise WorkflowLoadError(f"Unexpected error loading workflow: {e}")
 
-    def _validate_workflow_structure(self, workflow_data: Dict[str, Any], file_path: Path) -> Dict[str, Any]:
+    def _validate_workflow_structure(
+        self, workflow_data: dict[str, Any], file_path: Path
+    ) -> dict[str, Any]:
         """
         Validate workflow structure and content.
 
@@ -249,7 +243,9 @@ class WorkflowLoader:
             if not isinstance(workflow_id, str):
                 errors.append("workflow_id must be a string")
             elif not workflow_id.replace("_", "").replace("-", "").isalnum():
-                errors.append("workflow_id must contain only alphanumeric characters, underscores, and hyphens")
+                errors.append(
+                    "workflow_id must contain only alphanumeric characters, underscores, and hyphens"
+                )
             elif len(workflow_id) > 50:
                 errors.append("workflow_id must be 50 characters or less")
 
@@ -292,13 +288,17 @@ class WorkflowLoader:
 
         # Performance limits
         if "tasks" in workflow_data and len(workflow_data["tasks"]) > 20:
-            warnings.append("Workflow has more than 20 tasks - consider splitting for better performance")
-        
+            warnings.append(
+                "Workflow has more than 20 tasks - consider splitting for better performance"
+            )
+
         # Add suggestions based on errors
         suggestions = []
         if errors:
             if any("Missing required field" in e for e in errors):
-                suggestions.append("Ensure all required fields are present: workflow_id, name, description, tasks")
+                suggestions.append(
+                    "Ensure all required fields are present: workflow_id, name, description, tasks"
+                )
             if any("Duplicate task_id" in e for e in errors):
                 suggestions.append("Make task_ids unique within the workflow")
 
@@ -306,10 +306,10 @@ class WorkflowLoader:
             "valid": len(errors) == 0,
             "errors": errors,
             "warnings": warnings,
-            "suggestions": suggestions
+            "suggestions": suggestions,
         }
 
-    def _validate_task(self, task: Any, index: int) -> Tuple[List[str], List[str]]:
+    def _validate_task(self, task: Any, index: int) -> tuple[list[str], list[str]]:
         """Validate individual task structure."""
         errors = []
         warnings = []
@@ -330,7 +330,9 @@ class WorkflowLoader:
             if not isinstance(task_id, str):
                 errors.append(f"Task {index}: task_id must be a string")
             elif not task_id.replace("_", "").replace("-", "").isalnum():
-                errors.append(f"Task {index}: task_id must contain only alphanumeric characters, underscores, and hyphens")
+                errors.append(
+                    f"Task {index}: task_id must contain only alphanumeric characters, underscores, and hyphens"
+                )
             elif len(task_id) > 50:
                 errors.append(f"Task {index}: task_id must be 50 characters or less")
 
@@ -345,24 +347,30 @@ class WorkflowLoader:
         # Instruction alignment checks
         if "instructions" in task and isinstance(task["instructions"], str):
             instructions = task["instructions"]
-            
+
             # Check for context vars
-            used_vars = set(re.findall(r'\{(\w+)\}', instructions))
+            used_vars = set(re.findall(r"\{(\w+)\}", instructions))
             required_context = set(task.get("context_requirements", []))
             missing_context = required_context - used_vars
             if missing_context:
-                warnings.append(f"Task {index}: Required context {missing_context} not used in instructions")
-            
+                warnings.append(
+                    f"Task {index}: Required context {missing_context} not used in instructions"
+                )
+
             # Check for tools
             required_tools = set(task.get("required_tools", []))
             mentioned_tools = {tool for tool in required_tools if tool in instructions}
             missing_tools = required_tools - mentioned_tools
             if missing_tools:
-                warnings.append(f"Task {index}: Required tools {missing_tools} not mentioned in instructions")
-        
+                warnings.append(
+                    f"Task {index}: Required tools {missing_tools} not mentioned in instructions"
+                )
+
         # Basic security scan
         dangerous_keywords = {"delete", "rm", "drop", "shutdown", "restart"}
-        if "instructions" in task and any(kw in task["instructions"].lower() for kw in dangerous_keywords):
+        if "instructions" in task and any(
+            kw in task["instructions"].lower() for kw in dangerous_keywords
+        ):
             warnings.append(f"Task {index}: Instructions contain potentially dangerous keywords")
 
         # Optional fields validation
@@ -383,7 +391,7 @@ class WorkflowLoader:
 
         return errors, warnings
 
-    def _validate_dependencies(self, tasks: List[Any]) -> Tuple[List[str], List[str]]:
+    def _validate_dependencies(self, tasks: list[Any]) -> tuple[list[str], list[str]]:
         """Validate task dependencies and detect circular dependencies."""
         errors = []
         warnings = []
@@ -398,7 +406,7 @@ class WorkflowLoader:
         for task in tasks:
             if not isinstance(task, dict):
                 continue
-            
+
             task_id = task.get("task_id", "unknown")
             dependencies = task.get("dependencies", [])
 
@@ -419,7 +427,7 @@ class WorkflowLoader:
 
         return errors, warnings
 
-    def _detect_circular_dependencies(self, tasks: List[Dict[str, Any]]) -> Optional[List[str]]:
+    def _detect_circular_dependencies(self, tasks: list[dict[str, Any]]) -> list[str] | None:
         """Detect circular dependencies using DFS."""
         # Build adjacency list
         graph = {}
@@ -434,10 +442,10 @@ class WorkflowLoader:
         rec_stack = set()
         path = []
 
-        def dfs(node: str) -> Optional[List[str]]:
+        def dfs(node: str) -> list[str] | None:
             if node not in graph:
                 return None
-            
+
             visited.add(node)
             rec_stack.add(node)
             path.append(node)
@@ -464,64 +472,77 @@ class WorkflowLoader:
 
         return None
 
-    def _validate_tools(self, workflow_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
-        from src.core.registry import tool_registry  # Import here to avoid circular imports
+    def _validate_tools(self, workflow_data: dict[str, Any]) -> tuple[list[str], list[str]]:
         from src.core.discovery import discover_tools  # Import here to avoid circular imports
-        
+        from src.core.registry import tool_registry  # Import here to avoid circular imports
+
         errors = []
         warnings = []
-        
+
         # Get dynamic list of available tools
         available_tools = {tool_metadata.name for tool_metadata in tool_registry.list_tools()}
-        
+
         # If no tools found, try to discover them
         if not available_tools:
             try:
                 discover_tools()
-                available_tools = {tool_metadata.name for tool_metadata in tool_registry.list_tools()}
+                available_tools = {
+                    tool_metadata.name for tool_metadata in tool_registry.list_tools()
+                }
             except Exception as e:
                 logger.warning(f"Failed to discover tools: {e}")
-        
+
         for i, task in enumerate(workflow_data.get("tasks", [])):
             required_tools = task.get("required_tools", [])
             for tool in required_tools:
                 if tool not in available_tools:
-                    errors.append(f"Task {i} ({task.get('task_id', 'unknown')}): unknown tool '{tool}'")
-    
+                    errors.append(
+                        f"Task {i} ({task.get('task_id', 'unknown')}): unknown tool '{tool}'"
+                    )
+
         return errors, warnings
 
-    def _validate_context(self, workflow_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+    def _validate_context(self, workflow_data: dict[str, Any]) -> tuple[list[str], list[str]]:
         """Validate context variable usage."""
         errors = []
         warnings = []
-        
+
         # Dynamic available context: base known vars + default_context keys
         base_context = {
-            "earliest_time", "latest_time", "focus_index", "focus_host",
-            "focus_sourcetype", "complexity_level", "problem_description"
+            "earliest_time",
+            "latest_time",
+            "focus_index",
+            "focus_host",
+            "focus_sourcetype",
+            "complexity_level",
+            "problem_description",
         }
         default_context = set(workflow_data.get("default_context", {}).keys())
         available_context = base_context.union(default_context)
-        
+
         for task in workflow_data.get("tasks", []):
             if not isinstance(task, dict):
                 continue
-                
+
             task_id = task.get("task_id", "unknown")
             context_requirements = task.get("context_requirements", [])
-            
+
             if not isinstance(context_requirements, list):
                 continue
-                
+
             for var in context_requirements:
                 if not isinstance(var, str):
                     errors.append(f"Task '{task_id}': context variable name must be a string")
                 elif var not in available_context:
-                    warnings.append(f"Task '{task_id}': context variable '{var}' may not be available")
-        
+                    warnings.append(
+                        f"Task '{task_id}': context variable '{var}' may not be available"
+                    )
+
         return errors, warnings
 
-    def _create_workflow_definition(self, workflow_data: Dict[str, Any], file_path: Path) -> WorkflowDefinition:
+    def _create_workflow_definition(
+        self, workflow_data: dict[str, Any], file_path: Path
+    ) -> WorkflowDefinition:
         """
         Create a WorkflowDefinition object from validated workflow data.
 
@@ -542,7 +563,7 @@ class WorkflowLoader:
                 instructions=task_data["instructions"],
                 required_tools=task_data.get("required_tools", []),
                 dependencies=task_data.get("dependencies", []),
-                context_requirements=task_data.get("context_requirements", [])
+                context_requirements=task_data.get("context_requirements", []),
             )
             tasks.append(task_def)
 
@@ -552,7 +573,7 @@ class WorkflowLoader:
             name=workflow_data["name"],
             description=workflow_data["description"],
             tasks=tasks,
-            default_context=workflow_data.get("default_context", {})
+            default_context=workflow_data.get("default_context", {}),
         )
 
         return workflow_def
@@ -563,7 +584,7 @@ class WorkflowLoader:
         total_errors = len(self.load_errors)
         total_warnings = len(self.load_warnings)
 
-        logger.info(f"Workflow loading summary:")
+        logger.info("Workflow loading summary:")
         logger.info(f"  Successfully loaded: {total_workflows} workflows")
         logger.info(f"  Errors encountered: {total_errors}")
         logger.info(f"  Warnings generated: {total_warnings}")
@@ -583,7 +604,7 @@ class WorkflowLoader:
             for warning in self.load_warnings:
                 logger.info(f"    - {warning['file']}: {warning['warning']}")
 
-    def get_loading_report(self) -> Dict[str, Any]:
+    def get_loading_report(self) -> dict[str, Any]:
         """
         Get a detailed report of the workflow loading process.
 
@@ -594,7 +615,7 @@ class WorkflowLoader:
             "summary": {
                 "total_loaded": len(self.loaded_workflows),
                 "total_errors": len(self.load_errors),
-                "total_warnings": len(self.load_warnings)
+                "total_warnings": len(self.load_warnings),
             },
             "loaded_workflows": [
                 {
@@ -602,12 +623,12 @@ class WorkflowLoader:
                     "name": workflow.name,
                     "description": workflow.description,
                     "task_count": len(workflow.tasks),
-                    "has_dependencies": any(task.dependencies for task in workflow.tasks)
+                    "has_dependencies": any(task.dependencies for task in workflow.tasks),
                 }
                 for workflow in self.loaded_workflows.values()
             ],
             "errors": self.load_errors,
-            "warnings": self.load_warnings
+            "warnings": self.load_warnings,
         }
 
     def register_workflows_with_manager(self, workflow_manager) -> int:
@@ -630,13 +651,18 @@ class WorkflowLoader:
             except Exception as e:
                 logger.error(f"Failed to register workflow '{workflow_id}' with manager: {e}")
 
-        logger.info(f"Registered {registered_count} user-contributed workflows with WorkflowManager")
+        logger.info(
+            f"Registered {registered_count} user-contributed workflows with WorkflowManager"
+        )
         return registered_count
 
 
 # Convenience functions for easy integration
 
-def load_user_workflows(workflows_directory: str = "contrib/workflows") -> Dict[str, WorkflowDefinition]:
+
+def load_user_workflows(
+    workflows_directory: str = "contrib/workflows",
+) -> dict[str, WorkflowDefinition]:
     """
     Convenience function to load all user-contributed workflows.
 
@@ -650,7 +676,9 @@ def load_user_workflows(workflows_directory: str = "contrib/workflows") -> Dict[
     return loader.load_all_workflows()
 
 
-def load_and_register_workflows(workflow_manager, workflows_directory: str = "contrib/workflows") -> int:
+def load_and_register_workflows(
+    workflow_manager, workflows_directory: str = "contrib/workflows"
+) -> int:
     """
     Convenience function to load and register workflows with a WorkflowManager.
 
@@ -666,7 +694,7 @@ def load_and_register_workflows(workflow_manager, workflows_directory: str = "co
     return loader.register_workflows_with_manager(workflow_manager)
 
 
-def validate_workflow_file(file_path: str) -> Dict[str, Any]:
+def validate_workflow_file(file_path: str) -> dict[str, Any]:
     """
     Convenience function to validate a single workflow file.
 
@@ -678,12 +706,8 @@ def validate_workflow_file(file_path: str) -> Dict[str, Any]:
     """
     loader = WorkflowLoader()
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             workflow_data = json.load(f)
         return loader._validate_workflow_structure(workflow_data, Path(file_path))
     except Exception as e:
-        return {
-            "valid": False,
-            "errors": [str(e)],
-            "warnings": []
-        } 
+        return {"valid": False, "errors": [str(e)], "warnings": []}

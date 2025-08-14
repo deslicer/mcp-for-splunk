@@ -34,39 +34,39 @@ class TroubleshootInputsPrompt(BasePrompt):
                 "name": "earliest_time",
                 "description": "Start time for analysis (ISO format or relative like -24h, -7d)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "latest_time",
                 "description": "End time for analysis (ISO format or relative like now, -1h)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_index",
                 "description": "Specific index to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_host",
                 "description": "Specific host to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "complexity_level",
                 "description": "Analysis complexity: simple, moderate, comprehensive (determines parallel execution strategy)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "include_performance_analysis",
                 "description": "Include detailed performance bottleneck analysis (impacts execution time)",
                 "required": False,
-                "type": "boolean"
-            }
-        ]
+                "type": "boolean",
+            },
+        ],
     )
 
     async def get_prompt(
@@ -77,7 +77,7 @@ class TroubleshootInputsPrompt(BasePrompt):
         focus_index: str | None = None,
         focus_host: str | None = None,
         complexity_level: str = "moderate",
-        include_performance_analysis: bool = True
+        include_performance_analysis: bool = True,
     ) -> dict[str, Any]:
         """
         Generate a comprehensive multi-agent troubleshooting workflow.
@@ -107,18 +107,10 @@ class TroubleshootInputsPrompt(BasePrompt):
             latest_time=latest_time,
             focus_context=focus_context,
             parallel_strategy=parallel_strategy,
-            include_performance_analysis=include_performance_analysis
+            include_performance_analysis=include_performance_analysis,
         )
 
-        return {
-            "role": "assistant",
-            "content": [
-                {
-                    "type": "text",
-                    "text": workflow_content
-                }
-            ]
-        }
+        return {"role": "assistant", "content": [{"type": "text", "text": workflow_content}]}
 
     def _validate_complexity_level(self, level: str) -> str:
         """Validate and normalize complexity level."""
@@ -132,29 +124,26 @@ class TroubleshootInputsPrompt(BasePrompt):
             "simple": {
                 "parallel_searches": 2,
                 "analysis_depth": "basic",
-                "validation_level": "standard"
+                "validation_level": "standard",
             },
             "moderate": {
                 "parallel_searches": 4,
                 "analysis_depth": "detailed",
-                "validation_level": "enhanced"
+                "validation_level": "enhanced",
             },
             "comprehensive": {
                 "parallel_searches": 6,
                 "analysis_depth": "deep",
-                "validation_level": "thorough"
-            }
+                "validation_level": "thorough",
+            },
         }
         return strategies.get(complexity_level, strategies["moderate"])
 
-    def _build_focus_context(self, focus_index: str | None, focus_host: str | None) -> dict[str, Any]:
+    def _build_focus_context(
+        self, focus_index: str | None, focus_host: str | None
+    ) -> dict[str, Any]:
         """Build focused analysis context."""
-        context = {
-            "filters": [],
-            "filter_string": "",
-            "description": "",
-            "scope": "general"
-        }
+        context = {"filters": [], "filter_string": "", "description": "", "scope": "general"}
 
         if focus_index:
             context["filters"].append(f'index="{focus_index}"')
@@ -176,7 +165,7 @@ class TroubleshootInputsPrompt(BasePrompt):
         latest_time: str,
         focus_context: dict[str, Any],
         parallel_strategy: dict[str, Any],
-        include_performance_analysis: bool
+        include_performance_analysis: bool,
     ) -> str:
         """Generate the complete workflow content."""
 
@@ -199,7 +188,7 @@ This workflow implements a **systematic multi-agent approach** to Splunk input t
 ### 🔄 OODA Loop Methodology
 Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
 - **Observe**: Gather metrics and data points
-- **Orient**: Contextualize findings within system knowledge  
+- **Orient**: Contextualize findings within system knowledge
 - **Decide**: Determine next diagnostic steps
 - **Act**: Execute targeted investigations
 
@@ -246,7 +235,7 @@ Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
 }}
 ```
 
-#### Step 1.2: Index-Level Distribution Analysis  
+#### Step 1.2: Index-Level Distribution Analysis
 **🎯 Objective**: Identify problematic indexes and distribution anomalies
 
 **🔧 Search Query**:
@@ -254,7 +243,7 @@ Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
 {{
   "method": "tools/call",
   "params": {{
-    "name": "run_splunk_search", 
+    "name": "run_splunk_search",
     "arguments": {{
       "query": "index=_internal source=*metrics.log* group=per_index_thruput{focus_context['filter_string']} | stats sum(kb) as total_kb sum(eps) as total_eps avg(kb) as avg_kb by series | eval efficiency_ratio=total_eps/total_kb | eval health_indicator=case(efficiency_ratio>50 AND efficiency_ratio>2, \"optimal\", efficiency_ratio>10 AND efficiency_ratio>1, \"good\", efficiency_ratio>1, \"suboptimal\", 1=1, \"critical\") | sort -total_kb | head 25",
       "earliest_time": "{earliest_time}",
@@ -434,7 +423,7 @@ Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
 - **Network Stability**: TCP connections stable for network inputs
 - **Error Rate**: <1% of total events showing parsing or ingestion errors
 
-### 🟡 Warning Conditions  
+### 🟡 Warning Conditions
 - **Moderate Throughput Drops**: 20-50% reduction from baseline
 - **Queue Buildup**: 1-10MB sustained queue sizes
 - **Partial Host Loss**: <30% of expected hosts reporting
@@ -461,7 +450,7 @@ Each analysis phase follows the **Observe-Orient-Decide-Act** loop:
 
 #### **Host-Level Problems** → Investigate:
 1. **Universal Forwarder connectivity** and configuration
-2. **Network path validation** between forwarders and indexers  
+2. **Network path validation** between forwarders and indexers
 3. **Host-specific resource constraints** (CPU, memory, disk)
 
 #### **Parse/Format Issues** → Examine:
@@ -508,7 +497,7 @@ Establish **baseline thresholds** from healthy system analysis:
 
 ### Documentation References:
 - **SPL Reference**: Use for advanced search optimization
-- **Splunk Health Resource**: Check system-wide status and recommendations  
+- **Splunk Health Resource**: Check system-wide status and recommendations
 - **Configuration Resources**: Review input and parsing settings
 - **Performance Tuning Guide**: Optimize system performance based on findings
 
@@ -520,14 +509,20 @@ Before concluding your analysis:
 - [ ] **Data Completeness**: Verified all expected time periods have metrics
 - [ ] **Cross-Validation**: Confirmed findings across multiple data sources
 - [ ] **Pattern Consistency**: Ensured observed patterns align with system knowledge
-- [ ] **Impact Assessment**: Quantified the scope and severity of identified issues  
+- [ ] **Impact Assessment**: Quantified the scope and severity of identified issues
 - [ ] **Action Plan**: Developed specific, actionable next steps
 - [ ] **Risk Evaluation**: Assessed potential impacts of recommended changes
 
 **Remember**: This multi-agent approach provides comprehensive analysis but requires careful interpretation. Always validate findings through multiple perspectives and cross-reference with additional system data sources.
 """
 
-    def _generate_performance_analysis_section(self, include_performance: bool, focus_context: dict[str, Any], earliest_time: str, latest_time: str) -> str:
+    def _generate_performance_analysis_section(
+        self,
+        include_performance: bool,
+        focus_context: dict[str, Any],
+        earliest_time: str,
+        latest_time: str,
+    ) -> str:
         """Generate performance analysis section when requested."""
         if not include_performance:
             return ""
@@ -573,7 +568,7 @@ Before concluding your analysis:
 }}
 ```
 
-### Step 2.5.3: Network Input Performance Analysis  
+### Step 2.5.3: Network Input Performance Analysis
 **🎯 Objective**: Assess TCP/UDP input performance and connection health
 
 **🔧 Search Query**:
@@ -607,57 +602,65 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
         name="troubleshoot_inputs_multi_agent",
         description="Advanced multi-agent workflow for Splunk input troubleshooting with parallel execution, validation, and research-based patterns",
         category="troubleshooting",
-        tags=["troubleshooting", "inputs", "metrics", "multi-agent", "parallel", "validation", "research"],
+        tags=[
+            "troubleshooting",
+            "inputs",
+            "metrics",
+            "multi-agent",
+            "parallel",
+            "validation",
+            "research",
+        ],
         arguments=[
             {
                 "name": "earliest_time",
                 "description": "Start time for analysis (ISO format or relative like -24h, -7d)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "latest_time",
                 "description": "End time for analysis (ISO format or relative like now, -1h)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_index",
                 "description": "Specific index to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_host",
                 "description": "Specific host to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "complexity_level",
                 "description": "Analysis complexity: simple, moderate, comprehensive, expert (determines parallel execution strategy)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "include_performance_analysis",
                 "description": "Include detailed performance bottleneck analysis (impacts execution time)",
                 "required": False,
-                "type": "boolean"
+                "type": "boolean",
             },
             {
                 "name": "enable_cross_validation",
                 "description": "Enable cross-validation of findings across multiple data sources",
                 "required": False,
-                "type": "boolean"
+                "type": "boolean",
             },
             {
                 "name": "analysis_mode",
                 "description": "Analysis mode: diagnostic, preventive, forensic (determines investigation approach)",
                 "required": False,
-                "type": "string"
-            }
-        ]
+                "type": "string",
+            },
+        ],
     )
 
     async def get_prompt(
@@ -670,7 +673,7 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
         complexity_level: str = "moderate",
         include_performance_analysis: bool = True,
         enable_cross_validation: bool = True,
-        analysis_mode: str = "diagnostic"
+        analysis_mode: str = "diagnostic",
     ) -> dict[str, Any]:
         """
         Generate an advanced multi-agent troubleshooting workflow.
@@ -711,18 +714,10 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
             execution_strategy=execution_strategy,
             include_performance_analysis=include_performance_analysis,
             enable_cross_validation=enable_cross_validation,
-            analysis_mode=analysis_mode
+            analysis_mode=analysis_mode,
         )
 
-        return {
-            "role": "assistant",
-            "content": [
-                {
-                    "type": "text",
-                    "text": workflow_content
-                }
-            ]
-        }
+        return {"role": "assistant", "content": [{"type": "text", "text": workflow_content}]}
 
     def _validate_complexity_level_enhanced(self, level: str) -> str:
         """Validate and normalize complexity level with enhanced options."""
@@ -736,19 +731,49 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
         normalized = mode.lower() if mode else "diagnostic"
         return normalized if normalized in valid_modes else "diagnostic"
 
-    def _determine_execution_strategy(self, complexity_level: str, analysis_mode: str) -> dict[str, Any]:
+    def _determine_execution_strategy(
+        self, complexity_level: str, analysis_mode: str
+    ) -> dict[str, Any]:
         """Determine advanced execution strategy based on complexity and mode."""
         base_strategies = {
-            "simple": {"parallel_searches": 3, "analysis_depth": "basic", "validation_level": "standard"},
-            "moderate": {"parallel_searches": 5, "analysis_depth": "detailed", "validation_level": "enhanced"},
-            "comprehensive": {"parallel_searches": 8, "analysis_depth": "deep", "validation_level": "thorough"},
-            "expert": {"parallel_searches": 12, "analysis_depth": "expert", "validation_level": "comprehensive"}
+            "simple": {
+                "parallel_searches": 3,
+                "analysis_depth": "basic",
+                "validation_level": "standard",
+            },
+            "moderate": {
+                "parallel_searches": 5,
+                "analysis_depth": "detailed",
+                "validation_level": "enhanced",
+            },
+            "comprehensive": {
+                "parallel_searches": 8,
+                "analysis_depth": "deep",
+                "validation_level": "thorough",
+            },
+            "expert": {
+                "parallel_searches": 12,
+                "analysis_depth": "expert",
+                "validation_level": "comprehensive",
+            },
         }
 
         mode_modifiers = {
-            "diagnostic": {"focus": "problem_identification", "timeline": "recent", "validation": "standard"},
-            "preventive": {"focus": "pattern_analysis", "timeline": "extended", "validation": "predictive"},
-            "forensic": {"focus": "root_cause_analysis", "timeline": "comprehensive", "validation": "exhaustive"}
+            "diagnostic": {
+                "focus": "problem_identification",
+                "timeline": "recent",
+                "validation": "standard",
+            },
+            "preventive": {
+                "focus": "pattern_analysis",
+                "timeline": "extended",
+                "validation": "predictive",
+            },
+            "forensic": {
+                "focus": "root_cause_analysis",
+                "timeline": "comprehensive",
+                "validation": "exhaustive",
+            },
         }
 
         strategy = base_strategies.get(complexity_level, base_strategies["moderate"]).copy()
@@ -756,7 +781,9 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
 
         return strategy
 
-    def _build_enhanced_focus_context(self, focus_index: str | None, focus_host: str | None) -> dict[str, Any]:
+    def _build_enhanced_focus_context(
+        self, focus_index: str | None, focus_host: str | None
+    ) -> dict[str, Any]:
         """Build enhanced focused analysis context with validation."""
         context = {
             "filters": [],
@@ -764,27 +791,29 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
             "description": "",
             "scope": "general",
             "security_considerations": [],
-            "validation_queries": []
+            "validation_queries": [],
         }
 
         # Enhanced input validation and sanitization
         if focus_index:
             # Basic validation for index names (alphanumeric, underscore, hyphen)
-            if focus_index.replace('_', '').replace('-', '').isalnum():
+            if focus_index.replace("_", "").replace("-", "").isalnum():
                 context["filters"].append(f'index="{focus_index}"')
                 context["scope"] = "index-focused"
                 context["security_considerations"].append("Index scope validation required")
 
         if focus_host:
             # Basic validation for hostnames
-            if focus_host.replace('.', '').replace('-', '').replace('_', '').isalnum():
+            if focus_host.replace(".", "").replace("-", "").replace("_", "").isalnum():
                 context["filters"].append(f'host="{focus_host}"')
                 context["scope"] = "host-focused" if not focus_index else "index-host-focused"
                 context["security_considerations"].append("Host scope validation required")
 
         if context["filters"]:
             context["filter_string"] = " AND " + " AND ".join(context["filters"])
-            context["description"] = f"\n**🎯 Enhanced Analysis Focus**: {', '.join(context['filters'])}"
+            context[
+                "description"
+            ] = f"\n**🎯 Enhanced Analysis Focus**: {', '.join(context['filters'])}"
 
         return context
 
@@ -796,13 +825,15 @@ class TroubleshootInputsPromptMultiAgent(BasePrompt):
         execution_strategy: dict[str, Any],
         include_performance_analysis: bool,
         enable_cross_validation: bool,
-        analysis_mode: str
+        analysis_mode: str,
     ) -> str:
         """Generate the complete advanced workflow content."""
 
         security_section = self._generate_security_section(focus_context)
         validation_section = self._generate_validation_section(enable_cross_validation)
-        mode_specific_section = self._generate_mode_specific_section(analysis_mode, earliest_time, latest_time, focus_context)
+        mode_specific_section = self._generate_mode_specific_section(
+            analysis_mode, earliest_time, latest_time, focus_context
+        )
 
         return f"""# 🔬 Advanced Multi-Agent Splunk Input Troubleshooting Workflow
 
@@ -1023,7 +1054,7 @@ Following proven multi-agent patterns:
 
 **Decision Matrix Framework**:
 1. **Confidence Scoring**: Each finding includes confidence metrics
-2. **Cross-Validation**: Findings validated across multiple data sources  
+2. **Cross-Validation**: Findings validated across multiple data sources
 3. **Risk Assessment**: Impact and probability scoring for each issue
 4. **Priority Ranking**: Evidence-based priority assignment
 
@@ -1099,7 +1130,7 @@ Each recommendation includes:
 
     def _generate_security_section(self, focus_context: dict[str, Any]) -> str:
         """Generate security considerations section."""
-        if not focus_context.get('security_considerations'):
+        if not focus_context.get("security_considerations"):
             return ""
 
         return f"""
@@ -1166,7 +1197,13 @@ Each recommendation includes:
 ```
 """
 
-    def _generate_mode_specific_section(self, analysis_mode: str, earliest_time: str, latest_time: str, focus_context: dict[str, Any]) -> str:
+    def _generate_mode_specific_section(
+        self,
+        analysis_mode: str,
+        earliest_time: str,
+        latest_time: str,
+        focus_context: dict[str, Any],
+    ) -> str:
         """Generate mode-specific analysis section."""
         if analysis_mode == "forensic":
             return f"""
@@ -1244,7 +1281,13 @@ Each recommendation includes:
 ```
 """
 
-    def _generate_advanced_performance_section(self, include_performance: bool, focus_context: dict[str, Any], earliest_time: str, latest_time: str) -> str:
+    def _generate_advanced_performance_section(
+        self,
+        include_performance: bool,
+        focus_context: dict[str, Any],
+        earliest_time: str,
+        latest_time: str,
+    ) -> str:
         """Generate advanced performance analysis section."""
         if not include_performance:
             return ""
@@ -1316,8 +1359,8 @@ Each recommendation includes:
 class TroubleshootPerformancePrompt(BasePrompt):
     """
     Specialized prompt for Splunk performance analysis and optimization.
-    
-    Focuses on system resource utilization, processing efficiency, and 
+
+    Focuses on system resource utilization, processing efficiency, and
     capacity planning based on metrics analysis.
     """
 
@@ -1331,21 +1374,21 @@ class TroubleshootPerformancePrompt(BasePrompt):
                 "name": "earliest_time",
                 "description": "Start time for performance analysis",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "latest_time",
                 "description": "End time for performance analysis",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "analysis_type",
                 "description": "Type of performance analysis: resource, throughput, capacity",
                 "required": False,
-                "type": "string"
-            }
-        ]
+                "type": "string",
+            },
+        ],
     )
 
     async def get_prompt(
@@ -1353,7 +1396,7 @@ class TroubleshootPerformancePrompt(BasePrompt):
         ctx: Context,
         earliest_time: str = "-7d",
         latest_time: str = "now",
-        analysis_type: str = "comprehensive"
+        analysis_type: str = "comprehensive",
     ) -> dict[str, Any]:
         """Generate performance analysis workflow."""
 
@@ -1384,7 +1427,7 @@ class TroubleshootPerformancePrompt(BasePrompt):
 ### Processing Pipeline Analysis
 ```json
 {{
-  "method": "tools/call", 
+  "method": "tools/call",
   "params": {{
     "name": "run_splunk_search",
     "arguments": {{
@@ -1406,10 +1449,7 @@ Based on your analysis results, this workflow provides:
 Refer to Splunk performance documentation for detailed optimization strategies.
 """
 
-        return {
-            "role": "assistant",
-            "content": [{"type": "text", "text": workflow_content}]
-        }
+        return {"role": "assistant", "content": [{"type": "text", "text": workflow_content}]}
 
 
 class TroubleshootIndexingPerformancePrompt(BasePrompt):
@@ -1422,7 +1462,7 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
     and comprehensive validation workflows.
 
     References:
-    - Splunk Enterprise troubleshooting documentation  
+    - Splunk Enterprise troubleshooting documentation
     - Platform instrumentation logs and searches
     - Indexing performance metrics and analysis
     """
@@ -1431,51 +1471,58 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
         name="troubleshoot_indexing_performance",
         description="Comprehensive workflow for identifying and triaging Splunk indexing performance issues using platform instrumentation and metrics analysis",
         category="troubleshooting",
-        tags=["troubleshooting", "indexing", "performance", "metrics", "platform-instrumentation", "multi-agent"],
+        tags=[
+            "troubleshooting",
+            "indexing",
+            "performance",
+            "metrics",
+            "platform-instrumentation",
+            "multi-agent",
+        ],
         arguments=[
             {
                 "name": "earliest_time",
                 "description": "Start time for analysis (ISO format or relative like -24h, -7d)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "latest_time",
                 "description": "End time for analysis (ISO format or relative like now, -1h)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_index",
                 "description": "Specific index to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "focus_host",
                 "description": "Specific indexer host to focus analysis on (optional for targeted investigation)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "analysis_depth",
                 "description": "Analysis depth: quick, standard, comprehensive (determines scope and execution time)",
                 "required": False,
-                "type": "string"
+                "type": "string",
             },
             {
                 "name": "include_delay_analysis",
                 "description": "Include indexing delay and latency analysis (may increase execution time)",
                 "required": False,
-                "type": "boolean"
+                "type": "boolean",
             },
             {
                 "name": "include_platform_instrumentation",
                 "description": "Include platform instrumentation logs and searches analysis",
                 "required": False,
-                "type": "boolean"
-            }
-        ]
+                "type": "boolean",
+            },
+        ],
     )
 
     async def get_prompt(
@@ -1487,7 +1534,7 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
         focus_host: str | None = None,
         analysis_depth: str = "standard",
         include_delay_analysis: bool = True,
-        include_platform_instrumentation: bool = True
+        include_platform_instrumentation: bool = True,
     ) -> dict[str, Any]:
         """
         Generate a comprehensive indexing performance troubleshooting workflow.
@@ -1519,18 +1566,10 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
             focus_context=focus_context,
             execution_strategy=execution_strategy,
             include_delay_analysis=include_delay_analysis,
-            include_platform_instrumentation=include_platform_instrumentation
+            include_platform_instrumentation=include_platform_instrumentation,
         )
 
-        return {
-            "role": "assistant",
-            "content": [
-                {
-                    "type": "text",
-                    "text": workflow_content
-                }
-            ]
-        }
+        return {"role": "assistant", "content": [{"type": "text", "text": workflow_content}]}
 
     def _validate_analysis_depth(self, depth: str) -> str:
         """Validate and normalize analysis depth."""
@@ -1544,29 +1583,38 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
             "quick": {
                 "parallel_searches": 3,
                 "analysis_phases": ["basic_metrics", "error_detection"],
-                "validation_level": "basic"
+                "validation_level": "basic",
             },
             "standard": {
                 "parallel_searches": 5,
-                "analysis_phases": ["basic_metrics", "error_detection", "performance_analysis", "correlation"],
-                "validation_level": "standard"
+                "analysis_phases": [
+                    "basic_metrics",
+                    "error_detection",
+                    "performance_analysis",
+                    "correlation",
+                ],
+                "validation_level": "standard",
             },
             "comprehensive": {
                 "parallel_searches": 8,
-                "analysis_phases": ["basic_metrics", "error_detection", "performance_analysis", "correlation", "deep_analysis", "prediction"],
-                "validation_level": "thorough"
-            }
+                "analysis_phases": [
+                    "basic_metrics",
+                    "error_detection",
+                    "performance_analysis",
+                    "correlation",
+                    "deep_analysis",
+                    "prediction",
+                ],
+                "validation_level": "thorough",
+            },
         }
         return strategies.get(analysis_depth, strategies["standard"])
 
-    def _build_focus_context(self, focus_index: str | None, focus_host: str | None) -> dict[str, Any]:
+    def _build_focus_context(
+        self, focus_index: str | None, focus_host: str | None
+    ) -> dict[str, Any]:
         """Build focused analysis context."""
-        context = {
-            "filters": [],
-            "search_filter": "",
-            "description": "",
-            "scope": "general"
-        }
+        context = {"filters": [], "search_filter": "", "description": "", "scope": "general"}
 
         if focus_index:
             context["filters"].append(f'index="{focus_index}"')
@@ -1589,7 +1637,7 @@ class TroubleshootIndexingPerformancePrompt(BasePrompt):
         focus_context: dict[str, Any],
         execution_strategy: dict[str, Any],
         include_delay_analysis: bool,
-        include_platform_instrumentation: bool
+        include_platform_instrumentation: bool,
     ) -> str:
         """Generate the complete indexing performance workflow content."""
 
@@ -1654,7 +1702,7 @@ Following **Observe-Orient-Decide-Act (OODA)** methodology:
 {{
   "method": "tools/call",
   "params": {{
-    "name": "list_sourcetypes", 
+    "name": "list_sourcetypes",
     "arguments": {{}}
   }}
 }}
@@ -1993,7 +2041,7 @@ Implement continuous monitoring using these key searches:
 ### Multi-Dimensional Correlation
 Use correlation analysis to identify relationships between:
 - **Search activity patterns** and indexing performance
-- **Infrastructure metrics** and throughput degradation  
+- **Infrastructure metrics** and throughput degradation
 - **Data source changes** and processing efficiency
 - **Time-based patterns** and resource utilization
 
@@ -2021,7 +2069,7 @@ For identified issues, implement systematic root cause analysis:
         include_delay: bool,
         focus_context: dict[str, Any],
         earliest_time: str,
-        latest_time: str
+        latest_time: str,
     ) -> str:
         """Generate indexing delay analysis section."""
         if not include_delay:

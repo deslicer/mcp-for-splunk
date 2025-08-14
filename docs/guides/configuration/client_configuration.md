@@ -34,7 +34,7 @@ Add this to your `mcp.json` or settings:
       "args": ["path/to/mcp-server-for-splunk/src/server.py"],
       "env": {
         "MCP_SPLUNK_HOST": "splunk-prod.company.com",
-        "MCP_SPLUNK_PORT": "8089", 
+        "MCP_SPLUNK_PORT": "8089",
         "MCP_SPLUNK_USERNAME": "prod_user",
         "MCP_SPLUNK_PASSWORD": "prod_password",
         "MCP_SPLUNK_SCHEME": "https",
@@ -42,11 +42,11 @@ Add this to your `mcp.json` or settings:
       }
     },
     "splunk-dev": {
-      "command": "python", 
+      "command": "python",
       "args": ["path/to/mcp-server-for-splunk/src/server.py"],
       "env": {
         "MCP_SPLUNK_HOST": "splunk-dev.company.com",
-        "MCP_SPLUNK_USERNAME": "dev_user", 
+        "MCP_SPLUNK_USERNAME": "dev_user",
         "MCP_SPLUNK_PASSWORD": "dev_password",
         "MCP_SPLUNK_VERIFY_SSL": "false"
       }
@@ -89,7 +89,7 @@ transport = StreamableHttpTransport(
     headers={
         "X-Splunk-Host": "splunk.company.com",
         "X-Splunk-Port": "8089",
-        "X-Splunk-Username": "your_username", 
+        "X-Splunk-Username": "your_username",
         "X-Splunk-Password": "your_password",
         "X-Splunk-Scheme": "https",
         "X-Splunk-Verify-SSL": "true"
@@ -106,7 +106,7 @@ client = Client(transport)
 MCP_SPLUNK_HOST=splunk.company.com
 MCP_SPLUNK_PORT=8089
 MCP_SPLUNK_USERNAME=your_username
-MCP_SPLUNK_PASSWORD=your_password  
+MCP_SPLUNK_PASSWORD=your_password
 MCP_SPLUNK_SCHEME=https
 MCP_SPLUNK_VERIFY_SSL=true
 ```
@@ -140,7 +140,7 @@ The server uses the following priority order (highest to lowest):
 
 1. **Tool-level parameters** - Splunk config passed directly to tool calls
 2. **HTTP headers** - X-Splunk-* headers (for HTTP transport)
-3. **MCP client environment** - MCP_SPLUNK_* variables (for stdio transport)  
+3. **MCP client environment** - MCP_SPLUNK_* variables (for stdio transport)
 4. **Server environment** - SPLUNK_* variables (server defaults)
 
 ## 📝 **Usage Examples**
@@ -159,7 +159,7 @@ The server uses the following priority order (highest to lowest):
       }
     },
     "splunk-staging": {
-      "command": "python", 
+      "command": "python",
       "args": ["./server.py"],
       "env": {
         "MCP_SPLUNK_HOST": "staging-splunk.company.com",
@@ -178,7 +178,7 @@ await client.call_tool("splunk-production_run_oneshot_search", {
     "query": "index=main | head 10"
 })
 
-# This automatically uses staging-splunk.company.com  
+# This automatically uses staging-splunk.company.com
 await client.call_tool("splunk-staging_run_oneshot_search", {
     "query": "index=test | head 10"
 })
@@ -194,7 +194,7 @@ customer_configs = {
         "MCP_SPLUNK_USERNAME": "api_user_123"
     },
     "customer_456": {
-        "MCP_SPLUNK_HOST": "customer456.splunk.cloud", 
+        "MCP_SPLUNK_HOST": "customer456.splunk.cloud",
         "MCP_SPLUNK_USERNAME": "api_user_456"
     }
 }
@@ -209,7 +209,7 @@ for customer_id, config in customer_configs.items():
             }
         }
     }
-    
+
     # Each client automatically connects to the right Splunk instance
     async with Client(client_config) as client:
         results = await client.call_tool("run_oneshot_search", {
@@ -220,7 +220,7 @@ for customer_id, config in customer_configs.items():
 ## 🔒 **Security Considerations**
 
 1. **Environment Variables** - Use MCP_SPLUNK_* variables for client-specific config
-2. **HTTP Headers** - X-Splunk-* headers are prefixed for security  
+2. **HTTP Headers** - X-Splunk-* headers are prefixed for security
 3. **Credential Management** - Consider using credential managers for sensitive values
 4. **SSL Verification** - Always use `MCP_SPLUNK_VERIFY_SSL=true` in production
 
@@ -244,6 +244,6 @@ for customer_id, config in customer_configs.items():
 - Look for "Found MCP client configuration" in server logs
 
 ### Issue: Wrong Splunk instance
-- Check the configuration priority order 
+- Check the configuration priority order
 - Verify that no tool-level parameters are overriding client config
-- Review server logs to see which config source is being used 
+- Review server logs to see which config source is being used

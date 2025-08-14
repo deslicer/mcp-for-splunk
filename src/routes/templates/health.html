@@ -14,51 +14,51 @@
             <h1>🔧 MCP Server Health</h1>
             <p>Live status and capabilities of your MCP Server for Splunk</p>
         </div>
-        
+
         <div class="card">
             <div class="status-grid">
                 <div class="status-item">
                     <h3>Server Name</h3>
                     <div class="value">{server_name}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Service Status</h3>
                     <div class="value status-{server_status_class}">{server_status}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Version</h3>
                     <div class="value">{server_version}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Transport</h3>
                     <div class="value">{server_transport}</div>
                 </div>
-                
+
                 <div class="status-item splunk-connection-item">
                     <h3>Splunk Connection</h3>
                     <div class="value status-{splunk_status_class}">{splunk_status}</div>
                     <div class="sub-value">Server: {splunk_server}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Tools</h3>
                     <div class="value">{tools_count}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Resources</h3>
                     <div class="value">{resources_count}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <h3>Prompts</h3>
                     <div class="value">{prompts_count}</div>
                 </div>
             </div>
-            
+
             <div class="capabilities">
                 <h3>Server Capabilities</h3>
                 <div class="capability-tags">
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card">
             <h3>🔍 MCP Inspector Connection</h3>
             <div class="info-box">
@@ -82,23 +82,23 @@
                     <li>Click "Connect" to start exploring {tools_count} tools, {resources_count} resources, and {prompts_count} prompts</li>
                 </ol>
             </div>
-            
+
             <div class="mcp-link">
                 <a href="/mcp/" target="_blank">🔗 Direct MCP Protocol Endpoint</a>
             </div>
-            
+
             <div class="timestamp">
                 Last updated: {timestamp}
             </div>
-            
+
             <div style="text-align: center;">
                 <a href="/" class="refresh-btn">🔄 Refresh Status</a>
             </div>
         </div>
     </div>
-    
+
     <div class="footer">
         <p>© 2025 {server_name} | Live Server Health Dashboard</p>
     </div>
 </body>
-</html> 
+</html>

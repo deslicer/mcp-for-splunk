@@ -259,9 +259,7 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> list[Callab
 
                     # Report completion with detailed stats
                     if hasattr(ctx, "info"):
-                        await ctx.info(
-                            f"✅ Search job {job_id} completed in {search_duration:.1f}s"
-                        )
+                        await ctx.info(f"✅ Search job {job_id} completed in {search_duration:.1f}s")
                         await ctx.info(
                             f"📊 Results: {result_count} events, scanned {scan_count:,} events, matched {event_count:,} events"
                         )

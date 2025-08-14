@@ -48,7 +48,7 @@ workflow_requirements.execute(
 ```
 contrib/workflows/
 ├── security/           # Security analysis workflows
-├── performance/        # Performance monitoring workflows  
+├── performance/        # Performance monitoring workflows
 ├── data_quality/       # Data quality assessment workflows
 ├── custom/            # Custom user workflows
 └── examples/          # Example workflows for learning
@@ -86,7 +86,7 @@ Use the `workflow_requirements` tool to get the complete list of available tools
 - `run_oneshot_search` - Quick lightweight searches
 - `run_saved_search` - Execute saved searches
 
-### Metadata Tools  
+### Metadata Tools
 - `list_splunk_indexes` - Get available indexes
 - `list_splunk_sources` - Get data sources
 - `list_splunk_sourcetypes` - Get sourcetypes
@@ -164,7 +164,7 @@ You are performing [TASK PURPOSE].
    ```bash
    # Use workflow requirements tool to get schema
    workflow_requirements.execute(format_type="schema")
-   
+
    # Validate your JSON against the schema
    ```
 
@@ -189,7 +189,7 @@ You are performing [TASK PURPOSE].
 ```json
 {
   "workflow_id": "simple_health_check",
-  "name": "Simple Health Check", 
+  "name": "Simple Health Check",
   "description": "Basic Splunk server health verification",
   "tasks": [
     {
@@ -213,7 +213,7 @@ You are performing [TASK PURPOSE].
   "description": "Comprehensive security threat analysis",
   "tasks": [
     {
-      "task_id": "auth_analysis", 
+      "task_id": "auth_analysis",
       "name": "Authentication Analysis",
       "description": "Analyze authentication patterns and failures",
       "instructions": "Search for authentication events in {focus_index} from {earliest_time} to {latest_time}. Look for failed logins and unusual patterns.",
@@ -276,4 +276,4 @@ You are performing [TASK PURPOSE].
 
 **Ready to create workflows?** 🚀
 
-Start with the `workflow_builder` tool to create your first custom troubleshooting workflow! 
+Start with the `workflow_builder` tool to create your first custom troubleshooting workflow!

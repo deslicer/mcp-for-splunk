@@ -414,7 +414,7 @@ function validateFilePath(path: string): boolean {
   if (path.includes('..') || path.includes('~')) {
     return false;
   }
-  
+
   // Ensure path is within allowed directories
   const allowedPaths = ['/tmp', '/workspace'];
   return allowedPaths.some(allowed => path.startsWith(allowed));
@@ -448,7 +448,7 @@ function validateFilePath(path: string): boolean {
 async function processLargeFile(filePath: string): Promise<CallToolResult> {
   const maxSize = 10 * 1024 * 1024; // 10MB limit
   const stats = await fs.promises.stat(filePath);
-  
+
   if (stats.size > maxSize) {
     return {
       isError: true,
@@ -460,7 +460,7 @@ async function processLargeFile(filePath: string): Promise<CallToolResult> {
       ]
     };
   }
-  
+
   // Process file...
 }
 ```
@@ -493,17 +493,17 @@ describe('WeatherTool', () => {
       location: 'New York',
       units: 'metric'
     });
-    
+
     expect(result.isError).toBe(false);
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe('text');
   });
-  
+
   it('should handle invalid location gracefully', async () => {
     const result = await weatherTool.call({
       location: ''
     });
-    
+
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('Invalid input');
   });
@@ -518,11 +518,11 @@ describe('WeatherTool Integration', () => {
   it('should handle API rate limiting', async () => {
     // Mock rate limit response
     mockApiResponse(429, { error: 'Rate limit exceeded' });
-    
+
     const result = await weatherTool.call({
       location: 'New York'
     });
-    
+
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('rate limit');
   });
@@ -598,13 +598,13 @@ Include comprehensive inline documentation:
 ```typescript
 /**
  * Retrieves weather forecast for a specified location
- * 
+ *
  * @param request - Tool call request containing location and options
  * @returns Promise<CallToolResult> Weather forecast data or error
- * 
+ *
  * @throws {Error} When location parameter is missing or invalid
  * @throws {Error} When external API is unavailable
- * 
+ *
  * @example
  * ```typescript
  * const result = await getWeatherForecast({
@@ -641,7 +641,7 @@ const server = new Server({
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "calculate") {
     const { operation, a, b } = request.params.arguments;
-    
+
     try {
       let result: number;
       switch (operation) {
@@ -663,7 +663,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         default:
           throw new Error(`Unsupported operation: ${operation}`);
       }
-      
+
       return {
         content: [
           {
@@ -689,7 +689,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
   }
-  
+
   throw new Error(`Unknown tool: ${request.params.name}`);
 });
 ```
@@ -720,7 +720,7 @@ By following these guidelines, your tools will be reliable, maintainable, and pr
 When clients provide their own Splunk configurations, you face these key challenges:
 
 1. **Dynamic Resource Discovery**: Resources vary per client's Splunk instance
-2. **Security Isolation**: Each client should only access their own data  
+2. **Security Isolation**: Each client should only access their own data
 3. **Connection Management**: Efficient handling of multiple Splunk connections
 4. **URI Scoping**: Resources must be scoped to specific clients
 
@@ -731,7 +731,7 @@ When clients provide their own Splunk configurations, you face these key challen
 # Client identity based on configuration hash
 @dataclass
 class ClientIdentity:
-    client_id: str          # Hash-based secure identifier  
+    client_id: str          # Hash-based secure identifier
     session_id: str         # MCP session ID
     config_hash: str        # Deterministic config hash
     splunk_host: str        # For auditing
@@ -749,14 +749,14 @@ def create_client_identity(client_config: Dict) -> str:
 # Multi-tenant resource URIs
 CLIENT_SCOPED_PATTERNS = {
     "config": "splunk://client/{client_id}/config/{config_file}",
-    "health": "splunk://client/{client_id}/health/{component}/status", 
+    "health": "splunk://client/{client_id}/health/{component}/status",
     "search": "splunk://client/{client_id}/search/results/{search_id}",
     "schema": "splunk://client/{client_id}/schema/index/{index_name}"
 }
 
 # Example client-scoped URIs
 "splunk://client/abc123def/config/indexes.conf"
-"splunk://client/abc123def/health/indexer/status"  
+"splunk://client/abc123def/health/indexer/status"
 "splunk://client/xyz789ghi/search/results/1234567890.12345"
 ```
 
@@ -767,21 +767,21 @@ Resources are discovered **per-client** based on their Splunk instance:
 ```python
 async def list_resources(ctx: Context) -> List[Dict[str, Any]]:
     """Dynamically discover client-specific resources"""
-    
+
     # 1. Extract client config from MCP context
     client_config = get_client_config_from_context(ctx)
     if not client_config:
         return []  # No resources without client config
-    
-    # 2. Create secure client identity  
+
+    # 2. Create secure client identity
     identity = create_client_identity(ctx, client_config)
-    
+
     # 3. Establish client-specific Splunk connection
     service = get_splunk_service(client_config)
-    
+
     # 4. Discover available resources for this client
     resources = []
-    
+
     # Configuration files available on this instance
     for config_file in ["indexes.conf", "props.conf", "transforms.conf"]:
         uri = f"splunk://client/{identity.client_id}/config/{config_file}"
@@ -791,7 +791,7 @@ async def list_resources(ctx: Context) -> List[Dict[str, Any]]:
             "description": f"Configuration for client {identity.client_id}",
             "mimeType": "text/plain"
         })
-    
+
     # Health monitoring for client's components
     for component in ["indexer", "search", "forwarder"]:
         uri = f"splunk://client/{identity.client_id}/health/{component}/status"
@@ -801,7 +801,7 @@ async def list_resources(ctx: Context) -> List[Dict[str, Any]]:
             "description": f"{component} health for client {identity.client_id}",
             "mimeType": "application/json"
         })
-    
+
     return resources
 ```
 
@@ -810,24 +810,24 @@ async def list_resources(ctx: Context) -> List[Dict[str, Any]]:
 ```python
 async def read_resource(ctx: Context, uri: str) -> str:
     """Read resource with client isolation"""
-    
+
     # 1. Extract client config and create identity
     client_config = get_client_config_from_context(ctx)
     identity = create_client_identity(ctx, client_config)
-    
+
     # 2. Validate URI belongs to this client
     if identity.client_id not in uri:
         raise SecurityError(f"Access denied: URI {uri} not owned by client")
-    
-    # 3. Get client-specific Splunk connection  
+
+    # 3. Get client-specific Splunk connection
     service = get_splunk_service(client_config)
-    
+
     # 4. Read resource content with client's connection
     content = await get_resource_content(service, uri, identity)
-    
+
     # 5. Audit log access
     logger.info(f"Resource accessed by {identity.client_id}: {uri}")
-    
+
     return content
 ```
 
@@ -839,20 +839,20 @@ class ClientConnectionManager:
     def __init__(self):
         self._connections: Dict[str, client.Service] = {}
         self._client_identities: Dict[str, ClientIdentity] = {}
-    
+
     async def get_client_connection(self, ctx: Context, client_config: Dict) -> Tuple[ClientIdentity, client.Service]:
         """Get or create client-specific connection"""
         identity = create_client_identity(ctx, client_config)
-        
+
         # Reuse existing connection if available
         if identity.client_id in self._connections:
             return identity, self._connections[identity.client_id]
-        
+
         # Create new connection
         service = get_splunk_service(client_config)
         self._connections[identity.client_id] = service
         self._client_identities[identity.client_id] = identity
-        
+
         return identity, service
 ```
 
@@ -861,16 +861,16 @@ class ClientConnectionManager:
 def validate_client_config(config: Dict[str, Any]):
     """Validate client config for security"""
     required_fields = ['splunk_host', 'splunk_username', 'splunk_password']
-    
+
     for field in required_fields:
         if not config.get(field):
             raise SecurityError(f"Required field missing: {field}")
-    
+
     # Prevent injection attacks
     host = config['splunk_host']
     if not isinstance(host, str) or not host.strip():
         raise SecurityError("Invalid host format")
-    
+
     # Port validation
     port = config.get('splunk_port', 8089)
     if not isinstance(port, int) or port < 1 or port > 65535:
@@ -888,28 +888,28 @@ class SplunkConfigResource(ClientScopedResource):
             name="Splunk Configuration",
             description="Client-specific configuration files"
         )
-    
+
     async def get_content(self, ctx: Context, uri: str) -> str:
         # Extract client config and validate access
         client_config = self._get_client_config_from_context(ctx)
         identity, service = await self.client_manager.get_client_connection(ctx, client_config)
-        
+
         # Validate URI ownership
         if identity.client_id not in uri:
             raise SecurityError("Access denied")
-        
+
         # Extract config file from URI
         config_file = uri.split("/")[-1]  # e.g., "indexes.conf"
-        
+
         # Read from client's Splunk instance
         config_name = config_file.split('.')[0]  # Remove .conf
         response = service.get(f"configs/conf-{config_name}")
         raw_config = response.body.read()
-        
+
         # Format with client context
         formatted = f"""
 # Splunk Configuration: {config_file}
-# Client: {identity.client_id}  
+# Client: {identity.client_id}
 # Host: {identity.splunk_host}
 # Retrieved: {datetime.utcnow().isoformat()}Z
 
@@ -924,16 +924,16 @@ class SplunkHealthResource(ClientScopedResource):
     def __init__(self):
         super().__init__(
             base_uri_template="splunk://client/{client_id}/health/{component}/status",
-            name="Health Status", 
+            name="Health Status",
             supports_subscriptions=True  # Real-time updates
         )
-    
+
     async def get_content(self, ctx: Context, uri: str) -> str:
         identity, service = await self._get_client_connection(ctx)
-        
-        # Extract component from URI  
+
+        # Extract component from URI
         component = uri.split("/")[-2]  # "indexer", "search", etc.
-        
+
         # Get health data from client's Splunk
         info = service.info()
         health_data = {
@@ -947,7 +947,7 @@ class SplunkHealthResource(ClientScopedResource):
             },
             "status": "healthy"
         }
-        
+
         return json.dumps(health_data, indent=2)
 ```
 
@@ -960,7 +960,7 @@ class SplunkHealthResource(ClientScopedResource):
   "capabilities": {
     "resources": {
       "subscribe": True,      # Individual resource subscriptions
-      "listChanged": True     # Resource list change notifications  
+      "listChanged": True     # Resource list change notifications
     }
   }
 }
@@ -972,7 +972,7 @@ async def list_resources_handler(ctx: Context):
     handler = get_resource_handler()
     return await handler.list_resources(ctx)
 
-@app.read_resource() 
+@app.read_resource()
 async def read_resource_handler(ctx: Context, uri: str):
     """Handle resources/read with security validation"""
     handler = get_resource_handler()
@@ -1000,7 +1000,7 @@ async def read_resource_handler(ctx: Context, uri: str):
 - **Connection limits**: Prevent resource exhaustion
 - **Timeout management**: Clean up idle connections
 
-### **3. Content Security** 
+### **3. Content Security**
 - **Data sanitization**: Remove sensitive info from resource content
 - **Size limits**: Prevent memory exhaustion from large configs
 - **Rate limiting**: Protect against abuse
@@ -1021,7 +1021,7 @@ SPLUNK_CONFIG_RESOURCES = [
     },
     {
         "uri": "splunk://client/{client_id}/config/props.conf",
-        "name": "Props Configuration", 
+        "name": "Props Configuration",
         "description": "Field extraction, parsing rules, and data preprocessing settings",
         "mimeType": "text/plain"
     },
@@ -1067,27 +1067,27 @@ SPLUNK_URI_PATTERNS = {
     # Configuration resources (client-scoped)
     "config": "splunk://client/{client_id}/config/{config_file}",
     "app_config": "splunk://client/{client_id}/apps/{app_name}/config/{config_file}",
-    
+
     # Knowledge objects (client-scoped)
     "datamodel": "splunk://client/{client_id}/knowledge/datamodel/{model_name}",
     "eventtypes": "splunk://client/{client_id}/knowledge/eventtypes/{eventtype_name}",
     "macros": "splunk://client/{client_id}/knowledge/macros/{macro_name}",
     "lookups": "splunk://client/{client_id}/knowledge/lookups/{lookup_name}",
-    
+
     # Search context (client-scoped)
     "search_results": "splunk://client/{client_id}/search/results/{search_id}",
     "saved_search": "splunk://client/{client_id}/search/saved/{search_name}/results",
     "recent_logs": "splunk://client/{client_id}/logs/recent/{index}?timeframe={timeframe}",
-    
+
     # Monitoring data (client-scoped)
     "health": "splunk://client/{client_id}/health/{component}/status",
     "performance": "splunk://client/{client_id}/monitoring/performance/{metric_type}",
     "license": "splunk://client/{client_id}/monitoring/license/usage",
-    
+
     # Dashboards (client-scoped)
     "dashboard_def": "splunk://client/{client_id}/dashboards/{dashboard_id}/definition",
     "dashboard_data": "splunk://client/{client_id}/dashboards/{dashboard_id}/data",
-    
+
     # Apps and deployments (client-scoped)
     "app_manifest": "splunk://client/{client_id}/apps/{app_name}/manifest",
     "deployment_status": "splunk://client/{client_id}/deployment/status/{deployment_id}"
@@ -1097,7 +1097,7 @@ SPLUNK_URI_PATTERNS = {
 ### Benefits of Multi-Tenant Splunk Resources
 
 1. **Complete Data Isolation**: Each client only accesses their own Splunk environment
-2. **Scalable Resource Management**: Connection pooling and efficient client handling  
+2. **Scalable Resource Management**: Connection pooling and efficient client handling
 3. **Secure Access Control**: Hash-based client identity with URI validation
 4. **Dynamic Resource Discovery**: Resources adapt to each client's Splunk capabilities
 5. **Real-time Awareness**: Subscription capabilities for live updates per client

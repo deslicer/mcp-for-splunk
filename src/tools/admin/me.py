@@ -67,7 +67,9 @@ class Me(BaseTool):
 
             # Get user object from users collection
             if current_username not in service.users:
-                return self.format_error_response(f"User '{current_username}' not found in users collection")
+                return self.format_error_response(
+                    f"User '{current_username}' not found in users collection"
+                )
 
             user = service.users[current_username]
 
@@ -112,4 +114,4 @@ class Me(BaseTool):
         except Exception as e:
             self.logger.error(f"Failed to get current user information: {str(e)}")
             await ctx.error(f"Failed to get current user information: {str(e)}")
-            return self.format_error_response(str(e)) 
+            return self.format_error_response(str(e))

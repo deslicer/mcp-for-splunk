@@ -865,7 +865,9 @@ class DeleteSavedSearch(BaseTool):
             search_app = saved_search.content.get("eai:acl", {}).get("app", "")
             search_owner = saved_search.content.get("eai:acl", {}).get("owner", "")
 
-            await ctx.info(f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})")
+            await ctx.info(
+                f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})"
+            )
 
             # Delete the saved search
             saved_search.delete()

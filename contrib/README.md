@@ -53,7 +53,7 @@ This interactive script will guide you through creating a properly structured to
 **✨ New: Splunk Search Template!**
 The generator now includes a specialized **Splunk Search Template** for creating custom Splunk search tools:
 - 🔍 **Custom SPL queries** with your specific search logic
-- ⚡ **Instant tool generation** based on your working `splunk_search.py` 
+- ⚡ **Instant tool generation** based on your working `splunk_search.py`
 - 🧪 **Comprehensive tests** with Splunk mocking
 - 🎯 **Perfect for**: Security tools, DevOps monitoring, Business analytics
 - 📝 **User-friendly input**: Choose single-line or multi-line input (type 'END' to finish)
@@ -80,15 +80,15 @@ from src.core.base import BaseTool, ToolMetadata
 
 class HelloWorldTool(BaseTool):
     """A simple example tool that demonstrates the contribution pattern."""
-    
+
     METADATA = ToolMetadata(
         name="hello_world",
         description="A simple hello world example tool",
-        category="examples", 
+        category="examples",
         tags=["example", "tutorial"],
         requires_connection=False
     )
-    
+
     async def execute(self, ctx: Context, name: str = "World") -> Dict[str, Any]:
         """Say hello to someone."""
         message = f"Hello, {name}!"
@@ -185,14 +185,14 @@ from src.core.base import BaseResource, ResourceMetadata
 
 class SampleDataResource(BaseResource):
     """Provides sample Splunk data for testing."""
-    
+
     METADATA = ResourceMetadata(
         uri="resource://sample_data",
         name="Sample Data",
         description="Sample Splunk search data for testing",
         category="examples"
     )
-    
+
     async def get_content(self, ctx: Context) -> str:
         return "Sample data content here..."
 ```
@@ -207,7 +207,7 @@ from src.core.base import BasePrompt, PromptMetadata
 
 class SearchAssistantPrompt(BasePrompt):
     """Helps users build Splunk search queries."""
-    
+
     METADATA = PromptMetadata(
         name="search_assistant",
         description="Assists with building Splunk search queries",
@@ -216,7 +216,7 @@ class SearchAssistantPrompt(BasePrompt):
             {"name": "data_type", "description": "Type of data to search for"}
         ]
     )
-    
+
     async def get_prompt(self, ctx: Context, data_type: str = "logs") -> Dict[str, Any]:
         template = f"Help me build a Splunk search query for {data_type}..."
         return {"template": template, "data_type": data_type}
@@ -230,4 +230,4 @@ class SearchAssistantPrompt(BasePrompt):
 - **Issues**: [GitHub Issues](link-to-issues)
 - **Discussions**: [GitHub Discussions](link-to-discussions)
 
-Thank you for contributing to the MCP Server for Splunk community! 
+Thank you for contributing to the MCP Server for Splunk community!

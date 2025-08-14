@@ -61,7 +61,7 @@ The most popular MCP client for interactive AI conversations.
       }
     },
     "splunk-dev": {
-      "command": "fastmcp", 
+      "command": "fastmcp",
       "args": ["run", "/opt/mcp-server-for-splunk/src/server.py"],
       "env": {
         "SPLUNK_HOST": "dev-splunk.company.com",
@@ -157,7 +157,7 @@ class SplunkAgent:
     def __init__(self, environment='prod'):
         # Environment-specific configuration
         config = self._get_config(environment)
-        
+
         self.mcp_toolset = MCPToolset(
             connection_params=StdioServerParameters(
                 command='fastmcp',
@@ -165,13 +165,13 @@ class SplunkAgent:
                 env=config['env']
             )
         )
-        
+
         self.agent = LlmAgent(
             model='gemini-2.0-flash',
             tools=[self.mcp_toolset],
             system_instruction=config['system_instruction']
         )
-    
+
     def _get_config(self, environment):
         configs = {
             'prod': {
@@ -247,7 +247,7 @@ class SplunkAIAssistant:
     def __init__(self):
         self.openai_client = openai.OpenAI()
         self.mcp_session = None
-    
+
     async def connect_mcp(self):
         """Connect to MCP server"""
         server_params = StdioServerParameters(
@@ -255,35 +255,35 @@ class SplunkAIAssistant:
             args=["run", "src/server.py"],
             env={
                 "SPLUNK_HOST": "your-splunk.company.com",
-                "SPLUNK_USERNAME": "your-username", 
+                "SPLUNK_USERNAME": "your-username",
                 "SPLUNK_PASSWORD": "your-password"
             }
         )
-        
+
         self.mcp_session = ClientSession(server_params)
         await self.mcp_session.initialize()
-    
+
     async def query_splunk(self, user_question: str):
         """Process user question with Splunk context"""
         if not self.mcp_session:
             await self.connect_mcp()
-        
+
         # Get available tools
         tools = await self.mcp_session.list_tools()
-        
+
         # Use OpenAI to understand intent and call appropriate tools
         response = self.openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
-                    "role": "system", 
+                    "role": "system",
                     "content": f"You have access to these Splunk tools: {[t.name for t in tools]}"
                 },
                 {"role": "user", "content": user_question}
             ],
             tools=[self._convert_mcp_tool(tool) for tool in tools]
         )
-        
+
         return response
 
 # Usage
@@ -305,14 +305,14 @@ class HTTPMCPClient:
     def __init__(self, base_url="http://localhost:8001"):
         self.base_url = base_url
         self.session = requests.Session()
-        
+
         # Set Splunk credentials via headers
         self.session.headers.update({
             'X-Splunk-Host': 'your-splunk.company.com',
             'X-Splunk-Username': 'your-username',
             'X-Splunk-Password': 'your-password'
         })
-    
+
     def call_tool(self, tool_name, arguments=None):
         """Call MCP tool via HTTP"""
         payload = {
@@ -324,15 +324,15 @@ class HTTPMCPClient:
                 "arguments": arguments or {}
             }
         }
-        
+
         response = self.session.post(
             f"{self.base_url}/mcp/",
             json=payload,
             headers={'Content-Type': 'application/json'}
         )
-        
+
         return response.json()
-    
+
     def list_tools(self):
         """Get available tools"""
         payload = {
@@ -340,12 +340,12 @@ class HTTPMCPClient:
             "id": 1,
             "method": "tools/list"
         }
-        
+
         response = self.session.post(
             f"{self.base_url}/mcp/",
             json=payload
         )
-        
+
         return response.json()
 
 # Usage
@@ -368,7 +368,7 @@ class SplunkMCPClient {
             'X-Splunk-Password': 'your-password'
         };
     }
-    
+
     async callTool(toolName, arguments = {}) {
         const payload = {
             jsonrpc: "2.0",
@@ -379,16 +379,16 @@ class SplunkMCPClient {
                 arguments: arguments
             }
         };
-        
+
         const response = await fetch(`${this.baseUrl}/mcp/`, {
             method: 'POST',
             headers: this.headers,
             body: JSON.stringify(payload)
         });
-        
+
         return await response.json();
     }
-    
+
     async searchSplunk(query, timeRange = '-24h') {
         return await this.callTool('run_oneshot_search', {
             query: query,
@@ -396,7 +396,7 @@ class SplunkMCPClient {
             max_results: 100
         });
     }
-    
+
     async getSplunkHealth() {
         return await this.callTool('get_splunk_health');
     }
@@ -408,11 +408,11 @@ const splunk = new SplunkMCPClient();
 // React component example
 function SplunkDashboard() {
     const [health, setHealth] = useState(null);
-    
+
     useEffect(() => {
         splunk.getSplunkHealth().then(setHealth);
     }, []);
-    
+
     return (
         <div>
             <h1>Splunk Health</h1>
@@ -461,7 +461,7 @@ services:
       - SPLUNK_PASSWORD=tenant1-pass
     ports:
       - "8001:8000"
-      
+
   mcp-server-tenant2:
     build: .
     environment:
@@ -570,4 +570,4 @@ tail -f logs/mcp-server.log
 
 ---
 
-**Need help?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) for community support! 
+**Need help?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) for community support!

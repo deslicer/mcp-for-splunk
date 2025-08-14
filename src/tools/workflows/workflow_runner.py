@@ -9,8 +9,7 @@ comprehensive parameter support and parallel execution.
 import logging
 import os
 import time
-from typing import Any, Optional
-import traceback
+from typing import Any
 
 from fastmcp import Context
 from openai import OpenAI
@@ -238,17 +237,23 @@ you need to run, or for building automated troubleshooting pipelines.""",
 
         # Create workflow manager for workflow definitions
         logger.info("Initializing workflow manager...")
-        self.workflow_manager = WorkflowManager(config=self.config, tool_registry=self.tool_registry)
+        self.workflow_manager = WorkflowManager(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Workflow manager initialized with available workflows")
 
         # Create parallel workflow executor
         logger.info("Initializing parallel workflow executor...")
-        self.parallel_executor = ParallelWorkflowExecutor(config=self.config, tool_registry=self.tool_registry)
+        self.parallel_executor = ParallelWorkflowExecutor(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Parallel workflow executor initialized")
 
         # Create summarization tool
         logger.info("Initializing summarization tool...")
-        self.summarization_tool = create_summarization_tool(config=self.config, tool_registry=self.tool_registry)
+        self.summarization_tool = create_summarization_tool(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Summarization tool initialized")
 
         logger.info("Workflow execution infrastructure setup complete")
@@ -257,12 +262,12 @@ you need to run, or for building automated troubleshooting pipelines.""",
         self,
         ctx: Context,
         workflow_id: str,
-        problem_description: Optional[str] = None,
+        problem_description: str | None = None,
         earliest_time: str = "-24h",
         latest_time: str = "now",
-        focus_index: Optional[str] = None,
-        focus_host: Optional[str] = None,
-        focus_sourcetype: Optional[str] = None,
+        focus_index: str | None = None,
+        focus_host: str | None = None,
+        focus_sourcetype: str | None = None,
         complexity_level: str = "moderate",
         enable_summarization: bool = True,
     ) -> dict[str, Any]:
@@ -290,13 +295,19 @@ you need to run, or for building automated troubleshooting pipelines.""",
         if not workflow_id or len(workflow_id.strip()) == 0:
             raise ValueError("workflow_id is required and cannot be empty")
         if complexity_level not in ["basic", "moderate", "advanced"]:
-            raise ValueError(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
+            raise ValueError(
+                f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}"
+            )
 
         # Normalize empty strings to None
-        problem_description = problem_description if problem_description and problem_description.strip() else None
+        problem_description = (
+            problem_description if problem_description and problem_description.strip() else None
+        )
         focus_index = focus_index if focus_index and focus_index.strip() else None
         focus_host = focus_host if focus_host and focus_host.strip() else None
-        focus_sourcetype = focus_sourcetype if focus_sourcetype and focus_sourcetype.strip() else None
+        focus_sourcetype = (
+            focus_sourcetype if focus_sourcetype and focus_sourcetype.strip() else None
+        )
 
         # Create comprehensive trace for the workflow execution
         trace_timestamp = int(time.time() * 1000)  # milliseconds for uniqueness
@@ -305,7 +316,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
         # Convert all metadata values to strings for OpenAI API compatibility
         trace_metadata = {
             "workflow_id": str(workflow_id),
-            "problem_description": str(problem_description)[:100] if problem_description else "none",
+            "problem_description": str(problem_description)[:100]
+            if problem_description
+            else "none",
             "time_range": f"{earliest_time} to {latest_time}",
             "focus_index": str(focus_index) if focus_index else "all",
             "focus_host": str(focus_host) if focus_host else "all",
@@ -320,17 +333,33 @@ you need to run, or for building automated troubleshooting pipelines.""",
             # Use OpenAI Agents SDK tracing with correct API
             with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_with_tracing(
-                    ctx, workflow_id, problem_description, earliest_time, latest_time,
-                    focus_index, focus_host, focus_sourcetype, complexity_level,
-                    enable_summarization, execution_start_time
+                    ctx,
+                    workflow_id,
+                    problem_description,
+                    earliest_time,
+                    latest_time,
+                    focus_index,
+                    focus_host,
+                    focus_sourcetype,
+                    complexity_level,
+                    enable_summarization,
+                    execution_start_time,
                 )
         else:
             # Fallback without tracing
             logger.warning("OpenAI Agents tracing not available, executing without traces")
             return await self._execute_with_tracing(
-                ctx, workflow_id, problem_description, earliest_time, latest_time,
-                focus_index, focus_host, focus_sourcetype, complexity_level,
-                enable_summarization, execution_start_time
+                ctx,
+                workflow_id,
+                problem_description,
+                earliest_time,
+                latest_time,
+                focus_index,
+                focus_host,
+                focus_sourcetype,
+                complexity_level,
+                enable_summarization,
+                execution_start_time,
             )
 
     async def _execute_with_tracing(
@@ -360,7 +389,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
             logger.info(f"Workflow ID: {workflow_id}")
             logger.info(f"Problem: {problem_description}")
             logger.info(f"Time range: {earliest_time} to {latest_time}")
-            logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}, Sourcetype: {focus_sourcetype}")
+            logger.info(
+                f"Focus - Index: {focus_index}, Host: {focus_host}, Sourcetype: {focus_sourcetype}"
+            )
             logger.info(f"Complexity level: {complexity_level}")
             logger.info(f"Summarization enabled: {enable_summarization}")
 
@@ -398,7 +429,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     "execution_time": time.time() - execution_start_time,
                 }
 
-            logger.info(f"Workflow found: {workflow_definition.name} with {len(workflow_definition.tasks)} tasks")
+            logger.info(
+                f"Workflow found: {workflow_definition.name} with {len(workflow_definition.tasks)} tasks"
+            )
             await ctx.info(f"✅ Workflow validated: {workflow_definition.name}")
 
             # Report progress: Workflow validated
@@ -443,7 +476,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span(f"workflow_execution_{workflow_id}"):
                     # Add retry for workflow execution
-                    from .shared.retry import retry_with_exponential_backoff, RetryConfig
+                    from .shared.retry import RetryConfig, retry_with_exponential_backoff
 
                     async def execute_workflow_func():
                         return await self.parallel_executor.execute_workflow(
@@ -453,9 +486,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     retry_config = RetryConfig(max_retries=3)
 
                     workflow_result = await retry_with_exponential_backoff(
-                        func=execute_workflow_func,
-                        retry_config=retry_config,
-                        ctx=ctx
+                        func=execute_workflow_func, retry_config=retry_config, ctx=ctx
                     )
             else:
                 workflow_result = await self.parallel_executor.execute_workflow(
@@ -489,7 +520,8 @@ you need to run, or for building automated troubleshooting pipelines.""",
                             summarization_result = await self.summarization_tool.execute(
                                 ctx=ctx,
                                 workflow_results=workflow_result.task_results,
-                                problem_description=problem_description or f"Workflow execution: {workflow_id}",
+                                problem_description=problem_description
+                                or f"Workflow execution: {workflow_id}",
                                 diagnostic_context=diagnostic_context,
                                 execution_metadata={"workflow_id": workflow_id},
                             )
@@ -497,7 +529,8 @@ you need to run, or for building automated troubleshooting pipelines.""",
                         summarization_result = await self.summarization_tool.execute(
                             ctx=ctx,
                             workflow_results=workflow_result.task_results,
-                            problem_description=problem_description or f"Workflow execution: {workflow_id}",
+                            problem_description=problem_description
+                            or f"Workflow execution: {workflow_id}",
                             diagnostic_context=diagnostic_context,
                             execution_metadata={"workflow_id": workflow_id},
                         )
@@ -540,23 +573,36 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     "overall_status": workflow_result.status,
                     "execution_method": "parallel_phases",
                     "total_tasks": len(workflow_result.task_results),
-                    "successful_tasks": len([r for r in workflow_result.task_results.values() if r.status in ["healthy", "warning"]]),
-                    "failed_tasks": len([r for r in workflow_result.task_results.values() if r.status == "error"]),
+                    "successful_tasks": len(
+                        [
+                            r
+                            for r in workflow_result.task_results.values()
+                            if r.status in ["healthy", "warning"]
+                        ]
+                    ),
+                    "failed_tasks": len(
+                        [r for r in workflow_result.task_results.values() if r.status == "error"]
+                    ),
                     "execution_phases": workflow_result.summary.get("execution_phases", 0),
                     "parallel_efficiency": workflow_result.summary.get("parallel_efficiency", 0.0),
                 },
-                "task_results": {task_id: {
-                    "status": result.status,
-                    "findings": result.findings,
-                    "recommendations": result.recommendations,
-                    "details": result.details
-                } for task_id, result in workflow_result.task_results.items()},
+                "task_results": {
+                    task_id: {
+                        "status": result.status,
+                        "findings": result.findings,
+                        "recommendations": result.recommendations,
+                        "details": result.details,
+                    }
+                    for task_id, result in workflow_result.task_results.items()
+                },
                 "workflow_summary": workflow_result.summary,
                 "summarization": {
                     "enabled": enable_summarization,
                     "execution_time": summarization_execution_time,
                     "result": summarization_result,
-                } if enable_summarization else {
+                }
+                if enable_summarization
+                else {
                     "enabled": False,
                     "reason": "Summarization disabled by user",
                 },
@@ -572,7 +618,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     "trace_available": OPENAI_AGENTS_AVAILABLE and trace is not None,
                     "workflow_traced": True,
                     "summarization_traced": enable_summarization,
-                    "trace_name": f"Workflow Runner: {workflow_id} {trace_timestamp}" if OPENAI_AGENTS_AVAILABLE and trace else None,
+                    "trace_name": f"Workflow Runner: {workflow_id} {trace_timestamp}"
+                    if OPENAI_AGENTS_AVAILABLE and trace
+                    else None,
                 },
             }
 
@@ -587,7 +635,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
             logger.info(f"Workflow execution time: {workflow_execution_time:.2f}s")
             logger.info(f"Summarization time: {summarization_execution_time:.2f}s")
             logger.info(f"Status: {workflow_result.status}")
-            logger.info(f"Successful tasks: {len([r for r in workflow_result.task_results.values() if r.status in ['healthy', 'warning']])}/{len(workflow_result.task_results)}")
+            logger.info(
+                f"Successful tasks: {len([r for r in workflow_result.task_results.values() if r.status in ['healthy', 'warning']])}/{len(workflow_result.task_results)}"
+            )
             logger.info(f"Summarization enabled: {enable_summarization}")
             logger.info("=" * 80)
 

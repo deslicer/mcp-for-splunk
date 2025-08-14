@@ -292,4 +292,4 @@ docker-compose up -d
 *References:*
 - [MCP Server for Splunk README](README.md)
 - [Model Context Protocol Introduction](https://modelcontextprotocol.io/introduction)
-- [Anthropic MCP Announcement](https://www.anthropic.com/news/model-context-protocol) 
+- [Anthropic MCP Announcement](https://www.anthropic.com/news/model-context-protocol)

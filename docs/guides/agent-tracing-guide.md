@@ -7,7 +7,7 @@ This guide explains how to use the comprehensive tracing capabilities built into
 The tracing system provides end-to-end visibility into:
 
 - **Top-level troubleshooting workflows** - Problem analysis, workflow selection, and orchestration
-- **Workflow execution** - Dependency analysis, parallel task execution phases, and result synthesis  
+- **Workflow execution** - Dependency analysis, parallel task execution phases, and result synthesis
 - **Individual micro-agents** - Task execution, instruction building, and tool calls
 - **Splunk tool interactions** - Search queries, health checks, and data retrieval operations
 
@@ -18,7 +18,7 @@ The tracing follows a hierarchical structure:
 ```
 🔍 Splunk Dynamic Troubleshooting Trace
 ├── 📋 Diagnostic Context Creation
-├── 🤖 Workflow Type Detection  
+├── 🤖 Workflow Type Detection
 ├── ⚡ Workflow Execution (Missing Data/Performance/Health Check)
 │   ├── 🔍 Workflow Definition Lookup
 │   ├── 📊 Dependency Analysis
@@ -28,7 +28,7 @@ The tracing follows a hierarchical structure:
 │   │   │   ├── 🔧 OpenAI Agent Execution
 │   │   │   └── 🔍 Splunk Search Tool Calls
 │   │   └── 🤖 Micro Agent Task: index_verification
-│   │       ├── 📝 Instruction Building  
+│   │       ├── 📝 Instruction Building
 │   │       ├── 🔧 OpenAI Agent Execution
 │   │       └── 🔍 Splunk Tool Calls
 │   ├── 🏃 Execution Phase 2 (dependent tasks)
@@ -126,7 +126,7 @@ Each troubleshooting session creates a main trace with:
 - **Attributes**: Time range, focus index/host, complexity level
 - **Purpose**: Track context setup and validation
 
-#### Workflow Type Detection  
+#### Workflow Type Detection
 - **Span**: `workflow_type_detection`
 - **Attributes**: Requested vs detected workflow, auto-detection usage
 - **Purpose**: Track problem analysis and routing decisions
@@ -144,7 +144,7 @@ Each troubleshooting session creates a main trace with:
 - **Purpose**: Track individual task execution within workflows
 
 #### Instruction Building
-- **Span**: `instruction_building`  
+- **Span**: `instruction_building`
 - **Attributes**: Dependencies, context injection, instruction length
 - **Purpose**: Track dynamic instruction generation
 
@@ -165,7 +165,7 @@ Example tool span attributes:
 {
     "tool_name": "run_splunk_search",
     "query": "index=_internal earliest=-24h | stats count",
-    "earliest_time": "-24h", 
+    "earliest_time": "-24h",
     "latest_time": "now",
     "agent_name": "DynamicAgent_license_verification",
     "task_id": "license_verification",
@@ -205,7 +205,7 @@ add_trace_processor(CustomTraceProcessor(
 The OpenAI Agents SDK supports many observability platforms:
 
 - **Weights & Biases**
-- **Arize Phoenix** 
+- **Arize Phoenix**
 - **MLflow**
 - **Braintrust**
 - **LangSmith**
@@ -370,4 +370,4 @@ The comprehensive tracing system provides unprecedented visibility into the dyna
 - **Performance insights** for workflow optimization
 - **Error tracking** for reliability improvements
 
-Use this tracing data to understand agent behavior, optimize performance, debug issues, and improve the overall troubleshooting experience. 
+Use this tracing data to understand agent behavior, optimize performance, debug issues, and improve the overall troubleshooting experience.

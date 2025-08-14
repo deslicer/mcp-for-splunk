@@ -40,14 +40,21 @@ def get_component_counts(mcp_server: FastMCP) -> tuple[int, int, int]:
 
     try:
         # Access the stored component loading results from the server instance
-        if hasattr(mcp_server, '_component_loading_results') and mcp_server._component_loading_results:
+        if (
+            hasattr(mcp_server, "_component_loading_results")
+            and mcp_server._component_loading_results
+        ):
             results = mcp_server._component_loading_results
-            tools_count = results.get('tools', 0)
-            resources_count = results.get('resources', 0)
-            prompts_count = results.get('prompts', 0)
-            logger.debug(f"Using stored component counts: tools={tools_count}, resources={resources_count}, prompts={prompts_count}")
+            tools_count = results.get("tools", 0)
+            resources_count = results.get("resources", 0)
+            prompts_count = results.get("prompts", 0)
+            logger.debug(
+                f"Using stored component counts: tools={tools_count}, resources={resources_count}, prompts={prompts_count}"
+            )
         else:
-            logger.debug("No stored component loading results found - server may still be starting up")
+            logger.debug(
+                "No stored component loading results found - server may still be starting up"
+            )
     except Exception as e:
         logger.debug(f"Could not get component counts: {e}")
 
@@ -62,19 +69,19 @@ def get_splunk_status(mcp_server: FastMCP) -> tuple[str, str, str]:
 
     try:
         # Access the stored Splunk context from the server instance
-        if hasattr(mcp_server, '_splunk_context') and mcp_server._splunk_context:
+        if hasattr(mcp_server, "_splunk_context") and mcp_server._splunk_context:
             splunk_ctx = mcp_server._splunk_context
             if splunk_ctx.is_connected and splunk_ctx.service:
                 # Try a simple API call to verify the connection works
                 try:
                     info = splunk_ctx.service.info
                     if info:
-                        splunk_version = info.get('version', 'unknown')
-                        splunk_server_name = info.get('serverName', 'Unknown')
+                        splunk_version = info.get("version", "unknown")
+                        splunk_server_name = info.get("serverName", "Unknown")
                         splunk_status = f"Connected (v{splunk_version})"
                     else:
                         splunk_status = "Unknown"
-                except:
+                except Exception:
                     splunk_status = "Unknown"
             else:
                 logger.debug("Splunk context shows disconnected state")
@@ -127,19 +134,23 @@ def setup_health_routes(mcp: FastMCP):
             # Determine status: running if we have components OR if Splunk is connected (server is operational)
             has_components = len(capabilities) > 0
             splunk_connected = "Connected" in splunk_status
-            server_info_data["status"] = "running" if (has_components or splunk_connected) else "degraded"
+            server_info_data["status"] = (
+                "running" if (has_components or splunk_connected) else "degraded"
+            )
 
             # Load template and CSS
             template_content = load_template("health.html")
             css_content = load_css("health.css")
 
             # Prepare template variables
-            server_status_class = "running" if server_info_data["status"] == "running" else "degraded"
+            server_status_class = (
+                "running" if server_info_data["status"] == "running" else "degraded"
+            )
             splunk_status_class = "connected" if "Connected" in splunk_status else "disconnected"
 
-            capabilities_tags = ''.join([
-                f'<span class="capability-tag">{cap}</span>' for cap in capabilities
-            ])
+            capabilities_tags = "".join(
+                [f'<span class="capability-tag">{cap}</span>' for cap in capabilities]
+            )
 
             # Render template with data
             html_content = render_template(
@@ -157,13 +168,15 @@ def setup_health_routes(mcp: FastMCP):
                 resources_count=resources_count,
                 prompts_count=prompts_count,
                 capabilities_tags=capabilities_tags,
-                timestamp=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+                timestamp=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
             )
 
             return HTMLResponse(content=html_content)
         except Exception as e:
             logger.error(f"Error in health_page: {e}")
-            return HTMLResponse(content=f"<h1>Server Health</h1><p>Error: {str(e)}</p>", status_code=500)
+            return HTMLResponse(
+                content=f"<h1>Server Health</h1><p>Error: {str(e)}</p>", status_code=500
+            )
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health_api(request: Request) -> JSONResponse:
@@ -203,7 +216,7 @@ def setup_health_routes(mcp: FastMCP):
             splunk_info = {}
             try:
                 # Access the stored Splunk context from the server instance
-                if hasattr(mcp, '_splunk_context') and mcp._splunk_context:
+                if hasattr(mcp, "_splunk_context") and mcp._splunk_context:
                     splunk_ctx = mcp._splunk_context
                     if splunk_ctx.is_connected and splunk_ctx.service:
                         splunk_status = "connected"
@@ -211,10 +224,10 @@ def setup_health_routes(mcp: FastMCP):
                             info = splunk_ctx.service.info
                             if info:
                                 splunk_info = {
-                                    "version": info.get('version', 'unknown'),
-                                    "serverName": info.get('serverName', 'Unknown')
+                                    "version": info.get("version", "unknown"),
+                                    "serverName": info.get("serverName", "Unknown"),
                                 }
-                        except:
+                        except Exception:
                             pass
                     else:
                         logger.debug("Splunk context shows disconnected state")
@@ -225,19 +238,21 @@ def setup_health_routes(mcp: FastMCP):
 
             # Update server status based on components and Splunk connection
             splunk_connected = splunk_status == "connected"
-            server_info_data["status"] = "running" if (has_components or splunk_connected) else "degraded"
+            server_info_data["status"] = (
+                "running" if (has_components or splunk_connected) else "degraded"
+            )
 
-            return JSONResponse({
-                "status": "healthy",
-                "server": server_info_data,
-                "splunk_connection": splunk_status,
-                "splunk_info": splunk_info,
-                "timestamp": time.time()
-            })
+            return JSONResponse(
+                {
+                    "status": "healthy",
+                    "server": server_info_data,
+                    "splunk_connection": splunk_status,
+                    "splunk_info": splunk_info,
+                    "timestamp": time.time(),
+                }
+            )
         except Exception as e:
             logger.error(f"Error in health_api: {e}")
-            return JSONResponse({
-                "status": "error",
-                "error": str(e),
-                "timestamp": time.time()
-            }, status_code=500)
+            return JSONResponse(
+                {"status": "error", "error": str(e), "timestamp": time.time()}, status_code=500
+            )

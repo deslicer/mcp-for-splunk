@@ -113,3 +113,6 @@ dmypy.json
 # MCP Inspector
 .inspector_pid
 logs/
+
+# Splunk License files
+lic/*.lic

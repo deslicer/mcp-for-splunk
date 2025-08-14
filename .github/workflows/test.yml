@@ -1,0 +1,87 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_integration:
+        description: "Run integration tests with Splunk container"
+        required: false
+        default: "false"
+
+jobs:
+  unit:
+    name: Unit and fast tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Run tests (fast path)
+        run: uv run pytest -q
+
+  integration:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true' }}
+    name: Integration tests with Splunk
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SPLUNK_HOST: localhost
+      SPLUNK_PORT: 8089
+      SPLUNK_USERNAME: admin
+      SPLUNK_PASSWORD: Chang3d!
+      SPLUNK_VERIFY_SSL: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Start Splunk container
+        run: docker compose -f docker-compose-splunk.yml up -d
+
+      - name: Wait for Splunk readiness
+        shell: bash
+        run: |
+          echo "Waiting for Splunk to become ready..."
+          for i in {1..60}; do
+            if curl -k -s -u admin:Chang3d! https://localhost:8089/services/server/info > /dev/null; then
+              echo "Splunk is ready";
+              exit 0;
+            fi
+            echo "Attempt $i/60: Splunk not ready yet";
+            sleep 5;
+          done
+          echo "Timeout waiting for Splunk" >&2
+          docker compose -f docker-compose-splunk.yml logs --no-log-prefix | tail -n 200 || true
+          exit 1
+
+      - name: Run full test suite
+        run: uv run pytest -q
+
+      - name: Teardown Splunk
+        if: always()
+        run: docker compose -f docker-compose-splunk.yml down -v --remove-orphans

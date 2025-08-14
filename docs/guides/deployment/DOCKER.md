@@ -199,4 +199,4 @@ The MCP server can communicate with Splunk using the hostname `so1` or `localhos
 - Use volume mounts for Splunk data persistence in production
 - Monitor container resource usage with `docker stats`
 - Adjust Traefik load balancer settings for high traffic
-- Consider using multiple MCP server replicas for scaling 
+- Consider using multiple MCP server replicas for scaling

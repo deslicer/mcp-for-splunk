@@ -7,6 +7,9 @@ automatic discovery and loading of tools, resources, and prompts.
 
 import argparse
 import asyncio
+
+# Add import for Starlette responses at the top
+import logging
 import os
 import sys
 import time
@@ -19,15 +22,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-# Add import for Starlette responses at the top
-
+from src.core.base import SplunkContext
+from src.core.loader import ComponentLoader
+from src.core.shared_context import http_headers_context
+from src.routes import setup_health_routes
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-import logging
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
@@ -43,11 +46,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
-
-# Import the core framework components
-from src.core.base import SplunkContext
-from src.core.loader import ComponentLoader
-from src.core.shared_context import http_headers_context
 
 
 # ASGI Middleware to capture HTTP headers
@@ -223,7 +221,7 @@ async def ensure_components_loaded(server: FastMCP) -> None:
 
     try:
         # Check if components are already loaded
-        if hasattr(server, '_component_loading_results') and server._component_loading_results:
+        if hasattr(server, "_component_loading_results") and server._component_loading_results:
             logger.info("Components already loaded, skipping startup loading")
             return
 
@@ -270,8 +268,6 @@ async def ensure_components_loaded(server: FastMCP) -> None:
 mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
 
 # Import and setup health routes
-from src.routes import setup_health_routes
-
 setup_health_routes(mcp)
 
 
@@ -410,7 +406,7 @@ def hot_reload() -> dict:
             "status": "success",
             "message": "Components hot reloaded successfully",
             "results": results,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
@@ -441,13 +437,12 @@ async def main():
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-
     # Create the FastMCP ASGI app with proper middleware and transport
     # Use the recommended Streamable HTTP transport (default for 'http')
     app = mcp.http_app(
         path="/mcp/",
         middleware=custom_middleware,
-        transport="http"  # Explicitly use Streamable HTTP transport
+        transport="http",  # Explicitly use Streamable HTTP transport
     )
 
     # Use uvicorn to run the server

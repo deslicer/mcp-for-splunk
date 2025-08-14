@@ -211,7 +211,7 @@ Your MCP server now includes:
 
 #### 📊 Data Discovery
 - `list_indexes` - Available data indexes
-- `list_sources` - Data source discovery  
+- `list_sources` - Data source discovery
 - `list_sourcetypes` - Data format types
 
 #### 👥 Administration
@@ -320,4 +320,4 @@ curl -k -u username:password https://your-splunk:8089/services/server/info
 
 ---
 
-**🎉 Congratulations!** You now have AI agents that can natively interact with Splunk data. What will you build next? 
+**🎉 Congratulations!** You now have AI agents that can natively interact with Splunk data. What will you build next?

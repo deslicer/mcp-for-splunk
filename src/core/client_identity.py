@@ -138,7 +138,7 @@ class ClientConnectionManager:
 
         except Exception as e:
             self.logger.error(f"Failed to create connection for client {identity.client_id}: {e}")
-            raise ConnectionError(f"Failed to connect to Splunk: {str(e)}")
+            raise ConnectionError(f"Failed to connect to Splunk: {str(e)}") from e
 
     async def _get_default_connection(
         self, ctx: Context, client_config: dict[str, Any]
@@ -242,7 +242,9 @@ class ClientConnectionManager:
 
         except Exception as e:
             self.logger.error(f"Failed to access lifespan connection: {e}")
-            raise ConnectionError(f"No Splunk connection available (default or lifespan): {str(e)}")
+            raise ConnectionError(
+                f"No Splunk connection available (default or lifespan): {str(e)}"
+            ) from e
 
     def _validate_default_config(self, config: dict[str, Any]):
         """
@@ -299,7 +301,7 @@ class ClientConnectionManager:
                 session_id = headers.get("x-session-id") or headers.get("authorization", "")[:16]
                 if session_id:
                     return session_id
-        except:
+        except Exception:
             pass
 
         # Fallback to generated ID
@@ -351,7 +353,7 @@ class ClientConnectionManager:
         if client_id in self._connections:
             try:
                 self._connections[client_id].logout()
-            except:
+            except Exception:
                 pass
             del self._connections[client_id]
 

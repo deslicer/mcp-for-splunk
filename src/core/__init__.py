@@ -11,7 +11,7 @@ from .utils import format_error_response, validate_splunk_connection
 
 # Import other modules with error handling for development
 try:
-    from .context import SplunkContext as SplunkContextAlt
+    from .context import SplunkContext as SplunkContextAlt  # noqa: F401
     from .discovery import discover_prompts, discover_resources, discover_tools
     from .loader import ComponentLoader, PromptLoader, ResourceLoader, ToolLoader
     from .registry import (

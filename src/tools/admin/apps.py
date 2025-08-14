@@ -40,7 +40,7 @@ class ListApps(BaseTool):
                 - status: "success" or "error"
                 - count: Total number of apps found
                 - apps: List of app objects with detailed metadata
-                
+
         Typical enterprise environments contain 50+ apps including:
         - Core Splunk apps (search, launcher, dmc)
         - Technology Add-ons (Splunk_TA_*)

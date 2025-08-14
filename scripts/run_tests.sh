@@ -150,14 +150,14 @@ echo ""
 
 if eval $PYTEST_CMD; then
     print_success "All core tests passed! ✅"
-    
+
     if [ "$COVERAGE" = true ]; then
         echo ""
         print_status "Coverage report generated:"
         print_status "  • Terminal: See above"
         print_status "  • HTML: htmlcov/index.html"
     fi
-    
+
     echo ""
     print_status "Note: Integration tests (test_mcp_server.py) excluded by default"
     print_status "      To run integration tests: uv run pytest tests/test_mcp_server.py"
@@ -176,4 +176,4 @@ echo "  • Transport tests:       ./scripts/run_tests.sh -k transport"
 echo "  • Splunk tools tests:    ./scripts/run_tests.sh -k splunk_tools"
 echo "  • Integration tests:     uv run pytest tests/test_mcp_server.py"
 echo "  • Quick tests:           ./scripts/run_tests.sh --no-coverage -x"
-echo "  • Specific test:         ./scripts/run_tests.sh -k test_health_check" 
+echo "  • Specific test:         ./scripts/run_tests.sh -k test_health_check"

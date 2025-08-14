@@ -5,7 +5,7 @@ that integrate with the MCP Server for Splunk dynamic troubleshooting system.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from fastmcp import Context
 
@@ -75,11 +75,7 @@ for creating custom diagnostic workflows.""",
         super().__init__(name, self.METADATA.description)
         self.category = category
 
-    async def execute(
-        self,
-        ctx: Context,
-        format_type: str = "detailed"
-    ) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, format_type: str = "detailed") -> dict[str, Any]:
         """
         Get workflow requirements and schema information.
 
@@ -102,7 +98,7 @@ for creating custom diagnostic workflows.""",
         except Exception as e:
             return self.format_error_response(f"Failed to get workflow requirements: {str(e)}")
 
-    def _get_detailed_requirements(self) -> Dict[str, Any]:
+    def _get_detailed_requirements(self) -> dict[str, Any]:
         """Get detailed workflow requirements with explanations."""
         return {
             "workflow_requirements": {
@@ -110,7 +106,7 @@ for creating custom diagnostic workflows.""",
                     "purpose": "Custom workflows enable community members to create specialized troubleshooting procedures",
                     "integration": "Workflows integrate with dynamic_troubleshoot_agent via workflow_type parameter",
                     "execution": "Tasks execute in parallel where possible, with dependency-aware orchestration",
-                    "format": "JSON files following WorkflowDefinition schema"
+                    "format": "JSON files following WorkflowDefinition schema",
                 },
                 "workflow_definition_schema": {
                     "required_fields": {
@@ -121,9 +117,13 @@ for creating custom diagnostic workflows.""",
                                 "Must be unique across all workflows",
                                 "Use snake_case format (e.g., 'custom_security_analysis')",
                                 "No spaces or special characters except underscores",
-                                "Maximum 50 characters"
+                                "Maximum 50 characters",
                             ],
-                            "examples": ["custom_security_analysis", "data_quality_check", "performance_deep_dive"]
+                            "examples": [
+                                "custom_security_analysis",
+                                "data_quality_check",
+                                "performance_deep_dive",
+                            ],
                         },
                         "name": {
                             "type": "string",
@@ -131,9 +131,13 @@ for creating custom diagnostic workflows.""",
                             "constraints": [
                                 "Clear, descriptive name for the workflow",
                                 "Maximum 100 characters",
-                                "Should indicate the workflow's purpose"
+                                "Should indicate the workflow's purpose",
                             ],
-                            "examples": ["Custom Security Analysis", "Data Quality Assessment", "Performance Deep Dive"]
+                            "examples": [
+                                "Custom Security Analysis",
+                                "Data Quality Assessment",
+                                "Performance Deep Dive",
+                            ],
                         },
                         "description": {
                             "type": "string",
@@ -142,8 +146,8 @@ for creating custom diagnostic workflows.""",
                                 "Comprehensive description of what the workflow does",
                                 "Include when to use this workflow",
                                 "Mention key features and capabilities",
-                                "Maximum 1000 characters"
-                            ]
+                                "Maximum 1000 characters",
+                            ],
                         },
                         "tasks": {
                             "type": "array",
@@ -151,9 +155,9 @@ for creating custom diagnostic workflows.""",
                             "constraints": [
                                 "Must contain at least one task",
                                 "Maximum 20 tasks per workflow",
-                                "Each task must have unique task_id within workflow"
-                            ]
-                        }
+                                "Each task must have unique task_id within workflow",
+                            ],
+                        },
                     },
                     "optional_fields": {
                         "default_context": {
@@ -163,10 +167,10 @@ for creating custom diagnostic workflows.""",
                             "examples": {
                                 "security_threshold": "medium",
                                 "compliance_framework": "SOX",
-                                "notification_email": "admin@company.com"
-                            }
+                                "notification_email": "admin@company.com",
+                            },
                         }
-                    }
+                    },
                 },
                 "task_definition_schema": {
                     "required_fields": {
@@ -177,18 +181,18 @@ for creating custom diagnostic workflows.""",
                                 "Must be unique within the workflow",
                                 "Use snake_case format",
                                 "Maximum 50 characters",
-                                "Should indicate the task's purpose"
-                            ]
+                                "Should indicate the task's purpose",
+                            ],
                         },
                         "name": {
                             "type": "string",
                             "description": "Human-readable task name",
-                            "constraints": ["Clear, descriptive name", "Maximum 100 characters"]
+                            "constraints": ["Clear, descriptive name", "Maximum 100 characters"],
                         },
                         "description": {
                             "type": "string",
                             "description": "Brief description of what the task accomplishes",
-                            "constraints": ["Concise task description", "Maximum 200 characters"]
+                            "constraints": ["Concise task description", "Maximum 200 characters"],
                         },
                         "instructions": {
                             "type": "string",
@@ -198,16 +202,16 @@ for creating custom diagnostic workflows.""",
                                 "Include specific Splunk searches when possible",
                                 "Provide analysis steps and expected outcomes",
                                 "Use context variables (e.g., {focus_index})",
-                                "Maximum 5000 characters"
-                            ]
-                        }
+                                "Maximum 5000 characters",
+                            ],
+                        },
                     },
                     "optional_fields": {
                         "required_tools": {
                             "type": "array",
                             "description": "List of Splunk tools required for this task",
                             "default": "[]",
-                            "available_tools": self._get_available_tools()
+                            "available_tools": self._get_available_tools(),
                         },
                         "dependencies": {
                             "type": "array",
@@ -216,16 +220,16 @@ for creating custom diagnostic workflows.""",
                             "constraints": [
                                 "Task IDs must exist in the same workflow",
                                 "No circular dependencies allowed",
-                                "Use only when data from other tasks is needed"
-                            ]
+                                "Use only when data from other tasks is needed",
+                            ],
                         },
                         "context_requirements": {
                             "type": "array",
                             "description": "List of context variables required for this task",
                             "default": "[]",
-                            "available_variables": self._get_context_variables()
-                        }
-                    }
+                            "available_variables": self._get_context_variables(),
+                        },
+                    },
                 },
                 "validation_rules": {
                     "workflow_level": [
@@ -233,15 +237,15 @@ for creating custom diagnostic workflows.""",
                         "Must contain at least one task",
                         "All task dependencies must reference valid task_ids",
                         "No circular dependencies allowed",
-                        "All required_tools must be available in the system"
+                        "All required_tools must be available in the system",
                     ],
                     "task_level": [
                         "task_id must be unique within the workflow",
                         "instructions must be comprehensive and actionable",
                         "required_tools must exist in the tool registry",
                         "dependencies must reference valid task_ids in same workflow",
-                        "context_requirements must reference valid context variables"
-                    ]
+                        "context_requirements must reference valid context variables",
+                    ],
                 },
                 "integration_information": {
                     "workflow_execution": {
@@ -253,11 +257,11 @@ for creating custom diagnostic workflows.""",
                                 "earliest_time": "-24h",
                                 "latest_time": "now",
                                 "focus_index": "optional-index",
-                                "complexity_level": "moderate"
-                            }
+                                "complexity_level": "moderate",
+                            },
                         },
                         "discovery": "Use list_workflows tool to list available workflow IDs (core and contrib)",
-                        "loading": "WorkflowManager loads JSON workflows from src/tools/workflows/core/ and contrib/workflows/ during startup"
+                        "loading": "WorkflowManager loads JSON workflows from src/tools/workflows/core/ and contrib/workflows/ during startup",
                     },
                     "execution_flow": [
                         "1. User calls list_workflows to discover workflow IDs (optional)",
@@ -265,34 +269,34 @@ for creating custom diagnostic workflows.""",
                         "3. WorkflowManager returns the registered WorkflowDefinition",
                         "4. ParallelWorkflowExecutor executes tasks in dependency-aware phases",
                         "5. Optional summarization synthesizes results",
-                        "6. Structured results are returned to the caller"
-                    ]
+                        "6. Structured results are returned to the caller",
+                    ],
                 },
                 "best_practices": {
                     "workflow_design": [
                         "Focus on single problem domain per workflow",
                         "Design tasks for parallel execution when possible",
                         "Use clear, descriptive names and descriptions",
-                        "Include comprehensive documentation"
+                        "Include comprehensive documentation",
                     ],
                     "task_instructions": [
                         "Be specific and actionable in instructions",
                         "Include exact Splunk searches when possible",
                         "Use context variables for flexibility",
                         "Provide clear analysis steps and expected outcomes",
-                        "Include error handling guidance"
+                        "Include error handling guidance",
                     ],
                     "performance": [
                         "Use efficient Splunk searches",
                         "Include appropriate time ranges",
                         "Consider system resource impact",
-                        "Set reasonable task timeouts"
-                    ]
-                }
+                        "Set reasonable task timeouts",
+                    ],
+                },
             }
         }
 
-    def _get_schema_definitions(self) -> Dict[str, Any]:
+    def _get_schema_definitions(self) -> dict[str, Any]:
         """Get JSON schema definitions for validation."""
         return {
             "schemas": {
@@ -304,32 +308,32 @@ for creating custom diagnostic workflows.""",
                             "type": "string",
                             "pattern": "^[a-z0-9_]+$",
                             "maxLength": 50,
-                            "description": "Unique identifier using snake_case"
+                            "description": "Unique identifier using snake_case",
                         },
                         "name": {
                             "type": "string",
                             "maxLength": 100,
-                            "description": "Human-readable workflow name"
+                            "description": "Human-readable workflow name",
                         },
                         "description": {
                             "type": "string",
                             "maxLength": 1000,
-                            "description": "Detailed description of workflow purpose"
+                            "description": "Detailed description of workflow purpose",
                         },
                         "tasks": {
                             "type": "array",
                             "minItems": 1,
                             "maxItems": 20,
                             "items": {"$ref": "#/definitions/TaskDefinition"},
-                            "description": "List of tasks in the workflow"
+                            "description": "List of tasks in the workflow",
                         },
                         "default_context": {
                             "type": "object",
                             "description": "Default context variables",
-                            "additionalProperties": True
-                        }
+                            "additionalProperties": True,
+                        },
                     },
-                    "additionalProperties": False
+                    "additionalProperties": False,
                 },
                 "TaskDefinition": {
                     "type": "object",
@@ -339,58 +343,58 @@ for creating custom diagnostic workflows.""",
                             "type": "string",
                             "pattern": "^[a-z0-9_]+$",
                             "maxLength": 50,
-                            "description": "Unique task identifier using snake_case"
+                            "description": "Unique task identifier using snake_case",
                         },
                         "name": {
                             "type": "string",
                             "maxLength": 100,
-                            "description": "Human-readable task name"
+                            "description": "Human-readable task name",
                         },
                         "description": {
                             "type": "string",
                             "maxLength": 200,
-                            "description": "Brief task description"
+                            "description": "Brief task description",
                         },
                         "instructions": {
                             "type": "string",
                             "maxLength": 5000,
-                            "description": "Detailed AI agent instructions"
+                            "description": "Detailed AI agent instructions",
                         },
                         "required_tools": {
                             "type": "array",
                             "items": {
                                 "type": "string",
-                                "enum": list(self._get_available_tools().keys())
+                                "enum": list(self._get_available_tools().keys()),
                             },
                             "default": [],
-                            "description": "List of required Splunk tools"
+                            "description": "List of required Splunk tools",
                         },
                         "dependencies": {
                             "type": "array",
                             "items": {"type": "string"},
                             "default": [],
-                            "description": "List of task IDs this task depends on"
+                            "description": "List of task IDs this task depends on",
                         },
                         "context_requirements": {
                             "type": "array",
                             "items": {
                                 "type": "string",
-                                "enum": list(self._get_context_variables().keys())
+                                "enum": list(self._get_context_variables().keys()),
                             },
                             "default": [],
-                            "description": "List of required context variables"
-                        }
+                            "description": "List of required context variables",
+                        },
                     },
-                    "additionalProperties": False
-                }
+                    "additionalProperties": False,
+                },
             },
             "validation_example": {
-                "command": "python -c \"import jsonschema; jsonschema.validate(workflow_data, schema)\"",
-                "note": "Use the schemas above to validate your workflow JSON files"
-            }
+                "command": 'python -c "import jsonschema; jsonschema.validate(workflow_data, schema)"',
+                "note": "Use the schemas above to validate your workflow JSON files",
+            },
         }
 
-    def _get_quick_reference(self) -> Dict[str, Any]:
+    def _get_quick_reference(self) -> dict[str, Any]:
         """Get quick reference for experienced contributors."""
         return {
             "quick_reference": {
@@ -406,22 +410,22 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Detailed instructions for AI agent...",
                             "required_tools": ["run_splunk_search"],
                             "dependencies": [],
-                            "context_requirements": ["focus_index"]
+                            "context_requirements": ["focus_index"],
                         }
-                    ]
+                    ],
                 },
                 "available_tools": list(self._get_available_tools().keys()),
                 "context_variables": list(self._get_context_variables().keys()),
                 "validation_options": {
                     "jsonschema": "python -c \"import json,sys,jsonschema; d=json.load(open('your_workflow.json')); s=<SCHEMA_JSON>; jsonschema.validate(d,s)\"",
-                    "loader_validation": "python -c \"from contrib.workflows.loaders import WorkflowLoader; import sys; l=WorkflowLoader('contrib/workflows'); l.validate_workflow_file('your_workflow.json'); print('valid')\""
+                    "loader_validation": "python -c \"from contrib.workflows.loaders import WorkflowLoader; import sys; l=WorkflowLoader('contrib/workflows'); l.validate_workflow_file('your_workflow.json'); print('valid')\"",
                 },
                 "integration_usage": "Use 'list_workflows' to discover IDs, then run via 'workflow_runner' with workflow_id",
-                "file_location": "contrib/workflows/<category>/your_workflow.json"
+                "file_location": "contrib/workflows/<category>/your_workflow.json",
             }
         }
 
-    def _get_examples(self) -> Dict[str, Any]:
+    def _get_examples(self) -> dict[str, Any]:
         """Get example workflow structures and patterns."""
         return {
             "examples": {
@@ -437,9 +441,9 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Execute health check using get_splunk_health tool. Analyze server status, licensing, and basic connectivity. Report any issues found and provide recommendations for resolution.",
                             "required_tools": ["get_splunk_health"],
                             "dependencies": [],
-                            "context_requirements": []
+                            "context_requirements": [],
                         }
-                    ]
+                    ],
                 },
                 "parallel_tasks_example": {
                     "workflow_id": "parallel_security_analysis",
@@ -453,7 +457,7 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Search for authentication events in {focus_index} from {earliest_time} to {latest_time}. Look for failed logins, unusual patterns, and potential brute force attacks.",
                             "required_tools": ["run_splunk_search"],
                             "dependencies": [],
-                            "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+                            "context_requirements": ["focus_index", "earliest_time", "latest_time"],
                         },
                         {
                             "task_id": "privilege_analysis",
@@ -462,9 +466,9 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Search for privilege escalation indicators in {focus_index}. Look for sudo usage, admin access, and unusual privilege changes.",
                             "required_tools": ["run_splunk_search"],
                             "dependencies": [],
-                            "context_requirements": ["focus_index", "earliest_time", "latest_time"]
-                        }
-                    ]
+                            "context_requirements": ["focus_index", "earliest_time", "latest_time"],
+                        },
+                    ],
                 },
                 "dependent_tasks_example": {
                     "workflow_id": "sequential_analysis",
@@ -476,9 +480,13 @@ for creating custom diagnostic workflows.""",
                             "name": "Initial System Scan",
                             "description": "Perform initial system assessment",
                             "instructions": "Execute comprehensive system scan using available tools. Gather basic system information, user details, and index availability.",
-                            "required_tools": ["get_splunk_health", "get_current_user_info", "list_splunk_indexes"],
+                            "required_tools": [
+                                "get_splunk_health",
+                                "get_current_user_info",
+                                "list_splunk_indexes",
+                            ],
                             "dependencies": [],
-                            "context_requirements": []
+                            "context_requirements": [],
                         },
                         {
                             "task_id": "detailed_analysis",
@@ -487,9 +495,9 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Based on results from {initial_scan}, perform detailed analysis of identified issues. Focus on areas flagged in the initial scan.",
                             "required_tools": ["run_splunk_search"],
                             "dependencies": ["initial_scan"],
-                            "context_requirements": ["focus_index", "earliest_time", "latest_time"]
-                        }
-                    ]
+                            "context_requirements": ["focus_index", "earliest_time", "latest_time"],
+                        },
+                    ],
                 },
                 "custom_context_example": {
                     "workflow_id": "compliance_check",
@@ -503,86 +511,78 @@ for creating custom diagnostic workflows.""",
                             "instructions": "Check SOX compliance for framework {compliance_framework} with risk threshold {risk_threshold}. Verify audit trails, access controls, and data integrity.",
                             "required_tools": ["run_splunk_search"],
                             "dependencies": [],
-                            "context_requirements": ["focus_index"]
+                            "context_requirements": ["focus_index"],
                         }
                     ],
                     "default_context": {
                         "compliance_framework": "SOX",
                         "risk_threshold": "medium",
-                        "audit_retention_days": 2555
-                    }
-                }
+                        "audit_retention_days": 2555,
+                    },
+                },
             }
         }
 
-    def _get_available_tools(self) -> Dict[str, str]:
+    def _get_available_tools(self) -> dict[str, str]:
         """Get available Splunk tools with descriptions - dynamically from tool_registry."""
         try:
             # Try to get tools dynamically from tool_registry
             from src.core.registry import tool_registry
+
             available_tools = {}
-            
+
             for tool_metadata in tool_registry.list_tools():
                 # tool_metadata is a ToolMetadata object
                 available_tools[tool_metadata.name] = tool_metadata.description
-            
+
             if available_tools:
                 return available_tools
         except (ImportError, AttributeError, Exception) as e:
             # Fallback to static list if dynamic discovery fails
             logger.warning("Dynamic tool discovery failed: %s. Using static tool list.", e)
-        
+
         # Fallback static list (keep for backward compatibility)
         return {
             # Search Tools
             "run_splunk_search": "Execute comprehensive Splunk searches with full SPL support",
             "run_oneshot_search": "Execute quick, lightweight searches for immediate results",
             "run_saved_search": "Execute predefined saved searches",
-            
             # Metadata Tools
             "list_splunk_indexes": "Get list of available Splunk indexes",
             "list_splunk_sources": "Get list of available data sources",
             "list_splunk_sourcetypes": "Get list of available sourcetypes",
-            
             # Administrative Tools
             "get_current_user_info": "Get current user information, roles, and permissions",
             "get_splunk_health": "Check Splunk server health and connectivity status",
             "get_splunk_apps": "List installed Splunk applications",
             "get_configurations": "Retrieve Splunk configuration settings from .conf files",
-            
             # Alert Tools
             "get_alert_status": "Check alert configurations and firing status",
             "list_triggered_alerts": "List all triggered alerts in Splunk",
-            
             # KV Store Tools
             "get_kvstore_data": "Retrieve data from KV Store collections",
             "list_kvstore_collections": "List all KV Store collections",
             "create_kvstore_collection": "Create new KV Store collections",
-            
             # Workflow Tools
             "list_workflows": "List available workflows",
             "workflow_runner": "Execute workflows by ID",
-            
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
         }
 
-    def _get_context_variables(self) -> Dict[str, str]:
+    def _get_context_variables(self) -> dict[str, str]:
         """Get available context variables with descriptions."""
         return {
             # Time Context
             "earliest_time": "Start time for analysis (e.g., '-24h', '2023-01-01T00:00:00')",
             "latest_time": "End time for analysis (e.g., 'now', '-1h', '@d')",
-            
             # Focus Context
             "focus_index": "Target index for focused analysis",
             "focus_host": "Target host for focused analysis",
             "focus_sourcetype": "Target sourcetype for focused analysis",
-            
             # User Context
             "complexity_level": "Analysis depth level ('basic', 'moderate', 'advanced')",
-            
             # Custom Context
             # Note: Custom context variables can be defined in default_context
-            "custom_variable_example": "Example of custom context variable from default_context"
+            "custom_variable_example": "Example of custom context variable from default_context",
         }

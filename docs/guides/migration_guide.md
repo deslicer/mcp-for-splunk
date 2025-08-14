@@ -87,7 +87,7 @@ npx @modelcontextprotocol/inspector python src/server.py
 
 # Check all 12 tools are available:
 # - get_splunk_health
-# - list_indexes  
+# - list_indexes
 # - run_oneshot_search
 # - run_splunk_search
 # - list_sourcetypes
@@ -221,7 +221,7 @@ class MyCustomTool(BaseTool):
         description="My custom tool",
         category="examples"
     )
-    
+
     async def execute(self, ctx: Context, query: str) -> dict:
         # Tool implementation
         return self.format_success_response({"result": "data"})
@@ -426,4 +426,4 @@ After successful migration:
 3. **Contribute Back** - Share your tools with the community
 4. **Stay Updated** - Follow project updates for new features
 
-The modular architecture provides a solid foundation for future growth while maintaining the reliability and functionality you depend on. 
+The modular architecture provides a solid foundation for future growth while maintaining the reliability and functionality you depend on.

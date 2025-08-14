@@ -349,7 +349,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # Check Python installation
 python --version
 
-# Check uv installation  
+# Check uv installation
 uv --version
 
 # Check Docker
@@ -395,4 +395,4 @@ Once all prerequisites are installed:
 - **[Docker Guide](../DOCKER.md)** - Container deployment details
 - **[Testing Guide](../TESTING.md)** - Testing and validation
 - **[Architecture Guide](../ARCHITECTURE.md)** - Technical architecture overview
-- **[Contributing Guide](../contrib/README.md)** - How to contribute to the project 
+- **[Contributing Guide](../contrib/README.md)** - How to contribute to the project

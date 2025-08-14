@@ -7,11 +7,12 @@ and contrib (user-contributed) sources in the MCP Server for Splunk.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+
 from .shared.config import AgentConfig
 from .shared.tools import SplunkToolRegistry
 from .shared.workflow_manager import WorkflowManager
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Import contrib workflow loader
 try:
     from contrib.workflows.loaders import WorkflowLoader
+
     CONTRIB_LOADER_AVAILABLE = True
 except ImportError:
     CONTRIB_LOADER_AVAILABLE = False
@@ -122,8 +124,8 @@ workflow for specific Splunk problems.""",
         format_type: str = "detailed",
         include_core: bool = True,
         include_contrib: bool = True,
-        category_filter: Optional[str] = None
-    ) -> Dict[str, Any]:
+        category_filter: str | None = None,
+    ) -> dict[str, Any]:
         """
         List available workflows from core and contrib sources.
 
@@ -148,7 +150,7 @@ workflow for specific Splunk problems.""",
                 "core_count": 0,
                 "contrib_count": 0,
                 "errors": [],
-                "warnings": []
+                "warnings": [],
             }
 
             # Discover core workflows
@@ -187,7 +189,9 @@ workflow for specific Splunk problems.""",
                     if workflow_info.get("category", "").lower() == category_filter.lower():
                         filtered_workflows[workflow_id] = workflow_info
                 all_workflows = filtered_workflows
-                await ctx.info(f"🎯 Filtered to {len(all_workflows)} workflows in category '{category_filter}'")
+                await ctx.info(
+                    f"🎯 Filtered to {len(all_workflows)} workflows in category '{category_filter}'"
+                )
 
             await ctx.info(f"📊 Total workflows discovered: {len(all_workflows)}")
 
@@ -210,7 +214,7 @@ workflow for specific Splunk problems.""",
             await ctx.error(error_msg)
             return self.format_error_response(error_msg)
 
-    async def _discover_core_workflows(self, ctx: Context) -> Dict[str, Any]:
+    async def _discover_core_workflows(self, ctx: Context) -> dict[str, Any]:
         """Discover core (built-in) workflows from WorkflowManager."""
         try:
             # Create a minimal config for WorkflowManager
@@ -218,7 +222,7 @@ workflow for specific Splunk problems.""",
                 api_key="dummy",  # Not needed for workflow discovery
                 model="gpt-4o",
                 temperature=0.7,
-                max_tokens=4000
+                max_tokens=4000,
             )
 
             # Create tool registry (also not needed for workflow discovery)
@@ -237,7 +241,9 @@ workflow for specific Splunk problems.""",
                     "name": workflow.name,
                     "description": workflow.description,
                     "source": "core",
-                    "category": self._determine_workflow_category(workflow.workflow_id, workflow.name),
+                    "category": self._determine_workflow_category(
+                        workflow.workflow_id, workflow.name
+                    ),
                     "task_count": len(workflow.tasks),
                     "has_dependencies": any(task.dependencies for task in workflow.tasks),
                     "default_context": workflow.default_context or {},
@@ -248,12 +254,12 @@ workflow for specific Splunk problems.""",
                             "description": task.description,
                             "required_tools": task.required_tools,
                             "dependencies": task.dependencies,
-                            "context_requirements": task.context_requirements
+                            "context_requirements": task.context_requirements,
                         }
                         for task in workflow.tasks
                     ],
                     "validation_status": "valid",  # Core workflows are always valid
-                    "file_path": "built-in"
+                    "file_path": "built-in",
                 }
 
             logger.info(f"Discovered {len(core_workflows)} core workflows")
@@ -263,7 +269,7 @@ workflow for specific Splunk problems.""",
             logger.error(f"Error discovering core workflows: {e}", exc_info=True)
             raise
 
-    async def _discover_contrib_workflows(self, ctx: Context) -> Dict[str, Any]:
+    async def _discover_contrib_workflows(self, ctx: Context) -> dict[str, Any]:
         """Discover contrib (user-contributed) workflows from contrib/workflows/."""
         if not CONTRIB_LOADER_AVAILABLE:
             logger.warning("Contrib workflow loader not available")
@@ -289,7 +295,7 @@ workflow for specific Splunk problems.""",
                 workflow_files = loader.discover_workflows()
                 for file in workflow_files:
                     try:
-                        with open(file, 'r') as f:
+                        with open(file) as f:
                             data = json.load(f)
                             if data.get("workflow_id") == workflow_id:
                                 file_path = str(file)
@@ -298,7 +304,7 @@ workflow for specific Splunk problems.""",
                                 if len(path_parts) >= 3 and path_parts[-3] == "workflows":
                                     category = path_parts[-2]  # Directory name
                                 break
-                    except:
+                    except Exception:
                         continue
 
                 # Only include workflows that are actually from contrib directory
@@ -320,17 +326,17 @@ workflow for specific Splunk problems.""",
                                 "description": task.description,
                                 "required_tools": task.required_tools,
                                 "dependencies": task.dependencies,
-                                "context_requirements": task.context_requirements
+                                "context_requirements": task.context_requirements,
                             }
                             for task in workflow.tasks
                         ],
                         "validation_status": "valid",  # Successfully loaded workflows are valid
-                        "file_path": file_path
+                        "file_path": file_path,
                     }
 
             # Add information about any failed workflows (only contrib ones)
             for error in loading_report.get("errors", []):
-                error_file = error['file']
+                error_file = error["file"]
                 # Only include errors from contrib directory
                 if "contrib/workflows" in error_file or error_file.startswith("contrib/workflows"):
                     error_workflow_id = f"error_{Path(error_file).stem}"
@@ -345,11 +351,13 @@ workflow for specific Splunk problems.""",
                         "default_context": {},
                         "tasks": [],
                         "validation_status": "error",
-                        "validation_error": error['error'],
-                        "file_path": error_file
+                        "validation_error": error["error"],
+                        "file_path": error_file,
                     }
 
-            logger.info(f"Discovered {len(contrib_workflows)} valid contrib workflows, {len([e for e in loading_report.get('errors', []) if 'contrib/workflows' in e.get('file', '')])} errors")
+            logger.info(
+                f"Discovered {len(contrib_workflows)} valid contrib workflows, {len([e for e in loading_report.get('errors', []) if 'contrib/workflows' in e.get('file', '')])} errors"
+            )
             return contrib_workflows
 
         except Exception as e:
@@ -360,9 +368,15 @@ workflow for specific Splunk problems.""",
         """Determine workflow category based on ID and name."""
         workflow_lower = f"{workflow_id} {workflow_name}".lower()
 
-        if any(keyword in workflow_lower for keyword in ["security", "auth", "login", "access", "permission"]):
+        if any(
+            keyword in workflow_lower
+            for keyword in ["security", "auth", "login", "access", "permission"]
+        ):
             return "security"
-        elif any(keyword in workflow_lower for keyword in ["performance", "resource", "cpu", "memory", "slow"]):
+        elif any(
+            keyword in workflow_lower
+            for keyword in ["performance", "resource", "cpu", "memory", "slow"]
+        ):
             return "performance"
         elif any(keyword in workflow_lower for keyword in ["data", "missing", "search", "index"]):
             return "data_analysis"
@@ -371,7 +385,9 @@ workflow for specific Splunk problems.""",
         else:
             return "general"
 
-    def _format_detailed(self, workflows: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_detailed(
+        self, workflows: dict[str, Any], metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Format detailed workflow information."""
         return {
             "format": "detailed",
@@ -381,12 +397,14 @@ workflow for specific Splunk problems.""",
             "usage_instructions": {
                 "dynamic_troubleshoot_agent": "Use workflow_type parameter with any workflow_id",
                 "example": "await dynamic_troubleshoot_agent.execute(ctx=ctx, problem_description='...', workflow_type='workflow_id')",
-                "available_workflow_ids": list(workflows.keys())
+                "available_workflow_ids": list(workflows.keys()),
             },
-            "categories": self._get_category_summary(workflows)
+            "categories": self._get_category_summary(workflows),
         }
 
-    def _format_summary(self, workflows: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_summary(
+        self, workflows: dict[str, Any], metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Format summary workflow information."""
         summary_workflows = {}
         for workflow_id, workflow in workflows.items():
@@ -396,7 +414,7 @@ workflow for specific Splunk problems.""",
                 "category": workflow["category"],
                 "task_count": workflow["task_count"],
                 "has_dependencies": workflow["has_dependencies"],
-                "validation_status": workflow["validation_status"]
+                "validation_status": workflow["validation_status"],
             }
 
         return {
@@ -404,10 +422,12 @@ workflow for specific Splunk problems.""",
             "discovery_metadata": metadata,
             "total_workflows": len(workflows),
             "workflows": summary_workflows,
-            "categories": self._get_category_summary(workflows)
+            "categories": self._get_category_summary(workflows),
         }
 
-    def _format_ids_only(self, workflows: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_ids_only(
+        self, workflows: dict[str, Any], metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Format workflow IDs only."""
         core_ids = [wf_id for wf_id, wf in workflows.items() if wf["source"] == "core"]
         contrib_ids = [wf_id for wf_id, wf in workflows.items() if wf["source"] == "contrib"]
@@ -422,10 +442,12 @@ workflow for specific Splunk problems.""",
             "by_category": {
                 category: [wf_id for wf_id, wf in workflows.items() if wf["category"] == category]
                 for category in set(wf["category"] for wf in workflows.values())
-            }
+            },
         }
 
-    def _format_by_category(self, workflows: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_by_category(
+        self, workflows: dict[str, Any], metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Format workflows grouped by category."""
         by_category = {}
         for workflow_id, workflow in workflows.items():
@@ -439,10 +461,10 @@ workflow for specific Splunk problems.""",
             "discovery_metadata": metadata,
             "total_workflows": len(workflows),
             "categories": by_category,
-            "category_summary": self._get_category_summary(workflows)
+            "category_summary": self._get_category_summary(workflows),
         }
 
-    def _get_category_summary(self, workflows: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_category_summary(self, workflows: dict[str, Any]) -> dict[str, Any]:
         """Get summary of workflows by category."""
         category_summary = {}
         for workflow in workflows.values():
@@ -452,7 +474,7 @@ workflow for specific Splunk problems.""",
                     "count": 0,
                     "core_count": 0,
                     "contrib_count": 0,
-                    "workflow_ids": []
+                    "workflow_ids": [],
                 }
 
             category_summary[category]["count"] += 1
@@ -482,9 +504,14 @@ if __name__ == "__main__":
 
         # Mock context for testing
         class MockContext:
-            async def info(self, msg): print(f"INFO: {msg}")
-            async def error(self, msg): print(f"ERROR: {msg}")
-            async def report_progress(self, progress, total): pass
+            async def info(self, msg):
+                print(f"INFO: {msg}")
+
+            async def error(self, msg):
+                print(f"ERROR: {msg}")
+
+            async def report_progress(self, progress, total):
+                pass
 
         ctx = MockContext()
 
@@ -498,11 +525,11 @@ if __name__ == "__main__":
             print(f"\n🔧 Testing {fmt} format:")
             result = await tool.execute(ctx, format_type=fmt)
             print(f"Status: {result.get('status', 'unknown')}")
-            if result.get('status') == 'success':
-                data = result.get('result', {})
+            if result.get("status") == "success":
+                data = result.get("result", {})
                 print(f"Total workflows: {data.get('total_workflows', 0)}")
                 print(f"Format: {data.get('format', 'unknown')}")
-                if 'categories' in data:
+                if "categories" in data:
                     print(f"Categories: {list(data['categories'].keys())}")
 
         print("\n✅ Test completed!")

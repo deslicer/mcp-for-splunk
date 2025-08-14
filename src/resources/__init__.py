@@ -16,6 +16,7 @@ def register_all_resources():
     try:
         # Register documentation resources
         from .splunk_docs import register_all_resources as register_documentation_resources
+
         register_documentation_resources()
         logger.debug("Registered documentation resources")
     except ImportError as e:
@@ -60,11 +61,17 @@ def register_all_resources():
                 # Register with the discovery registry
                 try:
                     resource_registry.register(resource_class, metadata)
-                    logger.debug(f"Registered {resource_class.__name__} ({uri}) with discovery registry")
+                    logger.debug(
+                        f"Registered {resource_class.__name__} ({uri}) with discovery registry"
+                    )
                 except Exception as e:
-                    logger.warning(f"Could not register {resource_class.__name__} with discovery: {e}")
+                    logger.warning(
+                        f"Could not register {resource_class.__name__} with discovery: {e}"
+                    )
 
-        logger.info(f"Pre-registered {len(splunk_resources)} core Splunk resources with discovery system")
+        logger.info(
+            f"Pre-registered {len(splunk_resources)} core Splunk resources with discovery system"
+        )
 
     except ImportError as e:
         logger.warning(f"Could not import core Splunk configuration resources: {e}")

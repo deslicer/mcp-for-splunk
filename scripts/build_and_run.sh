@@ -227,11 +227,11 @@ setup_local_env() {
 # Function to run local server
 run_local_server() {
     print_local "Starting MCP server locally with FastMCP CLI..."
-    
+
     # Define cleanup function early to be available for error handling
     cleanup() {
         print_local "Cleaning up..."
-        
+
         # Kill MCP Inspector if PID file exists
         if [ -f .inspector_pid ]; then
             local pid=$(cat .inspector_pid)
@@ -241,13 +241,13 @@ run_local_server() {
             fi
             rm -f .inspector_pid
         fi
-        
+
         # Clean up any server processes
         pkill -f "fastmcp run" 2>/dev/null || true
-        
+
         # Clean up log files
         rm -f logs/inspector.log logs/mcp_server.log
-        
+
         print_success "Cleanup complete!"
     }
 
@@ -763,7 +763,7 @@ find_available_port() {
 
     for ((i=0; i<max_attempts; i++)); do
         local port_available=true
-        
+
         # Check if any process is actively listening on the port
         if command -v lsof &> /dev/null; then
             # Only check for LISTEN state, ignore CLOSED connections
@@ -776,7 +776,7 @@ find_available_port() {
                 port_available=false
             fi
         fi
-        
+
         # If port seems available, try a more direct test
         if [ "$port_available" = true ]; then
             # Try to bind to the port using Python (most reliable cross-platform)
@@ -806,11 +806,11 @@ find_available_port() {
                 fi
             fi
         fi
-        
+
         if [ "$port_available" = false ]; then
             print_local "Port $port is in use, trying next port..." >&2
         fi
-        
+
         port=$((port + 1))
     done
 

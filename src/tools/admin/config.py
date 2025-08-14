@@ -47,7 +47,7 @@ class GetConfigurations(BaseTool):
         Get Splunk configurations from specific configuration files.
 
         Args:
-            conf_file (str): Configuration file name without .conf extension 
+            conf_file (str): Configuration file name without .conf extension
                            (e.g., 'props', 'transforms', 'inputs', 'outputs', 'server', 'web')
             stanza (str, optional): Specific stanza name within the conf file to retrieve.
                                   If not provided, returns all stanzas in the file.
@@ -224,9 +224,7 @@ class GetConfigurations(BaseTool):
             all_stanzas: dict[str, dict[str, Any]] = {}
             for ns_owner, ns_app in attempts:
                 try:
-                    self.logger.debug(
-                        "REST GET %s (owner=%s, app=%s)", endpoint, ns_owner, ns_app
-                    )
+                    self.logger.debug("REST GET %s (owner=%s, app=%s)", endpoint, ns_owner, ns_app)
                     resp = service.get(
                         endpoint, owner=ns_owner, app=ns_app, output_mode="json", count=0
                     )
@@ -291,5 +289,3 @@ class GetConfigurations(BaseTool):
             self.logger.exception("Failed to get configurations")
             await ctx.error(f"Failed to get configurations: {str(e)}")
             return self.format_error_response(str(e))
-
-

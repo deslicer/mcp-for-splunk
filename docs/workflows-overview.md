@@ -14,17 +14,17 @@ AI Workflows are **intelligent troubleshooting procedures** that combine:
 
 ```mermaid
 graph LR
-    A[📋 Get Requirements] --> B[🛠️ Build Workflow] 
-    B --> C[✅ Validate] 
+    A[📋 Get Requirements] --> B[🛠️ Build Workflow]
+    B --> C[✅ Validate]
     C --> D[🚀 Execute]
     D --> E[📊 Results]
-    
+
     A1[workflow_requirements] --> A
     B1[workflow_builder] --> B
     C1[validation system] --> C
     D1[workflow_runner] --> D
     D2[dynamic_troubleshoot_agent] --> D
-    
+
     style A fill:#fff3e0
     style B fill:#f3e5f5
     style C fill:#e8f5e8
@@ -174,4 +174,4 @@ execution_result = await workflow_runner.execute(
 
 ---
 
-**Transform your Splunk operations from reactive to intelligent. Your team deserves AI-powered troubleshooting.** 
+**Transform your Splunk operations from reactive to intelligent. Your team deserves AI-powered troubleshooting.**
