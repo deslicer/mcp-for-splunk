@@ -820,7 +820,7 @@ class PromptLoader:
                         )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -868,7 +868,7 @@ class PromptLoader:
                         )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -920,7 +920,7 @@ class PromptLoader:
                         )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -968,7 +968,7 @@ class PromptLoader:
                         )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(

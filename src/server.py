@@ -7,6 +7,9 @@ automatic discovery and loading of tools, resources, and prompts.
 
 import argparse
 import asyncio
+
+# Add import for Starlette responses at the top
+import logging
 import os
 import sys
 import time
@@ -18,11 +21,6 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-
-# Add import for Starlette responses at the top
-
-
-import logging
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))

@@ -4,6 +4,7 @@ Core tools for MCP Server for Splunk.
 This module contains the core tools maintained by the project team.
 """
 
+# ruff: noqa: F405
 # Import all core tools to make them discoverable  # noqa: F401,F403
 from .admin import *  # noqa: F401,F403
 from .alerts import *  # noqa: F401,F403
