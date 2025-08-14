@@ -64,6 +64,11 @@ cd mcp-server-for-splunk
 git clone https://github.com/your-org/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
 ./scripts/build_and_run.sh
+
+# Optional: install Docker on Linux if needed
+# curl -fsSL https://get.docker.com -o install-docker.sh && sudo sh install-docker.sh
+# Or use the bundled helper script
+# ./scripts/get-docker.sh --dry-run
 ```
 
 > **💡 Deployment Options**: The script will prompt you to choose:
