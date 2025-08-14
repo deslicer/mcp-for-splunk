@@ -1,9 +1,9 @@
 networks:
   splunk-network:
     driver: bridge
-  splunk-ai-network:
-    external: true
-    name: deslicer-splunk-ai-sidekick_splunk-ai-network
+  # splunk-ai-network:
+  #   external: true
+  #   name: deslicer-splunk-ai-sidekick_splunk-ai-network
 
 services:
   # Splunk Enterprise
@@ -12,9 +12,9 @@ services:
       splunk-network:
         aliases:
           - so1
-      splunk-ai-network:
-        aliases:
-          - so1-splunk
+      # splunk-ai-network:
+      #   aliases:
+      #     - so1-splunk
     image: ${SPLUNK_IMAGE:-splunk/splunk:latest}
     platform: linux/amd64
     hostname: so1
