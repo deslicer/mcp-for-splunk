@@ -2,10 +2,9 @@
 Shared configuration classes for Splunk troubleshooting agents.
 """
 
-import os
 import logging
+import os
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentConfig:
     """Configuration for OpenAI agent settings."""
+
     api_key: str
     model: str = "gpt-4o"
     temperature: float = 0.7
@@ -32,13 +32,14 @@ class AgentConfig:
             api_key=api_key,
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.7")),
-            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
+            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4000")),
         )
 
 
 @dataclass
 class RetryConfig:
     """Configuration for retry logic with exponential backoff."""
+
     max_retries: int = 3
     base_delay: float = 1.0
     max_delay: float = 60.0
@@ -53,19 +54,19 @@ class RetryConfig:
             base_delay=float(os.getenv("OPENAI_RETRY_BASE_DELAY", "1.0")),
             max_delay=float(os.getenv("OPENAI_RETRY_MAX_DELAY", "60.0")),
             exponential_base=float(os.getenv("OPENAI_RETRY_EXPONENTIAL_BASE", "2.0")),
-            jitter=os.getenv("OPENAI_RETRY_JITTER", "true").lower() == "true"
+            jitter=os.getenv("OPENAI_RETRY_JITTER", "true").lower() == "true",
         )
 
-    def calculate_delay(self, attempt: int, suggested_delay: Optional[float] = None) -> float:
+    def calculate_delay(self, attempt: int, suggested_delay: float | None = None) -> float:
         """Calculate delay for the given attempt number."""
         import random
-        
+
         if suggested_delay is not None:
             # Use the delay suggested by the API (from rate limit headers)
             delay = suggested_delay
         else:
             # Calculate exponential backoff delay
-            delay = self.base_delay * (self.exponential_base ** attempt)
+            delay = self.base_delay * (self.exponential_base**attempt)
 
         # Cap the delay at max_delay
         delay = min(delay, self.max_delay)
@@ -74,4 +75,4 @@ class RetryConfig:
         if self.jitter:
             delay = delay * (0.5 + random.random() * 0.5)
 
-        return delay 
+        return delay

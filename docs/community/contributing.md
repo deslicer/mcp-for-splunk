@@ -101,7 +101,7 @@ from fastmcp import Context
 
 class MyTool(BaseTool):
     """Brief description of what this tool does."""
-    
+
     METADATA = ToolMetadata(
         name="my_tool",
         description="Detailed description for AI agents",
@@ -110,7 +110,7 @@ class MyTool(BaseTool):
         requires_connection=True,
         version="1.0.0"
     )
-    
+
     async def execute(self, ctx: Context, **kwargs) -> dict:
         """Execute the tool logic."""
         try:
@@ -162,8 +162,8 @@ class ThreatHuntingTool(BaseTool):
         tags=["security", "threat-hunting", "ioc"],
         requires_connection=True
     )
-    
-    async def execute(self, ctx: Context, 
+
+    async def execute(self, ctx: Context,
                      indicators: list[str],
                      time_range: str = "-24h") -> dict:
         # Threat hunting logic
@@ -190,7 +190,7 @@ class PerformanceMonitorTool(BaseTool):
         tags=["monitoring", "performance", "metrics"],
         requires_connection=True
     )
-    
+
     async def execute(self, ctx: Context,
                      service_name: str,
                      metric_type: str = "response_time") -> dict:
@@ -218,7 +218,7 @@ class BusinessAnalyticsTool(BaseTool):
         tags=["analytics", "business", "kpi"],
         requires_connection=True
     )
-    
+
     async def execute(self, ctx: Context,
                      metric_name: str,
                      analysis_type: str = "trend") -> dict:
@@ -473,4 +473,4 @@ Every contribution makes a difference:
 
 Start with our [interactive tool generator](../../contrib/scripts/generate_tool.py) or browse [existing tools](../../contrib/tools/) for inspiration!
 
-**Questions?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - the community is here to help! 
+**Questions?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - the community is here to help!

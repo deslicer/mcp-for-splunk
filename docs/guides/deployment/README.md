@@ -101,13 +101,13 @@ services:
   traefik:
     image: traefik:v2.10
     # Load balancer configuration
-    
+
   mcp-server-1:
     image: mcp-server-for-splunk:latest
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.mcp.loadbalancer.server.port=8000"
-      
+
   mcp-server-2:
     image: mcp-server-for-splunk:latest
     labels:
@@ -223,7 +223,7 @@ services:
       - METRICS_PORT=9090
     ports:
       - "9090:9090"  # Metrics endpoint
-      
+
   prometheus:
     image: prom/prometheus
     volumes:
@@ -268,7 +268,7 @@ services:
       - splunk_password
     environment:
       - SPLUNK_PASSWORD_FILE=/run/secrets/splunk_password
-      
+
 secrets:
   splunk_password:
     external: true
@@ -368,4 +368,4 @@ docker logs mcp-server | grep "slow_query"
 
 ---
 
-**Ready to deploy?** Choose the guide that matches your environment and requirements! 
+**Ready to deploy?** Choose the guide that matches your environment and requirements!

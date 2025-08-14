@@ -242,4 +242,4 @@ This section contains [type of documentation].
 
 ---
 
-**Remember**: A README is a conversation starter, not a reference manual. Hook them, help them succeed quickly, then guide them to deeper resources. 
+**Remember**: A README is a conversation starter, not a reference manual. Hook them, help them succeed quickly, then guide them to deeper resources.

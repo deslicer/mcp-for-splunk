@@ -106,11 +106,11 @@ check_command() {
     local version_arg="$3"
     local optional="$4"
     local install_tip="$5"
-    
+
     if command -v "$command" >/dev/null 2>&1; then
         local version_output
         version_output=$($command $version_arg 2>/dev/null | head -n1)
-        
+
         if [[ "$DETAILED" == "true" ]]; then
             local path
             path=$(command -v "$command")
@@ -245,7 +245,7 @@ echo "--------------------"
 
 if [[ ${#missing_requirements[@]} -eq 0 ]]; then
     print_success "All required prerequisites are installed! 🎉"
-    
+
     if [[ ${#optional_missing[@]} -eq 0 ]]; then
         print_success "All optional tools are also available!"
         echo
@@ -261,7 +261,7 @@ else
     echo
     print_header "📋 Installation Commands:"
     echo "--------------------"
-    
+
     # Show installation tips for missing requirements
     for tip in "${installation_tips[@]}"; do
         for req in "${missing_requirements[@]}"; do
@@ -270,10 +270,10 @@ else
             fi
         done
     done
-    
+
     echo
     print_header "🎯 Quick Install Commands:"
-    
+
     if [[ "$PACKAGE_MANAGER" == "apt" ]]; then
         echo -e "${CYAN}$INSTALL_COMMAND python3.11 python3.11-pip python3.11-venv nodejs npm git curl${NC}"
         echo -e "${CYAN}curl -LsSf https://astral.sh/uv/install.sh | sh${NC}"
@@ -292,7 +292,7 @@ if [[ ${#optional_missing[@]} -gt 0 && ${#missing_requirements[@]} -eq 0 ]]; the
     echo
     print_header "🌟 Optional Installation Commands:"
     echo "--------------------"
-    
+
     # Show installation tips for missing optional tools
     for tip in "${installation_tips[@]}"; do
         for opt in "${optional_missing[@]}"; do
@@ -311,4 +311,4 @@ if [[ ${#missing_requirements[@]} -gt 0 ]]; then
     exit 1
 else
     exit 0
-fi 
+fi

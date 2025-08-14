@@ -70,15 +70,15 @@ services:
     labels:
       # Enable Traefik for MCP Inspector
       - "traefik.enable=true"
-      
+
       # HTTP router for Inspector UI
       - "traefik.http.routers.mcp-inspector.rule=Host(`inspector.localhost`) || PathPrefix(`/inspector/`)"
       - "traefik.http.routers.mcp-inspector.entrypoints=inspector"
       - "traefik.http.routers.mcp-inspector.service=mcp-inspector"
-      
+
       # Service definition pointing to container port 6274 (MCP Inspector default)
       - "traefik.http.services.mcp-inspector.loadbalancer.server.port=6274"
-      
+
       # Add middleware for CORS
       - "traefik.http.middlewares.inspector-cors.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.inspector-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
@@ -106,18 +106,18 @@ services:
       - SPLUNK_USERNAME=${SPLUNK_USERNAME:-admin}
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
-      
+
       # MCP Server settings
       - MCP_SERVER_HOST=0.0.0.0
       - MCP_SERVER_PORT=8000
       - MCP_TRANSPORT=http
-      
+
       # Production settings - Disable hot reload for performance
       - MCP_HOT_RELOAD=false
       - MCP_RELOAD_MODULES=false
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-      
+
       # FastMCP StreamableHTTP specific environment variables
       - FASTMCP_STREAMABLE_HTTP_ALLOWED_ORIGINS=*
       - STREAMABLE_HTTP_ALLOW_ALL_ORIGINS=true
@@ -127,7 +127,7 @@ services:
       - DISABLE_ORIGIN_CHECK=true
       - MCP_DISABLE_ORIGIN_CHECK=true
       - STREAMABLE_HTTP_DISABLE_CORS=true
-      
+
       # OpenAI Agent Settings (loaded from .env file)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
@@ -138,15 +138,15 @@ services:
     labels:
       # Enable Traefik for this service
       - "traefik.enable=true"
-      
+
       # HTTP router for MCP server (Streamable HTTP transport)
       - "traefik.http.routers.mcp-server.rule=PathPrefix(`/mcp/`)"
       - "traefik.http.routers.mcp-server.entrypoints=mcp"
       - "traefik.http.routers.mcp-server.service=mcp-server"
-      
+
       # Service definition pointing to container port 8000
       - "traefik.http.services.mcp-server.loadbalancer.server.port=8000"
-      
+
       # Add middleware for CORS headers (important for web clients)
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"

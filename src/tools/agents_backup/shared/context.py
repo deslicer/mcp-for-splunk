@@ -9,6 +9,7 @@ from typing import Any
 @dataclass
 class SplunkDiagnosticContext:
     """Context for maintaining state across Splunk diagnostic workflows."""
+
     earliest_time: str = "-24h"
     latest_time: str = "now"
     focus_index: str | None = None
@@ -42,6 +43,7 @@ class SplunkDiagnosticContext:
 @dataclass
 class DiagnosticResult:
     """Result from a diagnostic step or micro-agent."""
+
     step: str
     status: str  # "healthy", "warning", "critical", "error"
     findings: list[str]
@@ -56,6 +58,7 @@ class DiagnosticResult:
 @dataclass
 class ComponentAnalysisResult:
     """Result from a single component analysis."""
+
     component: str
     agent_name: str
     analysis_result: str
@@ -67,6 +70,7 @@ class ComponentAnalysisResult:
 @dataclass
 class ParallelAnalysisContext:
     """Context for coordinating parallel analysis workflows."""
+
     earliest_time: str = "-24h"
     latest_time: str = "now"
     focus_components: list[str] = None

@@ -129,7 +129,7 @@ docs = await mcp_Context7_get_library_docs(
 
 # For tool development
 docs = await mcp_Context7_get_library_docs(
-    context7CompatibleLibraryID="/fastmcp/fastmcp", 
+    context7CompatibleLibraryID="/fastmcp/fastmcp",
     topic="tool development and decorators",
     tokens=8000
 )
@@ -137,7 +137,7 @@ docs = await mcp_Context7_get_library_docs(
 # For server setup
 docs = await mcp_Context7_get_library_docs(
     context7CompatibleLibraryID="/fastmcp/fastmcp",
-    topic="server setup and configuration", 
+    topic="server setup and configuration",
     tokens=6000
 )
 ```
@@ -147,7 +147,7 @@ docs = await mcp_Context7_get_library_docs(
 # Complete server development workflow
 topics = [
     "server setup and configuration",
-    "tool development and decorators", 
+    "tool development and decorators",
     "testing mcp servers",
     "middleware and error handling"
 ]
@@ -182,4 +182,4 @@ for topic in topics:
 
 ## Emergency References
 
-If Context7 is unavailable, fallback to direct links from the [FastMCP sitemap](https://gofastmcp.com/llms.txt). 
+If Context7 is unavailable, fallback to direct links from the [FastMCP sitemap](https://gofastmcp.com/llms.txt).

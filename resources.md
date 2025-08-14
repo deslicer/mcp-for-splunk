@@ -115,7 +115,7 @@ async def read_latest_log() -> str:
     log_path = Path("/app/logs/latest.log")
     if not log_path.exists():
         return "Log file not found"
-    
+
     async with aiofiles.open(log_path, mode="r") as f:
         content = await f.read()
     return content
@@ -172,8 +172,8 @@ async def get_file_content(filepath: str) -> str:
 ```python
 @mcp.resource("search://{query}")
 async def search_content(
-    query: str, 
-    max_results: int = 10, 
+    query: str,
+    max_results: int = 10,
     include_archived: bool = False
 ) -> dict:
     """Search content with optional parameters."""
@@ -216,12 +216,12 @@ class ResourceCache:
     def __init__(self):
         self._cache = {}
         self._ttl = {}
-    
+
     async def get_or_fetch(self, key: str, fetch_func, ttl: int = 300):
         now = time.time()
         if key in self._cache and now < self._ttl.get(key, 0):
             return self._cache[key]
-        
+
         data = await fetch_func()
         self._cache[key] = data
         self._ttl[key] = now + ttl
@@ -250,12 +250,12 @@ async def get_user_from_db(user_id: str) -> dict:
     async with asyncpg.create_pool(DATABASE_URL) as pool:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT * FROM users WHERE id = $1", 
+                "SELECT * FROM users WHERE id = $1",
                 int(user_id)
             )
             if not row:
                 raise ValueError(f"User {user_id} not found")
-            
+
             return dict(row)
 ```
 
@@ -311,15 +311,15 @@ async def get_safe_file(filename: str) -> str:
     # Validate filename
     if not re.match(r'^[a-zA-Z0-9._-]+$', filename):
         raise ResourceError("Invalid filename format")
-    
+
     # Prevent directory traversal
     safe_path = Path("/safe/directory") / filename
     if not str(safe_path).startswith("/safe/directory"):
         raise ResourceError("Path traversal not allowed")
-    
+
     if not safe_path.exists():
         raise ResourceError(f"File '{filename}' not found")
-    
+
     return safe_path.read_text()
 ```
 
@@ -365,12 +365,12 @@ async def get_csv_report() -> str:
     """Return CSV formatted data."""
     import csv
     import io
-    
+
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Name", "Value", "Timestamp"])
     writer.writerow(["CPU", "45.2", "2024-01-01T10:00:00Z"])
-    
+
     return output.getvalue()
 ```
 
@@ -403,7 +403,7 @@ async def list_available_resources() -> dict:
             "description": getattr(resource, 'description', 'No description'),
             "enabled": getattr(resource, 'enabled', True)
         })
-    
+
     return {"resources": resources}
 ```
 
@@ -423,9 +423,9 @@ async def get_aggregated_data() -> dict:
         fetch_system_metrics(),
         fetch_recent_activity()
     ]
-    
+
     user_stats, metrics, activity = await asyncio.gather(*tasks)
-    
+
     return {
         "user_stats": user_stats,
         "system_metrics": metrics,
@@ -454,9 +454,9 @@ async def get_dataset_page(page: str) -> dict:
     """Get a specific page of the large dataset."""
     page_num = int(page)
     offset = (page_num - 1) * 1000
-    
+
     data = await fetch_paginated_data(offset=offset, limit=1000)
-    
+
     return {
         "page": page_num,
         "data": data,
@@ -498,7 +498,7 @@ import json
 async def get_sanitized_profile(user_id: str) -> dict:
     """Get user profile with sanitized data."""
     user = await fetch_user(user_id)
-    
+
     # Sanitize data before returning
     return {
         "id": user.id,
@@ -520,11 +520,11 @@ from fastmcp.testing import create_test_client
 @pytest.fixture
 def mcp_client():
     mcp = FastMCP("TestServer")
-    
+
     @mcp.resource("test://data")
     def test_resource():
         return {"test": "data"}
-    
+
     return create_test_client(mcp)
 
 @pytest.mark.asyncio
@@ -542,7 +542,7 @@ async def test_database_resource():
     """Test database resource integration."""
     # Setup test database
     await setup_test_db()
-    
+
     try:
         response = await mcp_client.read_resource("db://users/123")
         data = json.loads(response.content[0].text)
@@ -590,7 +590,7 @@ async def get_environment_config(env: str) -> dict:
     valid_envs = ["dev", "staging", "prod"]
     if env not in valid_envs:
         raise ResourceError(f"Invalid environment: {env}")
-    
+
     return await load_config(env)
 ```
 
@@ -613,9 +613,9 @@ async def get_system_metrics() -> dict:
 async def get_sales_report(period: str) -> dict:
     """Sales report for specified period."""
     start_date, end_date = parse_period(period)
-    
+
     sales_data = await fetch_sales_data(start_date, end_date)
-    
+
     return {
         "period": period,
         "total_sales": sum(s.amount for s in sales_data),
@@ -635,4 +635,4 @@ Remember to:
 - Test thoroughly
 - Document your resources well
 
-For more advanced patterns and specific implementation details, refer to the FastMCP documentation and the official MCP specification. 
+For more advanced patterns and specific implementation details, refer to the FastMCP documentation and the official MCP specification.

@@ -39,13 +39,13 @@ class JobSearch(BaseTool):
         Execute a Splunk search job with comprehensive progress tracking and statistics.
 
         Args:
-            query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command 
-                        or pipeline. Supports complex searches with transforming commands, joins, 
-                        and subsearches. Examples: "index=* | stats count by sourcetype", 
+            query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command
+                        or pipeline. Supports complex searches with transforming commands, joins,
+                        and subsearches. Examples: "index=* | stats count by sourcetype",
                         "search error | eval severity=case(...)"
-            earliest_time (str, optional): Search start time in Splunk time format. 
+            earliest_time (str, optional): Search start time in Splunk time format.
                                          Examples: "-24h", "-7d@d", "2023-01-01T00:00:00"
-                                         Default: "-24h" 
+                                         Default: "-24h"
             latest_time (str, optional): Search end time in Splunk time format.
                                        Examples: "now", "-1h", "@d", "2023-01-01T23:59:59"
                                        Default: "now"
@@ -80,7 +80,7 @@ class JobSearch(BaseTool):
             # Poll for completion
             while not job.is_done():
                 stats = job.content
-                
+
                 # Check if job failed during execution
                 if stats.get("isFailed", "0") == "1":
                     # Job failed, get error messages
@@ -94,25 +94,26 @@ class JobSearch(BaseTool):
                             elif isinstance(message, str):
                                 # String messages are typically error messages
                                 error_messages.append(message)
-                    
-                    error_detail = "; ".join(error_messages) if error_messages else "Job failed with no specific error message"
+
+                    error_detail = (
+                        "; ".join(error_messages)
+                        if error_messages
+                        else "Job failed with no specific error message"
+                    )
                     self.logger.error(f"Search job {job.sid} failed: {error_detail}")
                     await ctx.error(f"Search job {job.sid} failed: {error_detail}")
                     return self.format_error_response(f"Search job failed: {error_detail}")
-                
+
                 progress_dict = {
                     "done": stats.get("isDone", "0") == "1",
                     "progress": float(stats.get("doneProgress", 0)) * 100,
                     "scan_progress": float(stats.get("scanCount", 0)),
                     "event_progress": float(stats.get("eventCount", 0)),
                 }
-                
+
                 # Report progress with just the numeric value
-                await ctx.report_progress(
-                    progress=int(progress_dict["progress"]),
-                    total=100
-                )
-                
+                await ctx.report_progress(progress=int(progress_dict["progress"]), total=100)
+
                 self.logger.info(
                     f"Search job {job.sid} in progress... "
                     f"Progress: {progress_dict['progress']:.1f}%, "
@@ -136,8 +137,12 @@ class JobSearch(BaseTool):
                         elif isinstance(message, str):
                             # String messages are typically error messages
                             error_messages.append(message)
-                
-                error_detail = "; ".join(error_messages) if error_messages else "Job failed with no specific error message"
+
+                error_detail = (
+                    "; ".join(error_messages)
+                    if error_messages
+                    else "Job failed with no specific error message"
+                )
                 self.logger.error(f"Search job {job.sid} failed after completion: {error_detail}")
                 await ctx.error(f"Search job {job.sid} failed: {error_detail}")
                 return self.format_error_response(f"Search job failed: {error_detail}")
@@ -146,7 +151,7 @@ class JobSearch(BaseTool):
             results = []
             result_count = 0
             await ctx.info(f"Getting results for search job: {job.sid}")
-            
+
             try:
                 # Request results in JSON format and use JSONResultsReader
                 reader = JSONResultsReader(job.results(output_mode="json"))
@@ -157,7 +162,9 @@ class JobSearch(BaseTool):
             except Exception as results_error:
                 self.logger.error(f"Error reading results for job {job.sid}: {str(results_error)}")
                 await ctx.error(f"Error reading search results: {str(results_error)}")
-                return self.format_error_response(f"Error reading search results: {str(results_error)}")
+                return self.format_error_response(
+                    f"Error reading search results: {str(results_error)}"
+                )
 
             # Get final job stats
             stats = job.content
@@ -187,7 +194,7 @@ class JobSearch(BaseTool):
             # Enhanced exception logging
             self.logger.error(f"Search failed with exception: {str(e)}", exc_info=True)
             await ctx.error(f"Search failed: {str(e)}")
-            
+
             # Try to provide more context about the error
             error_detail = str(e)
             if "Connection" in error_detail or "connection" in error_detail:
@@ -196,5 +203,5 @@ class JobSearch(BaseTool):
                 error_detail += " (Check Splunk username and password)"
             elif "Permission" in error_detail or "permission" in error_detail:
                 error_detail += " (Check user permissions for search and index access)"
-            
+
             return self.format_error_response(error_detail)

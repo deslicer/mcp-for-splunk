@@ -1,7 +1,7 @@
 # MCP Server for Splunk - API Documentation
 
-**Version:** 1.0.0  
-**Generated:** 2025-07-03 16:06:23  
+**Version:** 1.0.0
+**Generated:** 2025-07-03 16:06:23
 **Protocol:** Model Context Protocol (MCP) 2024-11-05
 
 ## Introduction
@@ -315,10 +315,10 @@ All tools return standardized response formats:
 
 ### create_kvstore_collection
 
-**Category:** kvstore  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** kvstore, collections, create, storage  
+**Category:** kvstore
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** kvstore, collections, create, storage
 
 #### Description
 
@@ -348,16 +348,16 @@ result = await create_kvstore_collection(app="search", collection="my_collection
 
 #### Source Information
 
-**Module:** `src.tools.kvstore.collections`  
-**File:** `src/tools/kvstore/collections.py`  
-**Line:** 79  
+**Module:** `src.tools.kvstore.collections`
+**File:** `src/tools/kvstore/collections.py`
+**Line:** 79
 
 ### create_saved_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, create, management  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, create, management
 
 #### Description
 
@@ -407,16 +407,16 @@ cron_schedule="0 8 * * *"
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 390  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 390
 
 ### delete_saved_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, delete, management  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, delete, management
 
 #### Description
 
@@ -455,16 +455,16 @@ confirm=True
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 708  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 708
 
 ### execute_saved_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, execute, search  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, execute, search
 
 #### Description
 
@@ -510,16 +510,16 @@ mode="job"
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 155  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 155
 
 ### get_configurations
 
-**Category:** admin  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** configuration, settings, administration  
+**Category:** admin
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** configuration, settings, administration
 
 #### Description
 
@@ -546,16 +546,16 @@ result = await get_configurations(conf_file="props")
 
 #### Source Information
 
-**Module:** `src.tools.admin.config`  
-**File:** `src/tools/admin/config.py`  
-**Line:** 13  
+**Module:** `src.tools.admin.config`
+**File:** `src/tools/admin/config.py`
+**Line:** 13
 
 ### get_kvstore_data
 
-**Category:** kvstore  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** kvstore, data, query, storage  
+**Category:** kvstore
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** kvstore, data, query, storage
 
 #### Description
 
@@ -583,16 +583,16 @@ result = await get_kvstore_data(collection="my_collection", query="index=main er
 
 #### Source Information
 
-**Module:** `src.tools.kvstore.data`  
-**File:** `src/tools/kvstore/data.py`  
-**Line:** 13  
+**Module:** `src.tools.kvstore.data`
+**File:** `src/tools/kvstore/data.py`
+**Line:** 13
 
 ### get_latest_feature_health
 
-**Category:** health  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** health, monitoring, infrastructure, troubleshooting, issues  
+**Category:** health
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** health, monitoring, infrastructure, troubleshooting, issues
 
 #### Description
 
@@ -636,16 +636,16 @@ Note: Healthy features are excluded from results to focus on actionable issues.
 
 #### Source Information
 
-**Module:** `contrib.tools.health.get_degraded_splunk_features`  
-**File:** `contrib/tools/health/get_degraded_splunk_features.py`  
-**Line:** 15  
+**Module:** `contrib.tools.health.get_degraded_splunk_features`
+**File:** `contrib/tools/health/get_degraded_splunk_features.py`
+**Line:** 15
 
 ### get_saved_search_details
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, details, metadata  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, details, metadata
 
 #### Description
 
@@ -683,16 +683,16 @@ get_saved_search_details(name="Security Alerts")
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 838  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 838
 
 ### get_splunk_health
 
-**Category:** health  
-**Version:** 1.0.0  
-**Requires Connection:** No  
-**Tags:** health, status, monitoring  
+**Category:** health
+**Version:** 1.0.0
+**Requires Connection:** No
+**Tags:** health, status, monitoring
 
 #### Description
 
@@ -723,16 +723,16 @@ result = await get_splunk_health()
 
 #### Source Information
 
-**Module:** `src.tools.health.status`  
-**File:** `src/tools/health/status.py`  
-**Line:** 13  
+**Module:** `src.tools.health.status`
+**File:** `src/tools/health/status.py`
+**Line:** 13
 
 ### list_apps
 
-**Category:** admin  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** apps, administration, management, inventory, catalog, audit  
+**Category:** admin
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** apps, administration, management, inventory, catalog, audit
 
 #### Description
 
@@ -765,16 +765,16 @@ result = await list_apps()
 
 #### Source Information
 
-**Module:** `src.tools.admin.apps`  
-**File:** `src/tools/admin/apps.py`  
-**Line:** 13  
+**Module:** `src.tools.admin.apps`
+**File:** `src/tools/admin/apps.py`
+**Line:** 13
 
 ### list_indexes
 
-**Category:** metadata  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** indexes, metadata, discovery  
+**Category:** metadata
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** indexes, metadata, discovery
 
 #### Description
 
@@ -801,16 +801,16 @@ result = await list_indexes()
 
 #### Source Information
 
-**Module:** `src.tools.metadata.indexes`  
-**File:** `src/tools/metadata/indexes.py`  
-**Line:** 13  
+**Module:** `src.tools.metadata.indexes`
+**File:** `src/tools/metadata/indexes.py`
+**Line:** 13
 
 ### list_kvstore_collections
 
-**Category:** kvstore  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** kvstore, collections, storage  
+**Category:** kvstore
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** kvstore, collections, storage
 
 #### Description
 
@@ -836,16 +836,16 @@ result = await list_kvstore_collections()
 
 #### Source Information
 
-**Module:** `src.tools.kvstore.collections`  
-**File:** `src/tools/kvstore/collections.py`  
-**Line:** 14  
+**Module:** `src.tools.kvstore.collections`
+**File:** `src/tools/kvstore/collections.py`
+**Line:** 14
 
 ### list_saved_searches
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, list, metadata  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, list, metadata
 
 #### Description
 
@@ -881,16 +881,16 @@ list_saved_searches(owner="admin", app="search", include_disabled=True)
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 18  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 18
 
 ### list_sources
 
-**Category:** metadata  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** sources, metadata, discovery  
+**Category:** metadata
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** sources, metadata, discovery
 
 #### Description
 
@@ -914,16 +914,16 @@ result = await list_sources()
 
 #### Source Information
 
-**Module:** `src.tools.metadata.sources`  
-**File:** `src/tools/metadata/sources.py`  
-**Line:** 14  
+**Module:** `src.tools.metadata.sources`
+**File:** `src/tools/metadata/sources.py`
+**Line:** 14
 
 ### list_sourcetypes
 
-**Category:** metadata  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** sourcetypes, metadata, discovery  
+**Category:** metadata
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** sourcetypes, metadata, discovery
 
 #### Description
 
@@ -947,16 +947,16 @@ result = await list_sourcetypes()
 
 #### Source Information
 
-**Module:** `src.tools.metadata.sourcetypes`  
-**File:** `src/tools/metadata/sourcetypes.py`  
-**Line:** 14  
+**Module:** `src.tools.metadata.sourcetypes`
+**File:** `src/tools/metadata/sourcetypes.py`
+**Line:** 14
 
 ### list_users
 
-**Category:** admin  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** users, administration, management  
+**Category:** admin
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** users, administration, management
 
 #### Description
 
@@ -980,16 +980,16 @@ result = await list_users()
 
 #### Source Information
 
-**Module:** `src.tools.admin.users`  
-**File:** `src/tools/admin/users.py`  
-**Line:** 13  
+**Module:** `src.tools.admin.users`
+**File:** `src/tools/admin/users.py`
+**Line:** 13
 
 ### manage_apps
 
-**Category:** admin  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** apps, administration, management, actions  
+**Category:** admin
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** apps, administration, management, actions
 
 #### Description
 
@@ -1016,16 +1016,16 @@ result = await manage_apps(action="example_value", app_name="example_value")
 
 #### Source Information
 
-**Module:** `src.tools.admin.app_management`  
-**File:** `src/tools/admin/app_management.py`  
-**Line:** 16  
+**Module:** `src.tools.admin.app_management`
+**File:** `src/tools/admin/app_management.py`
+**Line:** 16
 
 ### run_oneshot_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** search, oneshot, quick  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** search, oneshot, quick
 
 #### Description
 
@@ -1054,16 +1054,16 @@ result = await run_oneshot_search(query="index=main error | stats count")
 
 #### Source Information
 
-**Module:** `src.tools.search.oneshot_search`  
-**File:** `src/tools/search/oneshot_search.py`  
-**Line:** 15  
+**Module:** `src.tools.search.oneshot_search`
+**File:** `src/tools/search/oneshot_search.py`
+**Line:** 15
 
 ### run_splunk_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** search, job, tracking, complex  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** search, job, tracking, complex
 
 #### Description
 
@@ -1091,16 +1091,16 @@ result = await run_splunk_search(query="index=main error | stats count")
 
 #### Source Information
 
-**Module:** `src.tools.search.job_search`  
-**File:** `src/tools/search/job_search.py`  
-**Line:** 15  
+**Module:** `src.tools.search.job_search`
+**File:** `src/tools/search/job_search.py`
+**Line:** 15
 
 ### update_saved_search
 
-**Category:** search  
-**Version:** 1.0.0  
-**Requires Connection:** Yes  
-**Tags:** saved_searches, update, management  
+**Category:** search
+**Version:** 1.0.0
+**Requires Connection:** Yes
+**Tags:** saved_searches, update, management
 
 #### Description
 
@@ -1147,9 +1147,9 @@ is_scheduled=False
 
 #### Source Information
 
-**Module:** `src.tools.search.saved_search_tools`  
-**File:** `src/tools/search/saved_search_tools.py`  
-**Line:** 541  
+**Module:** `src.tools.search.saved_search_tools`
+**File:** `src/tools/search/saved_search_tools.py`
+**Line:** 541
 
 
 ## API Schemas
@@ -1233,7 +1233,7 @@ Authentication is handled at the server level. Tools inherit the connection cont
 The server implements connection pooling and request throttling to prevent overwhelming Splunk instances. Consider:
 
 - **Batch operations** when possible
-- **Reasonable time ranges** for search operations  
+- **Reasonable time ranges** for search operations
 - **Pagination** for large result sets
 - **Appropriate delays** between consecutive calls
 
@@ -1247,5 +1247,5 @@ The server implements connection pooling and request throttling to prevent overw
 
 ---
 
-*This documentation was automatically generated from tool metadata and source code analysis.*  
+*This documentation was automatically generated from tool metadata and source code analysis.*
 *Last updated: 2025-07-03 16:06:23*

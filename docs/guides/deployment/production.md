@@ -133,15 +133,15 @@ tools:
     - core
     - security
     - devops
-  
+
   disabled_tools:
     - dangerous_tool
     - experimental_feature
-  
+
   rate_limits:
     search_tools: 10/minute
     admin_tools: 5/minute
-    
+
   timeouts:
     search_timeout: 300
     connection_timeout: 30
@@ -153,11 +153,11 @@ tools:
 authentication:
   enabled: true
   method: token  # token, oauth, ldap
-  
+
 authorization:
   rbac_enabled: true
   default_role: user
-  
+
 input_validation:
   max_query_length: 10000
   allowed_spl_commands:
@@ -165,7 +165,7 @@ input_validation:
     - stats
     - eval
     - where
-  
+
   blocked_spl_commands:
     - delete
     - output
@@ -457,13 +457,13 @@ tls:
 class AuthenticationMiddleware:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    
+
     async def authenticate(self, request: Request) -> Optional[User]:
         token = request.headers.get("Authorization")
-        
+
         if not token or not token.startswith("Bearer "):
             return None
-            
+
         try:
             payload = jwt.decode(token[7:], self.secret_key, algorithms=["HS256"])
             return User.from_payload(payload)
@@ -477,7 +477,7 @@ class AuthenticationMiddleware:
 class RBACMiddleware:
     def __init__(self, permissions: Dict[str, List[str]]):
         self.permissions = permissions
-    
+
     def check_permission(self, user: User, tool_name: str) -> bool:
         user_permissions = self.permissions.get(user.role, [])
         return tool_name in user_permissions or "admin" in user_permissions
@@ -492,7 +492,7 @@ class RBACMiddleware:
 @app.get("/health")
 async def health_check():
     """Comprehensive health check."""
-    
+
     checks = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -504,11 +504,11 @@ async def health_check():
             "disk": check_disk_space()
         }
     }
-    
+
     # Determine overall status
     if any(not check["healthy"] for check in checks["checks"].values()):
         checks["status"] = "unhealthy"
-        
+
     return checks
 ```
 
@@ -526,16 +526,16 @@ active_connections = Gauge('mcp_active_connections', 'Active Splunk connections'
 # Usage in tools
 async def execute_with_metrics(self, ctx: Context, **kwargs):
     start_time = time.time()
-    
+
     try:
         result = await self.execute(ctx, **kwargs)
         tool_requests_total.labels(tool_name=self.METADATA.name, status='success').inc()
         return result
-        
+
     except Exception as e:
         tool_requests_total.labels(tool_name=self.METADATA.name, status='error').inc()
         raise
-        
+
     finally:
         duration = time.time() - start_time
         tool_duration_seconds.labels(tool_name=self.METADATA.name).observe(duration)
@@ -562,10 +562,10 @@ async def execute(self, ctx: Context, **kwargs):
         session_id=ctx.session.session_id,
         parameters=kwargs
     )
-    
+
     try:
         result = await self._perform_operation(kwargs)
-        
+
         logger.info(
             "Tool execution completed",
             tool=self.METADATA.name,
@@ -573,9 +573,9 @@ async def execute(self, ctx: Context, **kwargs):
             duration=time.time() - start_time,
             result_count=len(result.get('data', []))
         )
-        
+
         return self.format_success_response(result)
-        
+
     except Exception as e:
         logger.error(
             "Tool execution failed",
@@ -602,10 +602,10 @@ class SplunkConnectionPool:
             pool_size=max_connections,
             recycle=3600  # Recycle connections every hour
         )
-    
+
     async def get_connection(self):
         return await self.pool.connect()
-    
+
     def _create_connection(self):
         return splunklib.client.connect(**splunk_config)
 ```
@@ -621,20 +621,20 @@ redis_client = redis.Redis(host='redis', port=6379, db=0)
 
 async def cached_search(query: str, timerange: str, ttl: int = 300):
     """Cache search results with TTL."""
-    
+
     cache_key = f"search:{hash(query + timerange)}"
-    
+
     # Try cache first
     cached_result = redis_client.get(cache_key)
     if cached_result:
         return json.loads(cached_result)
-    
+
     # Execute search
     result = await execute_search(query, timerange)
-    
+
     # Cache result
     redis_client.setex(cache_key, ttl, json.dumps(result))
-    
+
     return result
 ```
 
@@ -718,4 +718,4 @@ docker-compose up -d
 echo "Configuration restored from $BACKUP_FILE"
 ```
 
-This deployment guide provides comprehensive coverage of production deployment scenarios, from simple Docker setups to enterprise Kubernetes deployments, with security, monitoring, and operational best practices. 
+This deployment guide provides comprehensive coverage of production deployment scenarios, from simple Docker setups to enterprise Kubernetes deployments, with security, monitoring, and operational best practices.

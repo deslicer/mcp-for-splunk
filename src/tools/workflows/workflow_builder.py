@@ -7,7 +7,7 @@ MCP Server for Splunk dynamic troubleshooting system.
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastmcp import Context
 
@@ -98,10 +98,10 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
         self,
         ctx: Context,
         mode: str = "create",
-        workflow_data: Optional[Union[str, Dict[str, Any]]] = None,
+        workflow_data: str | dict[str, Any] | None = None,
         template_type: str = "minimal",
-        file_path: Optional[str] = None
-    ) -> Dict[str, Any]:
+        file_path: str | None = None,
+    ) -> dict[str, Any]:
         """
         Build, edit, validate, or process workflows.
 
@@ -127,20 +127,26 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
                 elif file_path:
                     return self.format_success_response(self._validate_workflow_file(file_path))
                 else:
-                    return self.format_error_response("workflow_data or file_path required for validate mode")
+                    return self.format_error_response(
+                        "workflow_data or file_path required for validate mode"
+                    )
             elif mode == "process":
                 if not workflow_data:
                     return self.format_error_response("workflow_data required for process mode")
-                return self.format_success_response(await self._process_finished_workflow(ctx, workflow_data))
+                return self.format_success_response(
+                    await self._process_finished_workflow(ctx, workflow_data)
+                )
             elif mode == "template":
                 return self.format_success_response(self._generate_template(template_type))
             else:
-                return self.format_error_response(f"Unknown mode: {mode}. Use 'create', 'edit', 'validate', 'process', or 'template'")
+                return self.format_error_response(
+                    f"Unknown mode: {mode}. Use 'create', 'edit', 'validate', 'process', or 'template'"
+                )
 
         except Exception as e:
             return self.format_error_response(f"Workflow builder error: {str(e)}")
 
-    def _normalize_workflow_data(self, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def _normalize_workflow_data(self, workflow_data: str | dict[str, Any]) -> dict[str, Any]:
         """Normalize workflow data from string or dict to dict."""
         if isinstance(workflow_data, str):
             try:
@@ -152,11 +158,13 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
         else:
             raise ValueError(f"workflow_data must be a string or dict, got {type(workflow_data)}")
 
-    async def _process_finished_workflow(self, ctx: Context, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    async def _process_finished_workflow(
+        self, ctx: Context, workflow_data: str | dict[str, Any]
+    ) -> dict[str, Any]:
         """Process and validate a finished workflow definition."""
-        
+
         await ctx.info("🔧 Processing finished workflow definition...")
-        
+
         # Normalize the input data
         try:
             workflow = self._normalize_workflow_data(workflow_data)
@@ -165,10 +173,10 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
 
         # Perform comprehensive validation
         validation_result = self._validate_workflow_structure(workflow)
-        
+
         if validation_result["valid"]:
             await ctx.info("✅ Workflow validation successful!")
-            
+
             # Generate additional metadata for the processed workflow
             processed_workflow = {
                 "workflow": workflow,
@@ -177,16 +185,16 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
                     "processed_at": "timestamp",
                     "validation_passed": True,
                     "ready_for_execution": True,
-                    "compatible_with_runner": True
+                    "compatible_with_runner": True,
                 },
                 "usage_instructions": {
                     "workflow_runner": f"Use workflow_id='{workflow.get('workflow_id', 'unknown')}' with the workflow_runner tool",
                     "dynamic_troubleshoot": f"Use workflow_type='{workflow.get('workflow_id', 'unknown')}' with dynamic_troubleshoot_agent",
-                    "file_save": "Save this workflow as JSON in contrib/workflows/category/ directory"
+                    "file_save": "Save this workflow as JSON in contrib/workflows/category/ directory",
                 },
-                "integration_ready": True
+                "integration_ready": True,
             }
-            
+
             return processed_workflow
         else:
             await ctx.error("❌ Workflow validation failed!")
@@ -197,22 +205,22 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
                     "processed_at": "timestamp",
                     "validation_passed": False,
                     "ready_for_execution": False,
-                    "compatible_with_runner": False
+                    "compatible_with_runner": False,
                 },
                 "integration_ready": False,
                 "errors": validation_result["errors"],
-                "fix_suggestions": validation_result["suggestions"]
+                "fix_suggestions": validation_result["suggestions"],
             }
 
-    async def _create_workflow_interactive(self, ctx: Context) -> Dict[str, Any]:
+    async def _create_workflow_interactive(self, ctx: Context) -> dict[str, Any]:
         """Create a workflow interactively with guided prompts."""
-        
+
         workflow = {
             "workflow_id": "",
             "name": "",
             "description": "",
             "tasks": [],
-            "default_context": {}
+            "default_context": {},
         }
 
         # Get basic workflow information
@@ -221,7 +229,7 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
 
         # For demo purposes, we'll create a template workflow
         # In a real implementation, this would collect user input
-        
+
         workflow_info = {
             "workflow_id": "custom_workflow_example",
             "name": "Custom Workflow Example",
@@ -258,11 +266,11 @@ You are performing an initial assessment of the Splunk environment.
                     """,
                     "required_tools": [
                         "get_splunk_health",
-                        "get_current_user_info", 
-                        "list_splunk_indexes"
+                        "get_current_user_info",
+                        "list_splunk_indexes",
                     ],
                     "dependencies": [],
-                    "context_requirements": ["earliest_time", "latest_time"]
+                    "context_requirements": ["earliest_time", "latest_time"],
                 },
                 {
                     "task_id": "data_analysis",
@@ -294,23 +302,23 @@ You are performing data analysis based on the initial assessment results.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": ["initial_assessment"],
-                    "context_requirements": ["focus_index", "earliest_time", "latest_time"]
-                }
-            ]
+                    "context_requirements": ["focus_index", "earliest_time", "latest_time"],
+                },
+            ],
         }
 
         workflow.update(workflow_info)
 
         # Validate the created workflow
         validation_result = self._validate_workflow_structure(workflow)
-        
+
         result = {
             "workflow": workflow,
             "validation": validation_result,
             "next_steps": [
                 "Save the workflow JSON to a file in contrib/workflows/",
                 "Test the workflow with the dynamic troubleshoot agent",
-                "Submit a pull request to contribute to the community"
+                "Submit a pull request to contribute to the community",
             ],
             "usage_example": {
                 "description": "How to use this workflow with the dynamic troubleshoot agent",
@@ -324,26 +332,28 @@ await dynamic_troubleshoot_agent.execute(
     latest_time="now",
     focus_index="main"  # or your specific index
 )
-                """.strip()
-            }
+                """.strip(),
+            },
         }
 
         await ctx.info("✅ Workflow creation completed successfully!")
         return result
 
-    async def _edit_workflow(self, ctx: Context, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    async def _edit_workflow(
+        self, ctx: Context, workflow_data: str | dict[str, Any]
+    ) -> dict[str, Any]:
         """Edit an existing workflow with validation."""
-        
+
         try:
             workflow = self._normalize_workflow_data(workflow_data)
         except ValueError as e:
             return {"error": str(e)}
 
         await ctx.info("🔧 Starting workflow editing mode...")
-        
+
         # For demo purposes, we'll add a new task to the workflow
         # In a real implementation, this would provide interactive editing
-        
+
         new_task = {
             "task_id": "additional_analysis",
             "name": "Additional Analysis",
@@ -363,30 +373,30 @@ You are performing additional analysis as part of the workflow.
             """,
             "required_tools": ["run_splunk_search"],
             "dependencies": [],
-            "context_requirements": ["earliest_time", "latest_time"]
+            "context_requirements": ["earliest_time", "latest_time"],
         }
-        
+
         workflow["tasks"].append(new_task)
-        
+
         # Validate the edited workflow
         validation_result = self._validate_workflow_structure(workflow)
-        
+
         result = {
             "edited_workflow": workflow,
             "validation": validation_result,
             "changes_made": [
                 "Added new task: additional_analysis",
                 "Updated task dependencies",
-                "Validated workflow structure"
-            ]
+                "Validated workflow structure",
+            ],
         }
 
         await ctx.info("✅ Workflow editing completed successfully!")
         return result
 
-    def _validate_workflow_data(self, workflow_data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def _validate_workflow_data(self, workflow_data: str | dict[str, Any]) -> dict[str, Any]:
         """Validate workflow data from JSON string or dict."""
-        
+
         try:
             workflow = self._normalize_workflow_data(workflow_data)
         except ValueError as e:
@@ -394,16 +404,16 @@ You are performing additional analysis as part of the workflow.
                 "valid": False,
                 "errors": [str(e)],
                 "warnings": [],
-                "suggestions": ["Check JSON syntax and formatting"]
+                "suggestions": ["Check JSON syntax and formatting"],
             }
 
         return self._validate_workflow_structure(workflow)
 
-    def _validate_workflow_file(self, file_path: str) -> Dict[str, Any]:
+    def _validate_workflow_file(self, file_path: str) -> dict[str, Any]:
         """Validate workflow from file path."""
-        
+
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 workflow_data = f.read()
             return self._validate_workflow_data(workflow_data)
         except FileNotFoundError:
@@ -411,119 +421,113 @@ You are performing additional analysis as part of the workflow.
                 "valid": False,
                 "errors": [f"File not found: {file_path}"],
                 "warnings": [],
-                "suggestions": ["Check file path and ensure file exists"]
+                "suggestions": ["Check file path and ensure file exists"],
             }
         except Exception as e:
             return {
                 "valid": False,
                 "errors": [f"Error reading file: {str(e)}"],
                 "warnings": [],
-                "suggestions": ["Check file permissions and format"]
+                "suggestions": ["Check file permissions and format"],
             }
 
-    def _get_available_tools(self) -> Dict[str, str]:
+    def _get_available_tools(self) -> dict[str, str]:
         """Get available Splunk tools with descriptions - dynamically from tool_registry."""
         try:
             # Try to get tools dynamically from tool_registry
             from src.core.registry import tool_registry
+
             available_tools = {}
-            
+
             for tool_metadata in tool_registry.list_tools():
                 # tool_metadata is a ToolMetadata object
                 available_tools[tool_metadata.name] = tool_metadata.description
-            
+
             if available_tools:
                 return available_tools
         except (ImportError, AttributeError, Exception) as e:
             # Fallback to static list if dynamic discovery fails
             logger.warning(f"Dynamic tool discovery failed: {e}. Using static tool list.")
-        
+
         # Fallback static list (keep for backward compatibility)
         return {
             # Search Tools
             "run_splunk_search": "Execute comprehensive Splunk searches with full SPL support",
             "run_oneshot_search": "Execute quick, lightweight searches for immediate results",
             "run_saved_search": "Execute predefined saved searches",
-            
             # Metadata Tools
             "list_splunk_indexes": "Get list of available Splunk indexes",
             "list_splunk_sources": "Get list of available data sources",
             "list_splunk_sourcetypes": "Get list of available sourcetypes",
-            
             # Administrative Tools
             "get_current_user_info": "Get current user information, roles, and permissions",
             "get_splunk_health": "Check Splunk server health and connectivity status",
             "get_splunk_apps": "List installed Splunk applications",
             "get_configurations": "Retrieve Splunk configuration settings from .conf files",
-            
             # Alert Tools
             "get_alert_status": "Check alert configurations and firing status",
             "list_triggered_alerts": "List all triggered alerts in Splunk",
-            
             # KV Store Tools
             "get_kvstore_data": "Retrieve data from KV Store collections",
             "list_kvstore_collections": "List all KV Store collections",
             "create_kvstore_collection": "Create new KV Store collections",
-            
             # Workflow Tools
             "list_workflows": "List available workflows",
             "workflow_runner": "Execute workflows by ID",
-            
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
         }
 
-    def _get_context_variables(self) -> Dict[str, str]:
+    def _get_context_variables(self) -> dict[str, str]:
         """Get available context variables with descriptions - synchronized with workflow_requirements.py."""
         return {
             # Time Context
             "earliest_time": "Start time for analysis (e.g., '-24h', '2023-01-01T00:00:00')",
             "latest_time": "End time for analysis (e.g., 'now', '-1h', '@d')",
-            
             # Focus Context
             "focus_index": "Target index for focused analysis",
             "focus_host": "Target host for focused analysis",
             "focus_sourcetype": "Target sourcetype for focused analysis",
-            
             # User Context
             "complexity_level": "Analysis depth level ('basic', 'moderate', 'advanced')",
-            
             # Custom Context
             # Note: Custom context variables can be defined in default_context
-            "custom_variable_example": "Example of custom context variable from default_context"
+            "custom_variable_example": "Example of custom context variable from default_context",
         }
 
-    def _validate_workflow_structure(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_workflow_structure(self, workflow: dict[str, Any]) -> dict[str, Any]:
         """Comprehensive workflow structure validation."""
-        
+
         errors = []
         warnings = []
         suggestions = []
-        
+
         # Required field validation
         required_fields = ["workflow_id", "name", "description", "tasks"]
         for field in required_fields:
             if field not in workflow:
                 errors.append(f"Missing required field: {field}")
-        
+
         # Workflow ID validation
         if "workflow_id" in workflow:
             workflow_id = workflow["workflow_id"]
             if not re.match(r"^[a-z0-9_]+$", workflow_id):
-                errors.append("workflow_id must use snake_case format (lowercase, numbers, underscores only)")
+                errors.append(
+                    "workflow_id must use snake_case format (lowercase, numbers, underscores only)"
+                )
             if len(workflow_id) > 50:
                 errors.append("workflow_id must be 50 characters or less")
-        
+
         # Name validation
         if "name" in workflow:
             if len(workflow["name"]) > 100:
                 errors.append("name must be 100 characters or less")
-        
+
         # Description validation
         if "description" in workflow:
             if len(workflow["description"]) > 1000:
                 warnings.append("description is quite long (>1000 chars), consider shortening")
-        
+
         # Tasks validation
         if "tasks" in workflow:
             tasks = workflow["tasks"]
@@ -532,7 +536,9 @@ You are performing additional analysis as part of the workflow.
             elif len(tasks) == 0:
                 errors.append("workflow must contain at least one task")
             elif len(tasks) > 20:
-                warnings.append("workflow has many tasks (>20), consider splitting into multiple workflows")
+                warnings.append(
+                    "workflow has many tasks (>20), consider splitting into multiple workflows"
+                )
             else:
                 # Validate individual tasks
                 task_ids = set()
@@ -540,37 +546,39 @@ You are performing additional analysis as part of the workflow.
                     task_errors, task_warnings = self._validate_task(task, i)
                     errors.extend(task_errors)
                     warnings.extend(task_warnings)
-                    
+
                     # Check for duplicate task IDs
                     if "task_id" in task:
                         if task["task_id"] in task_ids:
                             errors.append(f"Duplicate task_id: {task['task_id']}")
                         task_ids.add(task["task_id"])
-                
+
                 # Validate dependencies
                 dep_errors, dep_warnings = self._validate_dependencies(tasks)
                 errors.extend(dep_errors)
                 warnings.extend(dep_warnings)
-        
+
         # Tool validation
         tool_errors, tool_warnings = self._validate_tools(workflow)
         errors.extend(tool_errors)
         warnings.extend(tool_warnings)
-        
+
         # Context validation
         context_errors, context_warnings = self._validate_context(workflow)
         errors.extend(context_errors)
         warnings.extend(context_warnings)
-        
+
         # Generate suggestions
         if not errors:
-            suggestions.extend([
-                "Consider adding comprehensive test cases",
-                "Document expected use cases and scenarios",
-                "Test with actual Splunk environment",
-                "Consider performance impact of searches"
-            ])
-        
+            suggestions.extend(
+                [
+                    "Consider adding comprehensive test cases",
+                    "Document expected use cases and scenarios",
+                    "Test with actual Splunk environment",
+                    "Consider performance impact of searches",
+                ]
+            )
+
         return {
             "valid": len(errors) == 0,
             "errors": errors,
@@ -578,25 +586,41 @@ You are performing additional analysis as part of the workflow.
             "suggestions": suggestions,
             "summary": {
                 "total_tasks": len(workflow.get("tasks", [])),
-                "unique_task_ids": len(set(task.get("task_id", "") for task in workflow.get("tasks", []))),
-                "has_dependencies": any(task.get("dependencies", []) for task in workflow.get("tasks", [])),
-                "required_tools": list(set(tool for task in workflow.get("tasks", []) for tool in task.get("required_tools", []))),
-                "context_variables": list(set(var for task in workflow.get("tasks", []) for var in task.get("context_requirements", [])))
-            }
+                "unique_task_ids": len(
+                    set(task.get("task_id", "") for task in workflow.get("tasks", []))
+                ),
+                "has_dependencies": any(
+                    task.get("dependencies", []) for task in workflow.get("tasks", [])
+                ),
+                "required_tools": list(
+                    set(
+                        tool
+                        for task in workflow.get("tasks", [])
+                        for tool in task.get("required_tools", [])
+                    )
+                ),
+                "context_variables": list(
+                    set(
+                        var
+                        for task in workflow.get("tasks", [])
+                        for var in task.get("context_requirements", [])
+                    )
+                ),
+            },
         }
 
-    def _validate_task(self, task: Dict[str, Any], index: int) -> tuple[List[str], List[str]]:
+    def _validate_task(self, task: dict[str, Any], index: int) -> tuple[list[str], list[str]]:
         """Validate individual task structure."""
-        
+
         errors = []
         warnings = []
-        
+
         # Required fields
         required_fields = ["task_id", "name", "description", "instructions"]
         for field in required_fields:
             if field not in task:
                 errors.append(f"Task {index}: Missing required field '{field}'")
-        
+
         # Task ID validation
         if "task_id" in task:
             task_id = task["task_id"]
@@ -604,60 +628,64 @@ You are performing additional analysis as part of the workflow.
                 errors.append(f"Task {index}: task_id must use snake_case format")
             if len(task_id) > 50:
                 errors.append(f"Task {index}: task_id must be 50 characters or less")
-        
+
         # Name validation
         if "name" in task:
             if len(task["name"]) > 100:
                 errors.append(f"Task {index}: name must be 100 characters or less")
-        
+
         # Description validation
         if "description" in task:
             if len(task["description"]) > 200:
                 warnings.append(f"Task {index}: description is quite long (>200 chars)")
-        
+
         # Instructions validation
         if "instructions" in task:
             instructions = task["instructions"]
             if len(instructions) < 50:
-                warnings.append(f"Task {index}: instructions seem quite brief, consider adding more detail")
+                warnings.append(
+                    f"Task {index}: instructions seem quite brief, consider adding more detail"
+                )
             if len(instructions) > 5000:
                 errors.append(f"Task {index}: instructions must be 5000 characters or less")
-            
+
             # Check for context variable usage
             if "{" not in instructions:
                 suggestions = warnings  # Use warnings list for suggestions in this context
-                suggestions.append(f"Task {index}: Consider using context variables like {{focus_index}} in instructions")
-        
+                suggestions.append(
+                    f"Task {index}: Consider using context variables like {{focus_index}} in instructions"
+                )
+
         return errors, warnings
 
-    def _validate_dependencies(self, tasks: List[Dict[str, Any]]) -> tuple[List[str], List[str]]:
+    def _validate_dependencies(self, tasks: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
         """Validate task dependencies and detect circular dependencies."""
-        
+
         errors = []
         warnings = []
-        
+
         # Build task ID map
         task_ids = {task.get("task_id") for task in tasks if "task_id" in task}
-        
+
         # Check dependency references
         for task in tasks:
             task_id = task.get("task_id", "unknown")
             dependencies = task.get("dependencies", [])
-            
+
             for dep in dependencies:
                 if dep not in task_ids:
                     errors.append(f"Task '{task_id}': dependency '{dep}' not found in workflow")
-        
+
         # Check for circular dependencies
         def has_circular_dependency(task_id: str, visited: set, rec_stack: set) -> bool:
             visited.add(task_id)
             rec_stack.add(task_id)
-            
+
             # Find task with this ID
             task = next((t for t in tasks if t.get("task_id") == task_id), None)
             if not task:
                 return False
-            
+
             dependencies = task.get("dependencies", [])
             for dep in dependencies:
                 if dep not in visited:
@@ -665,36 +693,36 @@ You are performing additional analysis as part of the workflow.
                         return True
                 elif dep in rec_stack:
                     return True
-            
+
             rec_stack.remove(task_id)
             return False
-        
+
         visited = set()
         for task in tasks:
             task_id = task.get("task_id")
             if task_id and task_id not in visited:
                 if has_circular_dependency(task_id, visited, set()):
                     errors.append(f"Circular dependency detected involving task '{task_id}'")
-        
+
         return errors, warnings
 
-    def _validate_tools(self, workflow: Dict[str, Any]) -> tuple[List[str], List[str]]:
+    def _validate_tools(self, workflow: dict[str, Any]) -> tuple[list[str], list[str]]:
         """Validate tool availability and usage."""
-        
+
         errors = []
         warnings = []
-        
+
         # Get available tools from the updated list
         available_tools = set(self._get_available_tools().keys())
-        
+
         for task in workflow.get("tasks", []):
             task_id = task.get("task_id", "unknown")
             required_tools = task.get("required_tools", [])
-            
+
             for tool in required_tools:
                 if tool not in available_tools:
                     errors.append(f"Task '{task_id}': unknown tool '{tool}'")
-            
+
             # Check if task has tools but no instructions mentioning them
             if required_tools and "instructions" in task:
                 instructions = task["instructions"]
@@ -703,64 +731,69 @@ You are performing additional analysis as part of the workflow.
                     if tool not in instructions:
                         unused_tools.append(tool)
                 if unused_tools:
-                    warnings.append(f"Task '{task_id}': tools {unused_tools} not mentioned in instructions")
-        
+                    warnings.append(
+                        f"Task '{task_id}': tools {unused_tools} not mentioned in instructions"
+                    )
+
         return errors, warnings
 
-    def _validate_context(self, workflow: Dict[str, Any]) -> tuple[List[str], List[str]]:
+    def _validate_context(self, workflow: dict[str, Any]) -> tuple[list[str], list[str]]:
         """Validate context variable usage."""
-        
+
         errors = []
         warnings = []
-        
+
         # Get available context variables
         available_context = set(self._get_context_variables().keys())
-        
+
         # Add custom context variables from default_context
         default_context = workflow.get("default_context", {})
         available_context.update(default_context.keys())
-        
+
         for task in workflow.get("tasks", []):
             task_id = task.get("task_id", "unknown")
             context_requirements = task.get("context_requirements", [])
             instructions = task.get("instructions", "")
-            
+
             # Check required context variables exist
             for var in context_requirements:
                 if var not in available_context:
                     errors.append(f"Task '{task_id}': unknown context variable '{var}'")
-            
+
             # Check for context variables used in instructions but not declared
             import re
-            used_vars = re.findall(r'\{(\w+)\}', instructions)
+
+            used_vars = re.findall(r"\{(\w+)\}", instructions)
             for var in used_vars:
                 if var not in context_requirements and var not in default_context:
-                    warnings.append(f"Task '{task_id}': context variable '{var}' used but not in context_requirements")
-        
+                    warnings.append(
+                        f"Task '{task_id}': context variable '{var}' used but not in context_requirements"
+                    )
+
         return errors, warnings
 
-    def _generate_template(self, template_type: str) -> Dict[str, Any]:
+    def _generate_template(self, template_type: str) -> dict[str, Any]:
         """Generate workflow templates for different use cases."""
-        
+
         templates = {
             "minimal": self._get_minimal_template(),
             "security": self._get_security_template(),
             "performance": self._get_performance_template(),
             "data_quality": self._get_data_quality_template(),
             "parallel": self._get_parallel_template(),
-            "sequential": self._get_sequential_template()
+            "sequential": self._get_sequential_template(),
         }
-        
+
         if template_type not in templates:
             available = ", ".join(templates.keys())
             return {
                 "error": f"Unknown template type: {template_type}",
                 "available_templates": list(templates.keys()),
-                "suggestion": f"Use one of: {available}"
+                "suggestion": f"Use one of: {available}",
             }
-        
+
         template = templates[template_type]
-        
+
         return {
             "template": template,
             "template_type": template_type,
@@ -770,16 +803,16 @@ You are performing additional analysis as part of the workflow.
                 "Modify task instructions for your specific use case",
                 "Add or remove tasks as needed",
                 "Update context requirements and tool usage",
-                "Validate the workflow before using"
+                "Validate the workflow before using",
             ],
             "next_steps": [
                 "Save as JSON file in contrib/workflows/category/",
                 "Test with dynamic troubleshoot agent",
-                "Submit pull request for community review"
-            ]
+                "Submit pull request for community review",
+            ],
         }
 
-    def _get_minimal_template(self) -> Dict[str, Any]:
+    def _get_minimal_template(self) -> dict[str, Any]:
         """Get minimal workflow template."""
         return {
             "_template_description": "Minimal workflow template with single task",
@@ -811,12 +844,12 @@ You are performing a basic system health check.
                     """,
                     "required_tools": ["get_splunk_health"],
                     "dependencies": [],
-                    "context_requirements": []
+                    "context_requirements": [],
                 }
-            ]
+            ],
         }
 
-    def _get_security_template(self) -> Dict[str, Any]:
+    def _get_security_template(self) -> dict[str, Any]:
         """Get security analysis workflow template."""
         return {
             "_template_description": "Security analysis workflow template",
@@ -852,7 +885,7 @@ You are analyzing authentication events for security threats.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": [],
-                    "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+                    "context_requirements": ["focus_index", "earliest_time", "latest_time"],
                 },
                 {
                     "task_id": "privilege_escalation_check",
@@ -882,12 +915,12 @@ You are checking for privilege escalation attempts.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": [],
-                    "context_requirements": ["focus_index", "earliest_time", "latest_time"]
-                }
-            ]
+                    "context_requirements": ["focus_index", "earliest_time", "latest_time"],
+                },
+            ],
         }
 
-    def _get_performance_template(self) -> Dict[str, Any]:
+    def _get_performance_template(self) -> dict[str, Any]:
         """Get performance analysis workflow template."""
         return {
             "_template_description": "Performance analysis workflow template",
@@ -923,7 +956,7 @@ You are analyzing system resource utilization.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": [],
-                    "context_requirements": ["earliest_time", "latest_time"]
+                    "context_requirements": ["earliest_time", "latest_time"],
                 },
                 {
                     "task_id": "search_performance_analysis",
@@ -953,12 +986,12 @@ You are analyzing search performance metrics.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": [],
-                    "context_requirements": ["earliest_time", "latest_time"]
-                }
-            ]
+                    "context_requirements": ["earliest_time", "latest_time"],
+                },
+            ],
         }
 
-    def _get_data_quality_template(self) -> Dict[str, Any]:
+    def _get_data_quality_template(self) -> dict[str, Any]:
         """Get data quality assessment workflow template."""
         return {
             "_template_description": "Data quality assessment workflow template",
@@ -995,12 +1028,12 @@ You are checking data availability and ingestion.
                     """,
                     "required_tools": ["run_splunk_search"],
                     "dependencies": [],
-                    "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+                    "context_requirements": ["focus_index", "earliest_time", "latest_time"],
                 }
-            ]
+            ],
         }
 
-    def _get_parallel_template(self) -> Dict[str, Any]:
+    def _get_parallel_template(self) -> dict[str, Any]:
         """Get parallel execution workflow template."""
         return {
             "_template_description": "Parallel task execution workflow template",
@@ -1015,16 +1048,16 @@ You are checking data availability and ingestion.
                     "instructions": "Perform comprehensive system health check using available tools.",
                     "required_tools": ["get_splunk_health"],
                     "dependencies": [],
-                    "context_requirements": []
+                    "context_requirements": [],
                 },
                 {
                     "task_id": "user_permissions_check",
-                    "name": "User Permissions Check", 
+                    "name": "User Permissions Check",
                     "description": "Verify user permissions and access",
                     "instructions": "Check current user permissions and role-based access.",
                     "required_tools": ["get_current_user_info"],
                     "dependencies": [],
-                    "context_requirements": []
+                    "context_requirements": [],
                 },
                 {
                     "task_id": "index_availability_check",
@@ -1033,12 +1066,12 @@ You are checking data availability and ingestion.
                     "instructions": "List and verify access to available Splunk indexes.",
                     "required_tools": ["list_splunk_indexes"],
                     "dependencies": [],
-                    "context_requirements": []
-                }
-            ]
+                    "context_requirements": [],
+                },
+            ],
         }
 
-    def _get_sequential_template(self) -> Dict[str, Any]:
+    def _get_sequential_template(self) -> dict[str, Any]:
         """Get sequential execution workflow template."""
         return {
             "_template_description": "Sequential task execution workflow template with dependencies",
@@ -1053,16 +1086,16 @@ You are checking data availability and ingestion.
                     "instructions": "Gather basic system information and available resources.",
                     "required_tools": ["get_splunk_health", "list_splunk_indexes"],
                     "dependencies": [],
-                    "context_requirements": []
+                    "context_requirements": [],
                 },
                 {
                     "task_id": "targeted_analysis",
-                    "name": "Targeted Analysis", 
+                    "name": "Targeted Analysis",
                     "description": "Perform analysis based on discovery results",
                     "instructions": "Based on initial discovery results, perform targeted analysis of identified areas.",
                     "required_tools": ["run_splunk_search"],
                     "dependencies": ["initial_discovery"],
-                    "context_requirements": ["focus_index", "earliest_time", "latest_time"]
+                    "context_requirements": ["focus_index", "earliest_time", "latest_time"],
                 },
                 {
                     "task_id": "recommendations",
@@ -1071,7 +1104,7 @@ You are checking data availability and ingestion.
                     "instructions": "Analyze all previous results and generate comprehensive recommendations.",
                     "required_tools": ["report_specialist_progress"],
                     "dependencies": ["targeted_analysis"],
-                    "context_requirements": []
-                }
-            ]
-        } 
+                    "context_requirements": [],
+                },
+            ],
+        }

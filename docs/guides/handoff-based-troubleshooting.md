@@ -200,7 +200,7 @@ The system tracks and optimizes context sent to specialist agents:
 ### Parameter Optimization
 - **Use Focus Areas**: Specify `focus_index` and `focus_host` when applicable
 - **Appropriate Time Ranges**: Use specific ranges for time-bounded issues
-- **Complexity Levels**: 
+- **Complexity Levels**:
   - `basic`: Quick checks and connectivity
   - `moderate`: Standard diagnostic workflow
   - `advanced`: Comprehensive analysis with detailed metrics
@@ -246,7 +246,7 @@ The system tracks and optimizes context sent to specialist agents:
 4. **Integrate with MCP Server**:
    ```python
    from src.tools.agents.dynamic_troubleshoot_agent import DynamicTroubleshootAgentTool
-   
+
    agent = DynamicTroubleshootAgentTool("dynamic_troubleshoot", "troubleshooting")
    ```
 
@@ -271,4 +271,4 @@ Specialist agents:
 - **Performance Metrics**: Execution times and turn counts
 - **Context Flow**: How diagnostic context flows between agents
 
-This handoff-based approach provides superior traceability, context optimization, and intelligent routing compared to traditional parallel execution patterns. 
+This handoff-based approach provides superior traceability, context optimization, and intelligent routing compared to traditional parallel execution patterns.

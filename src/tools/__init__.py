@@ -33,7 +33,7 @@ __all__ = [
     "ListApps",
     "ListUsers",
     "Me",
-    "GetConfigurations", 
+    "GetConfigurations",
     "ToolDescriptionEnhancer",
     # Alerts tools
     "ListTriggeredAlerts",
@@ -43,7 +43,7 @@ __all__ = [
     "CreateKvstoreCollection",
     # Workflow tools
     "WorkflowRunnerTool",
-    "ListWorkflowsTool", 
+    "ListWorkflowsTool",
     "WorkflowBuilderTool",
     "WorkflowRequirementsTool",
     "create_summarization_tool",

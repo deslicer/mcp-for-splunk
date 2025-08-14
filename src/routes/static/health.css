@@ -211,20 +211,20 @@ body {
     .status-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .splunk-connection-item {
         grid-column: span 1;
     }
-    
+
     .header h1 {
         font-size: 2rem;
     }
-    
+
     .header p {
         font-size: 1rem;
     }
-    
+
     .card {
         padding: 20px;
     }
-} 
+}

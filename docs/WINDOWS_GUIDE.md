@@ -349,4 +349,4 @@ You'll know the setup is working when you see:
 
 ---
 
-**Need more help?** Check the main [README.md](../README.md) or create an issue on GitHub! 
+**Need more help?** Check the main [README.md](../README.md) or create an issue on GitHub!

@@ -54,7 +54,7 @@ class ParallelExecutionMetrics:
 class ParallelWorkflowExecutor:
     """
     Executes workflow tasks in dependency-aware parallel phases using asyncio.gather.
-    
+
     This executor:
     1. Analyzes task dependencies to create execution phases
     2. Runs independent tasks in parallel within each phase
@@ -145,7 +145,9 @@ class ParallelWorkflowExecutor:
             if OPENAI_AGENTS_AVAILABLE and custom_span:
                 with custom_span("dependency_analysis"):
                     dependency_graph = self._build_dependency_graph(workflow.tasks)
-                    execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
+                    execution_phases = self._create_execution_phases(
+                        workflow.tasks, dependency_graph
+                    )
             else:
                 dependency_graph = self._build_dependency_graph(workflow.tasks)
                 execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
@@ -157,7 +159,9 @@ class ParallelWorkflowExecutor:
 
             # Report progress: Dependencies analyzed
             await ctx.report_progress(progress=10, total=100)
-            await ctx.info(f"📊 Analysis complete: {len(execution_phases)} phases, max {max(len(phase) for phase in execution_phases)} parallel tasks")
+            await ctx.info(
+                f"📊 Analysis complete: {len(execution_phases)} phases, max {max(len(phase) for phase in execution_phases)} parallel tasks"
+            )
 
             # Execute tasks in phases with comprehensive tracking
             all_task_results: dict[str, DiagnosticResult] = {}
@@ -170,13 +174,23 @@ class ParallelWorkflowExecutor:
                 phase_start_time = time.time()
                 phase_name = f"execution_phase_{phase_idx + 1}"
 
-                logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
-                logger.info(f"Phase {phase_idx + 1} tasks: {[task.task_id for task in phase_tasks]}")
+                logger.info(
+                    f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks"
+                )
+                logger.info(
+                    f"Phase {phase_idx + 1} tasks: {[task.task_id for task in phase_tasks]}"
+                )
 
                 # Report progress for this phase
                 phase_progress = 10 + (phase_idx * phase_progress_step)
-                await ctx.report_progress(progress=phase_progress, total=100, message=f"Starting phase {phase_idx + 1}/{len(execution_phases)}")
-                await ctx.info(f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
+                await ctx.report_progress(
+                    progress=phase_progress,
+                    total=100,
+                    message=f"Starting phase {phase_idx + 1}/{len(execution_phases)}",
+                )
+                await ctx.info(
+                    f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks"
+                )
                 await ctx.info(f"📋 Phase tasks: {[task.task_id for task in phase_tasks]}")
 
                 if OPENAI_AGENTS_AVAILABLE and custom_span:
@@ -198,17 +212,29 @@ class ParallelWorkflowExecutor:
                 tasks_per_phase.append(len(phase_tasks))
 
                 # Log phase completion
-                successful_tasks = [task_id for task_id, result in phase_results.items()
-                                  if result.status in ["healthy", "warning"]]
-                failed_tasks = [task_id for task_id, result in phase_results.items()
-                              if result.status == "error"]
+                successful_tasks = [
+                    task_id
+                    for task_id, result in phase_results.items()
+                    if result.status in ["healthy", "warning"]
+                ]
+                failed_tasks = [
+                    task_id for task_id, result in phase_results.items() if result.status == "error"
+                ]
 
-                logger.info(f"Phase {phase_idx + 1} completed in {phase_execution_time:.2f}s: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
-                await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed ({phase_execution_time:.1f}s)")
+                logger.info(
+                    f"Phase {phase_idx + 1} completed in {phase_execution_time:.2f}s: {len(successful_tasks)} successful, {len(failed_tasks)} failed"
+                )
+                await ctx.info(
+                    f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed ({phase_execution_time:.1f}s)"
+                )
 
                 # Report progress after phase completion
                 phase_completion_progress = 10 + ((phase_idx + 1) * phase_progress_step)
-                await ctx.report_progress(progress=phase_completion_progress, total=100, message=f"Completed phase {phase_idx + 1}/{len(execution_phases)}")
+                await ctx.report_progress(
+                    progress=phase_completion_progress,
+                    total=100,
+                    message=f"Completed phase {phase_idx + 1}/{len(execution_phases)}",
+                )
 
             # Report progress: Task execution complete
             await ctx.report_progress(progress=90, total=100)
@@ -220,10 +246,14 @@ class ParallelWorkflowExecutor:
                 total_execution_time=total_execution_time,
                 phase_execution_times=phase_execution_times,
                 tasks_per_phase=tasks_per_phase,
-                parallel_efficiency=self._calculate_parallel_efficiency(workflow.tasks, execution_phases),
+                parallel_efficiency=self._calculate_parallel_efficiency(
+                    workflow.tasks, execution_phases
+                ),
                 total_tasks=len(workflow.tasks),
                 total_phases=len(execution_phases),
-                successful_tasks=len([r for r in all_task_results.values() if r.status in ["healthy", "warning"]]),
+                successful_tasks=len(
+                    [r for r in all_task_results.values() if r.status in ["healthy", "warning"]]
+                ),
                 failed_tasks=len([r for r in all_task_results.values() if r.status == "error"]),
             )
 
@@ -240,7 +270,9 @@ class ParallelWorkflowExecutor:
 
             # Report final progress
             await ctx.report_progress(progress=100, total=100)
-            await ctx.info(f"✅ Parallel execution completed: {workflow_result.status} ({total_execution_time:.1f}s)")
+            await ctx.info(
+                f"✅ Parallel execution completed: {workflow_result.status} ({total_execution_time:.1f}s)"
+            )
 
             logger.info("=" * 80)
             logger.info("PARALLEL WORKFLOW EXECUTION COMPLETED SUCCESSFULLY")
@@ -248,7 +280,9 @@ class ParallelWorkflowExecutor:
             logger.info(f"Execution phases: {len(execution_phases)}")
             logger.info(f"Parallel efficiency: {execution_metrics.parallel_efficiency:.1%}")
             logger.info(f"Status: {workflow_result.status}")
-            logger.info(f"Successful tasks: {execution_metrics.successful_tasks}/{execution_metrics.total_tasks}")
+            logger.info(
+                f"Successful tasks: {execution_metrics.successful_tasks}/{execution_metrics.total_tasks}"
+            )
             logger.info("=" * 80)
 
             return workflow_result
@@ -316,7 +350,11 @@ class ParallelWorkflowExecutor:
             await ctx.info(f"🚀 Executing {len(async_tasks)} tasks in parallel...")
 
             # Report progress at start of parallel execution
-            await ctx.report_progress(progress=0, total=len(async_tasks), message=f"Starting parallel execution of {len(async_tasks)} tasks")
+            await ctx.report_progress(
+                progress=0,
+                total=len(async_tasks),
+                message=f"Starting parallel execution of {len(async_tasks)} tasks",
+            )
 
             # Use return_exceptions=True to handle individual task failures gracefully
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
@@ -324,13 +362,17 @@ class ParallelWorkflowExecutor:
             # Process results
             successful_tasks = 0
             failed_tasks = 0
-            
+
             for i, result in enumerate(results):
                 task_def = task_definitions[i]
                 task_id = task_def.task_id
 
                 # Report progress for each completed task
-                await ctx.report_progress(progress=i + 1, total=len(async_tasks), message=f"Completed task {task_id} ({task_def.name})")
+                await ctx.report_progress(
+                    progress=i + 1,
+                    total=len(async_tasks),
+                    message=f"Completed task {task_id} ({task_def.name})",
+                )
 
                 if isinstance(result, Exception):
                     logger.error(f"Task {task_id} failed with exception: {result}")
@@ -352,8 +394,14 @@ class ParallelWorkflowExecutor:
                     await ctx.info(f"✅ Task {task_id} completed: {result.status}")
 
             # Report phase completion
-            await ctx.info(f"🎯 Phase completed: {successful_tasks} successful, {failed_tasks} failed")
-            await ctx.report_progress(progress=len(async_tasks), total=len(async_tasks), message=f"Phase completed: {successful_tasks} successful, {failed_tasks} failed")
+            await ctx.info(
+                f"🎯 Phase completed: {successful_tasks} successful, {failed_tasks} failed"
+            )
+            await ctx.report_progress(
+                progress=len(async_tasks),
+                total=len(async_tasks),
+                message=f"Phase completed: {successful_tasks} successful, {failed_tasks} failed",
+            )
 
         return phase_results
 
@@ -403,10 +451,7 @@ class ParallelWorkflowExecutor:
         try:
             # Inject dependency results and context into instructions
             enhanced_instructions = self._inject_dependency_context(
-                task.instructions,
-                task.dependencies,
-                completed_results,
-                diagnostic_context
+                task.instructions, task.dependencies, completed_results, diagnostic_context
             )
 
             # Update agent instructions with enhanced context
@@ -419,7 +464,9 @@ class ParallelWorkflowExecutor:
                 await ctx.info(f"📋 Task {task.task_id} has no dependencies")
 
             # Report agent execution start
-            await ctx.report_progress(progress=0, total=1, message=f"Starting agent execution for {task.task_id}")
+            await ctx.report_progress(
+                progress=0, total=1, message=f"Starting agent execution for {task.task_id}"
+            )
 
             # Execute the agent
             if OPENAI_AGENTS_AVAILABLE and custom_span:
@@ -437,7 +484,9 @@ class ParallelWorkflowExecutor:
             await ctx.info(f"✅ Task {task.task_id} completed: {diagnostic_result.status}")
 
             # Report agent execution completion
-            await ctx.report_progress(progress=1, total=1, message=f"Completed agent execution for {task.task_id}")
+            await ctx.report_progress(
+                progress=1, total=1, message=f"Completed agent execution for {task.task_id}"
+            )
 
             # Report key findings if any
             if diagnostic_result.findings:
@@ -449,7 +498,9 @@ class ParallelWorkflowExecutor:
         except Exception as e:
             logger.error(f"Agent execution failed for task {task.task_id}: {e}", exc_info=True)
             await ctx.error(f"❌ Task {task.task_id} execution failed: {str(e)}")
-            await ctx.report_progress(progress=1, total=1, message=f"Failed agent execution for {task.task_id}")
+            await ctx.report_progress(
+                progress=1, total=1, message=f"Failed agent execution for {task.task_id}"
+            )
             raise
 
     def _inject_dependency_context(
@@ -464,21 +515,44 @@ class ParallelWorkflowExecutor:
         enhanced_instructions = base_instructions
 
         # Inject diagnostic context variables
-        enhanced_instructions = enhanced_instructions.replace("{earliest_time}", diagnostic_context.earliest_time)
-        enhanced_instructions = enhanced_instructions.replace("{latest_time}", diagnostic_context.latest_time)
-        enhanced_instructions = enhanced_instructions.replace("{focus_index}", diagnostic_context.focus_index or "all indexes")
-        enhanced_instructions = enhanced_instructions.replace("{focus_host}", diagnostic_context.focus_host or "all hosts")
-        enhanced_instructions = enhanced_instructions.replace("{focus_sourcetype}", diagnostic_context.focus_sourcetype or "all sourcetypes")
-        enhanced_instructions = enhanced_instructions.replace("{problem_description}", diagnostic_context.problem_description or "No specific problem description provided")
-        enhanced_instructions = enhanced_instructions.replace("{workflow_type}", diagnostic_context.workflow_type or "unknown")
-        enhanced_instructions = enhanced_instructions.replace("{complexity_level}", diagnostic_context.complexity_level)
+        enhanced_instructions = enhanced_instructions.replace(
+            "{earliest_time}", diagnostic_context.earliest_time
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{latest_time}", diagnostic_context.latest_time
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{focus_index}", diagnostic_context.focus_index or "all indexes"
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{focus_host}", diagnostic_context.focus_host or "all hosts"
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{focus_sourcetype}", diagnostic_context.focus_sourcetype or "all sourcetypes"
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{problem_description}",
+            diagnostic_context.problem_description or "No specific problem description provided",
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{workflow_type}", diagnostic_context.workflow_type or "unknown"
+        )
+        enhanced_instructions = enhanced_instructions.replace(
+            "{complexity_level}", diagnostic_context.complexity_level
+        )
 
         if diagnostic_context.indexes:
-            enhanced_instructions = enhanced_instructions.replace("{indexes}", ", ".join(diagnostic_context.indexes))
+            enhanced_instructions = enhanced_instructions.replace(
+                "{indexes}", ", ".join(diagnostic_context.indexes)
+            )
         if diagnostic_context.sourcetypes:
-            enhanced_instructions = enhanced_instructions.replace("{sourcetypes}", ", ".join(diagnostic_context.sourcetypes))
+            enhanced_instructions = enhanced_instructions.replace(
+                "{sourcetypes}", ", ".join(diagnostic_context.sourcetypes)
+            )
         if diagnostic_context.sources:
-            enhanced_instructions = enhanced_instructions.replace("{sources}", ", ".join(diagnostic_context.sources))
+            enhanced_instructions = enhanced_instructions.replace(
+                "{sources}", ", ".join(diagnostic_context.sources)
+            )
 
         # Inject dependency results if available
         if dependencies and completed_results:
@@ -497,7 +571,13 @@ class ParallelWorkflowExecutor:
 
                     # Include important details
                     if dep_result.details:
-                        important_keys = ["user_info", "license_state", "total_events", "available_indexes", "server_info"]
+                        important_keys = [
+                            "user_info",
+                            "license_state",
+                            "total_events",
+                            "available_indexes",
+                            "server_info",
+                        ]
                         for key in important_keys:
                             if key in dep_result.details:
                                 dependency_context += f"  - {key}: {dep_result.details[key]}\n"
@@ -512,7 +592,9 @@ class ParallelWorkflowExecutor:
         enhanced_instructions += f"- Complexity Level: {diagnostic_context.complexity_level}\n"
 
         if diagnostic_context.problem_description:
-            enhanced_instructions += f"- Original Problem: {diagnostic_context.problem_description}\n"
+            enhanced_instructions += (
+                f"- Original Problem: {diagnostic_context.problem_description}\n"
+            )
         if diagnostic_context.workflow_type:
             enhanced_instructions += f"- Workflow Type: {diagnostic_context.workflow_type}\n"
         if diagnostic_context.focus_index:
@@ -524,11 +606,17 @@ class ParallelWorkflowExecutor:
 
         return enhanced_instructions
 
-    def _parse_agent_result_to_diagnostic(self, agent_result: Any, task: TaskDefinition) -> DiagnosticResult:
+    def _parse_agent_result_to_diagnostic(
+        self, agent_result: Any, task: TaskDefinition
+    ) -> DiagnosticResult:
         """Convert agent execution result to DiagnosticResult format."""
 
         # Extract output from agent result
-        output = agent_result.final_output if hasattr(agent_result, 'final_output') else str(agent_result)
+        output = (
+            agent_result.final_output
+            if hasattr(agent_result, "final_output")
+            else str(agent_result)
+        )
 
         # Parse the output to extract structured information
         # This is a simplified parser - in practice, you might want more sophisticated parsing
@@ -537,7 +625,7 @@ class ParallelWorkflowExecutor:
         status = "completed"
 
         # Simple heuristic-based parsing
-        lines = output.split('\n')
+        lines = output.split("\n")
         current_section = None
 
         for line in lines:
@@ -546,17 +634,19 @@ class ParallelWorkflowExecutor:
                 continue
 
             # Detect sections
-            if 'finding' in line.lower() or 'issue' in line.lower():
-                current_section = 'findings'
-                if line.startswith('-') or line.startswith('•'):
+            if "finding" in line.lower() or "issue" in line.lower():
+                current_section = "findings"
+                if line.startswith("-") or line.startswith("•"):
                     findings.append(line[1:].strip())
-            elif 'recommend' in line.lower() or 'action' in line.lower():
-                current_section = 'recommendations'
-                if line.startswith('-') or line.startswith('•'):
+            elif "recommend" in line.lower() or "action" in line.lower():
+                current_section = "recommendations"
+                if line.startswith("-") or line.startswith("•"):
                     recommendations.append(line[1:].strip())
-            elif current_section == 'findings' and (line.startswith('-') or line.startswith('•')):
+            elif current_section == "findings" and (line.startswith("-") or line.startswith("•")):
                 findings.append(line[1:].strip())
-            elif current_section == 'recommendations' and (line.startswith('-') or line.startswith('•')):
+            elif current_section == "recommendations" and (
+                line.startswith("-") or line.startswith("•")
+            ):
                 recommendations.append(line[1:].strip())
 
         # Determine status based on output content - improved logic to reduce false positives
@@ -564,21 +654,40 @@ class ParallelWorkflowExecutor:
 
         # Check for actual error indicators (more specific patterns)
         error_patterns = [
-            'fatal error', 'execution failed', 'search failed', 'connection failed',
-            'authentication failed', 'permission denied', 'access denied',
-            'critical error', 'severe error', 'exception:', 'traceback'
+            "fatal error",
+            "execution failed",
+            "search failed",
+            "connection failed",
+            "authentication failed",
+            "permission denied",
+            "access denied",
+            "critical error",
+            "severe error",
+            "exception:",
+            "traceback",
         ]
 
         # Check for warning indicators (more specific patterns)
         warning_patterns = [
-            'warning:', 'potential issue', 'configuration issue', 'performance issue',
-            'deprecated', 'missing configuration', 'timeout occurred', 'partial failure'
+            "warning:",
+            "potential issue",
+            "configuration issue",
+            "performance issue",
+            "deprecated",
+            "missing configuration",
+            "timeout occurred",
+            "partial failure",
         ]
 
         # Check for successful completion indicators
         success_patterns = [
-            'analysis completed', 'check completed', 'verification completed',
-            'successfully', 'no issues found', 'working properly', 'healthy'
+            "analysis completed",
+            "check completed",
+            "verification completed",
+            "successfully",
+            "no issues found",
+            "working properly",
+            "healthy",
         ]
 
         # Determine status based on specific patterns rather than broad keywords
@@ -591,8 +700,12 @@ class ParallelWorkflowExecutor:
         else:
             # Default to healthy for neutral/informational outputs
             # Only mark as warning if there are actual actionable issues mentioned
-            if ('no data found' in output_lower or 'zero results' in output_lower or
-                'missing' in output_lower and 'configuration' in output_lower):
+            if (
+                "no data found" in output_lower
+                or "zero results" in output_lower
+                or "missing" in output_lower
+                and "configuration" in output_lower
+            ):
                 status = "warning"
             else:
                 status = "healthy"
@@ -622,12 +735,14 @@ class ParallelWorkflowExecutor:
             return None
 
         @function_tool
-        async def run_splunk_search(query: str, earliest_time: str = "-24h", latest_time: str = "now") -> str:
+        async def run_splunk_search(
+            query: str, earliest_time: str = "-24h", latest_time: str = "now"
+        ) -> str:
             """Execute a Splunk search query."""
             try:
                 result = await self.tool_registry.call_tool(
                     "run_splunk_search",
-                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
+                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time},
                 )
                 if result.get("success"):
                     return str(result.get("data", ""))
@@ -644,7 +759,12 @@ class ParallelWorkflowExecutor:
             return None
 
         @function_tool
-        async def run_oneshot_search(query: str, earliest_time: str = "-15m", latest_time: str = "now", max_results: int = 100) -> str:
+        async def run_oneshot_search(
+            query: str,
+            earliest_time: str = "-15m",
+            latest_time: str = "now",
+            max_results: int = 100,
+        ) -> str:
             """Execute a quick Splunk oneshot search."""
             try:
                 result = await self.tool_registry.call_tool(
@@ -654,7 +774,7 @@ class ParallelWorkflowExecutor:
                         "earliest_time": earliest_time,
                         "latest_time": latest_time,
                         "max_results": max_results,
-                    }
+                    },
                 )
                 if result.get("success"):
                     return str(result.get("data", ""))
@@ -796,11 +916,15 @@ class ParallelWorkflowExecutor:
                 phases.append(remaining_tasks)
                 break
 
-            logger.debug(f"Phase {phase_num}: {len(ready_tasks)} tasks ready - {[t.task_id for t in ready_tasks]}")
+            logger.debug(
+                f"Phase {phase_num}: {len(ready_tasks)} tasks ready - {[t.task_id for t in ready_tasks]}"
+            )
             phases.append(ready_tasks)
             completed.update([task.task_id for task in ready_tasks])
 
-            logger.debug(f"Phase {phase_num} completed. Total completed: {len(completed)}/{len(task_ids)}")
+            logger.debug(
+                f"Phase {phase_num} completed. Total completed: {len(completed)}/{len(task_ids)}"
+            )
 
         logger.debug(f"Execution phases created: {len(phases)} phases total")
         for i, phase in enumerate(phases):
@@ -882,7 +1006,9 @@ class ParallelWorkflowExecutor:
         logger.info(f"Tasks completed: {len(task_results)}")
         logger.info(f"Execution phases: {len(execution_phases)}")
         logger.info(f"Parallel efficiency: {execution_metrics.parallel_efficiency:.1%}")
-        logger.info(f"Successful tasks: {execution_metrics.successful_tasks}/{execution_metrics.total_tasks}")
+        logger.info(
+            f"Successful tasks: {execution_metrics.successful_tasks}/{execution_metrics.total_tasks}"
+        )
         logger.info("=" * 80)
 
         return result
@@ -981,9 +1107,18 @@ class ParallelWorkflowExecutor:
             "key_findings": all_findings[:10],  # Top 10 findings
             "recommendations": unique_recommendations,
             "performance_metrics": {
-                "fastest_phase": min(execution_metrics.phase_execution_times) if execution_metrics.phase_execution_times else 0,
-                "slowest_phase": max(execution_metrics.phase_execution_times) if execution_metrics.phase_execution_times else 0,
-                "average_phase_time": sum(execution_metrics.phase_execution_times) / len(execution_metrics.phase_execution_times) if execution_metrics.phase_execution_times else 0,
-                "max_parallel_tasks": max(execution_metrics.tasks_per_phase) if execution_metrics.tasks_per_phase else 0,
+                "fastest_phase": min(execution_metrics.phase_execution_times)
+                if execution_metrics.phase_execution_times
+                else 0,
+                "slowest_phase": max(execution_metrics.phase_execution_times)
+                if execution_metrics.phase_execution_times
+                else 0,
+                "average_phase_time": sum(execution_metrics.phase_execution_times)
+                / len(execution_metrics.phase_execution_times)
+                if execution_metrics.phase_execution_times
+                else 0,
+                "max_parallel_tasks": max(execution_metrics.tasks_per_phase)
+                if execution_metrics.tasks_per_phase
+                else 0,
             },
         }

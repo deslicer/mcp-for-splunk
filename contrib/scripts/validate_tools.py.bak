@@ -56,23 +56,19 @@ class ToolValidator:
 
     def _get_results(self) -> dict[str, list[str]]:
         """Get validation results."""
-        return {
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'info': self.info
-        }
+        return {"errors": self.errors, "warnings": self.warnings, "info": self.info}
 
     def _validate_imports(self, tree: ast.AST, content: str):
         """Validate required imports."""
         # Check for essential imports (more flexible)
         import_checks = [
-            ('typing', 'Any and Dict types'),
-            ('fastmcp', 'Context'),
-            ('src.core.base', 'BaseTool and ToolMetadata')
+            ("typing", "Any and Dict types"),
+            ("fastmcp", "Context"),
+            ("src.core.base", "BaseTool and ToolMetadata"),
         ]
-        
+
         for module, description in import_checks:
-            if f'from {module} import' not in content and f'import {module}' not in content:
+            if f"from {module} import" not in content and f"import {module}" not in content:
                 self.errors.append(f"Missing required import from {module} ({description})")
 
         # Check for proper import organization
@@ -92,7 +88,7 @@ class ToolValidator:
             if isinstance(node, ast.ClassDef):
                 # Check if it inherits from BaseTool
                 for base in node.bases:
-                    if isinstance(base, ast.Name) and base.id == 'BaseTool':
+                    if isinstance(base, ast.Name) and base.id == "BaseTool":
                         tool_classes.append(node)
                         break
 
@@ -101,13 +97,15 @@ class ToolValidator:
             return
 
         if len(tool_classes) > 1:
-            self.warnings.append(f"Multiple BaseTool classes found: {[cls.name for cls in tool_classes]}")
+            self.warnings.append(
+                f"Multiple BaseTool classes found: {[cls.name for cls in tool_classes]}"
+            )
 
         # Validate the main tool class
         main_class = tool_classes[0]
 
         # Check class name ends with 'Tool'
-        if not main_class.name.endswith('Tool'):
+        if not main_class.name.endswith("Tool"):
             self.warnings.append(f"Class name '{main_class.name}' should end with 'Tool'")
 
         # Check for docstring
@@ -121,7 +119,7 @@ class ToolValidator:
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == 'METADATA':
+                    if isinstance(target, ast.Name) and target.id == "METADATA":
                         has_metadata = True
                         break
 
@@ -130,13 +128,13 @@ class ToolValidator:
             return
 
         # Check metadata structure
-        required_metadata_fields = ['name', 'description', 'category']
+        required_metadata_fields = ["name", "description", "category"]
         for field in required_metadata_fields:
-            if f'{field}=' not in content:
+            if f"{field}=" not in content:
                 self.warnings.append(f"METADATA might be missing '{field}' field")
 
         # Check category validity
-        valid_categories = ['examples', 'security', 'devops', 'analytics']
+        valid_categories = ["examples", "security", "devops", "analytics"]
         category_found = False
         for category in valid_categories:
             if f'category="{category}"' in content:
@@ -151,7 +149,7 @@ class ToolValidator:
         execute_methods = []
 
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == 'execute':
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == "execute":
                 execute_methods.append(node)
 
         if not execute_methods:
@@ -167,7 +165,7 @@ class ToolValidator:
         args = execute_method.args.args
         if len(args) < 2:  # self, ctx
             self.errors.append("execute method must have at least (self, ctx) parameters")
-        elif args[1].arg != 'ctx':
+        elif args[1].arg != "ctx":
             self.warnings.append("Second parameter should be named 'ctx'")
 
         # Check for async
@@ -186,7 +184,7 @@ class ToolValidator:
         """Validate naming conventions."""
         # File name should be snake_case
         filename = tool_file.stem
-        if not filename.islower() or '-' in filename:
+        if not filename.islower() or "-" in filename:
             self.warnings.append(f"File name '{filename}' should be snake_case")
 
         # Find the main class
@@ -194,7 +192,7 @@ class ToolValidator:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 for base in node.bases:
-                    if isinstance(base, ast.Name) and base.id == 'BaseTool':
+                    if isinstance(base, ast.Name) and base.id == "BaseTool":
                         tool_classes.append(node)
                         break
 
@@ -212,13 +210,15 @@ class ToolValidator:
             self.warnings.append("Module missing docstring")
 
         # Check for type hints
-        if 'typing' not in content:
+        if "typing" not in content:
             self.warnings.append("Consider adding type hints")
 
         # Check for TODO comments
-        todo_count = content.count('TODO')
+        todo_count = content.count("TODO")
         if todo_count > 5:
-            self.warnings.append(f"Many TODO comments found ({todo_count}) - consider completing implementation")
+            self.warnings.append(
+                f"Many TODO comments found ({todo_count}) - consider completing implementation"
+            )
 
     def _validate_error_handling(self, tree: ast.AST, content: str):
         """Validate error handling."""
@@ -233,18 +233,22 @@ class ToolValidator:
             self.warnings.append("No try-except blocks found - consider adding error handling")
 
         # Check for proper error response formatting
-        if 'format_error_response' not in content:
-            self.warnings.append("Consider using format_error_response for consistent error handling")
+        if "format_error_response" not in content:
+            self.warnings.append(
+                "Consider using format_error_response for consistent error handling"
+            )
 
-        if 'format_success_response' not in content:
-            self.warnings.append("Consider using format_success_response for consistent response formatting")
+        if "format_success_response" not in content:
+            self.warnings.append(
+                "Consider using format_success_response for consistent response formatting"
+            )
 
     def _validate_test_file(self, tool_file: Path):
         """Validate corresponding test file."""
         # Construct expected test file path
         tool_path_str = str(tool_file)
-        test_path_str = tool_path_str.replace('contrib/tools/', 'tests/contrib/')
-        test_path_str = test_path_str.replace(tool_file.name, f'test_{tool_file.name}')
+        test_path_str = tool_path_str.replace("contrib/tools/", "tests/contrib/")
+        test_path_str = test_path_str.replace(tool_file.name, f"test_{tool_file.name}")
         test_file = Path(test_path_str)
 
         if not test_file.exists():
@@ -256,13 +260,15 @@ class ToolValidator:
                 test_content = f.read()
 
             # Basic test validation
-            if 'pytest' not in test_content:
+            if "pytest" not in test_content:
                 self.warnings.append("Test file should use pytest")
 
-            if '@pytest.mark.asyncio' not in test_content:
-                self.warnings.append("Test file should include async tests with @pytest.mark.asyncio")
+            if "@pytest.mark.asyncio" not in test_content:
+                self.warnings.append(
+                    "Test file should include async tests with @pytest.mark.asyncio"
+                )
 
-            if 'def test_' not in test_content:
+            if "def test_" not in test_content:
                 self.warnings.append("Test file should contain test methods (def test_*)")
 
         except Exception as e:
@@ -279,14 +285,15 @@ def validate_all_tools(contrib_dir: Path) -> dict[str, dict[str, list[str]]]:
         return results
 
     for category_dir in tools_dir.iterdir():
-        if not category_dir.is_dir() or category_dir.name.startswith('.'):
+        if not category_dir.is_dir() or category_dir.name.startswith("."):
             continue
 
         for tool_file in category_dir.iterdir():
-            if (tool_file.is_file() and
-                tool_file.suffix == '.py' and
-                not tool_file.name.startswith('_')):
-
+            if (
+                tool_file.is_file()
+                and tool_file.suffix == ".py"
+                and not tool_file.name.startswith("_")
+            ):
                 tool_key = f"{category_dir.name}/{tool_file.name}"
                 results[tool_key] = validator.validate_tool(tool_file)
 
@@ -300,8 +307,8 @@ def print_validation_results(results: dict[str, dict[str, list[str]]]):
     print("=" * 80)
 
     total_tools = len(results)
-    tools_with_errors = sum(1 for r in results.values() if r['errors'])
-    tools_with_warnings = sum(1 for r in results.values() if r['warnings'])
+    tools_with_errors = sum(1 for r in results.values() if r["errors"])
+    tools_with_warnings = sum(1 for r in results.values() if r["warnings"])
 
     print(f"\nValidated {total_tools} tools:")
     print(f"  • {total_tools - tools_with_errors} tools passed validation")
@@ -309,9 +316,9 @@ def print_validation_results(results: dict[str, dict[str, list[str]]]):
     print(f"  • {tools_with_warnings} tools with warnings")
 
     for tool_name, result in results.items():
-        errors = result['errors']
-        warnings = result['warnings']
-        info = result['info']
+        errors = result["errors"]
+        warnings = result["warnings"]
+        info = result["info"]
 
         if errors or warnings:
             print(f"\n📁 {tool_name}")
@@ -352,7 +359,7 @@ def main():
         results = validate_all_tools(contrib_dir)
         print_validation_results(results)
     elif len(sys.argv) == 2:
-        if sys.argv[1] == '--help':
+        if sys.argv[1] == "--help":
             print("Usage:")
             print("  python validate_tools.py              - Validate all tools")
             print("  python validate_tools.py <tool_path>  - Validate specific tool")
@@ -366,17 +373,17 @@ def main():
             print(f"Validation results for: {tool_path}")
             print("=" * 60)
 
-            if result['errors']:
+            if result["errors"]:
                 print("❌ ERRORS:")
-                for error in result['errors']:
+                for error in result["errors"]:
                     print(f"   • {error}")
 
-            if result['warnings']:
+            if result["warnings"]:
                 print("⚠️  WARNINGS:")
-                for warning in result['warnings']:
+                for warning in result["warnings"]:
                     print(f"   • {warning}")
 
-            if not result['errors'] and not result['warnings']:
+            if not result["errors"] and not result["warnings"]:
                 print("✅ All checks passed!")
     else:
         print("Invalid arguments. Use --help for usage information.")

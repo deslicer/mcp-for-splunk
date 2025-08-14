@@ -9,7 +9,7 @@ It includes comprehensive tracing, parallel orchestration, and results analysis.
 import logging
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import Context
 from openai import OpenAI
@@ -74,9 +74,9 @@ class DynamicTroubleshootAgentTool(BaseTool):
     """
     Dynamic Splunk Troubleshooting Agent for Comprehensive Problem Analysis.
 
-    This tool provides intelligent troubleshooting capabilities for Splunk environments by 
+    This tool provides intelligent troubleshooting capabilities for Splunk environments by
     automatically analyzing problem descriptions and executing appropriate diagnostic workflows.
-    It combines systematic troubleshooting methodologies with AI-powered analysis to identify 
+    It combines systematic troubleshooting methodologies with AI-powered analysis to identify
     root causes and provide actionable recommendations.
 
     ## Key Features:
@@ -117,28 +117,28 @@ class DynamicTroubleshootAgentTool(BaseTool):
 
     ## Parameters:
 
-    - **problem_description** (str, required): Detailed description of the Splunk issue or symptoms. 
+    - **problem_description** (str, required): Detailed description of the Splunk issue or symptoms.
       Be specific about error messages, expected vs actual behavior, and affected components.
 
-    - **earliest_time** (str, optional): Start time for diagnostic searches in Splunk time format. 
+    - **earliest_time** (str, optional): Start time for diagnostic searches in Splunk time format.
       Examples: "-24h", "-7d@d", "2023-01-01T00:00:00". Default: "-24h"
 
-    - **latest_time** (str, optional): End time for diagnostic searches in Splunk time format. 
+    - **latest_time** (str, optional): End time for diagnostic searches in Splunk time format.
       Examples: "now", "-1h", "@d", "2023-01-01T23:59:59". Default: "now"
 
-    - **focus_index** (str, optional): Specific Splunk index to focus the analysis on. 
+    - **focus_index** (str, optional): Specific Splunk index to focus the analysis on.
       Useful when the problem is isolated to a particular data source.
 
-    - **focus_host** (str, optional): Specific host or server to focus the analysis on. 
+    - **focus_host** (str, optional): Specific host or server to focus the analysis on.
       Helpful for distributed environment troubleshooting.
 
-    - **focus_sourcetype** (str, optional): Specific sourcetype to focus the analysis on. 
+    - **focus_sourcetype** (str, optional): Specific sourcetype to focus the analysis on.
       Useful when the problem is related to a particular data format or source type.
 
-    - **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced". 
+    - **complexity_level** (str, optional): Analysis depth level. Options: "basic", "moderate", "advanced".
       Affects the comprehensiveness of diagnostic checks. Default: "moderate"
 
-    - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "auto". 
+    - **workflow_type** (str, optional): Force a specific workflow type. Options: "missing_data", "performance", "auto".
       Default: "auto" (automatic detection based on problem description)
 
     ## How It Works:
@@ -205,7 +205,9 @@ This tool intelligently analyzes Splunk issues and executes systematic diagnosti
         super().__init__(name, self.METADATA.description)
         self.category = category
 
-        logger.info(f"Initializing Enhanced DynamicTroubleshootAgentTool with Parallel Execution: {name}")
+        logger.info(
+            f"Initializing Enhanced DynamicTroubleshootAgentTool with Parallel Execution: {name}"
+        )
 
         if not OPENAI_AGENTS_AVAILABLE:
             logger.error("OpenAI agents SDK is required for parallel execution and tracing")
@@ -235,7 +237,9 @@ This tool intelligently analyzes Splunk issues and executes systematic diagnosti
         logger.info("Setting up parallel execution system...")
         self._setup_parallel_execution()
 
-        logger.info("Enhanced DynamicTroubleshootAgentTool with Parallel Execution initialization complete")
+        logger.info(
+            "Enhanced DynamicTroubleshootAgentTool with Parallel Execution initialization complete"
+        )
 
     def _load_config(self):
         """Load OpenAI configuration from environment variables."""
@@ -280,17 +284,23 @@ This tool intelligently analyzes Splunk issues and executes systematic diagnosti
 
         # Create workflow manager for workflow definitions
         logger.info("Initializing workflow manager...")
-        self.workflow_manager = WorkflowManager(config=self.config, tool_registry=self.tool_registry)
+        self.workflow_manager = WorkflowManager(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Workflow manager initialized with predefined workflows")
 
         # Create parallel workflow executor
         logger.info("Initializing parallel workflow executor...")
-        self.parallel_executor = ParallelWorkflowExecutor(config=self.config, tool_registry=self.tool_registry)
+        self.parallel_executor = ParallelWorkflowExecutor(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Parallel workflow executor initialized")
 
         # Create summarization tool
         logger.info("Initializing summarization tool...")
-        self.summarization_tool = create_summarization_tool(config=self.config, tool_registry=self.tool_registry)
+        self.summarization_tool = create_summarization_tool(
+            config=self.config, tool_registry=self.tool_registry
+        )
         logger.info("Summarization tool initialized")
 
         logger.info("Parallel execution system setup complete")
@@ -505,18 +515,24 @@ Focus on providing actionable insights that address the original problem while c
                         "focus_index": diagnostic_context.focus_index,
                         "focus_host": diagnostic_context.focus_host,
                         "complexity_level": diagnostic_context.complexity_level,
-                        "indexes_count": len(diagnostic_context.indexes) if diagnostic_context.indexes else 0,
-                        "sourcetypes_count": len(diagnostic_context.sourcetypes) if diagnostic_context.sourcetypes else 0,
-                        "sources_count": len(diagnostic_context.sources) if diagnostic_context.sources else 0,
+                        "indexes_count": len(diagnostic_context.indexes)
+                        if diagnostic_context.indexes
+                        else 0,
+                        "sourcetypes_count": len(diagnostic_context.sourcetypes)
+                        if diagnostic_context.sourcetypes
+                        else 0,
+                        "sources_count": len(diagnostic_context.sources)
+                        if diagnostic_context.sources
+                        else 0,
                     },
                     "instructions_length": len(orchestration_input) - len(problem_description),
-                }
+                },
             },
             "agent_context": {
                 "parallel_execution_enabled": True,
-                "workflow_manager_available": hasattr(self, 'workflow_manager'),
-                "parallel_executor_available": hasattr(self, 'parallel_executor'),
-                "summarization_tool_available": hasattr(self, 'summarization_tool'),
+                "workflow_manager_available": hasattr(self, "workflow_manager"),
+                "parallel_executor_available": hasattr(self, "parallel_executor"),
+                "summarization_tool_available": hasattr(self, "summarization_tool"),
                 "orchestrating_agent_model": self.config.model,
                 "orchestrating_agent_temperature": self.config.temperature,
             },
@@ -526,29 +542,47 @@ Focus on providing actionable insights that address the original problem while c
                 "custom_span_available": OPENAI_AGENTS_AVAILABLE and custom_span is not None,
             },
             "context_optimization": {
-                "problem_description_ratio": len(problem_description) / len(orchestration_input) if orchestration_input else 0,
-                "context_efficiency_score": self._calculate_context_efficiency(orchestration_input, diagnostic_context),
-                "recommendations": self._get_context_optimization_recommendations(orchestration_input, diagnostic_context),
-            }
+                "problem_description_ratio": len(problem_description) / len(orchestration_input)
+                if orchestration_input
+                else 0,
+                "context_efficiency_score": self._calculate_context_efficiency(
+                    orchestration_input, diagnostic_context
+                ),
+                "recommendations": self._get_context_optimization_recommendations(
+                    orchestration_input, diagnostic_context
+                ),
+            },
         }
 
         # Log context inspection for debugging
         logger.info("=" * 80)
         logger.info("AGENT CONTEXT INSPECTION")
         logger.info("=" * 80)
-        logger.info(f"Total orchestration input length: {context_inspection['orchestration_input']['total_length']} characters")
-        logger.info(f"Problem description length: {context_inspection['orchestration_input']['sections']['problem_description_length']} characters")
-        logger.info(f"Parallel execution enabled: {context_inspection['agent_context']['parallel_execution_enabled']}")
-        logger.info(f"Workflow manager available: {context_inspection['agent_context']['workflow_manager_available']}")
-        logger.info(f"Context efficiency score: {context_inspection['context_optimization']['context_efficiency_score']:.2f}")
+        logger.info(
+            f"Total orchestration input length: {context_inspection['orchestration_input']['total_length']} characters"
+        )
+        logger.info(
+            f"Problem description length: {context_inspection['orchestration_input']['sections']['problem_description_length']} characters"
+        )
+        logger.info(
+            f"Parallel execution enabled: {context_inspection['agent_context']['parallel_execution_enabled']}"
+        )
+        logger.info(
+            f"Workflow manager available: {context_inspection['agent_context']['workflow_manager_available']}"
+        )
+        logger.info(
+            f"Context efficiency score: {context_inspection['context_optimization']['context_efficiency_score']:.2f}"
+        )
         logger.info("Context optimization recommendations:")
-        for rec in context_inspection['context_optimization']['recommendations']:
+        for rec in context_inspection["context_optimization"]["recommendations"]:
             logger.info(f"  - {rec}")
         logger.info("=" * 80)
 
         return context_inspection
 
-    def _calculate_context_efficiency(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> float:
+    def _calculate_context_efficiency(
+        self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext
+    ) -> float:
         """Calculate a context efficiency score (0-1) based on information density."""
 
         if not orchestration_input:
@@ -586,31 +620,45 @@ Focus on providing actionable insights that address the original problem while c
 
         return sum(factors) / len(factors)
 
-    def _get_context_optimization_recommendations(self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext) -> list[str]:
+    def _get_context_optimization_recommendations(
+        self, orchestration_input: str, diagnostic_context: SplunkDiagnosticContext
+    ) -> list[str]:
         """Get recommendations for optimizing context sent to agents."""
 
         recommendations = []
 
         # Check input length
         if len(orchestration_input) > 5000:
-            recommendations.append("Consider reducing orchestration input length for better agent performance")
+            recommendations.append(
+                "Consider reducing orchestration input length for better agent performance"
+            )
         elif len(orchestration_input) < 300:
-            recommendations.append("Consider adding more context details for better agent understanding")
+            recommendations.append(
+                "Consider adding more context details for better agent understanding"
+            )
 
         # Check context specificity
         if not diagnostic_context.focus_index and not diagnostic_context.focus_host:
-            recommendations.append("Consider specifying focus_index or focus_host for more targeted analysis")
+            recommendations.append(
+                "Consider specifying focus_index or focus_host for more targeted analysis"
+            )
 
         if not diagnostic_context.indexes:
-            recommendations.append("Consider providing specific indexes for more efficient searches")
+            recommendations.append(
+                "Consider providing specific indexes for more efficient searches"
+            )
 
         # Check time range
         if diagnostic_context.earliest_time == "-24h" and diagnostic_context.latest_time == "now":
-            recommendations.append("Consider using more specific time ranges if the issue is time-bounded")
+            recommendations.append(
+                "Consider using more specific time ranges if the issue is time-bounded"
+            )
 
         # Check complexity level
         if diagnostic_context.complexity_level == "advanced":
-            recommendations.append("Advanced complexity may result in longer execution times and more context")
+            recommendations.append(
+                "Advanced complexity may result in longer execution times and more context"
+            )
 
         if not recommendations:
             recommendations.append("Context appears well-optimized for agent processing")
@@ -623,9 +671,9 @@ Focus on providing actionable insights that address the original problem while c
         problem_description: str,
         earliest_time: str = "-24h",
         latest_time: str = "now",
-        focus_index: Optional[str] = None,
-        focus_host: Optional[str] = None,
-        focus_sourcetype: Optional[str] = None,
+        focus_index: str | None = None,
+        focus_host: str | None = None,
+        focus_sourcetype: str | None = None,
         complexity_level: str = "moderate",
         workflow_type: str = "auto",
     ) -> dict[str, Any]:
@@ -655,14 +703,20 @@ Focus on providing actionable insights that address the original problem while c
         if not problem_description or len(problem_description.strip()) == 0:
             raise ValueError("problem_description is required and cannot be empty")
         if complexity_level not in ["basic", "moderate", "advanced"]:
-            raise ValueError(f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}")
+            raise ValueError(
+                f"complexity_level must be 'basic', 'moderate', or 'advanced', got: {complexity_level}"
+            )
         if workflow_type not in ["auto", "missing_data", "performance"]:
-            raise ValueError(f"workflow_type must be 'auto', 'missing_data', or 'performance', got: {workflow_type}")
+            raise ValueError(
+                f"workflow_type must be 'auto', 'missing_data', or 'performance', got: {workflow_type}"
+            )
 
         # Normalize empty strings to None
         focus_index = focus_index if focus_index and focus_index.strip() else None
         focus_host = focus_host if focus_host and focus_host.strip() else None
-        focus_sourcetype = focus_sourcetype if focus_sourcetype and focus_sourcetype.strip() else None
+        focus_sourcetype = (
+            focus_sourcetype if focus_sourcetype and focus_sourcetype.strip() else None
+        )
 
         # Create comprehensive trace for the entire troubleshooting workflow
         # Make trace name unique to avoid "Trace already exists" warnings
@@ -686,17 +740,31 @@ Focus on providing actionable insights that address the original problem while c
             # Use OpenAI Agents SDK tracing with correct API
             with trace(workflow_name=trace_name, metadata=trace_metadata):
                 return await self._execute_with_tracing(
-                    ctx, problem_description, earliest_time, latest_time,
-                    focus_index, focus_host, focus_sourcetype, complexity_level, workflow_type,
-                    execution_start_time
+                    ctx,
+                    problem_description,
+                    earliest_time,
+                    latest_time,
+                    focus_index,
+                    focus_host,
+                    focus_sourcetype,
+                    complexity_level,
+                    workflow_type,
+                    execution_start_time,
                 )
         else:
             # Fallback without tracing
             logger.warning("OpenAI Agents tracing not available, executing without traces")
             return await self._execute_with_tracing(
-                ctx, problem_description, earliest_time, latest_time,
-                focus_index, focus_host, focus_sourcetype, complexity_level, workflow_type,
-                execution_start_time
+                ctx,
+                problem_description,
+                earliest_time,
+                latest_time,
+                focus_index,
+                focus_host,
+                focus_sourcetype,
+                complexity_level,
+                workflow_type,
+                execution_start_time,
             )
 
     async def _execute_with_tracing(
@@ -721,7 +789,9 @@ Focus on providing actionable insights that address the original problem while c
         try:
             logger.info(f"Problem: {problem_description[:200]}...")
             logger.info(f"Time range: {earliest_time} to {latest_time}")
-            logger.info(f"Focus - Index: {focus_index}, Host: {focus_host}, Sourcetype: {focus_sourcetype}")
+            logger.info(
+                f"Focus - Index: {focus_index}, Host: {focus_host}, Sourcetype: {focus_sourcetype}"
+            )
             logger.info(f"Complexity level: {complexity_level}")
             logger.info(f"Workflow type: {workflow_type}")
 
@@ -763,7 +833,9 @@ Focus on providing actionable insights that address the original problem while c
                     workflow_type=workflow_type,
                 )
 
-            logger.info(f"Diagnostic context created for index: {focus_index or 'all'}, host: {focus_host or 'all'}, sourcetype: {focus_sourcetype or 'all'}")
+            logger.info(
+                f"Diagnostic context created for index: {focus_index or 'all'}, host: {focus_host or 'all'}, sourcetype: {focus_sourcetype or 'all'}"
+            )
 
             # Report progress: Context created
             await ctx.report_progress(progress=10, total=100)
@@ -852,7 +924,9 @@ Focus on providing actionable insights that address the original problem while c
                             execution_metadata=workflow_result.get("execution_metadata", {}),
                         )
 
-                        orchestration_analysis = orchestration_result.get("executive_summary", "Analysis completed")
+                        orchestration_analysis = orchestration_result.get(
+                            "executive_summary", "Analysis completed"
+                        )
                         logger.info(
                             f"Summarization analysis completed, output length: {len(orchestration_analysis)} characters"
                         )
@@ -866,7 +940,9 @@ Focus on providing actionable insights that address the original problem while c
                         execution_metadata=workflow_result.get("execution_metadata", {}),
                     )
 
-                    orchestration_analysis = orchestration_result.get("executive_summary", "Analysis completed")
+                    orchestration_analysis = orchestration_result.get(
+                        "executive_summary", "Analysis completed"
+                    )
                     logger.info(
                         f"Summarization analysis completed, output length: {len(orchestration_analysis)} characters"
                     )
@@ -924,7 +1000,9 @@ Focus on providing actionable insights that address the original problem while c
                     "trace_available": OPENAI_AGENTS_AVAILABLE and trace is not None,
                     "workflow_traced": True,
                     "summarization_traced": True,
-                    "trace_name": f"Splunk Dynamic Troubleshooting: {problem_description[:50]}..." if OPENAI_AGENTS_AVAILABLE and trace else None,
+                    "trace_name": f"Splunk Dynamic Troubleshooting: {problem_description[:50]}..."
+                    if OPENAI_AGENTS_AVAILABLE and trace
+                    else None,
                     "trace_metadata": {
                         "problem_description": problem_description[:100],
                         "time_range": f"{earliest_time} to {latest_time}",
@@ -934,7 +1012,9 @@ Focus on providing actionable insights that address the original problem while c
                         "complexity_level": complexity_level,
                         "workflow_type": workflow_type,
                         "tool_name": "dynamic_troubleshoot_agent",
-                    } if OPENAI_AGENTS_AVAILABLE and trace else None,
+                    }
+                    if OPENAI_AGENTS_AVAILABLE and trace
+                    else None,
                 },
             }
 
@@ -1021,7 +1101,9 @@ Focus on providing actionable insights that address the original problem while c
         if not workflow_definition:
             raise ValueError(f"No workflow definition found for: {detected_workflow}")
 
-        logger.info(f"Selected workflow: {workflow_definition.name} with {len(workflow_definition.tasks)} tasks")
+        logger.info(
+            f"Selected workflow: {workflow_definition.name} with {len(workflow_definition.tasks)} tasks"
+        )
 
         # Report progress before execution
         await ctx.report_progress(progress=40, total=100)
@@ -1054,17 +1136,28 @@ Focus on providing actionable insights that address the original problem while c
                     "overall_status": workflow_result.status,
                     "execution_method": "parallel_phases",
                     "total_tasks": len(workflow_result.task_results),
-                    "successful_tasks": len([r for r in workflow_result.task_results.values() if r.status in ["healthy", "warning"]]),
-                    "failed_tasks": len([r for r in workflow_result.task_results.values() if r.status == "error"]),
+                    "successful_tasks": len(
+                        [
+                            r
+                            for r in workflow_result.task_results.values()
+                            if r.status in ["healthy", "warning"]
+                        ]
+                    ),
+                    "failed_tasks": len(
+                        [r for r in workflow_result.task_results.values() if r.status == "error"]
+                    ),
                     "execution_phases": workflow_result.summary.get("execution_phases", 0),
                     "parallel_efficiency": workflow_result.summary.get("parallel_efficiency", 0.0),
                 },
-                "task_results": {task_id: {
-                    "status": result.status,
-                    "findings": result.findings,
-                    "recommendations": result.recommendations,
-                    "details": result.details
-                } for task_id, result in workflow_result.task_results.items()},
+                "task_results": {
+                    task_id: {
+                        "status": result.status,
+                        "findings": result.findings,
+                        "recommendations": result.recommendations,
+                        "details": result.details,
+                    }
+                    for task_id, result in workflow_result.task_results.items()
+                },
                 "summary": workflow_result.summary,
                 "diagnostic_context": {
                     "earliest_time": diagnostic_context.earliest_time,
@@ -1083,7 +1176,9 @@ Focus on providing actionable insights that address the original problem while c
 
             logger.info(f"Parallel {detected_workflow} workflow completed successfully")
             logger.info(f"Tasks executed: {len(workflow_result.task_results)}")
-            logger.info(f"Parallel efficiency: {workflow_result.summary.get('parallel_efficiency', 0.0):.1%}")
+            logger.info(
+                f"Parallel efficiency: {workflow_result.summary.get('parallel_efficiency', 0.0):.1%}"
+            )
             return final_result
 
         except Exception as e:

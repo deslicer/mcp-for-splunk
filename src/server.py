@@ -223,7 +223,7 @@ async def ensure_components_loaded(server: FastMCP) -> None:
 
     try:
         # Check if components are already loaded
-        if hasattr(server, '_component_loading_results') and server._component_loading_results:
+        if hasattr(server, "_component_loading_results") and server._component_loading_results:
             logger.info("Components already loaded, skipping startup loading")
             return
 
@@ -410,7 +410,7 @@ def hot_reload() -> dict:
             "status": "success",
             "message": "Components hot reloaded successfully",
             "results": results,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
@@ -441,13 +441,12 @@ async def main():
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-
     # Create the FastMCP ASGI app with proper middleware and transport
     # Use the recommended Streamable HTTP transport (default for 'http')
     app = mcp.http_app(
         path="/mcp/",
         middleware=custom_middleware,
-        transport="http"  # Explicitly use Streamable HTTP transport
+        transport="http",  # Explicitly use Streamable HTTP transport
     )
 
     # Use uvicorn to run the server

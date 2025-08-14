@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from fastmcp import Context
+
 from .config import AgentConfig
 from .context import DiagnosticResult, SplunkDiagnosticContext
 from .dynamic_agent import (
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Import tracing capabilities if available
 try:
-    from agents import trace, custom_span
+    from agents import custom_span, trace
 
     TRACING_AVAILABLE = True
     logger.info("OpenAI Agents tracing capabilities loaded successfully")
@@ -100,34 +101,36 @@ class WorkflowManager:
         """Register built-in workflows by loading from JSON files."""
         try:
             from contrib.workflows.loaders import load_and_register_workflows
-            
+
             # Load and register core workflows from src/tools/workflows/core/
             loaded_count = load_and_register_workflows(self, "src/tools/workflows/core/")
             logger.info(f"Loaded {loaded_count} core workflows from JSON")
-            
+
             # Load and register contrib workflows from contrib/workflows/
             contrib_count = load_and_register_workflows(self, "contrib/workflows")
             logger.info(f"Loaded {contrib_count} contrib workflows from JSON")
-            
+
         except ImportError:
-            logger.warning("contrib.workflows.loaders not available, skipping JSON workflow loading")
+            logger.warning(
+                "contrib.workflows.loaders not available, skipping JSON workflow loading"
+            )
             # Fallback: register hardcoded workflows
             self._register_hardcoded_workflows()
-        
+
         # Optionally load contrib workflows here if desired, but keep separate as per plan
 
     def _register_hardcoded_workflows(self):
         """Register hardcoded workflows as fallback when JSON loading is not available."""
         logger.info("Registering hardcoded workflows as fallback...")
-        
+
         # Register missing data workflow
         missing_data_workflow = self._create_missing_data_workflow()
         self.register_workflow(missing_data_workflow)
-        
+
         # Register performance workflow
         performance_workflow = self._create_performance_workflow()
         self.register_workflow(performance_workflow)
-        
+
         logger.info("Hardcoded workflows registered successfully")
 
     def _create_missing_data_workflow(self) -> WorkflowDefinition:
@@ -332,7 +335,9 @@ You are performing Step 7 of the official Splunk missing data troubleshooting wo
 **Output:** Return DiagnosticResult with license violation status and impact on search capability.
                 """,
                 required_tools=["run_splunk_search", "report_specialist_progress"],
-                dependencies=["splunk_license_edition_verification"],  # Depends on basic license info
+                dependencies=[
+                    "splunk_license_edition_verification"
+                ],  # Depends on basic license info
                 context_requirements=[],
             ),
             TaskDefinition(
@@ -717,7 +722,7 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                     "queue_analysis_processing_delays",
                     "search_head_kvstore_performance",
                     "license_capacity_constraints",
-                    "network_forwarder_performance"
+                    "network_forwarder_performance",
                 ],  # Depends on all previous analysis steps
                 context_requirements=["earliest_time", "latest_time", "focus_host", "focus_index"],
             ),
@@ -729,8 +734,6 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
             description="Comprehensive performance analysis using Splunk Platform Instrumentation 10-step workflow",
             tasks=tasks,
         )
-
-
 
     def register_workflow(self, workflow: WorkflowDefinition):
         """Register a workflow definition."""
@@ -798,8 +801,12 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                 "workflow_id": str(workflow_id),
                 "earliest_time": str(diagnostic_context.earliest_time),
                 "latest_time": str(diagnostic_context.latest_time),
-                "focus_index": str(diagnostic_context.focus_index) if diagnostic_context.focus_index else "all",
-                "focus_host": str(diagnostic_context.focus_host) if diagnostic_context.focus_host else "all",
+                "focus_index": str(diagnostic_context.focus_index)
+                if diagnostic_context.focus_index
+                else "all",
+                "focus_host": str(diagnostic_context.focus_host)
+                if diagnostic_context.focus_host
+                else "all",
                 "complexity_level": str(diagnostic_context.complexity_level),
                 "trace_timestamp": str(trace_timestamp),
             }
@@ -852,9 +859,11 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
             if TRACING_AVAILABLE and custom_span:
                 with custom_span("dependency_analysis"):
                     dependency_graph = self._build_dependency_graph(workflow.tasks)
-                    execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
+                    execution_phases = self._create_execution_phases(
+                        workflow.tasks, dependency_graph
+                    )
 
-                    logger.info(f"Dependency analysis complete:")
+                    logger.info("Dependency analysis complete:")
                     logger.info(f"  - Total tasks: {len(workflow.tasks)}")
                     logger.info(f"  - Execution phases: {len(execution_phases)}")
                     logger.info(f"  - Dependency graph: {dependency_graph}")
@@ -863,7 +872,7 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                 dependency_graph = self._build_dependency_graph(workflow.tasks)
                 execution_phases = self._create_execution_phases(workflow.tasks, dependency_graph)
 
-                logger.info(f"Dependency analysis complete:")
+                logger.info("Dependency analysis complete:")
                 logger.info(f"  - Total tasks: {len(workflow.tasks)}")
                 logger.info(f"  - Execution phases: {len(execution_phases)}")
                 logger.info(f"  - Dependency graph: {dependency_graph}")
@@ -879,12 +888,16 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
 
             for phase_idx, phase_tasks in enumerate(execution_phases):
                 phase_name = f"execution_phase_{phase_idx + 1}"
-                logger.info(f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}")
+                logger.info(
+                    f"Executing phase {phase_idx + 1}/{len(execution_phases)}: {phase_tasks}"
+                )
 
                 # Report progress for this phase
                 phase_progress = 20 + (phase_idx * phase_progress_step)
                 await ctx.report_progress(progress=phase_progress, total=100)
-                await ctx.info(f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks")
+                await ctx.info(
+                    f"⚡ Phase {phase_idx + 1}/{len(execution_phases)}: {len(phase_tasks)} parallel tasks"
+                )
 
                 if TRACING_AVAILABLE and custom_span:
                     with custom_span(phase_name):
@@ -897,13 +910,23 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                         task_results.update(phase_results)
 
                         # Add phase completion metrics
-                        successful_tasks = [task_id for task_id, result in phase_results.items()
-                                          if result.status in ["healthy", "warning"]]
-                        failed_tasks = [task_id for task_id, result in phase_results.items()
-                                      if result.status == "error"]
+                        successful_tasks = [
+                            task_id
+                            for task_id, result in phase_results.items()
+                            if result.status in ["healthy", "warning"]
+                        ]
+                        failed_tasks = [
+                            task_id
+                            for task_id, result in phase_results.items()
+                            if result.status == "error"
+                        ]
 
-                        logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
-                        await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+                        logger.info(
+                            f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed"
+                        )
+                        await ctx.info(
+                            f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed"
+                        )
                 else:
                     # Execute tasks in this phase (potentially in parallel)
                     phase_results = await self._execute_phase_with_tracing(
@@ -914,17 +937,27 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                     task_results.update(phase_results)
 
                     # Add phase completion metrics
-                    successful_tasks = [task_id for task_id, result in phase_results.items()
-                                      if result.status in ["healthy", "warning"]]
-                    failed_tasks = [task_id for task_id, result in phase_results.items()
-                                  if result.status == "error"]
+                    successful_tasks = [
+                        task_id
+                        for task_id, result in phase_results.items()
+                        if result.status in ["healthy", "warning"]
+                    ]
+                    failed_tasks = [
+                        task_id
+                        for task_id, result in phase_results.items()
+                        if result.status == "error"
+                    ]
 
-                    logger.info(f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
-                    await ctx.info(f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed")
+                    logger.info(
+                        f"Phase {phase_idx + 1} completed: {len(successful_tasks)} successful, {len(failed_tasks)} failed"
+                    )
+                    await ctx.info(
+                        f"✅ Phase {phase_idx + 1} complete: {len(successful_tasks)} successful, {len(failed_tasks)} failed"
+                    )
 
             # Report progress: Task execution complete
             await ctx.report_progress(progress=80, total=100)
-            await ctx.info(f"🔄 All tasks completed, generating summary...")
+            await ctx.info("🔄 All tasks completed, generating summary...")
 
             # Finalize workflow result with tracing
             if TRACING_AVAILABLE and custom_span:
@@ -933,7 +966,7 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                         workflow_id, workflow, task_results, execution_phases, start_time
                     )
 
-                    logger.info(f"Workflow execution completed successfully")
+                    logger.info("Workflow execution completed successfully")
                     logger.info(f"  - Status: {workflow_result.status}")
                     logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
                     logger.info(f"  - Tasks executed: {len(task_results)}")
@@ -942,14 +975,16 @@ You are performing Step 10 of the systematic performance troubleshooting workflo
                     workflow_id, workflow, task_results, execution_phases, start_time
                 )
 
-                logger.info(f"Workflow execution completed successfully")
+                logger.info("Workflow execution completed successfully")
                 logger.info(f"  - Status: {workflow_result.status}")
                 logger.info(f"  - Execution time: {workflow_result.execution_time:.2f}s")
                 logger.info(f"  - Tasks executed: {len(task_results)}")
 
             # Report final progress
             await ctx.report_progress(progress=100, total=100)
-            await ctx.info(f"✅ Workflow {workflow_id} completed with status: {workflow_result.status}")
+            await ctx.info(
+                f"✅ Workflow {workflow_id} completed with status: {workflow_result.status}"
+            )
 
             return workflow_result
 
@@ -1348,6 +1383,3 @@ async def execute_performance_workflow(
 ) -> WorkflowResult:
     """Execute the performance analysis workflow with progress reporting."""
     return await workflow_manager.execute_workflow("performance_analysis", diagnostic_context, ctx)
-
-
-

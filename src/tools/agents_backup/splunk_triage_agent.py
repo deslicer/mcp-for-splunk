@@ -5,13 +5,13 @@ This module implements a hierarchical triage + specialist handoff pattern for
 Splunk troubleshooting, following the OpenAI agents SDK patterns.
 """
 
-import os
 import asyncio
 import logging
-import time
+import os
 import random
-from typing import Any, Dict, List, Optional
+import time
 from dataclasses import dataclass
+from typing import Any
 
 from fastmcp import Context
 from openai import OpenAI
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 try:
     from agents import Agent, Runner, function_tool
     from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+
     OPENAI_AGENTS_AVAILABLE = True
     logger.info("OpenAI agents SDK loaded successfully")
 except ImportError:
@@ -36,7 +37,8 @@ except ImportError:
 
 # Import OpenAI exceptions for retry logic
 try:
-    from openai import RateLimitError, APIError, APIConnectionError, APITimeoutError
+    from openai import APIConnectionError, APIError, APITimeoutError, RateLimitError
+
     OPENAI_EXCEPTIONS_AVAILABLE = True
 except ImportError:
     OPENAI_EXCEPTIONS_AVAILABLE = False
@@ -48,117 +50,118 @@ except ImportError:
 
 class RetryConfig:
     """Configuration for retry logic with exponential backoff."""
-    
+
     def __init__(
         self,
         max_retries: int = 3,
         base_delay: float = 1.0,
         max_delay: float = 60.0,
         exponential_base: float = 2.0,
-        jitter: bool = True
+        jitter: bool = True,
     ):
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
         self.exponential_base = exponential_base
         self.jitter = jitter
-    
-    def calculate_delay(self, attempt: int, suggested_delay: Optional[float] = None) -> float:
+
+    def calculate_delay(self, attempt: int, suggested_delay: float | None = None) -> float:
         """Calculate delay for the given attempt number."""
         if suggested_delay is not None:
             # Use the delay suggested by the API (from rate limit headers)
             delay = suggested_delay
         else:
             # Calculate exponential backoff delay
-            delay = self.base_delay * (self.exponential_base ** attempt)
-        
+            delay = self.base_delay * (self.exponential_base**attempt)
+
         # Cap the delay at max_delay
         delay = min(delay, self.max_delay)
-        
+
         # Add jitter to prevent thundering herd
         if self.jitter:
             delay = delay * (0.5 + random.random() * 0.5)
-        
+
         return delay
 
 
 async def retry_with_exponential_backoff(
-    func,
-    retry_config: RetryConfig,
-    ctx: Context,
-    *args,
-    **kwargs
+    func, retry_config: RetryConfig, ctx: Context, *args, **kwargs
 ):
     """
     Retry a function with exponential backoff for OpenAI rate limit errors.
-    
+
     Args:
         func: The async function to retry
         retry_config: Configuration for retry behavior
         ctx: FastMCP context for progress reporting
         *args, **kwargs: Arguments to pass to the function
-    
+
     Returns:
         The result of the function call
-    
+
     Raises:
         The last exception if all retries are exhausted
     """
     last_exception = None
-    
+
     for attempt in range(retry_config.max_retries + 1):
         try:
-            logger.info(f"Attempt {attempt + 1}/{retry_config.max_retries + 1} for function {func.__name__}")
+            logger.info(
+                f"Attempt {attempt + 1}/{retry_config.max_retries + 1} for function {func.__name__}"
+            )
             result = await func(*args, **kwargs)
-            
+
             if attempt > 0:
                 logger.info(f"Function {func.__name__} succeeded after {attempt + 1} attempts")
                 await ctx.info(f"✅ Operation succeeded after {attempt + 1} attempts")
-            
+
             return result
-            
+
         except Exception as e:
             last_exception = e
-            
+
             # Check if this is a retryable error
             is_rate_limit = False
             is_retryable = False
             suggested_delay = None
-            
+
             if OPENAI_EXCEPTIONS_AVAILABLE:
                 if isinstance(e, RateLimitError):
                     is_rate_limit = True
                     is_retryable = True
-                    
+
                     # Try to extract suggested delay from error message
                     error_message = str(e)
                     if "Please try again in" in error_message:
                         try:
                             # Extract delay from message like "Please try again in 7.562s"
                             import re
+
                             match = re.search(r"try again in (\d+\.?\d*)s", error_message)
                             if match:
                                 suggested_delay = float(match.group(1))
                                 logger.info(f"API suggested delay: {suggested_delay}s")
                         except Exception:
                             pass
-                
+
                 elif isinstance(e, (APIConnectionError, APITimeoutError)):
                     is_retryable = True
-                
+
                 elif isinstance(e, APIError):
                     # Some API errors might be retryable (5xx status codes)
-                    if hasattr(e, 'status_code') and e.status_code >= 500:
+                    if hasattr(e, "status_code") and e.status_code >= 500:
                         is_retryable = True
             else:
                 # Fallback: check error message for common patterns
                 error_str = str(e).lower()
-                if any(pattern in error_str for pattern in ['rate limit', '429', 'too many requests']):
+                if any(
+                    pattern in error_str for pattern in ["rate limit", "429", "too many requests"]
+                ):
                     is_rate_limit = True
                     is_retryable = True
-                elif any(pattern in error_str for pattern in ['connection', 'timeout', '5']):
+                elif any(pattern in error_str for pattern in ["connection", "timeout", "5"]):
                     is_retryable = True
-            
+
             # Log the error
             if is_rate_limit:
                 logger.warning(f"Rate limit error on attempt {attempt + 1}: {e}")
@@ -167,24 +170,30 @@ async def retry_with_exponential_backoff(
             else:
                 logger.error(f"Non-retryable error on attempt {attempt + 1}: {e}")
                 raise e
-            
+
             # If this was the last attempt, raise the exception
             if attempt == retry_config.max_retries:
-                logger.error(f"All {retry_config.max_retries + 1} attempts failed for {func.__name__}")
+                logger.error(
+                    f"All {retry_config.max_retries + 1} attempts failed for {func.__name__}"
+                )
                 raise e
-            
+
             # Calculate delay for next attempt
             delay = retry_config.calculate_delay(attempt, suggested_delay)
-            
+
             # Report retry to user
             if is_rate_limit:
-                await ctx.info(f"⏳ Rate limit reached. Retrying in {delay:.1f}s... (attempt {attempt + 2}/{retry_config.max_retries + 1})")
+                await ctx.info(
+                    f"⏳ Rate limit reached. Retrying in {delay:.1f}s... (attempt {attempt + 2}/{retry_config.max_retries + 1})"
+                )
             else:
-                await ctx.info(f"🔄 Retrying in {delay:.1f}s due to temporary error... (attempt {attempt + 2}/{retry_config.max_retries + 1})")
-            
+                await ctx.info(
+                    f"🔄 Retrying in {delay:.1f}s due to temporary error... (attempt {attempt + 2}/{retry_config.max_retries + 1})"
+                )
+
             logger.info(f"Waiting {delay:.1f}s before retry {attempt + 2}")
             await asyncio.sleep(delay)
-    
+
     # This should never be reached, but just in case
     raise last_exception
 
@@ -192,14 +201,15 @@ async def retry_with_exponential_backoff(
 @dataclass
 class SplunkDiagnosticContext:
     """Context for maintaining state across Splunk diagnostic workflows."""
+
     earliest_time: str = "-24h"
     latest_time: str = "now"
-    focus_index: Optional[str] = None
-    focus_host: Optional[str] = None
+    focus_index: str | None = None
+    focus_host: str | None = None
     complexity_level: str = "moderate"
-    identified_issues: List[str] = None
-    baseline_metrics: Dict[str, Any] = None
-    validation_results: Dict[str, Any] = None
+    identified_issues: list[str] = None
+    baseline_metrics: dict[str, Any] = None
+    validation_results: dict[str, Any] = None
 
     def __post_init__(self):
         if self.identified_issues is None:
@@ -294,7 +304,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 - "Getting license violation warnings but don't know why"
 - "High CPU usage on search heads affecting performance"
 """,
-        category="troubleshooting"
+        category="troubleshooting",
     )
 
     def __init__(self, name: str, category: str):
@@ -311,7 +321,9 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 
         logger.debug("Loading OpenAI configuration...")
         self.config = self._load_config()
-        logger.info(f"OpenAI config loaded - Model: {self.config.model}, Temperature: {self.config.temperature}")
+        logger.info(
+            f"OpenAI config loaded - Model: {self.config.model}, Temperature: {self.config.temperature}"
+        )
 
         self.client = OpenAI(api_key=self.config.api_key)
 
@@ -321,11 +333,13 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             base_delay=float(os.getenv("OPENAI_RETRY_BASE_DELAY", "1.0")),
             max_delay=float(os.getenv("OPENAI_RETRY_MAX_DELAY", "60.0")),
             exponential_base=float(os.getenv("OPENAI_RETRY_EXPONENTIAL_BASE", "2.0")),
-            jitter=os.getenv("OPENAI_RETRY_JITTER", "true").lower() == "true"
+            jitter=os.getenv("OPENAI_RETRY_JITTER", "true").lower() == "true",
         )
-        logger.info(f"Retry config: max_retries={self.retry_config.max_retries}, "
-                   f"base_delay={self.retry_config.base_delay}s, "
-                   f"max_delay={self.retry_config.max_delay}s")
+        logger.info(
+            f"Retry config: max_retries={self.retry_config.max_retries}, "
+            f"base_delay={self.retry_config.base_delay}s, "
+            f"max_delay={self.retry_config.max_delay}s"
+        )
 
         # Initialize the agent system
         logger.info("Setting up agent system...")
@@ -359,10 +373,12 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             api_key=api_key,
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.7")),
-            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
+            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4000")),
         )
 
-        logger.info(f"Configuration loaded: model={config.model}, temp={config.temperature}, max_tokens={config.max_tokens}")
+        logger.info(
+            f"Configuration loaded: model={config.model}, temp={config.temperature}, max_tokens={config.max_tokens}"
+        )
         return config
 
     def _setup_agents(self):
@@ -410,10 +426,10 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 
         # Validate handoff configuration
         logger.debug("Validating handoff configuration...")
-        if hasattr(self.triage_agent, 'handoffs') and self.triage_agent.handoffs:
+        if hasattr(self.triage_agent, "handoffs") and self.triage_agent.handoffs:
             logger.info(f"Triage agent configured with {len(self.triage_agent.handoffs)} handoffs:")
             for i, handoff in enumerate(self.triage_agent.handoffs):
-                if hasattr(handoff, 'name'):
+                if hasattr(handoff, "name"):
                     logger.info(f"  {i+1}. {handoff.name}")
                 else:
                     logger.info(f"  {i+1}. {type(handoff).__name__}")
@@ -430,6 +446,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
         # Import required modules
         try:
             from agents import function_tool
+
             logger.info("Successfully imported function_tool from OpenAI agents")
         except ImportError as e:
             logger.error(f"Failed to import OpenAI agents components: {e}")
@@ -449,10 +466,12 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             "run_oneshot_search",
             "get_splunk_health",
             "list_triggered_alerts",
-            "me"
+            "me",
         ]
 
-        logger.info(f"Direct tool registry configured with filter for {len(allowed_tools)} allowed tools")
+        logger.info(
+            f"Direct tool registry configured with filter for {len(allowed_tools)} allowed tools"
+        )
 
         # Store the actual context for use in tool calls
         self._current_context = None
@@ -470,6 +489,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             class MockContext:
                 async def info(self, message):
                     logger.info(f"[Agent Tool] {message}")
+
                 async def error(self, message):
                     logger.error(f"[Agent Tool] {message}")
 
@@ -479,16 +499,20 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
         self._set_context = set_context
 
         @function_tool
-        async def run_splunk_search(query: str, earliest_time: str = "-24h", latest_time: str = "now") -> str:
+        async def run_splunk_search(
+            query: str, earliest_time: str = "-24h", latest_time: str = "now"
+        ) -> str:
             """Execute a Splunk search query via direct tool registry with progress tracking for long-running searches."""
-            logger.debug(f"Executing job-based search: {query[:100]}... (time: {earliest_time} to {latest_time})")
+            logger.debug(
+                f"Executing job-based search: {query[:100]}... (time: {earliest_time} to {latest_time})"
+            )
 
             try:
                 # Get current context
                 ctx = get_context()
 
                 # Report search execution start
-                if hasattr(ctx, 'info'):
+                if hasattr(ctx, "info"):
                     await ctx.info(f"🔍 Starting job-based search: {query[:50]}...")
 
                 # Get the job search tool directly from registry
@@ -502,10 +526,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 
                 # Call the job search tool directly - it handles progress reporting internally
                 result = await tool.execute(
-                    ctx,
-                    query=query,
-                    earliest_time=earliest_time,
-                    latest_time=latest_time
+                    ctx, query=query, earliest_time=earliest_time, latest_time=latest_time
                 )
 
                 search_duration = time.time() - search_start_time
@@ -516,65 +537,80 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 
                 # Process the job search result
                 if isinstance(result, dict):
-                    if result.get('status') == 'success':
+                    if result.get("status") == "success":
                         # format_success_response spreads the data into the top level
-                        results = result.get('results', [])
-                        result_count = result.get('results_count', len(results))
-                        scan_count = result.get('scan_count', 0)
-                        event_count = result.get('event_count', 0)
-                        job_id = result.get('job_id', 'unknown')
+                        results = result.get("results", [])
+                        result_count = result.get("results_count", len(results))
+                        scan_count = result.get("scan_count", 0)
+                        event_count = result.get("event_count", 0)
+                        job_id = result.get("job_id", "unknown")
 
                         # Report completion with detailed stats
-                        if hasattr(ctx, 'info'):
-                            await ctx.info(f"✅ Search job {job_id} completed in {search_duration:.1f}s")
-                            await ctx.info(f"📊 Results: {result_count} events, scanned {scan_count:,} events, matched {event_count:,} events")
+                        if hasattr(ctx, "info"):
+                            await ctx.info(
+                                f"✅ Search job {job_id} completed in {search_duration:.1f}s"
+                            )
+                            await ctx.info(
+                                f"📊 Results: {result_count} events, scanned {scan_count:,} events, matched {event_count:,} events"
+                            )
 
-                        logger.info(f"Job search completed successfully - Job ID: {job_id}, Duration: {search_duration:.1f}s, Results: {result_count}")
+                        logger.info(
+                            f"Job search completed successfully - Job ID: {job_id}, Duration: {search_duration:.1f}s, Results: {result_count}"
+                        )
 
                         # Format results for agent consumption
                         if results:
                             # Convert results to a readable format
                             formatted_results = []
-                            for i, res in enumerate(results[:50]):  # Limit to first 50 results for readability
+                            for i, res in enumerate(
+                                results[:50]
+                            ):  # Limit to first 50 results for readability
                                 if isinstance(res, dict):
                                     # Create a readable representation of each result
                                     result_str = f"Result {i+1}:"
                                     for key, value in res.items():
-                                        if key.startswith('_') and key not in ['_time', '_raw']:
+                                        if key.startswith("_") and key not in ["_time", "_raw"]:
                                             continue  # Skip internal fields except _time and _raw
                                         result_str += f"\n  {key}: {value}"
                                     formatted_results.append(result_str)
                                 else:
                                     formatted_results.append(f"Result {i+1}: {str(res)}")
 
-                            return f"Search completed successfully.\n\nJob Statistics:\n- Job ID: {job_id}\n- Results Count: {result_count}\n- Events Scanned: {scan_count:,}\n- Events Matched: {event_count:,}\n- Duration: {search_duration:.1f}s\n\nResults:\n" + "\n\n".join(formatted_results)
+                            return (
+                                f"Search completed successfully.\n\nJob Statistics:\n- Job ID: {job_id}\n- Results Count: {result_count}\n- Events Scanned: {scan_count:,}\n- Events Matched: {event_count:,}\n- Duration: {search_duration:.1f}s\n\nResults:\n"
+                                + "\n\n".join(formatted_results)
+                            )
                         else:
                             return f"Search completed successfully but returned no results.\n\nJob Statistics:\n- Job ID: {job_id}\n- Results Count: 0\n- Events Scanned: {scan_count:,}\n- Events Matched: {event_count:,}\n- Duration: {search_duration:.1f}s"
                     else:
                         # Enhanced error handling - capture full error details
-                        error_msg = result.get('error', 'Unknown error')
-                        
+                        error_msg = result.get("error", "Unknown error")
+
                         # Log the complete result structure for debugging
                         logger.error(f"Job search failed with result: {result}")
-                        
+
                         # Try to extract more detailed error information
                         detailed_error = error_msg
                         if isinstance(result, dict):
                             # Check for additional error fields
-                            if 'message' in result:
+                            if "message" in result:
                                 detailed_error += f" - Message: {result['message']}"
-                            if 'details' in result:
+                            if "details" in result:
                                 detailed_error += f" - Details: {result['details']}"
-                            if 'exception' in result:
+                            if "exception" in result:
                                 detailed_error += f" - Exception: {result['exception']}"
-                            
+
                             # Include any other relevant fields from the result
                             for key, value in result.items():
-                                if key not in ['status', 'error', 'message', 'details', 'exception'] and value:
+                                if (
+                                    key
+                                    not in ["status", "error", "message", "details", "exception"]
+                                    and value
+                                ):
                                     detailed_error += f" - {key}: {value}"
-                        
+
                         logger.error(f"Job search failed: {detailed_error}")
-                        if hasattr(ctx, 'error'):
+                        if hasattr(ctx, "error"):
                             await ctx.error(f"Search failed: {detailed_error}")
                         return f"Search failed: {detailed_error}"
                 else:
@@ -587,7 +623,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 logger.error(f"Error executing job-based search: {e}", exc_info=True)
                 # Report error to context
                 ctx = get_context()
-                if hasattr(ctx, 'error'):
+                if hasattr(ctx, "error"):
                     await ctx.error(f"Search failed: {str(e)}")
                 return f"Error executing job-based search: {str(e)}"
 
@@ -601,7 +637,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 ctx = get_context()
 
                 # Report progress
-                if hasattr(ctx, 'info'):
+                if hasattr(ctx, "info"):
                     await ctx.info("📋 Retrieving available Splunk indexes...")
 
                 # Get the tool directly from registry
@@ -614,18 +650,22 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 result = await tool.execute(ctx)
 
                 # Report completion
-                if hasattr(ctx, 'info'):
-                    index_count = str(result).count('index:') if 'index:' in str(result) else 'unknown'
+                if hasattr(ctx, "info"):
+                    index_count = (
+                        str(result).count("index:") if "index:" in str(result) else "unknown"
+                    )
                     await ctx.info(f"✅ Retrieved {index_count} indexes")
 
-                logger.info(f"Direct indexes listed successfully, result length: {len(str(result))}")
+                logger.info(
+                    f"Direct indexes listed successfully, result length: {len(str(result))}"
+                )
                 return str(result)
 
             except Exception as e:
                 logger.error(f"Error listing indexes via direct registry: {e}", exc_info=True)
                 # Report error to context
                 ctx = get_context()
-                if hasattr(ctx, 'error'):
+                if hasattr(ctx, "error"):
                     await ctx.error(f"Failed to list indexes: {str(e)}")
                 return f"Error listing indexes via direct registry: {str(e)}"
 
@@ -638,7 +678,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 # Get current context
                 ctx = get_context()
                 # Report progress
-                if hasattr(ctx, 'info'):
+                if hasattr(ctx, "info"):
                     await ctx.info("🏥 Checking Splunk server health...")
 
                 # Get the tool directly from registry
@@ -651,18 +691,20 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 result = await tool.execute(ctx)
 
                 # Report completion
-                if hasattr(ctx, 'info'):
-                    status = 'healthy' if 'connected' in str(result) else 'issues detected'
+                if hasattr(ctx, "info"):
+                    status = "healthy" if "connected" in str(result) else "issues detected"
                     await ctx.info(f"✅ Health check complete - Status: {status}")
 
-                logger.info(f"Direct health check completed successfully, result length: {len(str(result))}")
+                logger.info(
+                    f"Direct health check completed successfully, result length: {len(str(result))}"
+                )
                 return str(result)
 
             except Exception as e:
                 logger.error(f"Error checking health via direct registry: {e}", exc_info=True)
                 # Report error to context
                 ctx = get_context()
-                if hasattr(ctx, 'error'):
+                if hasattr(ctx, "error"):
                     await ctx.error(f"Health check failed: {str(e)}")
                 return f"Error checking health via direct registry: {str(e)}"
 
@@ -676,7 +718,7 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 ctx = get_context()
 
                 # Report progress
-                if hasattr(ctx, 'info'):
+                if hasattr(ctx, "info"):
                     await ctx.info("👤 Retrieving current user information...")
 
                 # Get the tool directly from registry
@@ -689,23 +731,27 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
                 result = await tool.execute(ctx)
 
                 # Report completion
-                if hasattr(ctx, 'info'):
-                    if isinstance(result, dict) and result.get('status') == 'success':
-                        user_data = result.get('data', {}).get('data', {})
-                        username = user_data.get('username', 'unknown')
-                        roles = user_data.get('roles', [])
-                        await ctx.info(f"✅ Retrieved user info for: {username} (roles: {', '.join(roles)})")
+                if hasattr(ctx, "info"):
+                    if isinstance(result, dict) and result.get("status") == "success":
+                        user_data = result.get("data", {}).get("data", {})
+                        username = user_data.get("username", "unknown")
+                        roles = user_data.get("roles", [])
+                        await ctx.info(
+                            f"✅ Retrieved user info for: {username} (roles: {', '.join(roles)})"
+                        )
                     else:
                         await ctx.info("✅ User information request completed")
 
-                logger.info(f"Direct user info retrieved successfully, result length: {len(str(result))}")
+                logger.info(
+                    f"Direct user info retrieved successfully, result length: {len(str(result))}"
+                )
                 return str(result)
 
             except Exception as e:
                 logger.error(f"Error getting user info via direct registry: {e}", exc_info=True)
                 # Report error to context
                 ctx = get_context()
-                if hasattr(ctx, 'error'):
+                if hasattr(ctx, "error"):
                     await ctx.error(f"Failed to get user information: {str(e)}")
                 return f"Error getting user info via direct registry: {str(e)}"
 
@@ -716,12 +762,14 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             try:
                 ctx = get_context()
 
-                if progress_percent is not None and hasattr(ctx, 'report_progress'):
+                if progress_percent is not None and hasattr(ctx, "report_progress"):
                     # Report numeric progress (specialist progress is in 40-85% range)
-                    specialist_progress = 40 + int((progress_percent / 100) * 45)  # Map to 40-85% range
+                    specialist_progress = 40 + int(
+                        (progress_percent / 100) * 45
+                    )  # Map to 40-85% range
                     await ctx.report_progress(progress=specialist_progress, total=100)
 
-                if hasattr(ctx, 'info'):
+                if hasattr(ctx, "info"):
                     await ctx.info(f"🔧 Specialist: {step_name}")
 
                 logger.info(f"Specialist progress reported: {step_name} ({progress_percent}%)")
@@ -737,9 +785,11 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
             list_splunk_indexes,
             get_splunk_health,
             get_current_user_info,
-            report_specialist_progress
+            report_specialist_progress,
         ]
-        logger.info(f"Created {len(self.splunk_tools)} direct registry tool wrappers for triage execution")
+        logger.info(
+            f"Created {len(self.splunk_tools)} direct registry tool wrappers for triage execution"
+        )
 
     def _create_missing_data_specialist(self) -> Agent:
         """Create the missing data troubleshooting specialist agent following Splunk's official workflow."""
@@ -747,7 +797,8 @@ Diagnoses system performance issues using Splunk Platform Instrumentation:
 
         def dynamic_instructions(run_context, agent):
             """Generate dynamic instructions that include focus context if available."""
-            base_instructions = prompt_with_handoff_instructions("""
+            base_instructions = prompt_with_handoff_instructions(
+                """
 You are a Splunk missing data troubleshooting specialist following the official "I can't find my data!" workflow from Splunk documentation.
 
 **IMPORTANT: Progress Reporting**
@@ -883,30 +934,32 @@ Use the available Splunk tools to systematically work through this checklist.
 Document your findings at each step and provide actionable recommendations.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches or time-consuming operations to prevent timeouts!**
-            """)
+            """
+            )
 
             # Get context values for template replacement
             context_values = {}
-            if hasattr(run_context, 'context') and run_context.context:
+            if hasattr(run_context, "context") and run_context.context:
                 context = run_context.context
-                
+
                 # Extract known values from context
-                if hasattr(context, 'focus_index') and context.focus_index:
-                    context_values['your_index'] = context.focus_index
-                if hasattr(context, 'focus_host') and context.focus_host:
-                    context_values['your_host'] = context.focus_host
-                
+                if hasattr(context, "focus_index") and context.focus_index:
+                    context_values["your_index"] = context.focus_index
+                if hasattr(context, "focus_host") and context.focus_host:
+                    context_values["your_host"] = context.focus_host
+
                 # Replace templates with actual values
                 for placeholder, value in context_values.items():
-                    base_instructions = base_instructions.replace(f'<{placeholder}>', value)
+                    base_instructions = base_instructions.replace(f"<{placeholder}>", value)
 
             # Add focused context if available
-            if hasattr(run_context, 'context') and run_context.context:
+            if hasattr(run_context, "context") and run_context.context:
                 context = run_context.context
                 focus_additions = []
-                
-                if hasattr(context, 'focus_index') and context.focus_index:
-                    focus_additions.append(f"""
+
+                if hasattr(context, "focus_index") and context.focus_index:
+                    focus_additions.append(
+                        f"""
 ## 🎯 FOCUSED ANALYSIS CONTEXT:
 
 **Focus Index: {context.focus_index}**
@@ -915,18 +968,21 @@ Document your findings at each step and provide actionable recommendations.
 - Include this index specifically in all relevant diagnostic searches
 - Example focused search: `index={context.focus_index} | head 10`
 - Replace any `<your_index>` templates with `{context.focus_index}` in your searches
-""")
-                
-                if hasattr(context, 'focus_host') and context.focus_host:
-                    focus_additions.append(f"""
+"""
+                    )
+
+                if hasattr(context, "focus_host") and context.focus_host:
+                    focus_additions.append(
+                        f"""
 **Focus Host: {context.focus_host}**
 - Prioritize analysis on host="{context.focus_host}"
 - When checking forwarder connectivity, focus on this specific host
 - Include this host filter in relevant diagnostic searches
 - Example focused search: `index=* host={context.focus_host} | head 10`
 - Replace any `<your_host>` templates with `{context.focus_host}` in your searches
-""")
-                
+"""
+                    )
+
                 if focus_additions:
                     base_instructions += "\n" + "\n".join(focus_additions)
                     base_instructions += f"""
@@ -956,7 +1012,7 @@ Document your findings at each step and provide actionable recommendations.
    - If user has role "admin": `| rest /services/authorization/roles | search title="admin"`
    - If user has multiple roles, check each one or use: `| rest /services/authorization/roles | search title IN ("admin", "user")`
 """
-            
+
             return base_instructions
 
         agent = Agent(
@@ -964,10 +1020,12 @@ Document your findings at each step and provide actionable recommendations.
             handoff_description="Expert in Splunk's official 'I can't find my data!' troubleshooting workflow",
             instructions=dynamic_instructions,
             model=self.config.model,
-            tools=self.splunk_tools
+            tools=self.splunk_tools,
         )
 
-        logger.debug("Missing data specialist agent created with dynamic instructions and progress reporting")
+        logger.debug(
+            "Missing data specialist agent created with dynamic instructions and progress reporting"
+        )
         return agent
 
     def _create_inputs_specialist(self) -> Agent:
@@ -977,7 +1035,8 @@ Document your findings at each step and provide actionable recommendations.
         agent = Agent(
             name="Splunk Inputs Specialist",
             handoff_description="Expert in Splunk data input and ingestion troubleshooting",
-            instructions=prompt_with_handoff_instructions("""
+            instructions=prompt_with_handoff_instructions(
+                """
 You are a Splunk inputs troubleshooting specialist. You excel at diagnosing and resolving:
 
 **IMPORTANT: Progress Reporting**
@@ -1010,12 +1069,15 @@ Start with `get_current_user_info()` to understand the user's role and index acc
 Always explain your reasoning and cite specific metrics or log entries.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches to prevent timeouts!**
-            """),
+            """
+            ),
             model=self.config.model,
-            tools=self.splunk_tools
+            tools=self.splunk_tools,
         )
 
-        logger.debug("Inputs specialist agent created with model, tools, and progress reporting configured")
+        logger.debug(
+            "Inputs specialist agent created with model, tools, and progress reporting configured"
+        )
         return agent
 
     def _create_performance_specialist(self) -> Agent:
@@ -1024,7 +1086,8 @@ Always explain your reasoning and cite specific metrics or log entries.
 
         def dynamic_instructions(run_context, agent):
             """Generate dynamic instructions that include focus context if available."""
-            base_instructions = prompt_with_handoff_instructions("""
+            base_instructions = prompt_with_handoff_instructions(
+                """
 You are a Splunk performance specialist. You follow the official Splunk Platform Instrumentation troubleshooting workflow to systematically diagnose and optimize performance issues.
 
 **IMPORTANT: Progress Reporting**
@@ -1149,30 +1212,32 @@ Check for license violations affecting performance
 Always provide specific tuning recommendations with expected impact and follow-up monitoring suggestions.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches to prevent timeouts!**
-            """)
+            """
+            )
 
             # Get context values for template replacement
             context_values = {}
-            if hasattr(run_context, 'context') and run_context.context:
+            if hasattr(run_context, "context") and run_context.context:
                 context = run_context.context
-                
+
                 # Extract known values from context
-                if hasattr(context, 'focus_index') and context.focus_index:
-                    context_values['your_index'] = context.focus_index
-                if hasattr(context, 'focus_host') and context.focus_host:
-                    context_values['your_host'] = context.focus_host
-                
+                if hasattr(context, "focus_index") and context.focus_index:
+                    context_values["your_index"] = context.focus_index
+                if hasattr(context, "focus_host") and context.focus_host:
+                    context_values["your_host"] = context.focus_host
+
                 # Replace templates with actual values
                 for placeholder, value in context_values.items():
-                    base_instructions = base_instructions.replace(f'<{placeholder}>', value)
+                    base_instructions = base_instructions.replace(f"<{placeholder}>", value)
 
             # Add focused context if available
-            if hasattr(run_context, 'context') and run_context.context:
+            if hasattr(run_context, "context") and run_context.context:
                 context = run_context.context
                 focus_additions = []
-                
-                if hasattr(context, 'focus_index') and context.focus_index:
-                    focus_additions.append(f"""
+
+                if hasattr(context, "focus_index") and context.focus_index:
+                    focus_additions.append(
+                        f"""
 ## 🎯 FOCUSED PERFORMANCE ANALYSIS CONTEXT:
 
 **Focus Index: {context.focus_index}**
@@ -1182,10 +1247,12 @@ Always provide specific tuning recommendations with expected impact and follow-u
 - Example focused search: `index=_internal source=*metrics.log* group=per_index_thruput series={context.focus_index} | stats avg(kb) as avg_kb_per_sec`
 - Monitor resource usage specifically for this index's data processing
 - Replace any `<your_index>` templates with `{context.focus_index}` in your searches
-""")
-                
-                if hasattr(context, 'focus_host') and context.focus_host:
-                    focus_additions.append(f"""
+"""
+                    )
+
+                if hasattr(context, "focus_host") and context.focus_host:
+                    focus_additions.append(
+                        f"""
 **Focus Host: {context.focus_host}**
 - Prioritize performance analysis on host="{context.focus_host}"
 - When checking system resource baseline, focus on this specific host
@@ -1193,8 +1260,9 @@ Always provide specific tuning recommendations with expected impact and follow-u
 - Example focused search: `index=_introspection component=Hostwide host={context.focus_host} | stats avg(data.cpu_system_pct) as avg_cpu_system, avg(data.cpu_user_pct) as avg_cpu_user, avg(data.mem_used) as avg_mem_used`
 - Monitor forwarder performance specifically from this host
 - Replace any `<your_host>` templates with `{context.focus_host}` in your searches
-""")
-                
+"""
+                    )
+
                 if focus_additions:
                     base_instructions += "\n" + "\n".join(focus_additions)
                     base_instructions += f"""
@@ -1216,7 +1284,7 @@ Always provide specific tuning recommendations with expected impact and follow-u
 - Use `list_splunk_indexes()` to discover available indexes when needed
 - Always explain what values you're using and why
 """
-            
+
             return base_instructions
 
         agent = Agent(
@@ -1224,10 +1292,12 @@ Always provide specific tuning recommendations with expected impact and follow-u
             handoff_description="Expert in Splunk system performance and capacity analysis",
             instructions=dynamic_instructions,
             model=self.config.model,
-            tools=self.splunk_tools
+            tools=self.splunk_tools,
         )
 
-        logger.debug("Performance specialist agent created with dynamic instructions and progress reporting")
+        logger.debug(
+            "Performance specialist agent created with dynamic instructions and progress reporting"
+        )
         return agent
 
     def _create_indexing_specialist(self) -> Agent:
@@ -1237,7 +1307,8 @@ Always provide specific tuning recommendations with expected impact and follow-u
         agent = Agent(
             name="Splunk Indexing Specialist",
             handoff_description="Expert in Splunk indexing performance and pipeline optimization",
-            instructions=prompt_with_handoff_instructions("""
+            instructions=prompt_with_handoff_instructions(
+                """
 You are a Splunk indexing specialist. You excel at diagnosing and optimizing:
 
 **IMPORTANT: Progress Reporting**
@@ -1270,12 +1341,15 @@ Focus on identifying bottlenecks in the indexing pipeline.
 Provide specific configuration recommendations for optimal performance.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches to prevent timeouts!**
-            """),
+            """
+            ),
             model=self.config.model,
-            tools=self.splunk_tools
+            tools=self.splunk_tools,
         )
 
-        logger.debug("Indexing specialist agent created with model, tools, and progress reporting configured")
+        logger.debug(
+            "Indexing specialist agent created with model, tools, and progress reporting configured"
+        )
         return agent
 
     def _create_general_specialist(self) -> Agent:
@@ -1285,7 +1359,8 @@ Provide specific configuration recommendations for optimal performance.
         agent = Agent(
             name="Splunk General Specialist",
             handoff_description="General Splunk troubleshooting and system health expert",
-            instructions=prompt_with_handoff_instructions("""
+            instructions=prompt_with_handoff_instructions(
+                """
 You are a general Splunk troubleshooting specialist. You handle:
 
 **IMPORTANT: Progress Reporting**
@@ -1321,12 +1396,15 @@ Look for obvious issues or patterns that need specialist attention.
 Provide clear, actionable guidance for common problems.
 
 **CRITICAL: Always call `report_specialist_progress` before executing searches to prevent timeouts!**
-            """),
+            """
+            ),
             model=self.config.model,
-            tools=self.splunk_tools
+            tools=self.splunk_tools,
         )
 
-        logger.debug("General specialist agent created with model, tools, and progress reporting configured")
+        logger.debug(
+            "General specialist agent created with model, tools, and progress reporting configured"
+        )
         return agent
 
     def _create_triage_agent(self) -> Agent:
@@ -1335,7 +1413,8 @@ Provide clear, actionable guidance for common problems.
 
         agent = Agent(
             name="Splunk Diagnostic Triage Agent",
-            instructions=prompt_with_handoff_instructions("""
+            instructions=prompt_with_handoff_instructions(
+                """
 You are a Splunk expert triage agent. Your role is to analyze user problems and route them to the appropriate specialist agent.
 
 ROUTING DECISION TREE:
@@ -1383,7 +1462,8 @@ Available transfer tools:
 - transfer_to_splunk_performance_specialist: For performance issues
 
 Example: If the user reports "I can't find my data in index=cca_insights", immediately call transfer_to_splunk_missing_data_specialist since this is a missing data issue.
-            """),
+            """
+            ),
             handoffs=[
                 self.missing_data_specialist,
                 # self.inputs_specialist,  # Commented out for now
@@ -1391,10 +1471,12 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                 # self.indexing_specialist,  # Commented out for now
                 # self.general_specialist  # Commented out for now
             ],
-            model=self.config.model
+            model=self.config.model,
         )
 
-        logger.debug("Main triage agent created with handoffs to all specialists including missing data")
+        logger.debug(
+            "Main triage agent created with handoffs to all specialists including missing data"
+        )
         logger.info(f"Triage agent configured with {len(agent.handoffs)} specialist handoffs")
         return agent
 
@@ -1404,10 +1486,10 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
         problem_description: str,
         earliest_time: str = "-24h",
         latest_time: str = "now",
-        focus_index: Optional[str] = None,
-        focus_host: Optional[str] = None,
-        complexity_level: str = "moderate"
-    ) -> Dict[str, Any]:
+        focus_index: str | None = None,
+        focus_host: str | None = None,
+        complexity_level: str = "moderate",
+    ) -> dict[str, Any]:
         """
         Execute the Splunk triage agent system.
 
@@ -1427,9 +1509,9 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
             Dict containing the triage and specialist analysis results
         """
         execution_start_time = time.time()
-        logger.info("="*80)
+        logger.info("=" * 80)
         logger.info("STARTING SPLUNK TRIAGE AGENT EXECUTION")
-        logger.info("="*80)
+        logger.info("=" * 80)
 
         try:
             logger.info(f"Problem: {problem_description[:200]}...")
@@ -1442,13 +1524,13 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
             await ctx.info(f"🔍 Starting Splunk triage analysis for: {problem_description[:100]}...")
 
             # Set the context for tool calls
-            if hasattr(self, '_set_context'):
+            if hasattr(self, "_set_context"):
                 self._set_context(ctx)
                 logger.debug("Context set for direct tool registry access")
 
             # Report progress: Setup complete
             await ctx.report_progress(progress=10, total=100)
-            logger.info(f"Starting Splunk triage agent execution")
+            logger.info("Starting Splunk triage agent execution")
 
             # Create diagnostic context
             logger.debug("Creating diagnostic context...")
@@ -1457,7 +1539,7 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                 latest_time=latest_time,
                 focus_index=focus_index,
                 focus_host=focus_host,
-                complexity_level=complexity_level
+                complexity_level=complexity_level,
             )
             logger.info(f"Diagnostic context created: {diagnostic_context}")
 
@@ -1466,9 +1548,7 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
 
             # Create enhanced input for triage analysis
             logger.debug("Creating enhanced input for triage agent...")
-            enhanced_input = self._create_enhanced_input(
-                problem_description, diagnostic_context
-            )
+            enhanced_input = self._create_enhanced_input(problem_description, diagnostic_context)
             logger.info(f"Enhanced input created, length: {len(enhanced_input)} characters")
             logger.debug(f"Enhanced input preview: {enhanced_input[:300]}...")
 
@@ -1499,21 +1579,19 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
 
             try:
                 # Use configured retry settings for OpenAI rate limits
-                
+
                 # Wrap Runner.run with retry logic
                 async def run_agent_with_context():
                     return await Runner.run(
                         self.triage_agent,
                         input=enhanced_input,
                         context=diagnostic_context,
-                        max_turns=20  # Allow multiple turns for handoffs
+                        max_turns=20,  # Allow multiple turns for handoffs
                     )
-                
+
                 # Execute with retry logic
                 result = await retry_with_exponential_backoff(
-                    run_agent_with_context,
-                    self.retry_config,
-                    ctx
+                    run_agent_with_context, self.retry_config, ctx
                 )
             finally:
                 # Cancel the progress reporter
@@ -1531,26 +1609,30 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
 
             # Log detailed results
             logger.info("AGENT EXECUTION RESULTS:")
-            logger.info(f"- Final output length: {len(result.final_output) if result.final_output else 0}")
-            logger.info(f"- Last agent: {result.last_agent.name if result.last_agent else 'Unknown'}")
+            logger.info(
+                f"- Final output length: {len(result.final_output) if result.final_output else 0}"
+            )
+            logger.info(
+                f"- Last agent: {result.last_agent.name if result.last_agent else 'Unknown'}"
+            )
             logger.info(f"- New items count: {len(result.new_items)}")
             logger.info(f"- Conversation length: {len(result.to_input_list())}")
 
             # Log handoff information
-            if hasattr(result, 'handoffs_occurred'):
+            if hasattr(result, "handoffs_occurred"):
                 logger.info(f"- Handoffs occurred: {result.handoffs_occurred}")
 
             # Extract step-by-step analysis from conversation
             conversation_history = result.to_input_list()
 
             # Log conversation structure for debugging
-            logger.debug("="*50)
+            logger.debug("=" * 50)
             logger.debug("CONVERSATION STRUCTURE DEBUG")
-            logger.debug("="*50)
+            logger.debug("=" * 50)
             for i, msg in enumerate(conversation_history):
                 if isinstance(msg, dict):
-                    role = msg.get('role', 'unknown')
-                    content = msg.get('content', '')
+                    role = msg.get("role", "unknown")
+                    content = msg.get("content", "")
 
                     # Log content structure
                     if isinstance(content, list):
@@ -1558,22 +1640,24 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                         for j, item in enumerate(content[:2]):  # First 2 items
                             logger.debug(f"  Item {j}: {type(item)} - {str(item)[:100]}...")
                     else:
-                        logger.debug(f"Message {i} ({role}): {type(content)} - {str(content)[:100]}...")
+                        logger.debug(
+                            f"Message {i} ({role}): {type(content)} - {str(content)[:100]}..."
+                        )
 
                     # Check for tool_calls
-                    if 'tool_calls' in msg:
+                    if "tool_calls" in msg:
                         logger.debug(f"  Has tool_calls: {msg['tool_calls']}")
                 else:
                     logger.debug(f"Message {i}: {type(msg)} - {str(msg)[:100]}...")
-            logger.debug("="*50)
+            logger.debug("=" * 50)
 
             step_summary = self._extract_step_summary(conversation_history, result.last_agent)
 
             logger.debug(f"Conversation history ({len(conversation_history)} items):")
             for i, item in enumerate(conversation_history):
                 if isinstance(item, dict):
-                    role = item.get('role', 'unknown')
-                    content_preview = str(item.get('content', ''))[:100]
+                    role = item.get("role", "unknown")
+                    content_preview = str(item.get("content", ""))[:100]
                     logger.debug(f"  {i}: {role} - {content_preview}...")
 
             # Log agent response preview
@@ -1596,27 +1680,29 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                     "latest_time": latest_time,
                     "focus_index": focus_index,
                     "focus_host": focus_host,
-                    "complexity_level": complexity_level
+                    "complexity_level": complexity_level,
                 },
                 "troubleshooting_results": result.final_output,
-                "routed_to_specialist": result.last_agent.name if result.last_agent else "No handoff occurred",
+                "routed_to_specialist": result.last_agent.name
+                if result.last_agent
+                else "No handoff occurred",
                 "analysis_steps": len(result.new_items),
                 "conversation_length": len(result.to_input_list()),
                 "step_summary": step_summary,
                 "execution_times": {
                     "total_execution_time": total_execution_time,
-                    "workflow_execution_time": agent_execution_time
-                }
+                    "workflow_execution_time": agent_execution_time,
+                },
             }
 
             # Report final progress
             await ctx.report_progress(progress=100, total=100)
 
-            logger.info("="*80)
+            logger.info("=" * 80)
             logger.info("TRIAGE AGENT EXECUTION COMPLETED SUCCESSFULLY")
             logger.info(f"Total execution time: {total_execution_time:.2f} seconds")
             logger.info(f"Routed to specialist: {execution_result['routed_to_specialist']}")
-            logger.info("="*80)
+            logger.info("=" * 80)
 
             return execution_result
 
@@ -1624,12 +1710,12 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
             execution_time = time.time() - execution_start_time
             error_msg = f"Triage agent execution failed: {str(e)}"
 
-            logger.error("="*80)
+            logger.error("=" * 80)
             logger.error("TRIAGE AGENT EXECUTION FAILED")
             logger.error(f"Error: {error_msg}")
             logger.error(f"Execution time before failure: {execution_time:.2f} seconds")
-            logger.error("="*80)
-            logger.error(f"Full error details:", exc_info=True)
+            logger.error("=" * 80)
+            logger.error("Full error details:", exc_info=True)
 
             await ctx.error(error_msg)
             return {
@@ -1642,26 +1728,24 @@ Example: If the user reports "I can't find my data in index=cca_insights", immed
                     "workflow_overview": {
                         "initial_triage": "Failed during execution",
                         "specialist_assigned": "None - execution failed",
-                        "total_conversation_turns": 0
+                        "total_conversation_turns": 0,
                     },
                     "execution_summary": {
                         "tools_used": 0,
                         "diagnostic_steps_performed": 0,
                         "key_findings_identified": 0,
                         "recommendations_provided": 0,
-                        "routing_successful": False
+                        "routing_successful": False,
                     },
                     "error_details": {
                         "failure_point": "Agent execution",
-                        "error_message": error_msg
-                    }
-                }
+                        "error_message": error_msg,
+                    },
+                },
             }
 
     def _create_missing_data_input(
-        self,
-        problem_description: str,
-        context: SplunkDiagnosticContext
+        self, problem_description: str, context: SplunkDiagnosticContext
     ) -> str:
         """Create enhanced input specifically for missing data troubleshooting workflow."""
 
@@ -1719,9 +1803,7 @@ Document your complete analysis and provide actionable recommendations for resol
         return enhanced_input
 
     def _create_enhanced_input(
-        self,
-        problem_description: str,
-        context: SplunkDiagnosticContext
+        self, problem_description: str, context: SplunkDiagnosticContext
     ) -> str:
         """Create enhanced input with diagnostic context (legacy method for compatibility)."""
 
@@ -1757,7 +1839,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
         logger.debug(f"Enhanced input created with {len(context_info)} context items")
         return enhanced_input
 
-    def _extract_step_summary(self, conversation_history: List[Dict], last_agent) -> Dict[str, Any]:
+    def _extract_step_summary(self, conversation_history: list[dict], last_agent) -> dict[str, Any]:
         """
         Extract a comprehensive step-by-step summary from the agent conversation.
 
@@ -1781,27 +1863,27 @@ Please analyze this issue and route to the appropriate specialist agent for deta
             "workflow_overview": {
                 "initial_triage": "Analyzed problem and routed to appropriate specialist",
                 "specialist_assigned": last_agent.name if last_agent else "No specialist assigned",
-                "total_conversation_turns": len(conversation_history)
+                "total_conversation_turns": len(conversation_history),
             },
             "routing_decision": {
                 "decision_made": True,  # We know routing happened if we have a last_agent
                 "routing_rationale": "Triage agent analyzed the problem and routed to specialist",
-                "target_specialist": last_agent.name if last_agent else "Unknown"
+                "target_specialist": last_agent.name if last_agent else "Unknown",
             },
             "tools_executed": [],
             "diagnostic_steps": [],
             "key_findings": [],
             "recommendations": [],
-            "timeline": []
+            "timeline": [],
         }
 
         current_step = 1
         tools_called = set()
 
         # Enhanced debug logging to understand conversation structure
-        logger.debug("="*60)
+        logger.debug("=" * 60)
         logger.debug("DETAILED CONVERSATION ANALYSIS")
-        logger.debug("="*60)
+        logger.debug("=" * 60)
 
         for i, message in enumerate(conversation_history):
             logger.debug(f"\nMessage {i}:")
@@ -1809,27 +1891,27 @@ Please analyze this issue and route to the appropriate specialist agent for deta
 
             if isinstance(message, dict):
                 logger.debug(f"  Keys: {list(message.keys())}")
-                role = message.get('role', 'unknown')
+                role = message.get("role", "unknown")
                 logger.debug(f"  Role: {role}")
 
                 # Check for tool_calls in various possible locations
                 tool_calls_found = []
                 # Check direct tool_calls key
-                if 'tool_calls' in message:
+                if "tool_calls" in message:
                     tool_calls_found.append(f"Direct tool_calls: {message['tool_calls']}")
 
                 # Check for tool_calls in content if content is dict
-                content = message.get('content', '')
-                if isinstance(content, dict) and 'tool_calls' in content:
+                content = message.get("content", "")
+                if isinstance(content, dict) and "tool_calls" in content:
                     tool_calls_found.append(f"Content tool_calls: {content['tool_calls']}")
 
                 # Check for function_call (alternative format)
-                if 'function_call' in message:
+                if "function_call" in message:
                     tool_calls_found.append(f"Function call: {message['function_call']}")
 
                 # Check for any keys that might contain tool info
                 for key in message.keys():
-                    if 'tool' in key.lower() or 'function' in key.lower():
+                    if "tool" in key.lower() or "function" in key.lower():
                         tool_calls_found.append(f"Key '{key}': {message[key]}")
 
                 if tool_calls_found:
@@ -1850,15 +1932,15 @@ Please analyze this issue and route to the appropriate specialist agent for deta
             else:
                 logger.debug(f"  Non-dict message: {str(message)[:200]}...")
 
-        logger.debug("="*60)
+        logger.debug("=" * 60)
 
         # Now process messages with improved tool detection
         for i, message in enumerate(conversation_history):
             if not isinstance(message, dict):
                 continue
 
-            role = message.get('role', '')
-            content = message.get('content', '')
+            role = message.get("role", "")
+            content = message.get("content", "")
 
             # Handle different content formats from OpenAI agents
             if isinstance(content, list):
@@ -1866,17 +1948,17 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                 content_text = ""
                 for block in content:
                     if isinstance(block, dict):
-                        if block.get('type') == 'text':
-                            content_text += block.get('text', '')
-                        elif 'text' in block:
-                            content_text += block.get('text', '')
+                        if block.get("type") == "text":
+                            content_text += block.get("text", "")
+                        elif "text" in block:
+                            content_text += block.get("text", "")
                         else:
                             # Handle other block types that might contain text
                             content_text += str(block)
                 content = content_text
             elif isinstance(content, dict):
                 # Handle dict content
-                content = content.get('text', str(content))
+                content = content.get("text", str(content))
 
             content = str(content)
             timestamp = i  # Use message index as relative timestamp
@@ -1885,49 +1967,52 @@ Please analyze this issue and route to the appropriate specialist agent for deta
             tool_calls_detected = []
 
             # Method 1: Check direct tool_calls key (standard OpenAI format)
-            if 'tool_calls' in message:
-                tool_calls = message.get('tool_calls', [])
+            if "tool_calls" in message:
+                tool_calls = message.get("tool_calls", [])
                 if isinstance(tool_calls, list):
                     tool_calls_detected.extend(tool_calls)
                 elif tool_calls:  # Single tool call
                     tool_calls_detected.append(tool_calls)
 
             # Method 2: Check function_call (alternative format)
-            if 'function_call' in message:
-                function_call = message.get('function_call', {})
-                if isinstance(function_call, dict) and function_call.get('name'):
-                    tool_calls_detected.append({
-                        'function': {
-                            'name': function_call.get('name'),
-                            'arguments': function_call.get('arguments', {})
+            if "function_call" in message:
+                function_call = message.get("function_call", {})
+                if isinstance(function_call, dict) and function_call.get("name"):
+                    tool_calls_detected.append(
+                        {
+                            "function": {
+                                "name": function_call.get("name"),
+                                "arguments": function_call.get("arguments", {}),
+                            }
                         }
-                    })
+                    )
 
             # Method 3: Check content for tool calls (if content is dict)
-            original_content = message.get('content', '')
-            if isinstance(original_content, dict) and 'tool_calls' in original_content:
-                content_tool_calls = original_content.get('tool_calls', [])
+            original_content = message.get("content", "")
+            if isinstance(original_content, dict) and "tool_calls" in original_content:
+                content_tool_calls = original_content.get("tool_calls", [])
                 if isinstance(content_tool_calls, list):
                     tool_calls_detected.extend(content_tool_calls)
 
             # Method 4: OpenAI Agents SDK format - direct tool call message
             # Check if this message itself IS a tool call (has name, arguments, call_id)
-            if 'name' in message and 'arguments' in message and 'call_id' in message:
+            if "name" in message and "arguments" in message and "call_id" in message:
                 # This is a tool call message in OpenAI agents format
-                function_name = message.get('name', '')
-                arguments = message.get('arguments', {})
-                call_id = message.get('call_id', '')
+                function_name = message.get("name", "")
+                arguments = message.get("arguments", {})
+                call_id = message.get("call_id", "")
 
                 if function_name:
-                    tool_calls_detected.append({
-                        'function': {
-                            'name': function_name,
-                            'arguments': arguments
-                        },
-                        'id': call_id,
-                        'type': 'function'
-                    })
-                    logger.debug(f"Detected OpenAI agents tool call: {function_name} with call_id: {call_id}")
+                    tool_calls_detected.append(
+                        {
+                            "function": {"name": function_name, "arguments": arguments},
+                            "id": call_id,
+                            "type": "function",
+                        }
+                    )
+                    logger.debug(
+                        f"Detected OpenAI agents tool call: {function_name} with call_id: {call_id}"
+                    )
 
             # Process detected tool calls
             for tool_call in tool_calls_detected:
@@ -1935,23 +2020,23 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                     # Handle different tool call formats
                     function_name = None
                     arguments = {}
-                    call_id = tool_call.get('id', '')
+                    call_id = tool_call.get("id", "")
 
                     # Format 1: OpenAI standard format
-                    if 'function' in tool_call:
-                        function_info = tool_call.get('function', {})
-                        function_name = function_info.get('name', '')
-                        arguments = function_info.get('arguments', {})
+                    if "function" in tool_call:
+                        function_info = tool_call.get("function", {})
+                        function_name = function_info.get("name", "")
+                        arguments = function_info.get("arguments", {})
 
                     # Format 2: Direct format
-                    elif 'name' in tool_call:
-                        function_name = tool_call.get('name', '')
-                        arguments = tool_call.get('arguments', {})
+                    elif "name" in tool_call:
+                        function_name = tool_call.get("name", "")
+                        arguments = tool_call.get("arguments", {})
 
                     # Format 3: Alternative format
-                    elif 'tool_name' in tool_call:
-                        function_name = tool_call.get('tool_name', '')
-                        arguments = tool_call.get('arguments', {})
+                    elif "tool_name" in tool_call:
+                        function_name = tool_call.get("tool_name", "")
+                        arguments = tool_call.get("arguments", {})
 
                     if function_name and function_name not in tools_called:
                         tools_called.add(function_name)
@@ -1961,31 +2046,34 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                         if isinstance(arguments, str):
                             try:
                                 import json
+
                                 arguments = json.loads(arguments)
                             except:
                                 arguments = {}
 
-                        summary["tools_executed"].append({
-                            "step": current_step,
-                            "tool": function_name,
-                            "description": description,
-                            "arguments": arguments,
-                            "call_id": call_id,
-                            "timestamp": timestamp
-                        })
+                        summary["tools_executed"].append(
+                            {
+                                "step": current_step,
+                                "tool": function_name,
+                                "description": description,
+                                "arguments": arguments,
+                                "call_id": call_id,
+                                "timestamp": timestamp,
+                            }
+                        )
                         current_step += 1
 
                         logger.debug(f"Detected tool call: {function_name} with args: {arguments}")
 
             # Enhanced tool mention detection in content (as fallback)
             tool_patterns = [
-                ('get_current_user_info', 'Retrieved current user information and permissions'),
-                ('list_splunk_indexes', 'Listed available Splunk indexes'),
-                ('get_splunk_health', 'Checked Splunk server health status'),
-                ('run_splunk_search', 'Executed Splunk search query'),
-                ('list_sources', 'Listed available data sources'),
-                ('list_sourcetypes', 'Listed available sourcetypes'),
-                ('list_triggered_alerts', 'Checked triggered alerts')
+                ("get_current_user_info", "Retrieved current user information and permissions"),
+                ("list_splunk_indexes", "Listed available Splunk indexes"),
+                ("get_splunk_health", "Checked Splunk server health status"),
+                ("run_splunk_search", "Executed Splunk search query"),
+                ("list_sources", "Listed available data sources"),
+                ("list_sourcetypes", "Listed available sourcetypes"),
+                ("list_triggered_alerts", "Checked triggered alerts"),
             ]
 
             # Look for tool mentions in content (as fallback)
@@ -1993,151 +2081,188 @@ Please analyze this issue and route to the appropriate specialist agent for deta
                 # Check for various patterns that might indicate tool usage
                 patterns_to_check = [
                     tool_name,
-                    f'`{tool_name}`',
+                    f"`{tool_name}`",
                     f'"{tool_name}"',
                     f"'{tool_name}'",
-                    f'calling {tool_name}',
-                    f'execute {tool_name}',
-                    f'run {tool_name}',
-                    f'using {tool_name}'
+                    f"calling {tool_name}",
+                    f"execute {tool_name}",
+                    f"run {tool_name}",
+                    f"using {tool_name}",
                 ]
 
                 for pattern in patterns_to_check:
                     if pattern in content.lower() and tool_name not in tools_called:
                         tools_called.add(tool_name)
-                        summary["tools_executed"].append({
-                            "step": current_step,
-                            "tool": tool_name,
-                            "description": description,
-                            "arguments": {},
-                            "timestamp": timestamp,
-                            "detection_method": "content_pattern"
-                        })
+                        summary["tools_executed"].append(
+                            {
+                                "step": current_step,
+                                "tool": tool_name,
+                                "description": description,
+                                "arguments": {},
+                                "timestamp": timestamp,
+                                "detection_method": "content_pattern",
+                            }
+                        )
                         current_step += 1
                         logger.debug(f"Detected tool mention in content: {tool_name}")
                         break
 
             # Extract diagnostic steps from assistant messages
-            if role == 'assistant' and len(content) > 50:
+            if role == "assistant" and len(content) > 50:
                 # Look for section headers and step patterns
-                if any(pattern in content for pattern in ['###', '##', 'STEP', 'Step', 'step']):
+                if any(pattern in content for pattern in ["###", "##", "STEP", "Step", "step"]):
                     # Extract sections/steps
-                    lines = content.split('\n')
+                    lines = content.split("\n")
                     current_section = ""
                     for line in lines:
-                        if line.strip().startswith('#') or 'step' in line.lower():
+                        if line.strip().startswith("#") or "step" in line.lower():
                             if current_section and len(current_section) > 20:
-                                summary["diagnostic_steps"].append({
-                                    "step": len(summary["diagnostic_steps"]) + 1,
-                                    "action": current_section.strip(),
-                                    "timestamp": timestamp
-                                })
+                                summary["diagnostic_steps"].append(
+                                    {
+                                        "step": len(summary["diagnostic_steps"]) + 1,
+                                        "action": current_section.strip(),
+                                        "timestamp": timestamp,
+                                    }
+                                )
                             current_section = line.strip()
                         elif current_section and line.strip():
                             current_section += " " + line.strip()
 
                     # Add the last section
                     if current_section and len(current_section) > 20:
-                        summary["diagnostic_steps"].append({
-                            "step": len(summary["diagnostic_steps"]) + 1,
-                            "action": current_section.strip(),
-                            "timestamp": timestamp
-                        })
+                        summary["diagnostic_steps"].append(
+                            {
+                                "step": len(summary["diagnostic_steps"]) + 1,
+                                "action": current_section.strip(),
+                                "timestamp": timestamp,
+                            }
+                        )
 
             # Extract key findings - look for specific patterns
             finding_patterns = [
-                'events are present', 'timestamps are set', 'found in', 'discovered that',
-                'analysis shows', 'results indicate', 'data shows', 'identified'
+                "events are present",
+                "timestamps are set",
+                "found in",
+                "discovered that",
+                "analysis shows",
+                "results indicate",
+                "data shows",
+                "identified",
             ]
 
-            if role == 'assistant':
+            if role == "assistant":
                 for pattern in finding_patterns:
                     if pattern in content.lower():
                         # Extract the sentence containing the finding
-                        sentences = content.split('.')
+                        sentences = content.split(".")
                         for sentence in sentences:
                             if pattern in sentence.lower() and len(sentence.strip()) > 20:
                                 finding = sentence.strip()
                                 if finding not in [f["finding"] for f in summary["key_findings"]]:
-                                    summary["key_findings"].append({
-                                        "finding": finding,
-                                        "timestamp": timestamp
-                                    })
+                                    summary["key_findings"].append(
+                                        {"finding": finding, "timestamp": timestamp}
+                                    )
                                 break
 
             # Enhanced recommendation extraction
-            if role == 'assistant' and ('recommendation' in content.lower() or 'suggest' in content.lower() or 'recommend' in content.lower()):
+            if role == "assistant" and (
+                "recommendation" in content.lower()
+                or "suggest" in content.lower()
+                or "recommend" in content.lower()
+            ):
                 # Look for recommendation sections and conclusion sections
-                lines = content.split('\n')
+                lines = content.split("\n")
                 in_recommendations = False
                 current_recommendation = ""
 
                 for line in lines:
                     line_lower = line.lower()
                     # Start of recommendation section
-                    if any(word in line_lower for word in ['recommendation', 'suggest', 'recommend', 'conclusion', 'next steps']):
+                    if any(
+                        word in line_lower
+                        for word in [
+                            "recommendation",
+                            "suggest",
+                            "recommend",
+                            "conclusion",
+                            "next steps",
+                        ]
+                    ):
                         in_recommendations = True
                         if current_recommendation:
-                            summary["recommendations"].append({
-                                "recommendation": current_recommendation.strip(),
-                                "timestamp": timestamp
-                            })
+                            summary["recommendations"].append(
+                                {
+                                    "recommendation": current_recommendation.strip(),
+                                    "timestamp": timestamp,
+                                }
+                            )
                             current_recommendation = ""
                         continue
                     elif in_recommendations:
                         # Look for list items or actionable statements
-                        if line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '-', '*', '•')):
+                        if line.strip().startswith(("1.", "2.", "3.", "4.", "5.", "-", "*", "•")):
                             if current_recommendation:
-                                summary["recommendations"].append({
-                                    "recommendation": current_recommendation.strip(),
-                                    "timestamp": timestamp
-                                })
+                                summary["recommendations"].append(
+                                    {
+                                        "recommendation": current_recommendation.strip(),
+                                        "timestamp": timestamp,
+                                    }
+                                )
                             current_recommendation = line.strip()
-                        elif line.strip() and not line.strip().startswith('#'):
+                        elif line.strip() and not line.strip().startswith("#"):
                             current_recommendation += " " + line.strip()
                         elif not line.strip() and current_recommendation:
                             # End of recommendation section
                             if current_recommendation:
-                                summary["recommendations"].append({
-                                    "recommendation": current_recommendation.strip(),
-                                    "timestamp": timestamp
-                                })
+                                summary["recommendations"].append(
+                                    {
+                                        "recommendation": current_recommendation.strip(),
+                                        "timestamp": timestamp,
+                                    }
+                                )
                             current_recommendation = ""
                             in_recommendations = False
 
                 # Add the last recommendation
                 if current_recommendation:
-                    summary["recommendations"].append({
-                        "recommendation": current_recommendation.strip(),
-                        "timestamp": timestamp
-                    })
+                    summary["recommendations"].append(
+                        {"recommendation": current_recommendation.strip(), "timestamp": timestamp}
+                    )
 
         # Create timeline summary
         all_activities = []
 
         # Add routing decision
         if summary["routing_decision"]["decision_made"]:
-            all_activities.append({
-                "step": "Triage & Routing",
-                "description": f"Analyzed problem and routed to {summary['routing_decision']['target_specialist']}",
-                "timestamp": 0
-            })
+            all_activities.append(
+                {
+                    "step": "Triage & Routing",
+                    "description": f"Analyzed problem and routed to {summary['routing_decision']['target_specialist']}",
+                    "timestamp": 0,
+                }
+            )
 
         # Add tool executions
         for tool in summary["tools_executed"]:
-            all_activities.append({
-                "step": f"Tool Execution",
-                "description": tool["description"],
-                "timestamp": tool["timestamp"]
-            })
+            all_activities.append(
+                {
+                    "step": "Tool Execution",
+                    "description": tool["description"],
+                    "timestamp": tool["timestamp"],
+                }
+            )
 
         # Add diagnostic steps
         for step in summary["diagnostic_steps"]:
-            all_activities.append({
-                "step": f"Diagnostic Step {step['step']}",
-                "description": step["action"][:100] + "..." if len(step["action"]) > 100 else step["action"],
-                "timestamp": step["timestamp"]
-            })
+            all_activities.append(
+                {
+                    "step": f"Diagnostic Step {step['step']}",
+                    "description": step["action"][:100] + "..."
+                    if len(step["action"]) > 100
+                    else step["action"],
+                    "timestamp": step["timestamp"],
+                }
+            )
 
         # Sort by timestamp and create timeline
         all_activities.sort(key=lambda x: x["timestamp"])
@@ -2149,7 +2274,7 @@ Please analyze this issue and route to the appropriate specialist agent for deta
             "diagnostic_steps_performed": len(summary["diagnostic_steps"]),
             "key_findings_identified": len(summary["key_findings"]),
             "recommendations_provided": len(summary["recommendations"]),
-            "routing_successful": summary["routing_decision"]["decision_made"]
+            "routing_successful": summary["routing_decision"]["decision_made"],
         }
 
         logger.info(f"Step summary extracted: {summary['execution_summary']}")
@@ -2162,12 +2287,12 @@ Please analyze this issue and route to the appropriate specialist agent for deta
     def _get_tool_description(self, tool_name: str) -> str:
         """Get a user-friendly description for a tool name."""
         tool_descriptions = {
-            'get_current_user_info': 'Retrieved current user information and permissions',
-            'list_splunk_indexes': 'Listed available Splunk indexes',
-            'get_splunk_health': 'Checked Splunk server health status',
-            'run_splunk_search': 'Executed Splunk search query',
-            'list_sources': 'Listed available data sources',
-            'list_sourcetypes': 'Listed available sourcetypes',
-            'list_triggered_alerts': 'Checked triggered alerts'
+            "get_current_user_info": "Retrieved current user information and permissions",
+            "list_splunk_indexes": "Listed available Splunk indexes",
+            "get_splunk_health": "Checked Splunk server health status",
+            "run_splunk_search": "Executed Splunk search query",
+            "list_sources": "Listed available data sources",
+            "list_sourcetypes": "Listed available sourcetypes",
+            "list_triggered_alerts": "Checked triggered alerts",
         }
-        return tool_descriptions.get(tool_name, f'Executed {tool_name}')
+        return tool_descriptions.get(tool_name, f"Executed {tool_name}")

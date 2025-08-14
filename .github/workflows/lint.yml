@@ -29,5 +29,3 @@ jobs:
 
       - name: Mypy (types)
         run: uv run mypy src/
-
-

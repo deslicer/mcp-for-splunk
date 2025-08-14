@@ -179,7 +179,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 task_name=self.task_definition.name,
                 task_description=self.task_definition.description,
                 task_instructions=self.task_definition.instructions,
-                available_tools=", ".join(self.task_definition.required_tools)
+                available_tools=", ".join(self.task_definition.required_tools),
             )
 
             self.openai_agent = Agent(
@@ -242,7 +242,11 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 with custom_span(f"splunk_search_{self.task_definition.task_id}"):
                     result = await self.tool_registry.call_tool(
                         "run_splunk_search",
-                        {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
+                        {
+                            "query": query,
+                            "earliest_time": earliest_time,
+                            "latest_time": latest_time,
+                        },
                     )
 
                     if result.get("success"):
@@ -257,7 +261,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             else:
                 result = await self.tool_registry.call_tool(
                     "run_splunk_search",
-                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time}
+                    {"query": query, "earliest_time": earliest_time, "latest_time": latest_time},
                 )
 
                 if result.get("success"):
@@ -275,7 +279,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 run_splunk_search,
                 name_override="run_splunk_search",
-                description_override="Execute a Splunk search query with progress tracking"
+                description_override="Execute a Splunk search query with progress tracking",
             )
             return tool
         except Exception as e:
@@ -312,7 +316,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                             "earliest_time": earliest_time,
                             "latest_time": latest_time,
                             "max_results": max_results,
-                        }
+                        },
                     )
 
                     if result.get("success"):
@@ -332,7 +336,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                         "earliest_time": earliest_time,
                         "latest_time": latest_time,
                         "max_results": max_results,
-                    }
+                    },
                 )
 
                 if result.get("success"):
@@ -350,13 +354,15 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 run_oneshot_search,
                 name_override="run_oneshot_search",
-                description_override="Execute a quick Splunk oneshot search"
+                description_override="Execute a quick Splunk oneshot search",
             )
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create run_oneshot_search tool: {e}")
             # Return a no-op tool as fallback
-            return self._create_fallback_tool("run_oneshot_search", "Execute a quick Splunk oneshot search")
+            return self._create_fallback_tool(
+                "run_oneshot_search", "Execute a quick Splunk oneshot search"
+            )
 
     def _create_list_indexes_tool(self):
         """Create list_splunk_indexes tool for the agent."""
@@ -382,7 +388,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                             await ctx.info("✅ Index list retrieved successfully")
                         return str(result.get("data", ""))
                     else:
-                        error_msg = f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                        error_msg = (
+                            f"Failed to list indexes: {result.get('error', 'Unknown error')}"
+                        )
                         if ctx:
                             await ctx.error(f"❌ {error_msg}")
                         return error_msg
@@ -404,13 +412,15 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 list_splunk_indexes,
                 name_override="list_splunk_indexes",
-                description_override="List available Splunk indexes"
+                description_override="List available Splunk indexes",
             )
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create list_splunk_indexes tool: {e}")
             # Return a no-op tool as fallback
-            return self._create_fallback_tool("list_splunk_indexes", "List available Splunk indexes")
+            return self._create_fallback_tool(
+                "list_splunk_indexes", "List available Splunk indexes"
+            )
 
     def _create_get_user_info_tool(self):
         """Create get_current_user_info tool for the agent."""
@@ -436,7 +446,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                             await ctx.info("✅ User information retrieved successfully")
                         return str(result.get("data", ""))
                     else:
-                        error_msg = f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                        error_msg = (
+                            f"Failed to get user info: {result.get('error', 'Unknown error')}"
+                        )
                         if ctx:
                             await ctx.error(f"❌ {error_msg}")
                         return error_msg
@@ -458,13 +470,15 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 get_current_user_info,
                 name_override="get_current_user_info",
-                description_override="Get current user information including roles and capabilities"
+                description_override="Get current user information including roles and capabilities",
             )
             return tool
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create get_current_user_info tool: {e}")
             # Return a no-op tool as fallback
-            return self._create_fallback_tool("get_current_user_info", "Get current user information")
+            return self._create_fallback_tool(
+                "get_current_user_info", "Get current user information"
+            )
 
     def _create_get_health_tool(self):
         """Create get_splunk_health tool for the agent."""
@@ -512,7 +526,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 get_splunk_health,
                 name_override="get_splunk_health",
-                description_override="Check Splunk server health and connectivity"
+                description_override="Check Splunk server health and connectivity",
             )
             return tool
         except Exception as e:
@@ -524,10 +538,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """Create tool for returning diagnostic results."""
 
         async def return_diagnostic_result(
-            status: str,
-            findings: str,
-            recommendations: str,
-            details: str = ""
+            status: str, findings: str, recommendations: str, details: str = ""
         ) -> str:
             """Return the diagnostic result for this task.
 
@@ -569,7 +580,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 return_diagnostic_result,
                 name_override="return_diagnostic_result",
-                description_override="Return the diagnostic result for this task. Use JSON strings for lists and objects."
+                description_override="Return the diagnostic result for this task. Use JSON strings for lists and objects.",
             )
 
             # Don't modify the schema at all - let OpenAI Agents SDK handle it
@@ -579,7 +590,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         except Exception as e:
             logger.error(f"[{self.name}] Failed to create return_diagnostic_result tool: {e}")
             # Return a no-op tool as fallback
-            return self._create_fallback_tool("return_diagnostic_result", "Return diagnostic result")
+            return self._create_fallback_tool(
+                "return_diagnostic_result", "Return diagnostic result"
+            )
 
     def _create_fallback_tool(self, tool_name: str, description: str):
         """Create a fallback no-op tool when tool creation fails."""
@@ -592,7 +605,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             tool = function_tool(
                 fallback_function,
                 name_override=tool_name,
-                description_override=f"Fallback for {description}"
+                description_override=f"Fallback for {description}",
             )
             return tool
         except Exception as e:
@@ -627,17 +640,14 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                                 if details_prop["type"] == "object":
                                     # Use oneOf to allow object or null
                                     details_prop.clear()
-                                    details_prop["oneOf"] = [
-                                        {"type": "object"},
-                                        {"type": "null"}
-                                    ]
+                                    details_prop["oneOf"] = [{"type": "object"}, {"type": "null"}]
                                 elif isinstance(details_prop["type"], str):
                                     # Convert single type to oneOf with null
                                     original_type = details_prop["type"]
                                     details_prop.clear()
                                     details_prop["oneOf"] = [
                                         {"type": original_type},
-                                        {"type": "null"}
+                                        {"type": "null"},
                                     ]
 
             # Recursively fix nested schemas
@@ -649,7 +659,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                         if isinstance(item, dict):
                             self._fix_json_schema(item)
 
-    async def execute_task(self, execution_context: AgentExecutionContext, ctx: Context) -> DiagnosticResult:
+    async def execute_task(
+        self, execution_context: AgentExecutionContext, ctx: Context
+    ) -> DiagnosticResult:
         """
         Execute the assigned task with the provided context and comprehensive tracing.
 
@@ -675,7 +687,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         # Create comprehensive tracing for task execution
         if OPENAI_AGENTS_AVAILABLE and custom_span:
             with custom_span(f"micro_agent_task_{self.task_definition.task_id}"):
-                return await self._execute_task_with_tracing(execution_context, start_time, ctx, True)
+                return await self._execute_task_with_tracing(
+                    execution_context, start_time, ctx, True
+                )
         else:
             # Fallback without tracing
             return await self._execute_task_with_tracing(execution_context, start_time, ctx, False)
@@ -685,7 +699,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         execution_context: AgentExecutionContext,
         start_time: float,
         ctx: Context,
-        tracing_enabled: bool = False
+        tracing_enabled: bool = False,
     ) -> DiagnosticResult:
         """Execute the task with optional tracing support and progress reporting."""
 
@@ -832,7 +846,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
         except Exception as e:
             logger.error(f"[{self.name}] OpenAI Agent execution failed: {e}", exc_info=True)
-            await ctx.error(f"❌ OpenAI Agent execution failed for {self.task_definition.name}: {str(e)}")
+            await ctx.error(
+                f"❌ OpenAI Agent execution failed for {self.task_definition.name}: {str(e)}"
+            )
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -854,7 +870,10 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         instructions = instructions.replace("{focus_index}", context.focus_index or "*")
         instructions = instructions.replace("{focus_host}", context.focus_host or "*")
         instructions = instructions.replace("{focus_sourcetype}", context.focus_sourcetype or "*")
-        instructions = instructions.replace("{problem_description}", context.problem_description or "No specific problem description provided")
+        instructions = instructions.replace(
+            "{problem_description}",
+            context.problem_description or "No specific problem description provided",
+        )
         instructions = instructions.replace("{workflow_type}", context.workflow_type or "unknown")
         instructions = instructions.replace("{complexity_level}", context.complexity_level)
 
@@ -877,7 +896,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         instructions += f"- Task ID: {self.task_definition.task_id}\n"
         instructions += f"- Task Name: {self.task_definition.name}\n"
         instructions += f"- Available Tools: {', '.join(self.task_definition.required_tools)}\n"
-        instructions += f"- Diagnostic Time Range: {context.earliest_time} to {context.latest_time}\n"
+        instructions += (
+            f"- Diagnostic Time Range: {context.earliest_time} to {context.latest_time}\n"
+        )
         instructions += f"- Complexity Level: {context.complexity_level}\n"
 
         if context.problem_description:
@@ -965,7 +986,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
             await ctx.report_progress(progress=80, total=100)
 
             if not server_result.get("success"):
-                await ctx.error(f"Failed to retrieve server information: {server_result.get('error')}")
+                await ctx.error(
+                    f"Failed to retrieve server information: {server_result.get('error')}"
+                )
                 return DiagnosticResult(
                     step=self.task_definition.task_id,
                     status="error",
@@ -1128,7 +1151,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         try:
             context = execution_context.diagnostic_context
 
-            await ctx.info(f"⏰ Checking data availability in time range {context.earliest_time} to {context.latest_time}")
+            await ctx.info(
+                f"⏰ Checking data availability in time range {context.earliest_time} to {context.latest_time}"
+            )
             await ctx.report_progress(progress=60, total=100)
 
             # Set the context on the tool registry for progress reporting

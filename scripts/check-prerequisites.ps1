@@ -115,7 +115,7 @@ function Test-Command {
         [string]$Name,
         [hashtable]$Tool
     )
-    
+
     try {
         $output = & $Tool.command $Tool.args 2>$null
         if ($LASTEXITCODE -eq 0 -and $output) {
@@ -204,7 +204,7 @@ Write-Host "-" * 20
 
 if ($missingRequirements.Count -eq 0) {
     Write-Success "All required prerequisites are installed! 🎉"
-    
+
     if ($optionalMissing.Count -eq 0) {
         Write-Success "All optional tools are also available!"
         Write-Host ""
@@ -220,13 +220,13 @@ if ($missingRequirements.Count -eq 0) {
     Write-Host ""
     Write-Host "📋 Installation Commands:" -ForegroundColor Yellow
     Write-Host "-" * 20
-    
+
     foreach ($tip in $installationTips) {
         if ($tip -match "($($missingRequirements | ForEach-Object { [regex]::Escape($_) } | Join-String -Separator '|'))") {
             Write-Host $tip -ForegroundColor Cyan
         }
     }
-    
+
     Write-Host ""
     Write-Host "🎯 Quick Install All (run as Administrator):" -ForegroundColor Yellow
     Write-Host "winget install Python.Python.3.12 astral-sh.uv Git.Git OpenJS.NodeJS Docker.DockerDesktop" -ForegroundColor Cyan
@@ -236,7 +236,7 @@ if ($optionalMissing.Count -gt 0 -and $missingRequirements.Count -eq 0) {
     Write-Host ""
     Write-Host "🌟 Optional Installation Commands:" -ForegroundColor Yellow
     Write-Host "-" * 20
-    
+
     foreach ($tip in $installationTips) {
         if ($tip -match "($($optionalMissing | ForEach-Object { [regex]::Escape($_) } | Join-String -Separator '|'))") {
             Write-Host $tip -ForegroundColor Cyan
@@ -252,4 +252,4 @@ if ($missingRequirements.Count -gt 0) {
     exit 1
 } else {
     exit 0
-} 
+}

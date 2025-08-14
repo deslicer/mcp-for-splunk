@@ -377,7 +377,7 @@ Monitor agent performance:
 ## Support and Resources
 
 - **Documentation**: See `docs/` directory for additional guides
-- **Examples**: Check `examples/` directory for usage examples  
+- **Examples**: Check `examples/` directory for usage examples
 - **Tests**: Review `tests/test_openai_agent.py` for implementation details
 - **Issues**: Report issues on the project repository
-- **Community**: Join discussions in the project community channels 
+- **Community**: Join discussions in the project community channels

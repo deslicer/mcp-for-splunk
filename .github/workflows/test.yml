@@ -85,5 +85,3 @@ jobs:
       - name: Teardown Splunk
         if: always()
         run: docker compose -f docker-compose-splunk.yml down -v --remove-orphans
-
-

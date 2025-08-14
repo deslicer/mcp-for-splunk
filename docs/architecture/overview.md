@@ -174,4 +174,4 @@ All tools, resources, and prompts inherit from base classes that provide:
 3. **Implement Discovery**: Build automatic tool/resource/prompt discovery
 4. **Setup Contribution Framework**: Create guidelines and development tools
 5. **Add Examples**: Provide clear examples for contributors
-6. **Documentation**: Comprehensive contributor and user documentation 
+6. **Documentation**: Comprehensive contributor and user documentation

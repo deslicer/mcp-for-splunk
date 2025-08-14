@@ -7,15 +7,13 @@ troubleshooting and analysis workflows.
 
 # Import only what's needed to avoid circular imports during testing
 try:
-    from .splunk_triage_agent import SplunkTriageAgentTool
     from .dynamic_troubleshoot_agent import DynamicTroubleshootAgentTool
-    
-    __all__ = [
-        "SplunkTriageAgentTool",
-        "DynamicTroubleshootAgentTool"
-    ]
+    from .splunk_triage_agent import SplunkTriageAgentTool
+
+    __all__ = ["SplunkTriageAgentTool", "DynamicTroubleshootAgentTool"]
 except ImportError as e:
     # Handle import errors during testing
     import logging
+
     logging.getLogger(__name__).warning(f"Some agent imports failed: {e}")
-    __all__ = [] 
+    __all__ = []

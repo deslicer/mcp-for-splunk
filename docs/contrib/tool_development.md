@@ -57,7 +57,7 @@ from src.core.base import BaseTool, ToolMetadata
 
 class YourToolName(BaseTool):
     """Brief description of what your tool does."""
-    
+
     METADATA = ToolMetadata(
         name="your_tool_name",
         description="Detailed description for users",
@@ -65,15 +65,15 @@ class YourToolName(BaseTool):
         tags=["relevant", "tags"],
         requires_connection=True  # Set to False if no Splunk connection needed
     )
-    
+
     async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
         """
         Main tool execution method.
-        
+
         Args:
             ctx: MCP context with connection info
             **kwargs: Tool-specific parameters
-            
+
         Returns:
             Dict with tool results or error information
         """
@@ -81,10 +81,10 @@ class YourToolName(BaseTool):
             # Your tool logic here
             result = await self._perform_operation(kwargs)
             return self.format_success_response(result)
-            
+
         except Exception as e:
             return self.format_error_response(f"Tool execution failed: {str(e)}")
-    
+
     async def _perform_operation(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Private method for tool-specific logic."""
         # Implement your tool's core functionality
@@ -101,26 +101,26 @@ async def execute(self, ctx: Context, query: str) -> Dict[str, Any]:
     try:
         # Get Splunk service from context
         service = await self.get_splunk_service(ctx)
-        
+
         # Perform search
         search_kwargs = {
             'search': f"search {query}",
             'earliest_time': '-24h',
             'latest_time': 'now'
         }
-        
+
         job = service.jobs.oneshot(**search_kwargs)
         results = []
-        
+
         for result in job:
             results.append(dict(result))
-            
+
         return self.format_success_response({
             "query": query,
             "results": results,
             "count": len(results)
         })
-        
+
     except Exception as e:
         return self.format_error_response(f"Search failed: {str(e)}")
 ```
@@ -130,18 +130,18 @@ async def execute(self, ctx: Context, query: str) -> Dict[str, Any]:
 ```python
 async def execute(self, ctx: Context, query: str, timerange: str = "-24h") -> Dict[str, Any]:
     """Execute threat hunting search with validation."""
-    
+
     # Validate required parameters
     if not query or not query.strip():
         return self.format_error_response("Query parameter is required")
-    
+
     # Validate timerange format
     valid_timeranges = ["-1h", "-24h", "-7d", "-30d"]
     if timerange not in valid_timeranges:
         return self.format_error_response(
             f"Invalid timerange. Must be one of: {', '.join(valid_timeranges)}"
         )
-    
+
     # Continue with execution...
 ```
 
@@ -155,11 +155,11 @@ async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
         validation_result = self._validate_parameters(kwargs)
         if not validation_result["valid"]:
             return self.format_error_response(validation_result["error"])
-        
+
         # Perform operation with specific exception handling
         result = await self._safe_operation(kwargs)
         return self.format_success_response(result)
-        
+
     except ConnectionError as e:
         return self.format_error_response(f"Splunk connection failed: {str(e)}")
     except ValueError as e:
@@ -183,32 +183,32 @@ def _validate_parameters(self, params: Dict[str, Any]) -> Dict[str, Any]:
 async def _execute_complex_search(self, ctx: Context, search_query: str) -> Dict[str, Any]:
     """Execute a complex search with job monitoring."""
     service = await self.get_splunk_service(ctx)
-    
+
     # Create search job
     job = service.jobs.create(search_query, **{
         'earliest_time': '-24h',
         'latest_time': 'now'
     })
-    
+
     # Monitor job progress
     while not job.is_done():
         await asyncio.sleep(1)
         job.refresh()
-        
+
         # Optional: provide progress updates
         progress = {
             "progress": float(job["doneProgress"]) * 100,
             "scanned": int(job["scanCount"]),
             "matched": int(job["eventCount"])
         }
-        
+
         # You could emit progress events here
-        
+
     # Get results
     results = []
     for result in job.results():
         results.append(dict(result))
-        
+
     return {
         "results": results,
         "job_id": job.sid,
@@ -225,14 +225,14 @@ async def _execute_complex_search(self, ctx: Context, search_query: str) -> Dict
 ```python
 class ConfigurableAnalyticsTool(BaseTool):
     """Tool that uses configuration for flexible behavior."""
-    
+
     METADATA = ToolMetadata(
         name="configurable_analytics",
         description="Analytics tool with configurable queries",
         category="analytics",
         tags=["analytics", "configurable"]
     )
-    
+
     def __init__(self):
         super().__init__()
         self.queries = {
@@ -240,19 +240,19 @@ class ConfigurableAnalyticsTool(BaseTool):
             "errors": "index=main error | stats count by source",
             "usage": "index=_audit | stats count by user"
         }
-    
+
     async def execute(self, ctx: Context, analysis_type: str) -> Dict[str, Any]:
         """Execute configurable analytics."""
-        
+
         if analysis_type not in self.queries:
             available = ", ".join(self.queries.keys())
             return self.format_error_response(
                 f"Unknown analysis type. Available: {available}"
             )
-        
+
         query = self.queries[analysis_type]
         result = await self._execute_search(ctx, query)
-        
+
         return self.format_success_response({
             "analysis_type": analysis_type,
             "query": query,
@@ -265,39 +265,39 @@ class ConfigurableAnalyticsTool(BaseTool):
 ```python
 async def execute(self, ctx: Context, large_query: str) -> Dict[str, Any]:
     """Tool that manages resources carefully."""
-    
+
     # Limit result size
     MAX_RESULTS = 10000
-    
+
     search_query = f"{large_query} | head {MAX_RESULTS}"
-    
+
     try:
         service = await self.get_splunk_service(ctx)
-        
+
         # Use streaming for large results
         job = service.jobs.create(search_query)
-        
+
         results = []
         result_count = 0
-        
+
         # Stream results to manage memory
         for result in job.results():
             if result_count >= MAX_RESULTS:
                 break
-                
+
             results.append(dict(result))
             result_count += 1
-            
+
             # Optional: yield control periodically
             if result_count % 1000 == 0:
                 await asyncio.sleep(0)  # Yield to event loop
-        
+
         return self.format_success_response({
             "results": results,
             "count": result_count,
             "limited": result_count >= MAX_RESULTS
         })
-        
+
     except Exception as e:
         return self.format_error_response(f"Query execution failed: {str(e)}")
 ```
@@ -317,23 +317,23 @@ from contrib.tools.security.threat_hunting import ThreatHuntingTool
 
 class TestThreatHuntingTool:
     """Test suite for ThreatHuntingTool."""
-    
+
     @pytest.fixture
     def tool(self):
         """Create tool instance for testing."""
         return ThreatHuntingTool()
-    
+
     @pytest.fixture
     def mock_context(self):
         """Create mock MCP context."""
         ctx = Mock()
         ctx.session = Mock()
         return ctx
-    
+
     @pytest.mark.asyncio
     async def test_successful_execution(self, tool, mock_context):
         """Test successful threat hunting execution."""
-        
+
         # Mock Splunk service and results
         mock_service = Mock()
         mock_job = Mock()
@@ -341,36 +341,36 @@ class TestThreatHuntingTool:
             {"_time": "2024-01-01", "threat": "malware", "_raw": "threat data"}
         ]))
         mock_service.jobs.oneshot.return_value = mock_job
-        
+
         # Mock the get_splunk_service method
         tool.get_splunk_service = AsyncMock(return_value=mock_service)
-        
+
         # Execute tool
         result = await tool.execute(mock_context, query="threat analysis")
-        
+
         # Assertions
         assert result["success"] is True
         assert "threats" in result["data"]
         assert len(result["data"]["threats"]) == 1
-        
+
     @pytest.mark.asyncio
     async def test_empty_query_error(self, tool, mock_context):
         """Test error handling for empty query."""
-        
+
         result = await tool.execute(mock_context, query="")
-        
+
         assert result["success"] is False
         assert "required" in result["error"].lower()
-        
+
     @pytest.mark.asyncio
     async def test_connection_error(self, tool, mock_context):
         """Test handling of Splunk connection errors."""
-        
+
         # Mock connection failure
         tool.get_splunk_service = AsyncMock(side_effect=ConnectionError("Connection failed"))
-        
+
         result = await tool.execute(mock_context, query="test query")
-        
+
         assert result["success"] is False
         assert "connection" in result["error"].lower()
 ```
@@ -384,23 +384,23 @@ For tools that interact with Splunk, use these common mock patterns:
 def mock_splunk_service():
     """Mock Splunk service with common responses."""
     service = Mock()
-    
+
     # Mock search results
     mock_results = [
         {"_time": "2024-01-01", "field1": "value1"},
         {"_time": "2024-01-01", "field2": "value2"}
     ]
-    
+
     # Mock oneshot search
     service.jobs.oneshot.return_value = iter(mock_results)
-    
+
     # Mock job creation
     mock_job = Mock()
     mock_job.sid = "test_job_123"
     mock_job.is_done.return_value = True
     mock_job.results.return_value = iter(mock_results)
     service.jobs.create.return_value = mock_job
-    
+
     return service
 ```
 
@@ -441,7 +441,7 @@ for tool_class in tools:
 
 ### Performance
 - **Limit result sizes** for large queries
-- **Use streaming** for memory efficiency  
+- **Use streaming** for memory efficiency
 - **Cache connections** when appropriate
 - **Implement timeouts** for long operations
 
@@ -493,4 +493,4 @@ Learning templates and patterns:
 - Testing patterns
 - Common use cases
 
-This comprehensive guide should help you create robust, maintainable tools that integrate seamlessly with the MCP Server for Splunk modular architecture. 
+This comprehensive guide should help you create robust, maintainable tools that integrate seamlessly with the MCP Server for Splunk modular architecture.

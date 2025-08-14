@@ -34,7 +34,7 @@ tests/
 
 ### 🔧 Unit Tests (`@pytest.mark.unit`)
 - Helper function tests
-- Utility function tests  
+- Utility function tests
 - No external dependencies
 
 ### 🌐 Integration Tests (`@pytest.mark.integration`)
@@ -68,7 +68,7 @@ Testing is configured in `pyproject.toml`:
 [tool.pytest.ini_options]
 addopts = [
     "-v",
-    "--tb=short", 
+    "--tb=short",
     "--strict-markers",
     "--disable-warnings",
     "--asyncio-mode=auto"
@@ -162,8 +162,8 @@ For continuous integration:
 # Full test suite with coverage
 make ci-test
 
-# Quick development checks  
+# Quick development checks
 make dev-test
 ```
 
-The test suite is designed to be robust and will gracefully handle Splunk connectivity issues while still validating core MCP functionality. 
+The test suite is designed to be robust and will gracefully handle Splunk connectivity issues while still validating core MCP functionality.

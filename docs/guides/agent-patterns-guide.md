@@ -7,7 +7,7 @@ This guide explains how we've implemented three powerful OpenAI agent patterns t
 Based on our analysis of your troubleshooting prompts, we've identified that your workflows exhibit sophisticated multi-phase diagnostic patterns that are perfect for the OpenAI agents SDK. We've implemented three key patterns:
 
 1. **Hierarchical Triage + Specialist Handoff** - Intelligent routing to domain experts
-2. **Parallel Multi-Component Analysis** - Simultaneous analysis across system components  
+2. **Parallel Multi-Component Analysis** - Simultaneous analysis across system components
 3. **Iterative Reflection + Self-Improvement** - Continuous refinement and validation
 
 ## Pattern 1: Hierarchical Triage + Specialist Handoff
@@ -34,9 +34,9 @@ triage_agent = Agent(
     name="Splunk Diagnostic Triage Agent",
     instructions=prompt_with_handoff_instructions("""
     You are a Splunk expert triage agent. Route problems based on:
-    
+
     🔍 Input/Ingestion Issues → Handoff to Splunk Inputs Specialist
-    ⚡ Performance Issues → Handoff to Splunk Performance Specialist  
+    ⚡ Performance Issues → Handoff to Splunk Performance Specialist
     📊 Indexing Issues → Handoff to Splunk Indexing Specialist
     🏥 General/Health Issues → Handoff to Splunk General Specialist
     """),
@@ -52,7 +52,7 @@ triage_agent = Agent(
 
 ### Example Scenarios
 - "Data missing from web servers" → Routes to **Inputs Specialist**
-- "Searches running slowly, high CPU" → Routes to **Performance Specialist**  
+- "Searches running slowly, high CPU" → Routes to **Performance Specialist**
 - "Indexing delays, bucket issues" → Routes to **Indexing Specialist**
 
 ## Pattern 2: Parallel Multi-Component Analysis
@@ -78,11 +78,11 @@ Problem → Orchestrator → [Infrastructure Agent, Application Agent, Data Agen
 # Execute multiple agents in parallel with controlled concurrency
 async def _execute_parallel_analysis(self, components, max_parallel=3):
     semaphore = asyncio.Semaphore(max_parallel)
-    
+
     async def run_component_analysis(component):
         async with semaphore:
             return await self._run_single_component_analysis(component)
-    
+
     tasks = [run_component_analysis(comp) for comp in components]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 ```
@@ -95,7 +95,7 @@ async def _execute_parallel_analysis(self, components, max_parallel=3):
 
 ### Analysis Scopes
 - **Performance Scope** - Infrastructure + Application + Data Ingestion
-- **Security Scope** - Security + Network + Infrastructure  
+- **Security Scope** - Security + Network + Infrastructure
 - **Comprehensive Scope** - All components analyzed simultaneously
 
 ## Pattern 3: Iterative Reflection + Self-Improvement
@@ -112,7 +112,7 @@ Problem → Analyst → Critic → Improvement → Validator → Synthesizer →
 
 **Reflection Agents:**
 - **Analyst Agent** - Performs initial/iterative analysis with reasoning
-- **Critic Agent** - Reviews analysis, identifies gaps and weaknesses  
+- **Critic Agent** - Reviews analysis, identifies gaps and weaknesses
 - **Validator Agent** - Cross-checks findings with independent verification
 - **Synthesizer Agent** - Consolidates insights into final recommendations
 
@@ -123,15 +123,15 @@ Problem → Analyst → Critic → Improvement → Validator → Synthesizer →
 for cycle_num in range(1, max_reflection_cycles + 1):
     # Phase 1: Analysis
     analysis_result = await self._execute_analysis_phase(current_analysis)
-    
-    # Phase 2: Self-Critique  
+
+    # Phase 2: Self-Critique
     critique_result = await self._execute_critique_phase(analysis_result)
-    
+
     # Phase 3: Improvement
     if cycle_num < max_reflection_cycles:
         improvement_result = await self._execute_improvement_phase(analysis_result, critique_result)
         current_analysis = improvement_result
-    
+
     # Check confidence threshold
     if confidence_score >= confidence_threshold:
         break
@@ -164,7 +164,7 @@ for cycle_num in range(1, max_reflection_cycles + 1):
 
 **Before (Monolithic Prompt):**
 ```
-Your current TroubleshootPerformancePrompt with 4-5 phases, multiple steps, 
+Your current TroubleshootPerformancePrompt with 4-5 phases, multiple steps,
 parallel searches, and complex decision logic all in one large prompt.
 ```
 
@@ -173,7 +173,7 @@ parallel searches, and complex decision logic all in one large prompt.
 # Option 1: Triage Pattern
 problem → triage_agent → performance_specialist → detailed_analysis
 
-# Option 2: Parallel Pattern  
+# Option 2: Parallel Pattern
 problem → [infrastructure_agent, application_agent, data_agent] → synthesis
 
 # Option 3: Reflection Pattern
@@ -250,7 +250,7 @@ For complex scenarios, combine patterns:
 ```python
 # Complex workflow: Triage → Parallel → Reflection
 1. Triage determines it's a performance issue
-2. Parallel analysis across performance-related components  
+2. Parallel analysis across performance-related components
 3. Reflection validates and refines findings
 ```
 
@@ -261,7 +261,7 @@ For complex scenarios, combine patterns:
 Your current prompts can be gradually replaced:
 
 1. **Start with Triage** - Replace your routing logic with triage agent
-2. **Add Parallel** - Replace complex multi-component analysis  
+2. **Add Parallel** - Replace complex multi-component analysis
 3. **Enhance with Reflection** - Add to critical/complex scenarios
 
 ### Maintaining Compatibility
@@ -324,4 +324,4 @@ async def run_splunk_search(query: str) -> str:
 - **OpenAI Agents Documentation**: https://openai.github.io/openai-agents-python/
 - **Pattern Examples**: https://github.com/openai/openai-agents-python/tree/main/examples/agent_patterns
 
-The agent patterns transform your complex troubleshooting prompts into intelligent, collaborative systems that can route problems efficiently, analyze comprehensively in parallel, and continuously improve through reflection. This represents a significant evolution from monolithic prompts to sophisticated agent orchestration. 
+The agent patterns transform your complex troubleshooting prompts into intelligent, collaborative systems that can route problems efficiently, analyze comprehensively in parallel, and continuously improve through reflection. This represents a significant evolution from monolithic prompts to sophisticated agent orchestration.
