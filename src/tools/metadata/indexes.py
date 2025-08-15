@@ -18,10 +18,10 @@ class ListIndexes(BaseTool):
     METADATA = ToolMetadata(
         name="list_indexes",
         description=(
-            "Retrieves a list of all accessible data indexes from the Splunk instance. "
-            "Returns customer indexes (excludes internal Splunk system indexes like _internal, "
-            "_audit for better readability). Useful for discovering available data sources and "
-            "understanding the data structure of the Splunk environment."
+            "Retrieve all accessible data indexes from the Splunk instance. "
+            "Use this to discover which indexes you can query when building searches or troubleshooting data availability. "
+            "Returns customer indexes (excludes internal system indexes like _internal and _audit for readability). "
+            "Results are constrained by the current user's permissions."
         ),
         category="metadata",
         tags=["indexes", "metadata", "discovery"],

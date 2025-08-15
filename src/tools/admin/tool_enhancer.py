@@ -25,15 +25,24 @@ class ToolDescriptionEnhancer(BaseTool):
         name="enhance_tool_description",
         description=(
             "Analyzes existing MCP tools and enhances their descriptions with detailed "
-            "argument definitions, parameter examples, and usage patterns. This tool "
-            "examines the current tool's metadata, inspects its execute method signature, "
+            "argument definitions, parameter examples, and usage patterns. "
+            "Use this tool when you need to improve or generate better documentation for a tool, "
+            "such as adding examples or clarifying parameters. "
+            "This tool examines the current tool's metadata, inspects its execute method signature, "
             "and generates comprehensive documentation improvements.\n\n"
             "Args:\n"
             "    tool_name (str): Name of the tool to enhance (e.g., 'get_configurations', 'list_indexes')\n"
             "    generate_examples (bool, optional): Whether to generate parameter examples "
             "based on the tool's signature and category. Defaults to True.\n"
             "    include_response_format (bool, optional): Whether to analyze and include "
-            "expected response format information. Defaults to True."
+            "expected response format information. Defaults to True.\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- tool_name: The analyzed tool's name\n"
+            "- original_description: Original tool description\n"
+            "- enhanced_description: Improved description with details\n"
+            "- analysis: Detailed parameter and format analysis\n"
+            "- recommendations: Suggestions for further improvements"
         ),
         category="admin",
         tags=["tool-enhancement", "metadata", "documentation", "analysis"],

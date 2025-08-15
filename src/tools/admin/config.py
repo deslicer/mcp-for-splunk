@@ -24,6 +24,8 @@ class GetConfigurations(BaseTool):
         name="get_configurations",
         description=(
             "Retrieves Splunk configuration settings from specified .conf files. "
+            "Use this tool when you need to access or inspect Splunk configurations, "
+            "such as for troubleshooting, auditing, or understanding settings in files like props.conf or inputs.conf. "
             "Access settings from any Splunk configuration file (props.conf, transforms.conf, "
             "inputs.conf, outputs.conf, etc.) either by entire file or specific stanza. "
             "Returns structured configuration data showing all settings and their values.\n\n"
