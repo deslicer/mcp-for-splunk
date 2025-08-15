@@ -109,6 +109,20 @@ user-contributed workflows from the contrib directory.
 - Category and organizational information
 - Integration instructions for dynamic troubleshoot agent
 
+## When to use
+- Use when you need to discover which workflows exist before running one
+- Use to filter by category or get just workflow IDs for programmatic selection
+
+## Arguments
+- **format_type** (optional): "detailed" (default), "summary", "ids_only", or "by_category"
+- **include_core** (optional): Include built-in workflows (default: true)
+- **include_contrib** (optional): Include contrib workflows (default: true)
+- **category_filter** (optional): Filter by category (e.g., "security", "performance")
+
+## Outputs
+- Workflow listings in the requested format, discovery metadata, and category summaries
+- Note: Only workflows available in this server are listed (core + any contrib present)
+
 Perfect for discovering available troubleshooting capabilities and selecting the right
 workflow for specific Splunk problems.""",
         category="workflows",

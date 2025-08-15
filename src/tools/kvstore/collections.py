@@ -19,10 +19,12 @@ class ListKvstoreCollections(BaseTool):
     METADATA = ToolMetadata(
         name="list_kvstore_collections",
         description=(
-            "Lists all KV Store collections available in the Splunk environment. KV Store collections "
-            "are NoSQL data stores used for lookups, storing persistent data, and caching information. "
-            "Returns collection names, associated apps, and configuration details. Useful for discovering "
-            "available lookup data and understanding data persistence architecture."
+            "List KV Store collections with basic schema details. Use this to discover available KV stores "
+            "for lookups, configuration, or caching, optionally filtering by app.\n\n"
+            "Outputs: array of collections with name, fields, accelerated_fields, replicated; and total count.\n"
+            "Security: results are constrained by the authenticated user's permissions."
+            "Args:\n"
+            "    app (str, optional): Optional app name to filter collections\n\n"
         ),
         category="kvstore",
         tags=["kvstore", "collections", "storage"],
@@ -84,11 +86,8 @@ class CreateKvstoreCollection(BaseTool):
     METADATA = ToolMetadata(
         name="create_kvstore_collection",
         description=(
-            "Create a new KV Store collection in a specified Splunk application with optional "
-            "field definitions and configuration options. KV Store collections are NoSQL "
-            "document stores used for persistent data storage, lookups, and configuration "
-            "management. This tool enables creating structured data repositories with "
-            "defined schemas and indexing for optimal performance.\n\n"
+            "Create a KV Store collection with optional fields and indexing. Use this to provision "
+            "a new collection for lookups or persisted configuration in a specific app.\n\n"
             "Args:\n"
             "    app (str): Target Splunk application where the collection will be created. Examples:\n"
             "        - 'search': Default search app\n"
@@ -101,9 +100,8 @@ class CreateKvstoreCollection(BaseTool):
             "    fields (list[dict], optional): Field definitions specifying data types and constraints\n"
             "    accelerated_fields (dict, optional): Index definitions for faster queries\n"
             "    replicated (bool, optional): Whether to replicate across cluster (default: True)\n\n"
-            "Response Format:\n"
-            "Returns a dictionary with 'status' field and 'data' containing:\n"
-            "- collection: Created collection details with name, fields, acceleration, and replication settings"
+            "Outputs: created collection with name, fields, accelerated_fields, replicated.\n"
+            "Security: creation is constrained by app-level permissions."
         ),
         category="kvstore",
         tags=["kvstore", "collections", "create", "storage"],

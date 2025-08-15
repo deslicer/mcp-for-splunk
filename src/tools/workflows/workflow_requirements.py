@@ -66,6 +66,17 @@ available tools, context variables, validation rules, and integration guidelines
 - Integration points with dynamic troubleshoot agent
 - Best practices for workflow design and task creation
 
+## When to use
+- Use at the beginning of authoring to understand schemas and constraints
+- Use during development for quick reference to context variables and available tools
+- Use in CI/validation tooling to fetch schemas for automated checks
+
+## Arguments
+- **format_type** (optional): "detailed" (default), "schema", "quick", or "examples"
+
+## Outputs
+- Full schema and best practices (detailed), just schemas (schema), quick cheat sheet (quick), or examples
+
 Perfect for workflow contributors who need to understand the requirements and structure
 for creating custom diagnostic workflows.""",
         category="workflows",

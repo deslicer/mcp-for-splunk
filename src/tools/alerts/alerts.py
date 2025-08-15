@@ -18,17 +18,17 @@ class ListTriggeredAlerts(BaseTool):
     METADATA = ToolMetadata(
         name="list_triggered_alerts",
         description=(
-            "List all triggered alerts in Splunk, showing alert details and trigger information. "
-            "Returns comprehensive information about fired alerts including trigger times, search IDs, "
-            "saved search names, owners, applications, and trigger reasons. Supports filtering by time "
-            "range and alert name search. Essential for monitoring alert activity, troubleshooting "
-            "alert performance, and understanding alert trigger patterns in enterprise Splunk environments.\n\n"
-            "Response Format:\n"
-            "Returns a dictionary with 'status' field indicating success/error and data containing:\n"
-            "- triggered_alerts: Array of alert groups with individual alert details\n"
-            "- total_alert_groups: Number of alert groups found\n"
-            "- total_individual_alerts: Total number of individual alerts across all groups\n"
-            "- search_parameters: Applied filter parameters for reference"
+            "List fired alerts and their details. Use this to review recent triggered alerts, including "
+            "saved search name, trigger time, owner/app, and trigger reason. Supports a name filter and a "
+            "max results cap. Note: Splunk's fired alerts feed may not strictly filter by time; earliest/" 
+            "latest are advisory.\n\n"
+            "Args:\n"
+            "    count (int, optional): Maximum number of alert groups to return (default: 50)\n"
+            "    earliest_time (str, optional): Advisory filter for earliest trigger time (default: '-24h@h')\n"
+            "    latest_time (str, optional): Advisory filter for latest trigger time (default: 'now')\n"
+            "    search (str, optional): Case-insensitive substring filter applied to alert group name\n\n"
+            "Outputs: 'triggered_alerts' array, total counts, and the applied parameters.\n"
+            "Security: results are constrained by the authenticated user's permissions."
         ),
         category="alerts",
         tags=["alerts", "monitoring", "troubleshooting", "fired-alerts"],
