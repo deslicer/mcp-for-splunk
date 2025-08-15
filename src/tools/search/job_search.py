@@ -22,10 +22,23 @@ class JobSearch(BaseTool):
     METADATA = ToolMetadata(
         name="run_splunk_search",
         description=(
-            "Executes a Splunk search query as a background job with progress tracking and detailed "
-            "statistics. Best for complex, long-running searches that may take more than 30 seconds. "
-            "Creates a persistent search job that can be monitored for progress and provides detailed "
-            "execution statistics including scan count, event count, and performance metrics."
+            "Run a Splunk search as a tracked job with progress and stats. Use this for complex or "
+            "long‑running queries (joins, transforms, large scans) where you need job status, scan/"
+            "event counts, and reliable result retrieval. Prefer this over oneshot when the query may "
+            "exceed ~30s or requires progress visibility.\n\n"
+            "Outputs: job id, results (JSON), counts, timing, and job status.\n"
+            "Security: results are constrained by the authenticated user's permissions."
+            "Args:\n"
+            "    query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command"
+            "                or pipeline. Supports complex searches with transforming commands, joins,"
+            "                and subsearches. Examples: 'index=* | stats count by sourcetype',"
+            "                'search error | eval severity=case(...)'"
+            "    earliest_time (str, optional): Search start time in Splunk time format."
+            "                Examples: '-24h', '-7d@d', '2023-01-01T00:00:00'"
+            "                Default: '-24h'"
+            "    latest_time (str, optional): Search end time in Splunk time format."
+            "                Examples: 'now', '-1h', '@d', '2023-01-01T23:59:59'"
+            "                Default: 'now'"
         ),
         category="search",
         tags=["search", "job", "tracking", "complex"],

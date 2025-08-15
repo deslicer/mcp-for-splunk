@@ -22,10 +22,24 @@ class OneshotSearch(BaseTool):
     METADATA = ToolMetadata(
         name="run_oneshot_search",
         description=(
-            "Executes a Splunk search query immediately and returns results in a single operation. "
-            "Best for simple, fast searches that complete quickly (under 30 seconds). Returns up to "
-            "the specified number of results without creating a persistent search job. Ideal for "
-            "quick data queries, statistics, and simple reporting."
+            "Run a Splunk search and return results immediately (no job created). Use this when you "
+            "need a quick lookup or small result set (typically under ~30s) such as simple stats, "
+            "ad‑hoc checks, or previews. Do not use for long‑running or heavy searches—prefer "
+            "run_splunk_search in those cases.\n\n"
+            "Outputs: returns up to 'max_results' events or rows with timing and the executed query.\n"
+            "Security: results are constrained by the authenticated user's permissions."
+            "Args:\n"
+            "    query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command"
+            "                or pipeline. The 'search' command is automatically prepended if needed."
+            "                Examples: 'index=main error', '| metadata type=hosts', '| stats count by sourcetype'"
+            "    earliest_time (str, optional): Search start time in Splunk time format."
+            "                Examples: '-15m', '-1h', '-1d@d', '2023-01-01T00:00:00'"
+            "                Default: '-15m'"
+            "    latest_time (str, optional): Search end time in Splunk time format."
+            "                Examples: 'now', '-1h', '2023-01-01T23:59:59'"
+            "                Default: 'now'"
+            "    max_results (int, optional): Maximum number of results to return. Higher values may"
+            "                cause longer execution times. Range: 1-10000. Default: 100"
         ),
         category="search",
         tags=["search", "oneshot", "quick"],

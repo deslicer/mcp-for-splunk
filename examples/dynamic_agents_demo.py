@@ -56,7 +56,7 @@ async def demo_basic_dynamic_workflow():
 
     # Create tool registry
     tool_registry = SplunkToolRegistry()
-    tools = create_splunk_tools(tool_registry)
+    create_splunk_tools(tool_registry)
 
     # Create dynamic coordinator
     coordinator = DynamicCoordinator(config, tool_registry)
@@ -120,7 +120,7 @@ async def demo_missing_data_workflow():
     # Create configuration and coordinator
     config = AgentConfig(api_key="demo-api-key", model="gpt-4", temperature=0.1)
     tool_registry = SplunkToolRegistry()
-    tools = create_splunk_tools(tool_registry)
+    create_splunk_tools(tool_registry)
     coordinator = DynamicCoordinator(config, tool_registry)
 
     # Create diagnostic context for missing data scenario
@@ -190,7 +190,7 @@ async def demo_custom_workflow_creation():
     # Create configuration and coordinator
     config = AgentConfig(api_key="demo-api-key", model="gpt-4", temperature=0.1)
     tool_registry = SplunkToolRegistry()
-    tools = create_splunk_tools(tool_registry)
+    create_splunk_tools(tool_registry)
     coordinator = DynamicCoordinator(config, tool_registry)
 
     print("🎯 Creating a custom workflow for network security analysis...")
@@ -327,7 +327,7 @@ async def demo_performance_comparison():
     # Create configuration and coordinator
     config = AgentConfig(api_key="demo-api-key", model="gpt-4", temperature=0.1)
     tool_registry = SplunkToolRegistry()
-    tools = create_splunk_tools(tool_registry)
+    create_splunk_tools(tool_registry)
     coordinator = DynamicCoordinator(config, tool_registry)
 
     # Create diagnostic context

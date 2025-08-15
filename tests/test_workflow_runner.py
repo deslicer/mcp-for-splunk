@@ -66,7 +66,7 @@ class TestWorkflowRunnerTool:
             "src.tools.workflows.workflow_runner.create_summarization_tool"
         ) as mock_summarization, patch(
             "src.tools.workflows.shared.tools.create_splunk_tools"
-        ) as mock_create_tools:
+        ):
             # Mock workflow definition
             mock_workflow = MagicMock()
             mock_workflow.workflow_id = "test_workflow"

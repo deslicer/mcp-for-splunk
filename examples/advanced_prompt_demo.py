@@ -13,17 +13,17 @@ This demonstrates the enhanced troubleshooting prompt with:
 import asyncio
 import sys
 from pathlib import Path
-
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from unittest.mock import Mock
 
 from fastmcp import FastMCP
 
 from src.core.loader import ComponentLoader
 from src.core.registry import prompt_registry
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 
 async def demo_advanced_prompt_system():
@@ -278,7 +278,7 @@ async def demo_advanced_prompt_system():
         "",
         "🔄 Research-Based Methodologies",
         "   - OODA loop methodology with feedback mechanisms",
-        "   - Evidence-based decision making with confidence scoring",
+        "   - Evidence-based decision making",
         "   - Multi-dimensional correlation analysis",
         "   - Hierarchical task delegation patterns",
     ]

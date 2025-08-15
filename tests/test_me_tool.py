@@ -22,8 +22,11 @@ class TestMeTool:
         assert "user" in tool.METADATA.tags
         assert "authentication" in tool.METADATA.tags
         assert "current" in tool.METADATA.tags
+        assert "me" in tool.METADATA.tags
+        assert "identity" in tool.METADATA.tags
         assert tool.METADATA.requires_connection is True
-        assert "currently authenticated user" in tool.METADATA.description
+        desc = tool.METADATA.description.lower()
+        assert "currently authenticated" in desc and ("splunk user" in desc or "current user" in desc)
 
     @pytest.mark.asyncio
     async def test_execute_success(self):

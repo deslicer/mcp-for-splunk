@@ -24,10 +24,14 @@ class ListSavedSearches(BaseTool):
     METADATA = ToolMetadata(
         name="list_saved_searches",
         description=(
-            "Lists all saved searches available in the Splunk environment with comprehensive metadata "
-            "including ownership, scheduling configuration, sharing permissions, and last execution details. "
-            "Supports filtering by owner, app context, and sharing level to help discover and manage "
-            "existing search automation and reports."
+            "List saved searches with ownership, schedule, visibility, and permission metadata. "
+            "Use this to discover available reports/automations and to filter by owner/app/sharing. "
+            "Results reflect only saved searches the current user can access.\n\n"
+            "Args:\n"
+            "    owner (str, optional): Filter by owner name (optional)\n"
+            "    app (str, optional): Filter by application name (optional)\n"
+            "    sharing (str, optional): Filter by sharing level (optional)\n"
+            "    include_disabled (bool, optional): Include disabled saved searches (default: False)\n\n"
         ),
         category="search",
         tags=["saved_searches", "list", "metadata"],
@@ -161,24 +165,11 @@ class ExecuteSavedSearch(BaseTool):
     METADATA = ToolMetadata(
         name="execute_saved_search",
         description=(
-            "Execute a saved search by name with optional time range and parameter overrides. "
-            "Supports both oneshot and job execution modes for different performance requirements. "
-            "Provides flexible execution options for saved searches with custom time ranges, "
-            "result limits, and context filtering for comprehensive search automation.\\n\\n"
-            "Args:\\n"
-            "    name (str): Name of the saved search to execute (required)\\n"
-            "    earliest_time (str, optional): Override earliest time for search execution "
-            "(e.g., '-24h@h', '-7d', '2024-01-01T00:00:00')\\n"
-            "    latest_time (str, optional): Override latest time for search execution "
-            "(e.g., 'now', '@d', '2024-01-02T00:00:00')\\n"
-            "    mode (str, optional): Execution mode - 'oneshot' for immediate results or "
-            "'job' for progress tracking (default: 'oneshot')\\n"
-            "    max_results (int, optional): Maximum number of results to return (default: 100)\\n"
-            "    app (str, optional): Application context for saved search lookup\\n"
-            "    owner (str, optional): Owner context for saved search lookup\\n\\n"
-            "Response Format:\\n"
-            "Returns dictionary with 'status', 'saved_search_name', 'results', 'results_count', "
-            "'execution_mode', and optionally 'job_id' and 'duration' fields."
+            "Run a saved search by name with optional time overrides and mode selection. Use this to "
+            "execute existing reports/automations quickly. Choose 'oneshot' for immediate results or "
+            "'job' for progress tracking and large result sets.\\n\\n"
+            "Outputs: results list (capped by max_results), mode used, timing, and job id (if job).\\n"
+            "Security: execution and results are constrained by the authenticated user's permissions."
         ),
         category="search",
         tags=["saved_searches", "execute", "search"],
@@ -418,25 +409,10 @@ class CreateSavedSearch(BaseTool):
     METADATA = ToolMetadata(
         name="create_saved_search",
         description=(
-            "Create a new saved search with comprehensive configuration options for scheduling, "
-            "sharing, and automation. This tool enables the creation of reusable search queries "
-            "with customizable execution parameters, time ranges, and alert configurations. "
-            "Essential for building search automation, reports, and monitoring workflows.\\n\\n"
-            "Args:\\n"
-            "    name (str): Unique name for the saved search (required)\\n"
-            "    search (str): SPL search query to save (required)\\n"
-            "    description (str, optional): Description of the saved search purpose\\n"
-            "    earliest_time (str, optional): Default earliest time for search execution "
-            "(e.g., '-24h@h', '-7d', '2024-01-01T00:00:00')\\n"
-            "    latest_time (str, optional): Default latest time for search execution "
-            "(e.g., 'now', '@d', '2024-01-02T00:00:00')\\n"
-            "    app (str, optional): Application context for the saved search\\n"
-            "    sharing (str, optional): Sharing level - 'user', 'app', or 'global' (default: 'user')\\n"
-            "    is_scheduled (bool, optional): Enable scheduled execution (default: False)\\n"
-            "    cron_schedule (str, optional): Cron expression for scheduling (required if is_scheduled=True)\\n"
-            "    is_visible (bool, optional): Show in Splunk UI (default: True)\\n\\n"
-            "Response Format:\\n"
-            "Returns dictionary with 'status', 'name', 'created', and 'configuration' fields."
+            "Create a saved search (report/automation) with optional scheduling and sharing. Use this "
+            "to persist useful SPL queries and optionally schedule them via cron.\\n\\n"
+            "Outputs: creation status and the applied configuration.\\n"
+            "Security: visibility and execution are constrained by permissions and chosen sharing level."
         ),
         category="search",
         tags=["saved_searches", "create", "management"],

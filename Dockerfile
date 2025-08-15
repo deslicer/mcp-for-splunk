@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy dependency files first for better caching
 COPY pyproject.toml uv.lock README.md ./
+COPY LICENSE ./
 
 # Install Python dependencies using uv (include watchdog and reload tools for hot reload)
 RUN uv sync --frozen --no-dev && uv add watchdog reloader

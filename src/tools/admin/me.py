@@ -18,12 +18,11 @@ class Me(BaseTool):
     METADATA = ToolMetadata(
         name="me",
         description=(
-            "Get information about the currently authenticated user. "
-            "Returns detailed user information including username, real name, email addresses, "
-            "assigned roles, user type, default application, and capabilities. "
-            "Essential for understanding current user context, permissions, and access levels "
-            "in Splunk environments. Useful for debugging authentication issues and "
-            "understanding what actions the current user can perform.\n\n"
+            "Retrieve information about the currently authenticated Splunk user. "
+            "Use this tool whenever you need to check the current user's details, permissions, "
+            "roles, or capabilities, such as for debugging access issues, understanding available "
+            "actions, or verifying user context in Splunk environments. "
+            "This tool requires no arguments.\n\n"
             "Response Format:\n"
             "Returns a dictionary with 'status' field indicating success/error and 'data' containing:\n"
             "- username: Current authenticated username\n"

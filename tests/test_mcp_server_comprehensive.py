@@ -616,7 +616,7 @@ maxDataSize = 1000
 
 
 class TestPrompts:
-    """Test MCP prompts."""
+    """Test MCP prompts (updated to mcp_usage prompts)."""
 
     @pytest.fixture
     async def client(self):
@@ -624,15 +624,11 @@ class TestPrompts:
         async with Client(mcp) as client:
             yield client
 
-    async def test_troubleshoot_inputs_prompt(self, client):
-        """Test troubleshooting inputs prompt."""
-        result = await client.get_prompt(
-            "troubleshoot_inputs", {"earliest_time": "-24h", "latest_time": "now"}
-        )
+    async def test_mcp_overview_prompt(self, client):
+        result = await client.get_prompt("mcp_overview", {"detail_level": "basic"})
 
         # Extract content from FastMCP prompt result structure
         if hasattr(result, "messages") and result.messages:
-            # Handle the content array structure
             content = result.messages[0].content
             if isinstance(content, list) and len(content) > 0:
                 prompt_content = content[0].text if hasattr(content[0], "text") else str(content[0])
@@ -643,25 +639,15 @@ class TestPrompts:
         else:
             prompt_content = str(result)
 
-        # Verify prompt structure
-        assert "troubleshoot" in prompt_content.lower() or "input" in prompt_content.lower()
-        assert "splunk" in prompt_content.lower() or "search" in prompt_content.lower()
+        assert "mcp" in prompt_content.lower()
+        assert "splunk" in prompt_content.lower()
 
-    async def test_troubleshoot_inputs_prompt_with_focus(self, client):
-        """Test troubleshooting prompt with focused analysis."""
+    async def test_workflow_creation_guide_prompt(self, client):
         result = await client.get_prompt(
-            "troubleshoot_inputs",
-            {
-                "earliest_time": "-24h",
-                "latest_time": "now",
-                "focus_index": "main",
-                "focus_host": "server01",
-            },
+            "workflow_creation_guide", {"workflow_type": "security", "complexity": "advanced"}
         )
 
-        # Extract content from FastMCP prompt result structure
         if hasattr(result, "messages") and result.messages:
-            # Handle the content array structure
             content = result.messages[0].content
             if isinstance(content, list) and len(content) > 0:
                 prompt_content = content[0].text if hasattr(content[0], "text") else str(content[0])
@@ -672,20 +658,13 @@ class TestPrompts:
         else:
             prompt_content = str(result)
 
-        # Verify focus parameters are included
-        assert "main" in prompt_content or "server01" in prompt_content
-        assert "splunk" in prompt_content.lower() or "search" in prompt_content.lower()
+        assert "workflow" in prompt_content.lower()
+        assert "steps" in prompt_content.lower() or "example" in prompt_content.lower()
 
-    async def test_troubleshoot_inputs_multi_agent_prompt(self, client):
-        """Test multi-agent troubleshooting prompt."""
-        result = await client.get_prompt(
-            "troubleshoot_inputs_multi_agent",
-            {"earliest_time": "-24h", "latest_time": "now", "complexity_level": "moderate"},
-        )
+    async def test_tool_usage_guide_prompt(self, client):
+        result = await client.get_prompt("tool_usage_guide", {"tool_name": "workflow_runner"})
 
-        # Extract content from FastMCP prompt result structure
         if hasattr(result, "messages") and result.messages:
-            # Handle the content array structure
             content = result.messages[0].content
             if isinstance(content, list) and len(content) > 0:
                 prompt_content = content[0].text if hasattr(content[0], "text") else str(content[0])
@@ -696,68 +675,7 @@ class TestPrompts:
         else:
             prompt_content = str(result)
 
-        # Verify advanced features
-        assert "Multi-Agent" in prompt_content or "troubleshoot" in prompt_content.lower()
-        assert "input" in prompt_content.lower()
-
-    async def test_troubleshoot_performance_prompt(self, client):
-        """Test performance troubleshooting prompt."""
-        result = await client.get_prompt(
-            "troubleshoot_performance",
-            {"earliest_time": "-7d", "latest_time": "now", "analysis_type": "comprehensive"},
-        )
-
-        # Extract content from FastMCP prompt result structure
-        if hasattr(result, "messages") and result.messages:
-            # Handle the content array structure
-            content = result.messages[0].content
-            if isinstance(content, list) and len(content) > 0:
-                prompt_content = content[0].text if hasattr(content[0], "text") else str(content[0])
-            else:
-                prompt_content = str(content)
-        elif isinstance(result, list) and len(result) > 0:
-            prompt_content = result[0].text if hasattr(result[0], "text") else str(result[0])
-        else:
-            prompt_content = str(result)
-
-        # Verify performance-specific content
-        assert "Performance" in prompt_content or "performance" in prompt_content.lower()
-        assert (
-            "Resource" in prompt_content
-            or "CPU" in prompt_content
-            or "Memory" in prompt_content
-            or "resource" in prompt_content.lower()
-        )
-
-    async def test_troubleshoot_indexing_performance_prompt(self, client):
-        """Test indexing performance troubleshooting prompt."""
-        result = await client.get_prompt(
-            "troubleshoot_indexing_performance",
-            {
-                "earliest_time": "-24h",
-                "latest_time": "now",
-                "analysis_depth": "standard",
-                "include_delay_analysis": True,
-            },
-        )
-
-        # Extract content from FastMCP prompt result structure
-        if hasattr(result, "messages") and result.messages:
-            # Handle the content array structure
-            content = result.messages[0].content
-            if isinstance(content, list) and len(content) > 0:
-                prompt_content = content[0].text if hasattr(content[0], "text") else str(content[0])
-            else:
-                prompt_content = str(content)
-        elif isinstance(result, list) and len(result) > 0:
-            prompt_content = result[0].text if hasattr(result[0], "text") else str(result[0])
-        else:
-            prompt_content = str(result)
-
-        # Verify indexing-specific content
-        assert "Indexing" in prompt_content or "indexing" in prompt_content.lower()
-        assert "Performance" in prompt_content or "performance" in prompt_content.lower()
-        assert "Delay" in prompt_content or "delay" in prompt_content.lower()
+        assert "parameters" in prompt_content.lower() or "example" in prompt_content.lower()
 
 
 class TestServerMiddleware:
@@ -919,12 +837,11 @@ class TestServerConfiguration:
         prompts = await client.list_prompts()
         prompt_names = [prompt.name for prompt in prompts]
 
-        # Verify core prompts are loaded
+        # Verify core prompts are loaded (updated to new mcp_usage prompts)
         expected_prompts = [
-            "troubleshoot_inputs",
-            "troubleshoot_inputs_multi_agent",
-            "troubleshoot_performance",
-            "troubleshoot_indexing_performance",
+            "mcp_overview",
+            "workflow_creation_guide",
+            "tool_usage_guide",
         ]
 
         for prompt_name in expected_prompts:
@@ -1083,10 +1000,10 @@ class TestIntegrationWorkflows:
                 pass
 
     async def test_troubleshooting_workflow_with_resources(self, client):
-        """Test troubleshooting workflow with resource access."""
-        # 1. Get troubleshooting prompt
+        """Test workflow prompt with resource access (updated to mcp_usage prompts)."""
+        # 1. Get workflow creation prompt
         prompt_result = await client.get_prompt(
-            "troubleshoot_inputs", {"earliest_time": "-1h", "latest_time": "now"}
+            "workflow_creation_guide", {"workflow_type": "performance", "complexity": "simple"}
         )
 
         # Extract prompt content properly
@@ -1099,7 +1016,7 @@ class TestIntegrationWorkflows:
         else:
             prompt_content = str(prompt_result)
 
-        assert "troubleshoot" in prompt_content.lower() or "workflow" in prompt_content.lower()
+        assert "workflow" in prompt_content.lower()
 
         # 2. Access configuration resources referenced in prompt
         try:

@@ -38,7 +38,7 @@ os.makedirs(log_dir, exist_ok=True)
 
 # Enhanced logging configuration
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.path.join(log_dir, "mcp_splunk_server.log")),
@@ -73,6 +73,16 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 logger.info(f"Captured Splunk headers: {list(splunk_headers.keys())}")
             else:
                 logger.debug(f"No Splunk headers found. Available headers: {list(headers.keys())}")
+
+            # Extract and attach client config to the Starlette request state for tools to use
+            try:
+                client_config = extract_client_config_from_headers(headers)
+                if client_config:
+                    # Attach to request.state so BaseTool can retrieve it
+                    request.state.client_config = client_config
+                    logger.debug("Attached client_config to request.state for downstream access")
+            except Exception as e:
+                logger.warning(f"Failed to attach client_config to request.state: {e}")
 
         except Exception as e:
             logger.error(f"Error capturing HTTP headers: {e}")
@@ -297,6 +307,9 @@ class ClientConfigMiddleware(Middleware):
         try:
             headers = http_headers_context.get({})
 
+            # Derive a stable per-session cache key
+            session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+
             if headers:
                 logger.debug(f"Found HTTP headers from context: {list(headers.keys())}")
 
@@ -307,20 +320,19 @@ class ClientConfigMiddleware(Middleware):
                     logger.info("Successfully extracted MCP client configuration from HTTP headers")
                     logger.info(f"Client config extracted: {list(client_config.keys())}")
 
-                    # Cache the config for this session
-                    session_id = getattr(context, "session_id", "default")
-                    self.client_config_cache[session_id] = client_config
+                    # Cache the config for this session (avoid cross-session leakage)
+                    if session_key:
+                        self.client_config_cache[session_key] = client_config
                 else:
                     logger.debug("No Splunk headers found in HTTP request")
             else:
                 logger.debug("No HTTP headers found in context variable")
 
             # If we didn't extract config from headers, check if we have cached config
-            if not client_config:
-                session_id = getattr(context, "session_id", "default")
-                client_config = self.client_config_cache.get(session_id)
+            if not client_config and session_key:
+                client_config = self.client_config_cache.get(session_key)
                 if client_config:
-                    logger.debug(f"Using cached client config for session {session_id}")
+                    logger.debug(f"Using cached client config for session {session_key}")
 
         except Exception as e:
             logger.error(f"Error extracting client config from headers: {e}")
@@ -328,25 +340,31 @@ class ClientConfigMiddleware(Middleware):
 
         # Store client config in the context for tools to access
         if client_config:
+            # Update the lifespan context if available (non-intrusive)
             try:
-                # Store in the context as a custom attribute
-                context.splunk_client_config = client_config
-                logger.debug("Stored client config in context")
-
-                # Also try to update the lifespan context if available
                 if (
                     hasattr(context, "fastmcp_context")
                     and context.fastmcp_context
                     and hasattr(context.fastmcp_context, "lifespan_context")
                 ):
-                    # Update the lifespan context with client config
                     lifespan_ctx = context.fastmcp_context.lifespan_context
                     if hasattr(lifespan_ctx, "client_config"):
                         lifespan_ctx.client_config = client_config
                         logger.debug("Updated lifespan context with client config")
-
             except Exception as e:
-                logger.error(f"Error storing client config in context: {e}")
+                logger.warning(f"Failed to update lifespan context with client config: {e}")
+
+        # If this request is a session termination, clean up cached credentials
+        try:
+            if isinstance(getattr(context, "method", None), str):
+                if context.method in ("session/terminate", "session/end", "session/close"):
+                    headers = headers if isinstance(headers, dict) else {}
+                    session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+                    if session_key and session_key in self.client_config_cache:
+                        self.client_config_cache.pop(session_key, None)
+                        logger.debug(f"Cleared cached client config for session {session_key}")
+        except Exception:
+            pass
 
         # Continue with the request
         result = await call_next(context)

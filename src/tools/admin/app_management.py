@@ -5,7 +5,7 @@ This tool provides app management actions, while app information/listing
 is provided via the apps resource for LLM context.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
@@ -25,7 +25,9 @@ class ManageApps(BaseTool):
         name="manage_apps",
         description=(
             "Manage Splunk application lifecycle operations including enable, disable, restart, "
-            "and reload actions. This tool provides essential app management capabilities for "
+            "and reload actions. Use this tool when you need to change the state of a Splunk app, "
+            "such as enabling a disabled app, restarting for configuration changes, or troubleshooting issues. "
+            "This tool provides essential app management capabilities for "
             "maintaining Splunk environments, troubleshooting app issues, and controlling app "
             "availability. Operations affect app state and may require Splunk restart for "
             "some changes to take effect.\n\n"
@@ -53,7 +55,7 @@ class ManageApps(BaseTool):
     async def execute(
         self,
         ctx: Context,
-        action: str,
+        action: Literal["enable", "disable", "restart", "reload"],
         app_name: str,
     ) -> dict[str, Any]:
         """
@@ -74,12 +76,7 @@ class ManageApps(BaseTool):
         if not is_available:
             return self.format_error_response(error_msg)
 
-        # Validate action
-        valid_actions = ["enable", "disable", "restart", "reload"]
-        if action not in valid_actions:
-            return self.format_error_response(
-                f"Invalid action '{action}'. Valid actions: {', '.join(valid_actions)}"
-            )
+        # action is validated by Literal type in the schema
 
         self.logger.info(f"Managing app '{app_name}': {action}")
         ctx.info(f"Managing app '{app_name}': {action}")

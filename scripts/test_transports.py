@@ -59,7 +59,6 @@ async def test_http_mode():
     print("=" * 50)
 
     try:
-        import httpx
         from fastmcp import Client
 
         # Start server in background

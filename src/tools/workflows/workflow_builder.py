@@ -85,6 +85,21 @@ multiple modes of operation to accommodate different workflow development needs.
 - Context variable validation
 - Integration compatibility assessment
 
+## When to use
+- Use to create new workflows from templates or from scratch
+- Use to edit or validate an existing workflow JSON before contributing or running it
+- Use to generate templates and examples for standard categories (security, performance, data quality)
+
+## Arguments
+- **mode** (optional): "create", "edit", "validate", "template", or "process" (default: "create")
+- **workflow_data** (optional): JSON string or object when editing/validating/processing
+- **template_type** (optional): Template key when `mode="template"` (e.g., "minimal", "security")
+- **file_path** (optional): Path to workflow file when `mode="validate"`
+
+## Outputs
+- Structured results including validation summaries, templates, or processed workflow data
+- Ready-to-execute workflows that can be run with `workflow_runner` or the dynamic agent
+
 Perfect for workflow contributors who need guided assistance in creating well-structured,
 validated workflows that integrate seamlessly with the dynamic troubleshoot agent.""",
         category="workflows",

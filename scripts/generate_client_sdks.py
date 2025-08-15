@@ -120,7 +120,7 @@ class ClientSDKGenerator:
             output_path.mkdir(parents=True, exist_ok=True)
 
             # Run generation
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
 
             print(f"✓ {config['project_name']} SDK generated successfully")
             print(f"  Output: {output_path}")

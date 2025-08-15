@@ -13,6 +13,15 @@ import os
 import sys
 from pathlib import Path
 
+from src.core.registry import resource_registry
+from src.resources.splunk_docs import (
+    DocumentationDiscoveryResource,
+    SplunkCheatSheetResource,
+    TroubleshootingResource,
+    create_troubleshooting_resource,
+    register_documentation_resources,
+)
+
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -23,16 +32,6 @@ class MockContext:
 
     def __init__(self):
         self.data = {}
-
-
-from src.core.registry import resource_registry
-from src.resources.splunk_docs import (
-    DocumentationDiscoveryResource,
-    SplunkCheatSheetResource,
-    TroubleshootingResource,
-    create_troubleshooting_resource,
-    register_documentation_resources,
-)
 
 
 async def demo_cheat_sheet():
@@ -267,16 +266,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Check if httpx is available
-    try:
-        import httpx
-
-        print("✅ httpx is available - full functionality enabled")
-    except ImportError:
-        print("⚠️  httpx not available - install with: pip install httpx")
-        print("   Some features may show mock responses")
-
     print()
-
     # Run the demo
     asyncio.run(main())

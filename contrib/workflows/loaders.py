@@ -209,11 +209,11 @@ class WorkflowLoader:
             return workflow
 
         except json.JSONDecodeError as e:
-            raise WorkflowLoadError(f"Invalid JSON format: {e}")
-        except FileNotFoundError:
-            raise WorkflowLoadError(f"File not found: {file_path}")
+            raise WorkflowLoadError(f"Invalid JSON format: {e}") from e
+        except FileNotFoundError as e:
+            raise WorkflowLoadError(f"File not found: {file_path}") from e
         except Exception as e:
-            raise WorkflowLoadError(f"Unexpected error loading workflow: {e}")
+            raise WorkflowLoadError(f"Unexpected error loading workflow: {e}") from e
 
     def _validate_workflow_structure(
         self, workflow_data: dict[str, Any], file_path: Path

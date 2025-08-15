@@ -162,6 +162,17 @@ engine used by the dynamic troubleshoot agent for optimal performance.
 - Comprehensive result analysis and reporting
 - Integration with existing workflow infrastructure
 
+## When to use
+- Use when you know the workflow ID to run (discover via `list_workflows`)
+- Use for executing core or contrib workflows with custom time windows and focus context
+- Use in automation pipelines that orchestrate troubleshooting by workflow ID
+
+## Arguments
+- See Key Parameters list above. All are optional except `workflow_id`.
+
+## Outputs
+- Detailed execution results, task results, summary, and metadata including execution timing
+
 Perfect for executing specific workflows when you know exactly which diagnostic procedure
 you need to run, or for building automated troubleshooting pipelines.""",
         category="workflows",
