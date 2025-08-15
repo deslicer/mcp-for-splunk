@@ -990,10 +990,88 @@ class PromptLoader:
                     self.logger.exception("Full traceback:")
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
 
+        elif prompt_name == "mcp_overview":
+            async def prompt_wrapper(detail_level: str = "basic") -> list[dict[str, Any]]:
+                """MCP overview prompt with optional detail level"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(ctx, detail_level=detail_level)
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "workflow_creation_guide":
+            async def prompt_wrapper(
+                workflow_type: str = "general", complexity: str = "simple"
+            ) -> list[dict[str, Any]]:
+                """Workflow creation guide prompt with parameters"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(
+                        ctx, workflow_type=workflow_type, complexity=complexity
+                    )
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "tool_usage_guide":
+            async def prompt_wrapper(
+                tool_name: str, scenario: str | None = None
+            ) -> list[dict[str, Any]]:
+                """Tool usage guide prompt"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(ctx, tool_name=tool_name, scenario=scenario)
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
         else:
-            # Generic wrapper for prompts without parameters
+            # New and generic prompts: accept arbitrary keyword arguments and pass through
             async def prompt_wrapper() -> list[dict[str, Any]]:
-                """Generic prompt wrapper"""
+                """Generic prompt wrapper that forwards keyword arguments to get_prompt"""
                 try:
                     # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
@@ -1009,7 +1087,7 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method
+                    # Call the prompt's get_prompt method without extra arguments
                     result = await prompt_instance.get_prompt(ctx)
 
                     # Convert to FastMCP prompt format

@@ -141,7 +141,6 @@ class BaseTool(ABC):
                 from src.client.splunk_client import get_splunk_service
 
                 self.logger.info("Using MCP client configuration")
-                self.logger.info(f"Client config: {client_config}")
                 return get_splunk_service(client_config)
             except Exception as e:
                 self.logger.warning(f"Failed to connect with MCP client config: {e}")
