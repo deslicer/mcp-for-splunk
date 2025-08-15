@@ -5,7 +5,6 @@ from fastmcp import Context
 
 from src.core.base import BasePrompt, PromptMetadata
 
-
 logger = logging.getLogger(__name__)
 
 

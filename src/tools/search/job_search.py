@@ -23,7 +23,7 @@ class JobSearch(BaseTool):
         name="run_splunk_search",
         description=(
             "Run a Splunk search as a tracked job with progress and stats. Use this for complex or "
-            "long‑running queries (joins, transforms, large scans) where you need job status, scan/" 
+            "long‑running queries (joins, transforms, large scans) where you need job status, scan/"
             "event counts, and reliable result retrieval. Prefer this over oneshot when the query may "
             "exceed ~30s or requires progress visibility.\n\n"
             "Outputs: job id, results (JSON), counts, timing, and job status.\n"

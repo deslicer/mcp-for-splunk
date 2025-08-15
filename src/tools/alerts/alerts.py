@@ -20,7 +20,7 @@ class ListTriggeredAlerts(BaseTool):
         description=(
             "List fired alerts and their details. Use this to review recent triggered alerts, including "
             "saved search name, trigger time, owner/app, and trigger reason. Supports a name filter and a "
-            "max results cap. Note: Splunk's fired alerts feed may not strictly filter by time; earliest/" 
+            "max results cap. Note: Splunk's fired alerts feed may not strictly filter by time; earliest/"
             "latest are advisory.\n\n"
             "Args:\n"
             "    count (int, optional): Maximum number of alert groups to return (default: 50)\n"

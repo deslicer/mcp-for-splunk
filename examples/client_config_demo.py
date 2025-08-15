@@ -11,12 +11,12 @@ import asyncio
 import os
 import sys
 
+from src.tools.health.status import GetSplunkHealth
+
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-from src.tools.health.status import GetSplunkHealth
 
 
 async def demo_client_configuration():

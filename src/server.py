@@ -79,7 +79,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 client_config = extract_client_config_from_headers(headers)
                 if client_config:
                     # Attach to request.state so BaseTool can retrieve it
-                    setattr(request.state, "client_config", client_config)
+                    request.state.client_config = client_config
                     logger.debug("Attached client_config to request.state for downstream access")
             except Exception as e:
                 logger.warning(f"Failed to attach client_config to request.state: {e}")

@@ -71,8 +71,8 @@ def test_env_vars():
         print("✅ Agent tools imported successfully")
 
         # Test agent instantiation
-        triage_agent = SplunkTriageAgentTool("agent_troubleshoot", "troubleshooting")
-        dynamic_agent = DynamicTroubleshootAgentTool("dynamic_troubleshoot", "troubleshooting")
+        SplunkTriageAgentTool("agent_troubleshoot", "troubleshooting")
+        DynamicTroubleshootAgentTool("dynamic_troubleshoot", "troubleshooting")
 
         print("✅ Agent tools instantiated successfully")
 

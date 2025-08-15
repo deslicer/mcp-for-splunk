@@ -16,7 +16,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 # Import FastMCP for proper testing
 try:
     from fastmcp import Client, Context
-    from fastmcp.server.context import set_context
 except ImportError:
     # Create fallback if FastMCP not available
     Context = None

@@ -275,11 +275,11 @@ The MCP Server for Splunk provides {len(self.extractor.tools_metadata)} producti
 
         # Group tools by category
         categories = {}
-        for tool_name, info in self.extractor.tools_metadata.items():
+        for _tool_name, info in self.extractor.tools_metadata.items():
             category = info["metadata"].category
             if category not in categories:
                 categories[category] = []
-            categories[category].append(tool_name)
+            categories[category].append(info["metadata"].name)
 
         toc.append("### Tools by Category")
         for category in sorted(categories.keys()):
@@ -307,7 +307,7 @@ The MCP Server for Splunk provides {len(self.extractor.tools_metadata)} producti
         """Generate overview section."""
         # Count tools by category
         categories = {}
-        for tool_name, info in self.extractor.tools_metadata.items():
+        for _tool_name, info in self.extractor.tools_metadata.items():
             category = info["metadata"].category
             categories[category] = categories.get(category, 0) + 1
 
