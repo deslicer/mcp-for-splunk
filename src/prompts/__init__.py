@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 def register_all_prompts():
     """Register all prompts with the prompt registry."""
     try:
-        # Import all prompt modules to ensure they register themselves
-        from . import troubleshooting  # noqa: F401
+        # Import available prompt modules (optional)
+        try:
+            from . import mcp_usage  # noqa: F401
+        except Exception as e:
+            logger.debug(f"Optional prompt module not available: {e}")
 
         # Discover additional prompts
         discover_prompts()
@@ -25,7 +28,7 @@ def register_all_prompts():
         logger.info(f"Successfully registered {prompt_count} prompts")
 
     except Exception as e:
-        logger.error(f"Failed to register prompts: {e}")
+        logger.error(f"Failed to register prompts: {e}", exc_info=True)
 
 
 # Auto-register prompts when module is imported

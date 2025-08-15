@@ -54,10 +54,13 @@ class BaseTool(ABC):
             Dict containing extracted Splunk configuration
         """
         client_config = {}
-        splunk_keys = [key for key in kwargs.keys() if key.startswith("splunk_")]
+        splunk_keys = [key for key in list(kwargs.keys()) if key.startswith("splunk_")]
 
         for key in splunk_keys:
-            client_config[key] = kwargs.pop(key)
+            value = kwargs.pop(key)
+            # Ignore unset values to avoid passing None (e.g., int(None)) downstream
+            if value is not None:
+                client_config[key] = value
 
         return client_config if client_config else None
 
@@ -138,6 +141,7 @@ class BaseTool(ABC):
                 from src.client.splunk_client import get_splunk_service
 
                 self.logger.info("Using MCP client configuration")
+                self.logger.info(f"Client config: {client_config}")
                 return get_splunk_service(client_config)
             except Exception as e:
                 self.logger.warning(f"Failed to connect with MCP client config: {e}")
@@ -159,6 +163,34 @@ class BaseTool(ABC):
         """
         splunk_ctx = ctx.request_context.lifespan_context
 
+        # First, prefer per-request client configuration (HTTP headers / client env)
+        try:
+            client_config = None
+            # From HTTP request state (preferred for HTTP transport)
+            if hasattr(ctx.request_context, "request") and hasattr(
+                ctx.request_context.request, "state"
+            ) and hasattr(ctx.request_context.request.state, "client_config"):
+                client_config = ctx.request_context.request.state.client_config
+            # Or from lifespan context (set by middleware/cache or client env)
+            elif hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:
+                client_config = splunk_ctx.client_config
+
+            if client_config:
+                try:
+                    from src.client.splunk_client import get_splunk_service
+
+                    service = get_splunk_service(client_config)
+                    return True, service, ""
+                except Exception as e:
+                    # Fall back to server default if client-config connection fails
+                    logger.warning(
+                        f"Client-config Splunk connection failed in availability check: {e}"
+                    )
+        except Exception:
+            # Ignore header/env extraction issues and continue with server default
+            pass
+
+        # Fallback: use server default service established at startup
         if not splunk_ctx.is_connected or not splunk_ctx.service:
             return (
                 False,
