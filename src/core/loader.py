@@ -9,7 +9,7 @@ import inspect
 import logging
 import os
 import sys
-from typing import Any, Union, get_type_hints
+from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_context
@@ -1038,7 +1038,7 @@ class PromptLoader:
                     elif arg.get("type") == "boolean":
                         annotation = bool
                     elif arg.get("type") == "number":
-                        annotation = Union[int, float]
+                        annotation = int | float
                     else:
                         annotation = Any
 
