@@ -17,20 +17,18 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 
-from fastmcp import FastMCP, Context
+from fastmcp import Context, FastMCP
+from fastmcp.server.dependencies import get_context, get_http_headers, get_http_request
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.applications import Starlette
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
 from src.core.shared_context import http_headers_context
 from src.routes import setup_health_routes
-
-from fastmcp.server.dependencies import get_http_request, get_http_headers, get_context
-from starlette.requests import Request
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -151,7 +149,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 client_config = extract_client_config_from_headers(headers)
                 if client_config:
                     # Attach to request.state so BaseTool can retrieve it
-                    setattr(request.state, "client_config", client_config)
+                    request.state.client_config = client_config
                     logger.debug(
                         "HeaderCaptureMiddleware: attached client_config to request.state (keys=%s)",
                         list(client_config.keys()),
