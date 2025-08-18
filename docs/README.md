@@ -7,6 +7,9 @@ Welcome to the comprehensive documentation for the MCP Server for Splunk! This d
 ### New to MCP Server for Splunk?
 **Start here** → [Getting Started Guide](getting-started/)
 
+### Want to validate your setup fast?
+**Run tests now** → [Tests Quick Start](tests.md)
+
 ### Want to integrate with AI clients?
 **Go to** → [Integration Guide](guides/integration/)
 
@@ -14,7 +17,7 @@ Welcome to the comprehensive documentation for the MCP Server for Splunk! This d
 **Check out** → [Deployment Guide](guides/deployment/)
 
 ### Want to contribute or extend?
-**Visit** → [Contributing Guide](community/contributing.md)
+**Visit** → [Contributing Guide](contrib/contributing.md)
 
 ## 📚 Documentation Structure
 
@@ -25,8 +28,8 @@ Perfect for first-time users and quick setup.
 |-------|-------------|------|----------|
 | **[Overview](getting-started/)** | What is MCP Server for Splunk? | 5 min | Everyone |
 | **[Installation](getting-started/installation.md)** | Step-by-step setup guide | 15 min | New users |
-| **[Quick Tutorial](getting-started/tutorial.md)** | First success experience | 20 min | New users |
 | **[Troubleshooting](getting-started/troubleshooting.md)** | Common issues and solutions | Reference | Everyone |
+| **[Tests Quick Start](tests.md)** | First success experience | 2 min | New users |
 
 ### 📖 User Guides
 Practical guides for common tasks and scenarios.
@@ -38,6 +41,7 @@ Practical guides for common tasks and scenarios.
 | **[Deployment](guides/deployment/)** | Production deployment strategies | 45 min | DevOps |
 | **[Security](guides/security.md)** | Security best practices | 30 min | Security teams |
 | **[Testing](guides/TESTING.md)** | Testing and validation | 15 min | Developers |
+| **[Tests Quick Start](tests.md)** | Fast path to a green run | 2 min | Developers |
 | **[Migration](guides/migration_guide.md)** | Upgrading and migration | 20 min | Existing users |
 
 ### 🏗️ Architecture
@@ -47,28 +51,23 @@ Technical deep-dives for developers and architects.
 |----------|-------------|------|----------|
 | **[Overview](architecture/)** | High-level architecture guide | 15 min | Architects |
 | **[System Design](architecture/overview.md)** | Detailed system architecture | 30 min | Developers |
-| **[Components](architecture/components.md)** | Component breakdown | 45 min | Contributors |
-| **[Extension Guide](architecture/extending.md)** | How to extend the system | 60 min | Contributors |
+| Components | Component breakdown (coming soon) | 45 min | Contributors |
+| Extension Guide | How to extend the system (coming soon) | 60 min | Contributors |
 
 ### 📝 API Reference
 Complete reference documentation for tools, resources, and APIs.
 
 | Reference | Description | Audience |
 |-----------|-------------|----------|
-| **[API Overview](api/)** | API structure and conventions | Integrators |
-| **[Tools Reference](api/tools.md)** | Complete tool documentation | Developers |
-| **[Resources Reference](api/resources.md)** | Available resources | Developers |
-| **[Configuration Reference](reference/configuration.md)** | All configuration options | Operators |
+| **[Tools Reference](reference/tools.md)** | Tool documentation | Developers |
 
 ### 🤝 Community
 Guides for contributing and community participation.
 
 | Guide | Description | Time | Audience |
 |-------|-------------|------|----------|
-| **[Contributing](community/contributing.md)** | How to contribute | 30 min | Contributors |
-| **[Tool Development](community/tool-development.md)** | Creating new tools | 60 min | Developers |
-| **[Code of Conduct](community/code-of-conduct.md)** | Community guidelines | 5 min | Everyone |
-| **[Support](community/support.md)** | Getting help | Reference | Everyone |
+| **[Contributing](contrib/contributing.md)** | How to contribute | 30 min | Contributors |
+| **[Tool Development](contrib/tool_development.md)** | Creating new tools | 60 min | Developers |
 
 ## 🎭 Documentation by Role
 
@@ -76,8 +75,8 @@ Guides for contributing and community participation.
 **Building AI applications with Splunk data**
 
 1. **Quick Start**: [Getting Started](getting-started/) → [Integration Guide](guides/integration/)
-2. **Deep Dive**: [API Reference](api/) → [Architecture](architecture/)
-3. **Extend**: [Contributing](community/contributing.md) → [Tool Development](community/tool-development.md)
+2. **Deep Dive**: [Tools Reference](reference/tools.md) → [Architecture](architecture/)
+3. **Extend**: [Contributing](contrib/contributing.md) → [Tool Development](contrib/tool_development.md)
 
 **Key Resources:**
 - [Claude Desktop Integration](guides/integration/#claude-desktop)
@@ -87,14 +86,14 @@ Guides for contributing and community participation.
 ### 🛠️ For DevOps/Platform Engineers
 **Deploying and operating MCP servers**
 
-1. **Planning**: [Deployment Guide](guides/deployment/) → [Security Guide](guides/security.md)
+1. **Planning**: [Deployment Guide](guides/deployment/) → Security Guide (coming soon)
 2. **Implementation**: [Production Deployment](guides/deployment/production.md) → [Configuration](guides/configuration/)
-3. **Operations**: [Monitoring](guides/monitoring.md) → [Troubleshooting](getting-started/troubleshooting.md)
+3. **Operations**: [Monitoring](guides/monitoring.md)
 
 **Key Resources:**
 - [Docker Deployment](guides/deployment/DOCKER.md)
-- [Kubernetes Setup](guides/deployment/kubernetes.md)
-- [Security Best Practices](guides/security.md)
+- Kubernetes Setup (coming soon)
+- **[Security Best Practices](guides/security.md)**
 
 ### 🏢 For Splunk Administrators
 **Integrating AI with existing Splunk infrastructure**
@@ -106,25 +105,24 @@ Guides for contributing and community participation.
 **Key Resources:**
 - [Splunk Permissions](guides/security.md#splunk-permissions)
 - [Multi-tenant Configuration](guides/configuration/#multi-tenant-setup)
-- [Health Monitoring](guides/monitoring.md)
+- **[Health Monitoring](guides/monitoring.md)**
 
 ### 🔍 For Security Teams
 **Threat hunting and security analysis with AI**
 
-1. **Capabilities**: [Security Tools Overview](api/tools.md#security-tools) → [Integration Examples](guides/integration/)
+1. **Capabilities**: [Tools Reference](reference/tools.md) → [Integration Examples](guides/integration/)
 2. **Implementation**: [Security Guide](guides/security.md) → [Deployment](guides/deployment/)
-3. **Extension**: [Security Tool Development](community/tool-development.md#security-tools)
+3. **Extension**: [Tool Development](contrib/tool_development.md)
 
 **Key Resources:**
-- [Threat Hunting Tools](api/tools.md#threat-hunting)
-- [Security Integration Patterns](guides/integration/#security-examples)
-- [Incident Response Workflows](community/examples/security.md)
+- Threat Hunting Tools (see [Tools Reference](reference/tools.md))
+- Security Integration Patterns (see [Integration Guide](guides/integration/))
 
 ### 🎓 For Contributors
 **Adding tools and improving the project**
 
-1. **Start**: [Contributing Guide](community/contributing.md) → [Development Setup](community/contributing.md#development-environment)
-2. **Create**: [Tool Development](community/tool-development.md) → [Testing](guides/TESTING.md)
+1. **Start**: [Contributing Guide](contrib/contributing.md) → [Development Setup](contrib/contributing.md#development-environment)
+2. **Create**: [Tool Development](contrib/tool_development.md) → [Testing](guides/TESTING.md)
 3. **Share**: [Pull Request Process](community/contributing.md#submission-process) → [Community](community/)
 
 **Key Resources:**
@@ -142,6 +140,7 @@ Guides for contributing and community participation.
 | **Connect Claude Desktop** | [Claude Integration](guides/integration/#claude-desktop) | 10 min |
 | **Deploy to production** | [Production Guide](guides/deployment/production.md) | 45 min |
 | **Create a custom tool** | [Tool Development](community/tool-development.md) | 60 min |
+| **Run tests** | [Tests Quick Start](tests.md) | 2 min |
 | **Configure security** | [Security Guide](guides/security.md) | 30 min |
 | **Troubleshoot issues** | [Troubleshooting](getting-started/troubleshooting.md) | Variable |
 

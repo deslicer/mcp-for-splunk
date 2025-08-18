@@ -370,7 +370,7 @@ Once all prerequisites are installed:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/mcp-server-for-splunk.git
+   git clone https://github.com/deslicer/mcp-server-for-splunk.git
    cd mcp-server-for-splunk
    ```
 
@@ -393,7 +393,7 @@ Once all prerequisites are installed:
 ## 📚 **Additional Resources**
 
 - **[Main README](../README.md)** - Project overview and quick start
-- **[Docker Guide](../DOCKER.md)** - Container deployment details
-- **[Testing Guide](../TESTING.md)** - Testing and validation
-- **[Architecture Guide](../ARCHITECTURE.md)** - Technical architecture overview
-- **[Contributing Guide](../contrib/README.md)** - How to contribute to the project
+- **[Docker Guide](../guides/deployment/DOCKER.md)** - Container deployment details
+- **[Testing Guide](../guides/TESTING.md)** - Testing and validation
+- **[Architecture Guide](../architecture/)** - Technical architecture overview
+- **[Contributing Guide](../contrib/contributing.md)** - How to contribute to the project

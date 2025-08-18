@@ -563,10 +563,10 @@ tail -f logs/mcp-server.log
 
 ## 🎯 Next Steps
 
-- **[API Reference](../../api/)** - Complete tool documentation
-- **[Security Guide](../security.md)** - Secure your integrations
+- **[Tools Reference](../../reference/tools.md)** - Tool documentation
+- Security Guide (coming soon) - Secure your integrations
 - **[Deployment Guide](../deployment/)** - Production deployment
-- **[Contributing](../../community/contributing.md)** - Add your own tools
+- **[Contributing](../../contrib/contributing.md)** - Add your own tools
 
 ---
 

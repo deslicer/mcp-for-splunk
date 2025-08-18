@@ -274,4 +274,4 @@ You can do Part 2 entirely in MCP Inspector:
 - Build domain-specific workflows for your org (security, data quality, performance)
 - Contribute your workflows and tools via PRs
 
-Related docs: [Workflows Guide](../guides/workflows/README.md), [Template Replacement Guide](../guides/template-replacement-guide.md), [Agent Tracing Guide](../guides/agent-tracing-guide.md), [Tool Development Guide](../contrib/tool_development.md), [Contrib Quick Start](../../contrib/README.md).
+Related docs: [Workflows Guide](../guides/workflows/README.md), [AI-Powered Troubleshooting Guide](../guides/workflows/agents-as-tools-readme.md), [Agent Tracing Guide](../guides/workflows/agent-tracing-guide.md), [Tool Development Guide](../contrib/tool_development.md), [Contrib Guide](../contrib/contributing.md).

@@ -168,9 +168,9 @@ execution_result = await workflow_runner.execute(
 
 ### **🔗 Related Documentation**
 - **[AI-Powered Troubleshooting Guide](agents-as-tools-readme.md)** - Complete feature overview
-- **[Getting Started](getting-started/)** - Initial setup and configuration
-- **[API Reference](api/)** - Technical tool documentation
-- **[Contributing](community/contributing.md)** - Add your own workflows
+- **[Getting Started](../../getting-started/)** - Initial setup and configuration
+- **[Tools Reference](../../reference/tools.md)** - Tool documentation
+- **[Contributing](../../contrib/contributing.md)** - Add your own workflows
 
 ---
 

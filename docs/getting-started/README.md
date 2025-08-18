@@ -307,12 +307,12 @@ curl -k -u username:password https://your-splunk:8089/services/server/info
 
 ### Learn More
 - **[Integration Guide](../guides/integration/)** - Connect different AI clients
-- **[API Reference](../api/)** - Complete tool documentation
+- **[Tools Reference](../reference/tools.md)** - Tool documentation
 - **[Architecture](../architecture/)** - How it all works together
 
 ### Extend & Contribute
-- **[Contributing Guide](../community/contributing.md)** - Add your own tools
-- **[Tool Development](../community/tool-development.md)** - Build custom functionality
+- **[Contributing Guide](../contrib/contributing.md)** - Add your own tools
+- **[Tool Development](../contrib/tool_development.md)** - Build custom functionality
 
 ### Deploy to Production
 - **[Deployment Guide](../guides/deployment/)** - Production-ready setup

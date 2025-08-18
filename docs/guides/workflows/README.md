@@ -82,7 +82,7 @@ See `examples/workflow_runner_demo.py` for a working client that loads `.env` an
 
 Start here for a guided, end-to-end experience creating and running your own workflow:
 
-- See: [AI Workflows Hands‑On Lab](./hands-on-lab.md)
+- See: [AI Workflows Hands‑On Lab](../../labs/hands-on-lab.md)
 
 ## Quick Start (🚀)
 

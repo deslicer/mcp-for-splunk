@@ -7,9 +7,9 @@ This section provides comprehensive technical documentation about the MCP Server
 | Document | Description | Audience |
 |----------|-------------|----------|
 | **[System Overview](overview.md)** | High-level architecture and design principles | Architects, Tech Leads |
-| **[Component Design](components.md)** | Detailed component breakdown and interactions | Developers |
-| **[Extension Guide](extending.md)** | How to extend and customize the system | Contributors |
-| **[Data Flow](data-flow.md)** | Request flow and data processing patterns | Developers, Debuggers |
+| Component Design (coming soon) | Detailed component breakdown and interactions | Developers |
+| Extension Guide (coming soon) | How to extend and customize the system | Contributors |
+| Data Flow (coming soon) | Request flow and data processing patterns | Developers, Debuggers |
 
 ## 🏗️ Quick Architecture Summary
 
@@ -149,13 +149,13 @@ The system supports multiple configuration sources with precedence:
 
 ### For Architects
 1. Review [System Overview](overview.md) for high-level design
-2. Understand [Component Design](components.md) for implementation details
-3. Consider [Extension Patterns](extending.md) for customization needs
+2. Component Design (coming soon) for implementation details
+3. Extension Patterns (coming soon) for customization needs
 
 ### For Developers
-1. Study [Component Design](components.md) for development patterns
-2. Follow [Extension Guide](extending.md) to add new functionality
-3. Use [Data Flow](data-flow.md) for debugging and optimization
+1. Component Design (coming soon) for development patterns
+2. Extension Guide (coming soon) to add new functionality
+3. Data Flow (coming soon) for debugging and optimization
 
 ### For Operators
 1. Understand deployment patterns in [System Overview](overview.md)
