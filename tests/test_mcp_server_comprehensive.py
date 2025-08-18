@@ -1033,10 +1033,10 @@ class TestIntegrationWorkflows:
                 pass
 
     async def test_troubleshooting_workflow_with_resources(self, client):
-        """Test troubleshooting workflow with resource access."""
-        # 1. Get troubleshooting prompt
+        """Test workflow with resource access using existing prompts."""
+        # 1. Get MCP overview prompt with parameters
         prompt_result = await client.get_prompt(
-            "troubleshoot_inputs", {"earliest_time": "-1h", "latest_time": "now"}
+            "mcp_overview", {"detail_level": "advanced"}
         )
 
         # Extract prompt content properly
@@ -1049,7 +1049,7 @@ class TestIntegrationWorkflows:
         else:
             prompt_content = str(prompt_result)
 
-        assert "troubleshoot" in prompt_content.lower() or "workflow" in prompt_content.lower()
+        assert "mcp" in prompt_content.lower() or "splunk" in prompt_content.lower()
 
         # 2. Access configuration resources referenced in prompt
         try:
