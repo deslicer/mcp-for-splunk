@@ -1028,7 +1028,7 @@ class PromptLoader:
             if hasattr(metadata, 'arguments') and metadata.arguments:
                 # Import inspect for signature manipulation
                 import inspect
-                
+
                 # Create parameter objects for the function signature
                 params = []
                 for arg in metadata.arguments:
@@ -1041,7 +1041,7 @@ class PromptLoader:
                         annotation = (int, float)
                     else:
                         annotation = Any
-                    
+
                     # Create parameter with proper defaults
                     if arg.get("required", False):
                         # Required parameter
@@ -1059,27 +1059,27 @@ class PromptLoader:
                             default_value = ""
                         elif arg.get("type") == "number":
                             default_value = 0
-                        
+
                         param = inspect.Parameter(
                             name=arg["name"],
                             kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                             default=default_value,
                             annotation=annotation
                         )
-                    
+
                     params.append(param)
-                
+
                 # Create new signature
                 new_sig = inspect.Signature(params, return_annotation=list[dict[str, Any]])
                 prompt_wrapper.__signature__ = new_sig
-                
+
                 # Set type annotations
                 prompt_wrapper.__annotations__ = {}
                 for param in params:
                     if param.annotation != inspect.Parameter.empty:
                         prompt_wrapper.__annotations__[param.name] = param.annotation
                 prompt_wrapper.__annotations__["return"] = list[dict[str, Any]]
-                
+
                 self.logger.debug(f"Generated parameterized signature for {prompt_name}: {new_sig}")
             else:
                 # No parameters - use simple signature
