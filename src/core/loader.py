@@ -991,9 +991,9 @@ class PromptLoader:
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
 
         else:
-            # Generic wrapper for prompts without parameters
-            async def prompt_wrapper() -> list[dict[str, Any]]:
-                """Generic prompt wrapper"""
+            # Intelligent wrapper for prompts with parameters - dynamically generate signature from metadata
+            async def prompt_wrapper(**kwargs) -> list[dict[str, Any]]:
+                """Intelligent prompt wrapper that handles parameters dynamically"""
                 try:
                     # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
@@ -1009,8 +1009,8 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method
-                    result = await prompt_instance.get_prompt(ctx)
+                    # Call the prompt's get_prompt method with all provided parameters
+                    result = await prompt_instance.get_prompt(ctx, **kwargs)
 
                     # Convert to FastMCP prompt format
                     if isinstance(result, dict) and "content" in result:
@@ -1023,6 +1023,68 @@ class PromptLoader:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+            # Dynamically set the function signature based on prompt metadata
+            if hasattr(metadata, 'arguments') and metadata.arguments:
+                # Import inspect for signature manipulation
+                import inspect
+                
+                # Create parameter objects for the function signature
+                params = []
+                for arg in metadata.arguments:
+                    # Determine parameter type annotation
+                    if arg.get("type") == "string":
+                        annotation = str
+                    elif arg.get("type") == "boolean":
+                        annotation = bool
+                    elif arg.get("type") == "number":
+                        annotation = (int, float)
+                    else:
+                        annotation = Any
+                    
+                    # Create parameter with proper defaults
+                    if arg.get("required", False):
+                        # Required parameter
+                        param = inspect.Parameter(
+                            name=arg["name"],
+                            kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            annotation=annotation
+                        )
+                    else:
+                        # Optional parameter with default
+                        default_value = None
+                        if arg.get("type") == "boolean":
+                            default_value = False
+                        elif arg.get("type") == "string":
+                            default_value = ""
+                        elif arg.get("type") == "number":
+                            default_value = 0
+                        
+                        param = inspect.Parameter(
+                            name=arg["name"],
+                            kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            default=default_value,
+                            annotation=annotation
+                        )
+                    
+                    params.append(param)
+                
+                # Create new signature
+                new_sig = inspect.Signature(params, return_annotation=list[dict[str, Any]])
+                prompt_wrapper.__signature__ = new_sig
+                
+                # Set type annotations
+                prompt_wrapper.__annotations__ = {}
+                for param in params:
+                    if param.annotation != inspect.Parameter.empty:
+                        prompt_wrapper.__annotations__[param.name] = param.annotation
+                prompt_wrapper.__annotations__["return"] = list[dict[str, Any]]
+                
+                self.logger.debug(f"Generated parameterized signature for {prompt_name}: {new_sig}")
+            else:
+                # No parameters - use simple signature
+                prompt_wrapper.__signature__ = inspect.signature(lambda: None)
+                prompt_wrapper.__annotations__ = {"return": list[dict[str, Any]]}
 
         # Set function metadata
         prompt_wrapper.__name__ = prompt_name
