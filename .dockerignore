@@ -59,4 +59,4 @@ docker-compose*.yml
 .dockerignore
 
 # Scripts
-scripts/ 
+scripts/

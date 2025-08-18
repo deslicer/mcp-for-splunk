@@ -189,9 +189,7 @@ class TestStreamableHttpTransport:
             # Simulate main function logging
             mock_logger.info("🚀 Starting MCP Server for Splunk")
             mock_logger.info(f"📡 Transport: {args.transport}")
-            mock_logger.info(
-                f"🌐 Running with HTTP transport on {args.host}:{args.port}{args.path}"
-            )
+            mock_logger.info(f"🌐 Running with HTTP transport on {args.host}:{args.port}{args.path}")
 
             await server.mcp.run_async(
                 transport="streamable-http", host=args.host, port=args.port, path=args.path

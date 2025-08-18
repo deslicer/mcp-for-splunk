@@ -1,0 +1,16 @@
+{
+  "workflow_id": "simple_health_check",
+  "name": "Simple Health Check",
+  "description": "Basic Splunk server health verification workflow for beginners",
+  "tasks": [
+    {
+      "task_id": "server_health_check",
+      "name": "Server Health Check",
+      "description": "Check basic Splunk server health and connectivity",
+      "instructions": "You are performing a basic Splunk server health check.\n\n**Analysis Steps:**\n1. Execute health check using get_splunk_health tool\n2. Analyze server status, licensing, and connectivity\n3. Report any issues found and provide recommendations\n\n**What to Look For:**\n- Server connectivity status\n- License usage and capacity\n- Basic system health indicators\n- Any immediate connectivity issues\n\n**Output:** Return DiagnosticResult with server health status and any recommended actions.",
+      "required_tools": ["get_splunk_health"],
+      "dependencies": [],
+      "context_requirements": []
+    }
+  ]
+}

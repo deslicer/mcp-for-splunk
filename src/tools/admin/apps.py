@@ -17,7 +17,15 @@ class ListApps(BaseTool):
 
     METADATA = ToolMetadata(
         name="list_apps",
-        description="Retrieve comprehensive inventory of all installed Splunk applications including metadata (name, label, version, description, author, visibility status). Returns detailed app catalog with 54+ apps typically found in enterprise environments, including core Splunk apps, add-ons (TAs), custom applications, and third-party integrations. Useful for environment auditing, app management, troubleshooting compatibility issues, and understanding the Splunk ecosystem deployment.",
+        description=(
+            "Retrieve comprehensive inventory of all installed Splunk applications including metadata "
+            "(name, label, version, description, author, visibility status). "
+            "Use this tool when you need to list all apps in the Splunk environment, such as for "
+            "auditing, management, or troubleshooting compatibility. "
+            "This tool requires no arguments.\n\n"
+            "Returns detailed app catalog with 54+ apps typically found in enterprise environments, "
+            "including core Splunk apps, add-ons (TAs), custom applications, and third-party integrations."
+        ),
         category="admin",
         tags=["apps", "administration", "management", "inventory", "catalog", "audit"],
         requires_connection=True,
@@ -40,7 +48,7 @@ class ListApps(BaseTool):
                 - status: "success" or "error"
                 - count: Total number of apps found
                 - apps: List of app objects with detailed metadata
-                
+
         Typical enterprise environments contain 50+ apps including:
         - Core Splunk apps (search, launcher, dmc)
         - Technology Add-ons (Splunk_TA_*)

@@ -28,7 +28,7 @@ Select template (1-2): 2
 ```
 
 ### **Template Workflow**
-1. **Choose template**: Select `splunk_search` 
+1. **Choose template**: Select `splunk_search`
 2. **Select category**: Choose appropriate category (security, devops, analytics, etc.)
 3. **Enter tool details**: Name and description
 4. **Enter SPL query**: Your custom Splunk search (multiline support)
@@ -45,7 +45,7 @@ Select template (1-2): 2
 # Template selection
 Select template (1-2): 2
 
-# Category selection  
+# Category selection
 Select category (1-4): 2
 
 # Tool details
@@ -74,7 +74,7 @@ Query description: Finds IP addresses and users with more than 5 failed login at
 
 # Default parameters
 Default earliest time: -1h
-Default latest time: now  
+Default latest time: now
 Default max results: 100
 
 # Custom parameters
@@ -96,14 +96,14 @@ The template creates tools with this structure:
 class FailedLoginDetectorTool(BaseTool):
     """
     Detects failed login attempts from authentication logs
-    
+
     This tool executes the following Splunk search:
     Finds IP addresses and users with more than 5 failed login attempts
-    
+
     SPL Query:
     index=security sourcetype=auth | search "failed" OR "failure" OR "invalid" | stats count by src_ip user | where count > 5 | sort -count
     """
-    
+
     METADATA = ToolMetadata(
         name="failed_login_detector",
         description="Detects failed login attempts from authentication logs",
@@ -112,7 +112,7 @@ class FailedLoginDetectorTool(BaseTool):
         requires_connection=True,
         version="1.0.0"
     )
-    
+
     async def execute(
         self,
         ctx: Context,
@@ -145,7 +145,7 @@ class TestFailedLoginDetectorTool:
 - **Incident Response**: Log correlation, timeline analysis, IOC searches
 - **Compliance**: Access audits, data usage monitoring, policy violations
 
-### **DevOps Tools**  
+### **DevOps Tools**
 - **Performance Monitoring**: Error rates, response times, resource usage
 - **Alert Analysis**: Service outages, threshold breaches, anomaly detection
 - **Capacity Planning**: Usage trends, growth patterns, resource forecasting
@@ -166,7 +166,7 @@ async def execute(
     self,
     ctx: Context,
     earliest_time: str = "-1h",
-    latest_time: str = "now", 
+    latest_time: str = "now",
     max_results: int = 100,
     log_level: str = "ERROR",          # Custom parameter
     source_app: str = "",              # Custom parameter
@@ -181,7 +181,7 @@ Common SPL patterns you can use:
 # Error detection
 index=app_logs level=ERROR | stats count by component error_msg | sort -count
 
-# Performance analysis  
+# Performance analysis
 index=web_logs | stats avg(response_time) p95(response_time) by endpoint
 
 # Security monitoring
@@ -202,9 +202,9 @@ index=_internal component=Metrics | stats latest(cpu_usage) by host
 
 3. **Reasonable Defaults**: Set sensible time ranges and result limits
 
-4. **Proper Categories**: 
+4. **Proper Categories**:
    - `security`: Threat hunting, incident response
-   - `devops`: Monitoring, alerting, performance  
+   - `devops`: Monitoring, alerting, performance
    - `analytics`: Business metrics, reporting
    - `examples`: Learning, demos, tutorials
 
@@ -215,7 +215,7 @@ index=_internal component=Metrics | stats latest(cpu_usage) by host
 ## 🚀 **Integration with Your Project**
 
 The generated tools automatically:
-- ✅ **Integrate with your MCP server** 
+- ✅ **Integrate with your MCP server**
 - ✅ **Use your Splunk connection** configuration
 - ✅ **Follow project coding standards**
 - ✅ **Include comprehensive logging**
@@ -226,7 +226,7 @@ The generated tools automatically:
 
 Your `splunk_search.py` tool serves as the **foundation template**. As you enhance it with new features:
 - Error handling improvements
-- Performance optimizations  
+- Performance optimizations
 - Additional response fields
 - Enhanced logging
 
@@ -239,4 +239,4 @@ These improvements can be **incorporated into the template** to benefit all futu
 ./contrib/scripts/generate_tool.py
 ```
 
-Choose `splunk_search` template and build your custom Splunk search arsenal! 🎯 
+Choose `splunk_search` template and build your custom Splunk search arsenal! 🎯

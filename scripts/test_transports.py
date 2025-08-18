@@ -59,7 +59,6 @@ async def test_http_mode():
     print("=" * 50)
 
     try:
-        import httpx
         from fastmcp import Client
 
         # Start server in background
@@ -117,7 +116,8 @@ def print_inspector_instructions():
     print("\n🔍 MCP Inspector Instructions")
     print("=" * 50)
 
-    print("""
+    print(
+        """
 The MCP Inspector is running and ready to use!
 
 🌐 **Web Interface**: http://localhost:3001
@@ -147,7 +147,8 @@ The MCP Inspector is running and ready to use!
    - MCP Server: Running on http://localhost:8001/mcp/
    - Inspector UI: Running on http://localhost:3001
    - Splunk: Running on http://localhost:9000
-""")
+"""
+    )
 
 
 def print_usage_examples():
@@ -155,7 +156,8 @@ def print_usage_examples():
     print("\n📋 Usage Examples")
     print("=" * 50)
 
-    print("""
+    print(
+        """
 🔧 **STDIO Mode** (for direct MCP client integration):
        python src/server.py --transport stdio
 
@@ -163,7 +165,7 @@ def print_usage_examples():
        python src/server.py --transport http --port 8000
 
 🐳 **Docker Mode** (full production setup):
-   docker-compose -f docker-compose-modular.yml up
+   docker-compose up
 
 🧪 **Testing with Python Client**:
    ```python
@@ -180,7 +182,8 @@ def print_usage_examples():
    - MCP_SERVER_HOST=0.0.0.0   # HTTP server host
    - SPLUNK_HOST=so1           # Splunk server
    - SPLUNK_PASSWORD=Chang3d!  # Splunk password
-""")
+"""
+    )
 
 
 async def main():

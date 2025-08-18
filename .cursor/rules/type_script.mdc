@@ -1,5 +1,5 @@
 ---
-description: 
+description:
 globs: **/*.ts, **/*.tsx, **/*.d.ts
 alwaysApply: false
 ---

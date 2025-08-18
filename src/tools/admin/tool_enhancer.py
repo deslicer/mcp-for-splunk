@@ -25,15 +25,24 @@ class ToolDescriptionEnhancer(BaseTool):
         name="enhance_tool_description",
         description=(
             "Analyzes existing MCP tools and enhances their descriptions with detailed "
-            "argument definitions, parameter examples, and usage patterns. This tool "
-            "examines the current tool's metadata, inspects its execute method signature, "
+            "argument definitions, parameter examples, and usage patterns. "
+            "Use this tool when you need to improve or generate better documentation for a tool, "
+            "such as adding examples or clarifying parameters. "
+            "This tool examines the current tool's metadata, inspects its execute method signature, "
             "and generates comprehensive documentation improvements.\n\n"
             "Args:\n"
             "    tool_name (str): Name of the tool to enhance (e.g., 'get_configurations', 'list_indexes')\n"
             "    generate_examples (bool, optional): Whether to generate parameter examples "
             "based on the tool's signature and category. Defaults to True.\n"
             "    include_response_format (bool, optional): Whether to analyze and include "
-            "expected response format information. Defaults to True."
+            "expected response format information. Defaults to True.\n\n"
+            "Response Format:\n"
+            "Returns a dictionary with 'status' field and 'data' containing:\n"
+            "- tool_name: The analyzed tool's name\n"
+            "- original_description: Original tool description\n"
+            "- enhanced_description: Improved description with details\n"
+            "- analysis: Detailed parameter and format analysis\n"
+            "- recommendations: Suggestions for further improvements"
         ),
         category="admin",
         tags=["tool-enhancement", "metadata", "documentation", "analysis"],
@@ -83,7 +92,12 @@ class ToolDescriptionEnhancer(BaseTool):
 
             # Analyze the tool
             analysis_result = await self._analyze_tool(
-                ctx, tool_name, tool_metadata, tool_class, generate_examples, include_response_format
+                ctx,
+                tool_name,
+                tool_metadata,
+                tool_class,
+                generate_examples,
+                include_response_format,
             )
 
             # Generate enhanced description
@@ -94,13 +108,15 @@ class ToolDescriptionEnhancer(BaseTool):
             if ctx:
                 await ctx.info(f"Successfully enhanced description for tool: {tool_name}")
 
-            return self.format_success_response({
-                "tool_name": tool_name,
-                "original_description": tool_metadata.description,
-                "enhanced_description": enhanced_description,
-                "analysis": analysis_result,
-                "recommendations": self._generate_recommendations(analysis_result),
-            })
+            return self.format_success_response(
+                {
+                    "tool_name": tool_name,
+                    "original_description": tool_metadata.description,
+                    "enhanced_description": enhanced_description,
+                    "analysis": analysis_result,
+                    "recommendations": self._generate_recommendations(analysis_result),
+                }
+            )
 
         except Exception as e:
             error_msg = f"Failed to enhance tool description for '{tool_name}': {str(e)}"
@@ -142,17 +158,23 @@ class ToolDescriptionEnhancer(BaseTool):
 
             param_info = {
                 "name": param_name,
-                "type": str(param.annotation) if param.annotation != inspect.Parameter.empty else "Any",
+                "type": str(param.annotation)
+                if param.annotation != inspect.Parameter.empty
+                else "Any",
                 "default": str(param.default) if param.default != inspect.Parameter.empty else None,
                 "required": param.default == inspect.Parameter.empty,
-                "description": self._extract_param_description_from_docstring(execute_method, param_name),
+                "description": self._extract_param_description_from_docstring(
+                    execute_method, param_name
+                ),
             }
 
             analysis["parameters"][param_name] = param_info
 
         # Generate examples if requested
         if generate_examples:
-            analysis["examples"] = self._generate_parameter_examples(tool_metadata.category, analysis["parameters"])
+            analysis["examples"] = self._generate_parameter_examples(
+                tool_metadata.category, analysis["parameters"]
+            )
 
         # Analyze response format if requested
         if include_response_format:
@@ -166,7 +188,7 @@ class ToolDescriptionEnhancer(BaseTool):
             return ""
 
         docstring = method.__doc__
-        lines = docstring.split('\n')
+        lines = docstring.split("\n")
 
         # Look for Args section
         in_args_section = False
@@ -211,7 +233,11 @@ class ToolDescriptionEnhancer(BaseTool):
             if "conf_file" in param_name:
                 examples[param_name] = ["props", "transforms", "inputs", "outputs", "server"]
             elif "stanza" in param_name:
-                examples[param_name] = ["default", "splunk_web_access", "monitor:///var/log/messages"]
+                examples[param_name] = [
+                    "default",
+                    "splunk_web_access",
+                    "monitor:///var/log/messages",
+                ]
             elif "app" in param_name:
                 examples[param_name] = ["search", "splunk_monitoring_console", "my_custom_app"]
             elif "user" in param_name:
@@ -228,7 +254,7 @@ class ToolDescriptionEnhancer(BaseTool):
                 examples[param_name] = [
                     "index=main sourcetype=access_combined",
                     "| stats count by source",
-                    "search error OR failure | head 10"
+                    "search error OR failure | head 10",
                 ]
             elif "earliest_time" in param_name:
                 examples[param_name] = ["-24h@h", "-7d", "2024-01-01T00:00:00"]
@@ -261,7 +287,12 @@ class ToolDescriptionEnhancer(BaseTool):
             if "component" in param_name:
                 examples[param_name] = ["indexer", "search_head", "forwarder", "deployment_server"]
             elif "feature" in param_name:
-                examples[param_name] = ["data_inputs", "saved_searches", "kvstore", "cluster_health"]
+                examples[param_name] = [
+                    "data_inputs",
+                    "saved_searches",
+                    "kvstore",
+                    "cluster_health",
+                ]
             else:
                 examples[param_name] = self._generate_generic_example(param_name, param_info)
         return examples
@@ -275,7 +306,11 @@ class ToolDescriptionEnhancer(BaseTool):
             elif "app" in param_name:
                 examples[param_name] = ["search", "my_app", "splunk_monitoring_console"]
             elif "query" in param_name:
-                examples[param_name] = ["{}", '{"status": "active"}', '{"timestamp": {"$gte": "2024-01-01"}}']
+                examples[param_name] = [
+                    "{}",
+                    '{"status": "active"}',
+                    '{"timestamp": {"$gte": "2024-01-01"}}',
+                ]
             else:
                 examples[param_name] = self._generate_generic_example(param_name, param_info)
         return examples
@@ -290,7 +325,7 @@ class ToolDescriptionEnhancer(BaseTool):
     def _generate_generic_example(self, param_name: str, param_info: dict) -> Any:
         """Generate a generic example for a parameter."""
         param_type = param_info.get("type", "str")
-        
+
         if "bool" in param_type:
             return [True, False]
         elif "int" in param_type:
@@ -319,7 +354,7 @@ class ToolDescriptionEnhancer(BaseTool):
             "common_fields": ["status"],
             "success_fields": [],
             "error_fields": ["error"],
-            "description": "Standard tool response format with status and relevant data fields"
+            "description": "Standard tool response format with status and relevant data fields",
         }
 
         # Try to extract return type information
@@ -333,27 +368,29 @@ class ToolDescriptionEnhancer(BaseTool):
         self, ctx: Context | None, tool_name: str, tool_metadata: ToolMetadata, analysis: dict
     ) -> str:
         """Generate an enhanced description based on analysis."""
-        
+
         description_parts = []
-        
+
         # Start with original description (cleaned up)
-        original_desc = tool_metadata.description.split("\n\nArgs:")[0]  # Remove existing Args if present
+        original_desc = tool_metadata.description.split("\n\nArgs:")[
+            0
+        ]  # Remove existing Args if present
         description_parts.append(original_desc)
-        
+
         # Add parameter documentation
         if analysis["parameters"]:
             description_parts.append("\n\nArgs:")
             for param_name, param_info in analysis["parameters"].items():
                 param_line = f"    {param_name}"
-                
+
                 # Add type information
                 if param_info["type"] != "Any":
                     param_line += f" ({param_info['type']})"
-                
+
                 # Add required/optional indicator
                 if not param_info["required"]:
                     param_line += ", optional"
-                
+
                 # Add description
                 if param_info["description"]:
                     param_line += f": {param_info['description']}"
@@ -363,13 +400,13 @@ class ToolDescriptionEnhancer(BaseTool):
                     if isinstance(examples, list) and examples:
                         example_str = ", ".join(str(ex) for ex in examples[:3])
                         param_line += f": Parameter for {param_name}. Examples: {example_str}"
-                
+
                 # Add default value
                 if param_info["default"] and param_info["default"] != "None":
                     param_line += f" (default: {param_info['default']})"
-                
+
                 description_parts.append(param_line)
-        
+
         # Add examples section
         if analysis["examples"]:
             description_parts.append("\n\nExample Values:")
@@ -377,43 +414,44 @@ class ToolDescriptionEnhancer(BaseTool):
                 if isinstance(examples, list) and examples:
                     example_values = ", ".join(f'"{ex}"' for ex in examples[:3])
                     description_parts.append(f"    {param_name}: {example_values}")
-        
+
         # Add response format information
         if analysis["response_format"]:
             description_parts.append("\n\nResponse Format:")
-            description_parts.append("    Returns a dictionary with 'status' field and relevant data fields.")
+            description_parts.append(
+                "    Returns a dictionary with 'status' field and relevant data fields."
+            )
             if analysis["response_format"].get("common_fields"):
                 common_fields = ", ".join(analysis["response_format"]["common_fields"])
                 description_parts.append(f"    Common fields: {common_fields}")
-        
+
         return "".join(description_parts)
 
     def _generate_recommendations(self, analysis: dict) -> list[str]:
         """Generate recommendations for improving the tool."""
         recommendations = []
-        
+
         # Check if all parameters have descriptions
         undocumented_params = [
-            param for param, info in analysis["parameters"].items()
-            if not info["description"]
+            param for param, info in analysis["parameters"].items() if not info["description"]
         ]
         if undocumented_params:
             recommendations.append(
                 f"Add descriptions for parameters: {', '.join(undocumented_params)}"
             )
-        
+
         # Check if examples are comprehensive
         if not analysis["examples"]:
             recommendations.append("Add parameter examples to improve usability")
-        
+
         # Category-specific recommendations
         category = analysis["metadata"]["category"]
         if category == "search" and "query" in analysis["parameters"]:
             recommendations.append("Consider adding query validation and syntax examples")
         elif category == "admin" and analysis["metadata"]["requires_connection"]:
             recommendations.append("Document connection requirements and error handling")
-        
+
         if not recommendations:
             recommendations.append("Tool description appears comprehensive")
-        
-        return recommendations 
+
+        return recommendations

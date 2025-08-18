@@ -58,17 +58,17 @@ class GetSplunkHealth(BaseTool):
         Check Splunk server connectivity and health status.
 
         Args:
-            splunk_host (str, optional): Splunk server hostname or IP address. If not provided, 
+            splunk_host (str, optional): Splunk server hostname or IP address. If not provided,
                                        uses the server's configured connection.
-            splunk_port (int, optional): Splunk management port (typically 8089). Defaults to 
+            splunk_port (int, optional): Splunk management port (typically 8089). Defaults to
                                        server configuration.
-            splunk_username (str, optional): Splunk username for authentication. Uses server 
+            splunk_username (str, optional): Splunk username for authentication. Uses server
                                            configuration if not provided.
-            splunk_password (str, optional): Splunk password for authentication. Uses server 
+            splunk_password (str, optional): Splunk password for authentication. Uses server
                                            configuration if not provided.
-            splunk_scheme (str, optional): Connection scheme ('http' or 'https'). Defaults to 
+            splunk_scheme (str, optional): Connection scheme ('http' or 'https'). Defaults to
                                          server configuration.
-            splunk_verify_ssl (bool, optional): Whether to verify SSL certificates. Defaults to 
+            splunk_verify_ssl (bool, optional): Whether to verify SSL certificates. Defaults to
                                               server configuration.
 
         Returns:
@@ -89,7 +89,6 @@ class GetSplunkHealth(BaseTool):
             # Try to get Splunk service with client config or fallback to server default
             service = await self.get_splunk_service(ctx, client_config)
 
-            
             # If we got here, we have a working connection
             info = {
                 "status": "connected",

@@ -18,10 +18,10 @@ class ListIndexes(BaseTool):
     METADATA = ToolMetadata(
         name="list_indexes",
         description=(
-            "Retrieves a list of all accessible data indexes from the Splunk instance. "
-            "Returns customer indexes (excludes internal Splunk system indexes like _internal, "
-            "_audit for better readability). Useful for discovering available data sources and "
-            "understanding the data structure of the Splunk environment."
+            "Retrieve all accessible data indexes from the Splunk instance. "
+            "Use this to discover which indexes you can query when building searches or troubleshooting data availability. "
+            "Returns customer indexes (excludes internal system indexes like _internal and _audit for readability). "
+            "Results are constrained by the current user's permissions."
         ),
         category="metadata",
         tags=["indexes", "metadata", "discovery"],
@@ -40,17 +40,18 @@ class ListIndexes(BaseTool):
         """
         log_tool_execution("list_indexes")
 
-        is_available, service, error_msg = self.check_splunk_available(ctx)
-
-        if not is_available:
-            return self.format_error_response(error_msg, indexes=[], count=0)
+        # Prefer client-provided configuration (HTTP headers or env) when available
+        try:
+            service = await self.get_splunk_service(ctx)
+        except Exception as e:
+            return self.format_error_response(str(e), indexes=[], count=0)
 
         try:
             # Filter out internal indexes for better performance and relevance
             customer_indexes = filter_customer_indexes(service.indexes)
             index_names = [index.name for index in customer_indexes]
 
-            ctx.info(f"Customer indexes: {index_names}")
+            await ctx.info(f"Customer indexes: {index_names}")
             return self.format_success_response(
                 {
                     "indexes": sorted(index_names),
@@ -60,5 +61,5 @@ class ListIndexes(BaseTool):
             )
         except Exception as e:
             self.logger.error(f"Failed to list indexes: {str(e)}")
-            ctx.error(f"Failed to list indexes: {str(e)}")
+            await ctx.error(f"Failed to list indexes: {str(e)}")
             return self.format_error_response(str(e), indexes=[], count=0)

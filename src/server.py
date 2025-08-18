@@ -7,23 +7,30 @@ automatic discovery and loading of tools, resources, and prompts.
 
 import argparse
 import asyncio
+
+# Add import for Starlette responses at the top
+import logging
 import os
 import sys
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-import time
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+from src.core.base import SplunkContext
+from src.core.loader import ComponentLoader
+from src.core.shared_context import http_headers_context
+from src.routes import setup_health_routes
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-import logging
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
@@ -39,11 +46,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
-
-# Import the core framework components
-from src.core.base import SplunkContext
-from src.core.loader import ComponentLoader
-from src.core.shared_context import http_headers_context
 
 
 # ASGI Middleware to capture HTTP headers
@@ -63,6 +65,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
 
             # Store headers in context variable
             http_headers_context.set(headers)
+            logger.debug(f"Captured headers: {list(headers.keys())}")
 
             # Log header extraction for debugging
             splunk_headers = {k: v for k, v in headers.items() if k.lower().startswith("x-splunk-")}
@@ -70,6 +73,16 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 logger.info(f"Captured Splunk headers: {list(splunk_headers.keys())}")
             else:
                 logger.debug(f"No Splunk headers found. Available headers: {list(headers.keys())}")
+
+            # Extract and attach client config to the Starlette request state for tools to use
+            try:
+                client_config = extract_client_config_from_headers(headers)
+                if client_config:
+                    # Attach to request.state so BaseTool can retrieve it
+                    request.state.client_config = client_config
+                    logger.debug("Attached client_config to request.state for downstream access")
+            except Exception as e:
+                logger.warning(f"Failed to attach client_config to request.state: {e}")
 
         except Exception as e:
             logger.error(f"Error capturing HTTP headers: {e}")
@@ -196,6 +209,11 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
 
         logger.info(f"Successfully loaded components: {results}")
 
+        # Store component loading results on the MCP server instance globally for health endpoints to access
+        # This ensures health endpoints can access the data even when called outside the lifespan context
+        server._component_loading_results = results
+        server._splunk_context = context
+
         yield context
 
     except Exception as e:
@@ -207,8 +225,60 @@ async def splunk_lifespan(server: FastMCP) -> AsyncIterator[SplunkContext]:
         logger.info("Shutting down Splunk connection")
 
 
+async def ensure_components_loaded(server: FastMCP) -> None:
+    """Ensure components are loaded at server startup, not just during MCP lifespan"""
+    logger.info("Ensuring components are loaded at server startup...")
+
+    try:
+        # Check if components are already loaded
+        if hasattr(server, "_component_loading_results") and server._component_loading_results:
+            logger.info("Components already loaded, skipping startup loading")
+            return
+
+        # Initialize Splunk context for component loading
+        client_config = extract_client_config_from_env()
+
+        # Import the safe version that doesn't raise exceptions
+        from src.client.splunk_client import get_splunk_service_safe
+
+        service = get_splunk_service_safe(client_config)
+        is_connected = service is not None
+
+        if service:
+            config_source = "client environment" if client_config else "server environment"
+            logger.info(f"Splunk connection established for startup loading using {config_source}")
+        else:
+            logger.warning("Splunk connection failed during startup - components will still load")
+
+        # Create context for component loading
+        context = SplunkContext(
+            service=service, is_connected=is_connected, client_config=client_config
+        )
+
+        # Load components at startup
+        logger.info("Loading MCP components at server startup...")
+        component_loader = ComponentLoader(server)
+        results = component_loader.load_all_components()
+
+        # Store results for health endpoints
+        server._component_loading_results = results
+        server._splunk_context = context
+
+        logger.info(f"Successfully loaded components at startup: {results}")
+
+    except Exception as e:
+        logger.error(f"Error during startup component loading: {str(e)}")
+        logger.exception("Full traceback:")
+        # Set default values so health endpoints don't crash
+        server._component_loading_results = {"tools": 0, "resources": 0, "prompts": 0}
+        server._splunk_context = SplunkContext(service=None, is_connected=False, client_config=None)
+
+
 # Initialize FastMCP server with lifespan context
 mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
+
+# Import and setup health routes
+setup_health_routes(mcp)
 
 
 # Middleware to extract client configuration from HTTP headers
@@ -237,6 +307,9 @@ class ClientConfigMiddleware(Middleware):
         try:
             headers = http_headers_context.get({})
 
+            # Derive a stable per-session cache key
+            session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+
             if headers:
                 logger.debug(f"Found HTTP headers from context: {list(headers.keys())}")
 
@@ -247,20 +320,19 @@ class ClientConfigMiddleware(Middleware):
                     logger.info("Successfully extracted MCP client configuration from HTTP headers")
                     logger.info(f"Client config extracted: {list(client_config.keys())}")
 
-                    # Cache the config for this session
-                    session_id = getattr(context, "session_id", "default")
-                    self.client_config_cache[session_id] = client_config
+                    # Cache the config for this session (avoid cross-session leakage)
+                    if session_key:
+                        self.client_config_cache[session_key] = client_config
                 else:
                     logger.debug("No Splunk headers found in HTTP request")
             else:
                 logger.debug("No HTTP headers found in context variable")
 
             # If we didn't extract config from headers, check if we have cached config
-            if not client_config:
-                session_id = getattr(context, "session_id", "default")
-                client_config = self.client_config_cache.get(session_id)
+            if not client_config and session_key:
+                client_config = self.client_config_cache.get(session_key)
                 if client_config:
-                    logger.debug(f"Using cached client config for session {session_id}")
+                    logger.debug(f"Using cached client config for session {session_key}")
 
         except Exception as e:
             logger.error(f"Error extracting client config from headers: {e}")
@@ -268,25 +340,31 @@ class ClientConfigMiddleware(Middleware):
 
         # Store client config in the context for tools to access
         if client_config:
+            # Update the lifespan context if available (non-intrusive)
             try:
-                # Store in the context as a custom attribute
-                context.splunk_client_config = client_config
-                logger.debug("Stored client config in context")
-
-                # Also try to update the lifespan context if available
                 if (
                     hasattr(context, "fastmcp_context")
                     and context.fastmcp_context
                     and hasattr(context.fastmcp_context, "lifespan_context")
                 ):
-                    # Update the lifespan context with client config
                     lifespan_ctx = context.fastmcp_context.lifespan_context
                     if hasattr(lifespan_ctx, "client_config"):
                         lifespan_ctx.client_config = client_config
                         logger.debug("Updated lifespan context with client config")
-
             except Exception as e:
-                logger.error(f"Error storing client config in context: {e}")
+                logger.warning(f"Failed to update lifespan context with client config: {e}")
+
+        # If this request is a session termination, clean up cached credentials
+        try:
+            if isinstance(getattr(context, "method", None), str):
+                if context.method in ("session/terminate", "session/end", "session/close"):
+                    headers = headers if isinstance(headers, dict) else {}
+                    session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+                    if session_key and session_key in self.client_config_cache:
+                        self.client_config_cache.pop(session_key, None)
+                        logger.debug(f"Cleared cached client config for session {session_key}")
+        except Exception:
+            pass
 
         # Continue with the request
         result = await call_next(context)
@@ -298,9 +376,16 @@ class ClientConfigMiddleware(Middleware):
 mcp.add_middleware(ClientConfigMiddleware())
 
 
-# Health check endpoint for Docker
+# Health check endpoint for Docker using custom route (recommended pattern)
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request) -> JSONResponse:
+    """Health check endpoint for Docker and load balancers"""
+    return JSONResponse({"status": "OK", "service": "MCP for Splunk"})
+
+
+# Legacy health check resource for MCP Inspector compatibility
 @mcp.resource("health://status")
-def health_check() -> str:
+def health_check_resource() -> str:
     """Health check endpoint for Docker and load balancers"""
     return "OK"
 
@@ -325,21 +410,21 @@ def hot_reload() -> dict:
     """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
     if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
         return {"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"}
-    
+
     try:
         # Get the component loader from the server context
         # This is a simple approach - in production you'd want proper context management
         logger.info("Triggering hot reload of MCP components...")
-        
+
         # Create a new component loader and reload
         component_loader = ComponentLoader(mcp)
         results = component_loader.reload_all_components()
-        
+
         return {
             "status": "success",
             "message": "Components hot reloaded successfully",
             "results": results,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
@@ -354,11 +439,14 @@ def personalized_greeting(name: str) -> str:
 
 async def main():
     """Main function for running the MCP server"""
-    # Get the port from environment variable, default to 8000
-    port = int(os.environ.get("MCP_SERVER_PORT", 8000))
+    # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
+    port = int(os.environ.get("MCP_SERVER_PORT", 8001))
     host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
 
     logger.info(f"Starting modular MCP server on {host}:{port}")
+
+    # Ensure components are loaded at server startup for health endpoints
+    await ensure_components_loaded(mcp)
 
     # Create custom ASGI middleware list to capture HTTP headers
     from starlette.middleware import Middleware as StarletteMiddleware
@@ -367,10 +455,15 @@ async def main():
         StarletteMiddleware(HeaderCaptureMiddleware),
     ]
 
-    # Use FastMCP's http_app method with custom middleware
-    app = mcp.http_app(path="/mcp/", middleware=custom_middleware)
+    # Create the FastMCP ASGI app with proper middleware and transport
+    # Use the recommended Streamable HTTP transport (default for 'http')
+    app = mcp.http_app(
+        path="/mcp/",
+        middleware=custom_middleware,
+        transport="http",  # Explicitly use Streamable HTTP transport
+    )
 
-    # Import uvicorn to run the server
+    # Use uvicorn to run the server
     try:
         import uvicorn
 
@@ -396,8 +489,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind the HTTP server (only for http transport)",
+        default=8001,
+        help="Port to bind the HTTP server (only for http transport, default 8001 to avoid conflict with Splunk)",
     )
 
     args = parser.parse_args()
@@ -407,10 +500,16 @@ if __name__ == "__main__":
     try:
         if args.transport == "stdio":
             logger.info("Running in stdio mode for direct MCP client communication")
-            asyncio.run(mcp.run())
+            # Use FastMCP's built-in run method for stdio
+            mcp.run(transport="stdio")
         else:
-            # HTTP mode: use Streamable HTTP transport for web-based communication
+            # HTTP mode: Use FastMCP's recommended approach for HTTP transport
             logger.info("Running in HTTP mode with Streamable HTTP transport")
+
+            # Option 1: Use FastMCP's built-in HTTP server (recommended for simple cases)
+            # mcp.run(transport="http", host=args.host, port=args.port, path="/mcp/")
+
+            # Option 2: Use custom uvicorn setup for advanced middleware (current approach)
             asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Server stopped by user")

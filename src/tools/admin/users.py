@@ -19,10 +19,9 @@ class ListUsers(BaseTool):
         name="list_users",
         description=(
             "Retrieve comprehensive inventory of all Splunk users and their properties. "
-            "Returns detailed user information including usernames, real names, email addresses, "
-            "assigned roles, user types, and default applications. Essential for user management, "
-            "security audits, role assignments, and understanding user access patterns in "
-            "enterprise Splunk environments. Supports both local and LDAP-integrated users.\n\n"
+            "Use this tool when you need to list all users in the Splunk environment, such as for "
+            "security audits, user management, or understanding access patterns. "
+            "This tool requires no arguments.\n\n"
             "Response Format:\n"
             "Returns a dictionary with 'status' field indicating success/error and 'data' containing:\n"
             "- count: Total number of users found\n"
@@ -48,7 +47,7 @@ class ListUsers(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info("Retrieving list of Splunk users")
-        ctx.info("Retrieving list of Splunk users")
+        await ctx.info("Retrieving list of Splunk users")
 
         try:
             users = []
@@ -64,9 +63,9 @@ class ListUsers(BaseTool):
                     }
                 )
 
-            ctx.info(f"Found {len(users)} users")
+            await ctx.info(f"Found {len(users)} users")
             return self.format_success_response({"count": len(users), "users": users})
         except Exception as e:
             self.logger.error(f"Failed to list users: {str(e)}")
-            ctx.error(f"Failed to list users: {str(e)}")
+            await ctx.error(f"Failed to list users: {str(e)}")
             return self.format_error_response(str(e))

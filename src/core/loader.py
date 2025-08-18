@@ -7,8 +7,8 @@ with the FastMCP server instance.
 
 import inspect
 import logging
-import sys
 import os
+import sys
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
@@ -35,43 +35,49 @@ class ToolLoader:
         Useful for development hot reload.
         """
         self.logger.info("Hot reloading tools...")
-        
+
         # Clear the tool registry to force rediscovery
         tool_registry._tools.clear()
-        tool_registry._metadata.clear() 
+        tool_registry._metadata.clear()
         tool_registry._instances.clear()
-        
+
         # Clear our tracking
         self._loaded_tools.clear()
-        
+
         # Reload tool modules if in development mode
         if os.environ.get("MCP_RELOAD_MODULES", "false").lower() == "true":
             self._reload_tool_modules()
-        
+
         # Rediscover and load tools
         return self.load_tools()
-    
+
     def _reload_tool_modules(self):
         """Reload Python modules containing tools to pick up changes."""
         import importlib
-        
+
         # Get list of modules that might contain tools
         tool_modules = [
+            "src.tools.admin.tool_enhancer",
             "src.tools.admin.apps",
-            "src.tools.admin.config", 
+            "src.tools.admin.config",
             "src.tools.admin.users",
+            "src.tools.admin.me",
             "src.tools.admin.app_management",
             "src.tools.health.status",
             "src.tools.kvstore.collections",
             "src.tools.kvstore.data",
             "src.tools.metadata.indexes",
-            "src.tools.metadata.sources", 
+            "src.tools.metadata.sources",
             "src.tools.metadata.sourcetypes",
             "src.tools.search.oneshot_search",
             "src.tools.search.job_search",
             "src.tools.search.saved_search_tools",
+            "src.tools.workflows.workflow_requirements",
+            "src.tools.workflows.workflow_builder",
+            "src.tools.workflows.list_workflows",
+            "src.tools.workflows.workflow_runner",
         ]
-        
+
         reloaded_count = 0
         for module_name in tool_modules:
             try:
@@ -81,7 +87,7 @@ class ToolLoader:
                     reloaded_count += 1
             except Exception as e:
                 self.logger.warning(f"Failed to reload module {module_name}: {e}")
-        
+
         self.logger.info(f"Reloaded {reloaded_count} tool modules")
 
     def _create_tool_wrapper(self, tool_class: type[BaseTool], tool_name: str):
@@ -133,7 +139,7 @@ class ToolLoader:
                     self.logger.error(f"Could not get current context for {tool_name}: {e}")
                     raise RuntimeError(
                         f"Tool {tool_name} can only be called within an MCP request context"
-                    )
+                    ) from e
 
                 # Bind the arguments to ensure proper parameter mapping
                 bound_args = wrapper_sig.bind(*args, **kwargs)
@@ -266,8 +272,8 @@ class ResourceLoader:
     def _load_manual_splunk_resources(self) -> None:
         """Pre-register Splunk-specific resources with the discovery registry"""
         try:
-            from .base import ResourceMetadata
-            from .registry import resource_registry
+            from .base import ResourceMetadata  # noqa: F401
+            from .registry import resource_registry  # noqa: F401
 
             # First, register documentation resources
             self._register_documentation_resources()
@@ -303,6 +309,7 @@ class ResourceLoader:
 
             # Register troubleshooting documentation handler
             self.logger.info("Registering troubleshooting documentation handler...")
+
             @self.mcp_server.resource(
                 "splunk-docs://{version}/troubleshooting/{topic}", name="get_troubleshooting_docs"
             )
@@ -326,15 +333,17 @@ Failed to retrieve troubleshooting documentation for `{topic}` (version {version
 
 Please check:
 - Topic name spelling
-- Version availability  
+- Version availability
 - Network connectivity
 
 Try using the discovery resource: `splunk-docs://discovery`
 """
+
             self.logger.info("✅ Troubleshooting handler registered successfully")
 
             # Register SPL command documentation handler
             self.logger.info("Registering SPL command documentation handler...")
+
             @self.mcp_server.resource(
                 "splunk-docs://{version}/spl-reference/{command}", name="get_spl_command_docs"
             )
@@ -363,10 +372,12 @@ Please check:
 
 Try using the discovery resource: `splunk-docs://discovery`
 """
+
             self.logger.info("✅ SPL command handler registered successfully")
 
             # Register admin guide documentation handler
             self.logger.info("Registering admin guide documentation handler...")
+
             @self.mcp_server.resource(
                 "splunk-docs://{version}/admin/{topic}", name="get_admin_guide_docs"
             )
@@ -395,9 +406,12 @@ Please check:
 
 Try using the discovery resource: `splunk-docs://discovery`
 """
+
             self.logger.info("✅ Admin guide handler registered successfully")
 
-            self.logger.info("Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)")
+            self.logger.info(
+                "Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to register dynamic documentation handlers: {e}")
@@ -422,14 +436,19 @@ Try using the discovery resource: `splunk-docs://discovery`
             # Check if this is a template resource
             if "{" in metadata.uri and "}" in metadata.uri:
                 # Skip template resources that are already handled by dynamic handlers
-                if any(pattern in metadata.uri for pattern in [
-                    "splunk-docs://{version}/troubleshooting/{topic}",
-                    "splunk-docs://{version}/spl-reference/{command}", 
-                    "splunk-docs://{version}/admin/{topic}"
-                ]):
-                    self.logger.debug(f"Skipping template resource {metadata.uri} - already handled by dynamic handlers")
+                if any(
+                    pattern in metadata.uri
+                    for pattern in [
+                        "splunk-docs://{version}/troubleshooting/{topic}",
+                        "splunk-docs://{version}/spl-reference/{command}",
+                        "splunk-docs://{version}/admin/{topic}",
+                    ]
+                ):
+                    self.logger.debug(
+                        f"Skipping template resource {metadata.uri} - already handled by dynamic handlers"
+                    )
                     return 0
-                
+
                 # Handle other template resources (like config templates)
                 self._register_template_resource(resource_class, metadata.uri)
                 self._registered_resources[metadata.uri] = f"{resource_class.__name__} (template)"
@@ -481,7 +500,8 @@ Try using the discovery resource: `splunk-docs://discovery`
                     return await resource.get_content(ctx, uri)
                 except Exception as e:
                     self.logger.error(f"Error reading config template {config_file}: {e}")
-                    raise RuntimeError(f"Failed to read config: {str(e)}")
+                    raise RuntimeError(f"Failed to read config: {str(e)}") from e
+
         else:
             # Fallback for other template types
             self._register_generic_resource(resource_class, pattern, resource_class.METADATA)
@@ -527,7 +547,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading config resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read config: {str(e)}")
+                raise RuntimeError(f"Failed to read config: {str(e)}") from e
 
     def _register_health_resource(self, resource_class, uri: str, metadata):
         """Register health resource with FastMCP"""
@@ -549,7 +569,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading health resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read health: {str(e)}")
+                raise RuntimeError(f"Failed to read health: {str(e)}") from e
 
     def _register_apps_resource(self, resource_class, uri: str, metadata):
         """Register apps resource with FastMCP"""
@@ -571,7 +591,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading apps resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read apps: {str(e)}")
+                raise RuntimeError(f"Failed to read apps: {str(e)}") from e
 
     def _register_search_resource(self, resource_class, uri: str, metadata):
         """Register search resource with FastMCP"""
@@ -593,7 +613,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading search resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read search: {str(e)}")
+                raise RuntimeError(f"Failed to read search: {str(e)}") from e
 
     def _register_generic_resource(self, resource_class, uri: str, metadata):
         """Register generic resource with FastMCP"""
@@ -615,7 +635,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read resource: {str(e)}")
+                raise RuntimeError(f"Failed to read resource: {str(e)}") from e
 
     def _get_resource_name_from_uri(self, uri: str) -> str:
         """Extract a human-readable name from URI"""
@@ -644,7 +664,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading indexes resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read indexes: {str(e)}")
+                raise RuntimeError(f"Failed to read indexes: {str(e)}") from e
 
     def _register_saved_searches_resource(self, resource_class, uri: str, metadata):
         """Register saved searches resource with FastMCP"""
@@ -666,7 +686,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading saved searches resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read saved searches: {str(e)}")
+                raise RuntimeError(f"Failed to read saved searches: {str(e)}") from e
 
     def _register_documentation_resource(self, resource_class, uri: str, metadata):
         """Register documentation resource with FastMCP"""
@@ -688,7 +708,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                 return await resource.get_content(ctx)
             except Exception as e:
                 self.logger.error(f"Error reading documentation resource {uri}: {e}")
-                raise RuntimeError(f"Failed to read documentation: {str(e)}")
+                raise RuntimeError(f"Failed to read documentation: {str(e)}") from e
 
 
 class PromptLoader:
@@ -784,7 +804,7 @@ class PromptLoader:
                 earliest_time: str = "-24h",
                 latest_time: str = "now",
                 focus_index: str | None = None,
-                focus_host: str | None = None
+                focus_host: str | None = None,
             ) -> list[dict[str, Any]]:
                 """Guided workflow for troubleshooting Splunk data input issues using metrics.log analysis"""
                 try:
@@ -795,10 +815,12 @@ class PromptLoader:
                     try:
                         ctx = get_context()
                     except Exception as e:
-                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -806,7 +828,7 @@ class PromptLoader:
                         earliest_time=earliest_time,
                         latest_time=latest_time,
                         focus_index=focus_index,
-                        focus_host=focus_host
+                        focus_host=focus_host,
                     )
 
                     # Convert to FastMCP prompt format
@@ -830,7 +852,7 @@ class PromptLoader:
                 focus_host: str | None = None,
                 analysis_depth: str = "standard",
                 include_delay_analysis: bool = True,
-                include_platform_instrumentation: bool = True
+                include_platform_instrumentation: bool = True,
             ) -> list[dict[str, Any]]:
                 """Comprehensive workflow for identifying and triaging Splunk indexing performance issues"""
                 try:
@@ -841,10 +863,12 @@ class PromptLoader:
                     try:
                         ctx = get_context()
                     except Exception as e:
-                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -855,7 +879,7 @@ class PromptLoader:
                         focus_host=focus_host,
                         analysis_depth=analysis_depth,
                         include_delay_analysis=include_delay_analysis,
-                        include_platform_instrumentation=include_platform_instrumentation
+                        include_platform_instrumentation=include_platform_instrumentation,
                     )
 
                     # Convert to FastMCP prompt format
@@ -880,7 +904,7 @@ class PromptLoader:
                 complexity_level: str = "moderate",
                 include_performance_analysis: bool = True,
                 enable_cross_validation: bool = True,
-                analysis_mode: str = "diagnostic"
+                analysis_mode: str = "diagnostic",
             ) -> list[dict[str, Any]]:
                 """Advanced multi-agent troubleshooting workflow for Splunk data input issues"""
                 try:
@@ -891,10 +915,12 @@ class PromptLoader:
                     try:
                         ctx = get_context()
                     except Exception as e:
-                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
@@ -906,7 +932,7 @@ class PromptLoader:
                         complexity_level=complexity_level,
                         include_performance_analysis=include_performance_analysis,
                         enable_cross_validation=enable_cross_validation,
-                        analysis_mode=analysis_mode
+                        analysis_mode=analysis_mode,
                     )
 
                     # Convert to FastMCP prompt format
@@ -926,7 +952,7 @@ class PromptLoader:
             async def prompt_wrapper(
                 earliest_time: str = "-7d",
                 latest_time: str = "now",
-                analysis_type: str = "comprehensive"
+                analysis_type: str = "comprehensive",
             ) -> list[dict[str, Any]]:
                 """Specialized prompt for Splunk performance analysis and optimization"""
                 try:
@@ -937,17 +963,19 @@ class PromptLoader:
                     try:
                         ctx = get_context()
                     except Exception as e:
-                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
                     # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
                         ctx,
                         earliest_time=earliest_time,
                         latest_time=latest_time,
-                        analysis_type=analysis_type
+                        analysis_type=analysis_type,
                     )
 
                     # Convert to FastMCP prompt format
@@ -962,10 +990,88 @@ class PromptLoader:
                     self.logger.exception("Full traceback:")
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
 
+        elif prompt_name == "mcp_overview":
+            async def prompt_wrapper(detail_level: str = "basic") -> list[dict[str, Any]]:
+                """MCP overview prompt with optional detail level"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(ctx, detail_level=detail_level)
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "workflow_creation_guide":
+            async def prompt_wrapper(
+                workflow_type: str = "general", complexity: str = "simple"
+            ) -> list[dict[str, Any]]:
+                """Workflow creation guide prompt with parameters"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(
+                        ctx, workflow_type=workflow_type, complexity=complexity
+                    )
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+        elif prompt_name == "tool_usage_guide":
+            async def prompt_wrapper(
+                tool_name: str, scenario: str | None = None
+            ) -> list[dict[str, Any]]:
+                """Tool usage guide prompt"""
+                try:
+                    prompt_instance = prompt_class(metadata.name, metadata.description)
+                    try:
+                        ctx = get_context()
+                    except Exception as e:
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Prompt {prompt_name} can only be called within an MCP request context"
+                        ) from e
+
+                    result = await prompt_instance.get_prompt(ctx, tool_name=tool_name, scenario=scenario)
+                    if isinstance(result, dict) and "content" in result:
+                        return result["content"]
+                    return [{"type": "text", "text": str(result)}]
+                except Exception as e:
+                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
+                    self.logger.exception("Full traceback:")
+                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+
         else:
-            # Generic wrapper for prompts without parameters
+            # New and generic prompts: accept arbitrary keyword arguments and pass through
             async def prompt_wrapper() -> list[dict[str, Any]]:
-                """Generic prompt wrapper"""
+                """Generic prompt wrapper that forwards keyword arguments to get_prompt"""
                 try:
                     # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
@@ -974,12 +1080,14 @@ class PromptLoader:
                     try:
                         ctx = get_context()
                     except Exception as e:
-                        self.logger.error(f"Could not get current context for prompt {prompt_name}: {e}")
+                        self.logger.error(
+                            f"Could not get current context for prompt {prompt_name}: {e}"
+                        )
                         raise RuntimeError(
                             f"Prompt {prompt_name} can only be called within an MCP request context"
-                        )
+                        ) from e
 
-                    # Call the prompt's get_prompt method
+                    # Call the prompt's get_prompt method without extra arguments
                     result = await prompt_instance.get_prompt(ctx)
 
                     # Convert to FastMCP prompt format
@@ -1034,11 +1142,11 @@ class ComponentLoader:
         self.logger.info(f"Loaded {total_loaded} total components: {results}")
 
         return results
-    
+
     def reload_all_components(self) -> dict[str, int]:
         """
         Hot reload all components for development.
-        
+
         Returns:
             Dict containing counts of reloaded components by type
         """
@@ -1050,7 +1158,11 @@ class ComponentLoader:
         resources_loaded = self.resource_loader.load_resources()
         prompts_loaded = self.prompt_loader.load_prompts()
 
-        results = {"tools": tools_reloaded, "resources": resources_loaded, "prompts": prompts_loaded}
+        results = {
+            "tools": tools_reloaded,
+            "resources": resources_loaded,
+            "prompts": prompts_loaded,
+        }
 
         total_reloaded = sum(results.values())
         self.logger.info(f"Reloaded {total_reloaded} total components: {results}")

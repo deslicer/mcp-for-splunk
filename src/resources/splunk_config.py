@@ -784,10 +784,10 @@ class SplunkSearchResultsResource(BaseResource):
             # Get recent jobs
             jobs = service.jobs
             recent_results = []
-            
+
             # Debug logging
             self.logger.info(f"Attempting to retrieve jobs for client {identity.client_id}")
-            
+
             # Check if jobs collection exists and is iterable
             if not jobs:
                 self.logger.warning("No jobs collection found")
@@ -798,14 +798,14 @@ class SplunkSearchResultsResource(BaseResource):
                     "recent_searches": [],
                     "total_results": 0,
                     "status": "success",
-                    "message": "No jobs collection found"
+                    "message": "No jobs collection found",
                 }
 
             try:
                 # Convert to list to check if there are any jobs
                 jobs_list = list(jobs)
                 self.logger.info(f"Found {len(jobs_list)} total jobs")
-                
+
                 if not jobs_list:
                     return {
                         "client_id": identity.client_id,
@@ -814,9 +814,9 @@ class SplunkSearchResultsResource(BaseResource):
                         "recent_searches": [],
                         "total_results": 0,
                         "status": "success",
-                        "message": "No jobs found in collection"
+                        "message": "No jobs found in collection",
                     }
-                    
+
             except Exception as list_error:
                 self.logger.error(f"Error converting jobs to list: {list_error}")
                 return {
@@ -826,46 +826,54 @@ class SplunkSearchResultsResource(BaseResource):
                     "recent_searches": [],
                     "total_results": 0,
                     "status": "error",
-                    "error": f"Error accessing jobs collection: {str(list_error)}"
+                    "error": f"Error accessing jobs collection: {str(list_error)}",
                 }
 
             count = 0
             processed_jobs = 0
-            
+
             for job in jobs_list:
                 if count >= 10:  # Limit to 10 recent searches
                     break
-                    
+
                 processed_jobs += 1
-                self.logger.debug(f"Processing job {processed_jobs}: {getattr(job, 'sid', 'unknown')}")
+                self.logger.debug(
+                    f"Processing job {processed_jobs}: {getattr(job, 'sid', 'unknown')}"
+                )
 
                 try:
                     # Check if job is done - some jobs might not have this method
-                    is_done = getattr(job, 'is_done', lambda: True)()
+                    is_done = getattr(job, "is_done", lambda: True)()
                     if not is_done:
-                        self.logger.debug(f"Job {getattr(job, 'sid', 'unknown')} is not done, skipping")
+                        self.logger.debug(
+                            f"Job {getattr(job, 'sid', 'unknown')} is not done, skipping"
+                        )
                         continue
 
                     # Safely access job properties with fallbacks
                     job_info = {
-                        "search_id": getattr(job, 'sid', 'unknown'),
+                        "search_id": getattr(job, "sid", "unknown"),
                         "search_query": self._safe_get_search_query(job),
-                        "event_count": self._safe_get_job_count(job, 'eventCount'),
-                        "result_count": self._safe_get_job_count(job, 'resultCount'),
-                        "earliest_time": self._safe_get_job_time(job, 'earliestTime'),
-                        "latest_time": self._safe_get_job_time(job, 'latestTime'),
+                        "event_count": self._safe_get_job_count(job, "eventCount"),
+                        "result_count": self._safe_get_job_count(job, "resultCount"),
+                        "earliest_time": self._safe_get_job_time(job, "earliestTime"),
+                        "latest_time": self._safe_get_job_time(job, "latestTime"),
                         "status": "completed",
                     }
                     recent_results.append(job_info)
                     count += 1
                     self.logger.debug(f"Successfully processed job {job_info['search_id']}")
-                    
+
                 except Exception as job_error:
                     # Log individual job errors but continue processing
-                    self.logger.warning(f"Error processing job {getattr(job, 'sid', 'unknown')}: {job_error}")
+                    self.logger.warning(
+                        f"Error processing job {getattr(job, 'sid', 'unknown')}: {job_error}"
+                    )
                     continue
 
-            self.logger.info(f"Successfully processed {count} jobs out of {processed_jobs} examined")
+            self.logger.info(
+                f"Successfully processed {count} jobs out of {processed_jobs} examined"
+            )
 
             return {
                 "client_id": identity.client_id,
@@ -889,11 +897,11 @@ class SplunkSearchResultsResource(BaseResource):
     def _safe_get_search_query(self, job) -> str:
         """Safely get search query from job object"""
         try:
-            search_query = getattr(job, 'search', None)
+            search_query = getattr(job, "search", None)
             if search_query is None:
                 # Try accessing from content
-                search_query = getattr(job, 'content', {}).get('search', 'N/A')
-            
+                search_query = getattr(job, "content", {}).get("search", "N/A")
+
             search_str = str(search_query)
             if len(search_str) > 200:
                 return search_str[:200] + "..."
@@ -908,13 +916,13 @@ class SplunkSearchResultsResource(BaseResource):
             count_value = getattr(job, count_attr, None)
             if count_value is not None:
                 return int(count_value)
-            
+
             # Try accessing from content
-            content = getattr(job, 'content', {})
-            if hasattr(content, 'get'):
+            content = getattr(job, "content", {})
+            if hasattr(content, "get"):
                 count_value = content.get(count_attr, 0)
                 return int(count_value)
-            
+
             return 0
         except (ValueError, TypeError, AttributeError):
             return 0
@@ -926,16 +934,16 @@ class SplunkSearchResultsResource(BaseResource):
             time_value = getattr(job, time_attr, None)
             if time_value is not None:
                 return str(time_value)
-            
+
             # Try accessing from content
-            content = getattr(job, 'content', {})
-            if hasattr(content, 'get'):
-                time_value = content.get(time_attr, 'N/A')
+            content = getattr(job, "content", {})
+            if hasattr(content, "get"):
+                time_value = content.get(time_attr, "N/A")
                 return str(time_value)
-            
-            return 'N/A'
+
+            return "N/A"
         except (AttributeError, TypeError):
-            return 'N/A'
+            return "N/A"
 
 
 class SplunkIndexesResource(BaseResource):

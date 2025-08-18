@@ -63,7 +63,7 @@ class ClientScopedResource(BaseResource):
             identity, service = await self.client_manager.get_client_connection(ctx, client_config)
         except Exception as e:
             self.logger.error(f"Failed to establish client connection: {e}")
-            raise SecurityError(f"Client authentication failed: {str(e)}")
+            raise SecurityError(f"Client authentication failed: {str(e)}") from e
 
         # Validate URI belongs to this client
         if uri:

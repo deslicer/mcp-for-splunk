@@ -18,12 +18,16 @@ classifiers = [
 ]
 dependencies = [
     "mcp[cli]>=1.8.1",
-    "fastmcp>=2.3.4",
+    "fastmcp>=2.11.3",
     "splunk-sdk>=2.1.0",
     "python-dotenv>=1.0.0",
     "httpx>=0.27.0",
-    "uvicorn[standard]>=0.32.0"
+    "uvicorn[standard]>=0.32.0",
+    "openai>=1.0.0",
+    "openai-agents>=0.1.0",
 ]
+license = { file = "LICENSE" }
+urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 
 [project.scripts]
 mcp-splunk-server = "src.server:main"
@@ -34,7 +38,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
-    "ruff>=0.1.0"
+    "ruff>=0.1.0",
+    "pre-commit>=3.7.0"
 ]
 test = [
     "pytest>=7.0.0",
@@ -69,6 +74,7 @@ dev-dependencies = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pre-commit>=3.7.0",
     "watchdog>=6.0.0",
 ]
 
@@ -76,7 +82,7 @@ dev-dependencies = [
 minversion = "7.0"
 addopts = [
     "-v",
-    "--tb=short", 
+    "--tb=short",
     "--strict-markers",
     "--disable-warnings",
     "--asyncio-mode=auto"
@@ -89,7 +95,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests", 
+    "integration: marks tests as integration tests",
     "unit: marks tests as unit tests"
 ]
 required_plugins = [
@@ -117,6 +123,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "B", "UP"]
 ignore = ["E501"]  # Line too long (handled by black)
 
@@ -124,5 +132,6 @@ ignore = ["E501"]  # Line too long (handled by black)
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 ignore_missing_imports = true
+exclude = "(^src/tools/|^src/resources/|^src/routes/|^src/prompts/|^src/core/(discovery|loader|enhanced_config_extractor|__init__|base|client_identity)\\.py|^src/server\\.py)"

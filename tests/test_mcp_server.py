@@ -295,11 +295,7 @@ class TestWorkflowIntegration:
         async with fastmcp_client as client:
             # 1. Start with a simple search
             simple_search = await client.call_tool(
-                "run_oneshot_search",
-                {
-                    "query": "| metadata type=hosts",
-                    "max_results": 5
-                }
+                "run_oneshot_search", {"query": "| metadata type=hosts", "max_results": 5}
             )
             simple_data = extract_tool_result(simple_search)
             assert isinstance(simple_data, dict)
@@ -310,8 +306,8 @@ class TestWorkflowIntegration:
                 {
                     "query": "| rest /services/server/info",
                     "earliest_time": "-1m",
-                    "latest_time": "now"
-                }
+                    "latest_time": "now",
+                },
             )
             complex_data = extract_tool_result(complex_search)
             assert isinstance(complex_data, dict)

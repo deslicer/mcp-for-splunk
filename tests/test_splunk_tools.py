@@ -5,6 +5,7 @@ This test suite follows the FastMCP testing best practices by using the Client
 with the server instance for in-memory testing, avoiding external server processes.
 """
 
+
 import pytest
 from fastmcp.exceptions import ToolError
 
@@ -40,8 +41,8 @@ class TestSplunkHealthTool:
                     "splunk_username": "testuser",
                     "splunk_password": "testpass",
                     "splunk_scheme": "https",
-                    "splunk_verify_ssl": False
-                }
+                    "splunk_verify_ssl": False,
+                },
             )
             data = extract_tool_result(result)
 
@@ -113,7 +114,7 @@ class TestSearchTools:
                     "earliest_time": "-1h",
                     "latest_time": "now",
                     "max_results": 10,
-                }
+                },
             )
             data = extract_tool_result(result)
 
@@ -129,8 +130,7 @@ class TestSearchTools:
         """Test oneshot search with pipe command"""
         async with fastmcp_client as client:
             result = await client.call_tool(
-                "run_oneshot_search",
-                {"query": "| stats count by log_level"}
+                "run_oneshot_search", {"query": "| stats count by log_level"}
             )
             data = extract_tool_result(result)
 
@@ -142,10 +142,7 @@ class TestSearchTools:
     async def test_run_oneshot_search_with_search_prefix(self, fastmcp_client, extract_tool_result):
         """Test oneshot search that already has search prefix"""
         async with fastmcp_client as client:
-            result = await client.call_tool(
-                "run_oneshot_search",
-                {"query": "search index=main"}
-            )
+            result = await client.call_tool("run_oneshot_search", {"query": "search index=main"})
             data = extract_tool_result(result)
 
             assert isinstance(data, dict)
@@ -155,11 +152,7 @@ class TestSearchTools:
         """Test oneshot search with max results limiting"""
         async with fastmcp_client as client:
             result = await client.call_tool(
-                "run_oneshot_search",
-                {
-                    "query": "index=main",
-                    "max_results": 5
-                }
+                "run_oneshot_search", {"query": "index=main", "max_results": 5}
             )
             data = extract_tool_result(result)
 
@@ -173,11 +166,7 @@ class TestSearchTools:
         async with fastmcp_client as client:
             result = await client.call_tool(
                 "run_splunk_search",
-                {
-                    "query": "index=main | head 5",
-                    "earliest_time": "-1h",
-                    "latest_time": "now"
-                }
+                {"query": "index=main | head 5", "earliest_time": "-1h", "latest_time": "now"},
             )
             data = extract_tool_result(result)
 
@@ -232,10 +221,7 @@ class TestKVStoreTools:
     async def test_list_kvstore_collections_specific_app(self, fastmcp_client, extract_tool_result):
         """Test listing KV Store collections for specific app"""
         async with fastmcp_client as client:
-            result = await client.call_tool(
-                "list_kvstore_collections",
-                {"app": "search"}
-            )
+            result = await client.call_tool("list_kvstore_collections", {"app": "search"})
             data = extract_tool_result(result)
 
             assert "collections" in data or "status" in data
@@ -244,11 +230,7 @@ class TestKVStoreTools:
         """Test KV Store data retrieval"""
         async with fastmcp_client as client:
             result = await client.call_tool(
-                "get_kvstore_data",
-                {
-                    "collection": "users",
-                    "app": "search"
-                }
+                "get_kvstore_data", {"collection": "users", "app": "search"}
             )
             data = extract_tool_result(result)
 
@@ -261,10 +243,7 @@ class TestConfigurationTools:
     async def test_get_configurations_all_stanzas(self, fastmcp_client, extract_tool_result):
         """Test getting all configuration stanzas"""
         async with fastmcp_client as client:
-            result = await client.call_tool(
-                "get_configurations",
-                {"conf_file": "props"}
-            )
+            result = await client.call_tool("get_configurations", {"conf_file": "props"})
             data = extract_tool_result(result)
 
             assert "file" in data or "status" in data
@@ -276,11 +255,7 @@ class TestConfigurationTools:
         """Test getting specific configuration stanza"""
         async with fastmcp_client as client:
             result = await client.call_tool(
-                "get_configurations",
-                {
-                    "conf_file": "props",
-                    "stanza": "default"
-                }
+                "get_configurations", {"conf_file": "props", "stanza": "default"}
             )
             data = extract_tool_result(result)
 
@@ -307,8 +282,8 @@ class TestSavedSearchTools:
                     "name": "Test Search",
                     "search": "index=main | stats count",
                     "description": "Test saved search",
-                    "is_visible": True
-                }
+                    "is_visible": True,
+                },
             )
             data = extract_tool_result(result)
 
@@ -318,8 +293,7 @@ class TestSavedSearchTools:
         """Test executing a saved search"""
         async with fastmcp_client as client:
             result = await client.call_tool(
-                "execute_saved_search",
-                {"name": "Messages by minute last 3 hours"}
+                "execute_saved_search", {"name": "Messages by minute last 3 hours"}
             )
             data = extract_tool_result(result)
 
@@ -353,8 +327,7 @@ class TestToolIntegration:
 
             # Then perform search
             search_result = await client.call_tool(
-                "run_oneshot_search",
-                {"query": "index=main | head 5"}
+                "run_oneshot_search", {"query": "index=main | head 5"}
             )
             search_data = extract_tool_result(search_result)
             assert isinstance(search_data, dict)
@@ -392,7 +365,7 @@ class TestMCPServerCapabilities:
                 "get_configurations",
                 "list_kvstore_collections",
                 "get_kvstore_data",
-                "list_saved_searches"
+                "list_saved_searches",
             ]
 
             for tool in expected_tools:

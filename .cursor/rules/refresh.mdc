@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: false
 ---
 User Query: {replace this with a specific and concise description of the problem you are still facing}

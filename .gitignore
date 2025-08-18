@@ -108,3 +108,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# MCP Inspector
+.inspector_pid
+logs/
+
+# Splunk License files
+lic/*.lic

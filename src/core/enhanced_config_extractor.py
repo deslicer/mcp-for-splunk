@@ -21,8 +21,7 @@ from fastmcp import Context
 
 logger = logging.getLogger(__name__)
 
-# Import the shared context variable to avoid circular imports
-from .shared_context import http_headers_context
+from .shared_context import http_headers_context  # noqa: E402
 
 
 class EnhancedConfigExtractor:
@@ -322,7 +321,7 @@ class EnhancedConfigExtractor:
 
                 # Look for client certificate in ASGI scope
                 if "client" in scope and scope["client"]:
-                    client_info = scope["client"]
+                    _client_info = scope["client"]
 
                     # Check for TLS client certificate
                     if "tls" in scope and "client_cert" in scope["tls"]:

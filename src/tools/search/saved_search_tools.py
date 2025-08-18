@@ -9,7 +9,7 @@ import time
 from typing import Any, Literal
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
@@ -24,10 +24,14 @@ class ListSavedSearches(BaseTool):
     METADATA = ToolMetadata(
         name="list_saved_searches",
         description=(
-            "Lists all saved searches available in the Splunk environment with comprehensive metadata "
-            "including ownership, scheduling configuration, sharing permissions, and last execution details. "
-            "Supports filtering by owner, app context, and sharing level to help discover and manage "
-            "existing search automation and reports."
+            "List saved searches with ownership, schedule, visibility, and permission metadata. "
+            "Use this to discover available reports/automations and to filter by owner/app/sharing. "
+            "Results reflect only saved searches the current user can access.\n\n"
+            "Args:\n"
+            "    owner (str, optional): Filter by owner name (optional)\n"
+            "    app (str, optional): Filter by application name (optional)\n"
+            "    sharing (str, optional): Filter by sharing level (optional)\n"
+            "    include_disabled (bool, optional): Include disabled saved searches (default: False)\n\n"
         ),
         category="search",
         tags=["saved_searches", "list", "metadata"],
@@ -64,11 +68,11 @@ class ListSavedSearches(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"List saved searches failed: {error_msg}")
+            await ctx.error(f"List saved searches failed: {error_msg}")
             return self.format_error_response(error_msg, saved_searches=[], total_count=0)
 
         try:
-            ctx.info("Retrieving saved searches list")
+            await ctx.info("Retrieving saved searches list")
             saved_searches_list = []
             total_count = 0
 
@@ -138,7 +142,7 @@ class ListSavedSearches(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to list saved searches: {str(e)}")
-            ctx.error(f"Failed to list saved searches: {str(e)}")
+            await ctx.error(f"Failed to list saved searches: {str(e)}")
             return self.format_error_response(str(e), saved_searches=[], total_count=0)
 
     def _convert_splunk_boolean(self, value, default=False):
@@ -161,24 +165,11 @@ class ExecuteSavedSearch(BaseTool):
     METADATA = ToolMetadata(
         name="execute_saved_search",
         description=(
-            "Execute a saved search by name with optional time range and parameter overrides. "
-            "Supports both oneshot and job execution modes for different performance requirements. "
-            "Provides flexible execution options for saved searches with custom time ranges, "
-            "result limits, and context filtering for comprehensive search automation.\\n\\n"
-            "Args:\\n"
-            "    name (str): Name of the saved search to execute (required)\\n"
-            "    earliest_time (str, optional): Override earliest time for search execution "
-            "(e.g., '-24h@h', '-7d', '2024-01-01T00:00:00')\\n"
-            "    latest_time (str, optional): Override latest time for search execution "
-            "(e.g., 'now', '@d', '2024-01-02T00:00:00')\\n"
-            "    mode (str, optional): Execution mode - 'oneshot' for immediate results or "
-            "'job' for progress tracking (default: 'oneshot')\\n"
-            "    max_results (int, optional): Maximum number of results to return (default: 100)\\n"
-            "    app (str, optional): Application context for saved search lookup\\n"
-            "    owner (str, optional): Owner context for saved search lookup\\n\\n"
-            "Response Format:\\n"
-            "Returns dictionary with 'status', 'saved_search_name', 'results', 'results_count', "
-            "'execution_mode', and optionally 'job_id' and 'duration' fields."
+            "Run a saved search by name with optional time overrides and mode selection. Use this to "
+            "execute existing reports/automations quickly. Choose 'oneshot' for immediate results or "
+            "'job' for progress tracking and large result sets.\\n\\n"
+            "Outputs: results list (capped by max_results), mode used, timing, and job id (if job).\\n"
+            "Security: execution and results are constrained by the authenticated user's permissions."
         ),
         category="search",
         tags=["saved_searches", "execute", "search"],
@@ -230,12 +221,12 @@ class ExecuteSavedSearch(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"Execute saved search failed: {error_msg}")
+            await ctx.error(f"Execute saved search failed: {error_msg}")
             return self.format_error_response(error_msg, saved_search_name=name)
 
         try:
             # Find the saved search
-            ctx.info(f"Looking for saved search: {name}")
+            await ctx.info(f"Looking for saved search: {name}")
 
             # Build search criteria
             search_kwargs = {}
@@ -270,13 +261,13 @@ class ExecuteSavedSearch(BaseTool):
                 error_msg = f"Saved search '{name}' not found"
                 if app or owner:
                     error_msg += f" (app: {app}, owner: {owner})"
-                ctx.error(error_msg)
+                await ctx.error(error_msg)
                 return self.format_error_response(error_msg, saved_search_name=name)
 
             # Check if saved search is disabled
             if self._convert_splunk_boolean(saved_search.content.get("disabled"), False):
                 error_msg = f"Saved search '{name}' is disabled"
-                ctx.error(error_msg)
+                await ctx.error(error_msg)
                 return self.format_error_response(error_msg, saved_search_name=name)
 
             # Prepare execution parameters
@@ -295,7 +286,7 @@ class ExecuteSavedSearch(BaseTool):
             elif saved_search.content.get("dispatch.latest_time"):
                 dispatch_kwargs["latest_time"] = saved_search.content.get("dispatch.latest_time")
 
-            ctx.info(f"Executing saved search '{name}' in {mode} mode")
+            await ctx.info(f"Executing saved search '{name}' in {mode} mode")
             start_time = time.time()
 
             if mode == "oneshot":
@@ -309,7 +300,7 @@ class ExecuteSavedSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to execute saved search '{name}': {str(e)}")
-            ctx.error(f"Failed to execute saved search '{name}': {str(e)}")
+            await ctx.error(f"Failed to execute saved search '{name}': {str(e)}")
             return self.format_error_response(str(e), saved_search_name=name)
 
     async def _execute_oneshot(
@@ -317,12 +308,14 @@ class ExecuteSavedSearch(BaseTool):
     ) -> dict[str, Any]:
         """Execute saved search in oneshot mode"""
         dispatch_kwargs["count"] = max_results
+        dispatch_kwargs["output_mode"] = "json"
 
         job = saved_search.dispatch(**dispatch_kwargs)
         results = []
         result_count = 0
 
-        for result in ResultsReader(job):
+        reader = JSONResultsReader(job)
+        for result in reader:
             if isinstance(result, dict):
                 results.append(result)
                 result_count += 1
@@ -365,8 +358,9 @@ class ExecuteSavedSearch(BaseTool):
         results = []
         result_count = 0
 
-        kwargs_paginate = {"count": max_results}
-        for result in ResultsReader(job.results(**kwargs_paginate)):
+        kwargs_paginate = {"count": max_results, "output_mode": "json"}
+        reader = JSONResultsReader(job.results(**kwargs_paginate))
+        for result in reader:
             if isinstance(result, dict):
                 results.append(result)
                 result_count += 1
@@ -415,25 +409,10 @@ class CreateSavedSearch(BaseTool):
     METADATA = ToolMetadata(
         name="create_saved_search",
         description=(
-            "Create a new saved search with comprehensive configuration options for scheduling, "
-            "sharing, and automation. This tool enables the creation of reusable search queries "
-            "with customizable execution parameters, time ranges, and alert configurations. "
-            "Essential for building search automation, reports, and monitoring workflows.\\n\\n"
-            "Args:\\n"
-            "    name (str): Unique name for the saved search (required)\\n"
-            "    search (str): SPL search query to save (required)\\n"
-            "    description (str, optional): Description of the saved search purpose\\n"
-            "    earliest_time (str, optional): Default earliest time for search execution "
-            "(e.g., '-24h@h', '-7d', '2024-01-01T00:00:00')\\n"
-            "    latest_time (str, optional): Default latest time for search execution "
-            "(e.g., 'now', '@d', '2024-01-02T00:00:00')\\n"
-            "    app (str, optional): Application context for the saved search\\n"
-            "    sharing (str, optional): Sharing level - 'user', 'app', or 'global' (default: 'user')\\n"
-            "    is_scheduled (bool, optional): Enable scheduled execution (default: False)\\n"
-            "    cron_schedule (str, optional): Cron expression for scheduling (required if is_scheduled=True)\\n"
-            "    is_visible (bool, optional): Show in Splunk UI (default: True)\\n\\n"
-            "Response Format:\\n"
-            "Returns dictionary with 'status', 'name', 'created', and 'configuration' fields."
+            "Create a saved search (report/automation) with optional scheduling and sharing. Use this "
+            "to persist useful SPL queries and optionally schedule them via cron.\\n\\n"
+            "Outputs: creation status and the applied configuration.\\n"
+            "Security: visibility and execution are constrained by permissions and chosen sharing level."
         ),
         category="search",
         tags=["saved_searches", "create", "management"],
@@ -490,7 +469,7 @@ class CreateSavedSearch(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"Create saved search failed: {error_msg}")
+            await ctx.error(f"Create saved search failed: {error_msg}")
             return self.format_error_response(error_msg, name=name, created=False)
 
         try:
@@ -544,7 +523,7 @@ class CreateSavedSearch(BaseTool):
             else:
                 config["is_scheduled"] = "0"
 
-            ctx.info(f"Creating saved search '{name}'")
+            await ctx.info(f"Creating saved search '{name}'")
 
             # Create the saved search
             if app:
@@ -573,7 +552,7 @@ class CreateSavedSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to create saved search '{name}': {str(e)}")
-            ctx.error(f"Failed to create saved search '{name}': {str(e)}")
+            await ctx.error(f"Failed to create saved search '{name}': {str(e)}")
             return self.format_error_response(str(e), name=name, created=False)
 
 
@@ -658,12 +637,12 @@ class UpdateSavedSearch(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"Update saved search failed: {error_msg}")
+            await ctx.error(f"Update saved search failed: {error_msg}")
             return self.format_error_response(error_msg, name=name, updated=False)
 
         try:
             # Find the saved search
-            ctx.info(f"Looking for saved search to update: {name}")
+            await ctx.info(f"Looking for saved search to update: {name}")
 
             saved_search = None
             try:
@@ -691,7 +670,7 @@ class UpdateSavedSearch(BaseTool):
                 error_msg = f"Saved search '{name}' not found"
                 if app or owner:
                     error_msg += f" (app: {app}, owner: {owner})"
-                ctx.error(error_msg)
+                await ctx.error(error_msg)
                 return self.format_error_response(error_msg, name=name, updated=False)
 
             # Build update configuration
@@ -744,7 +723,7 @@ class UpdateSavedSearch(BaseTool):
                         updated=False,
                     )
 
-            ctx.info(f"Updating saved search '{name}' with changes: {changes_made}")
+            await ctx.info(f"Updating saved search '{name}' with changes: {changes_made}")
 
             # Apply updates
             saved_search.update(**update_config)
@@ -760,7 +739,7 @@ class UpdateSavedSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to update saved search '{name}': {str(e)}")
-            ctx.error(f"Failed to update saved search '{name}': {str(e)}")
+            await ctx.error(f"Failed to update saved search '{name}': {str(e)}")
             return self.format_error_response(str(e), name=name, updated=False)
 
 
@@ -811,7 +790,7 @@ class DeleteSavedSearch(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"Delete saved search failed: {error_msg}")
+            await ctx.error(f"Delete saved search failed: {error_msg}")
             return self.format_error_response(error_msg, name=name, deleted=False)
 
         try:
@@ -824,7 +803,7 @@ class DeleteSavedSearch(BaseTool):
                 )
 
             # Find the saved search
-            ctx.info(f"Looking for saved search to delete: {name}")
+            await ctx.info(f"Looking for saved search to delete: {name}")
 
             saved_search = None
             try:
@@ -852,7 +831,7 @@ class DeleteSavedSearch(BaseTool):
                 error_msg = f"Saved search '{name}' not found"
                 if app or owner:
                     error_msg += f" (app: {app}, owner: {owner})"
-                ctx.error(error_msg)
+                await ctx.error(error_msg)
                 return self.format_error_response(error_msg, name=name, deleted=False)
 
             # Get information before deletion
@@ -862,7 +841,9 @@ class DeleteSavedSearch(BaseTool):
             search_app = saved_search.content.get("eai:acl", {}).get("app", "")
             search_owner = saved_search.content.get("eai:acl", {}).get("owner", "")
 
-            ctx.info(f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})")
+            await ctx.info(
+                f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})"
+            )
 
             # Delete the saved search
             saved_search.delete()
@@ -880,7 +861,7 @@ class DeleteSavedSearch(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to delete saved search '{name}': {str(e)}")
-            ctx.error(f"Failed to delete saved search '{name}': {str(e)}")
+            await ctx.error(f"Failed to delete saved search '{name}': {str(e)}")
             return self.format_error_response(str(e), name=name, deleted=False)
 
     def _convert_splunk_boolean(self, value, default=False):
@@ -954,12 +935,12 @@ class GetSavedSearchDetails(BaseTool):
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
         if not is_available:
-            ctx.error(f"Get saved search details failed: {error_msg}")
+            await ctx.error(f"Get saved search details failed: {error_msg}")
             return self.format_error_response(error_msg, name=name)
 
         try:
             # Find the saved search
-            ctx.info(f"Retrieving details for saved search: {name}")
+            await ctx.info(f"Retrieving details for saved search: {name}")
 
             saved_search = None
             try:
@@ -987,7 +968,7 @@ class GetSavedSearchDetails(BaseTool):
                 error_msg = f"Saved search '{name}' not found"
                 if app or owner:
                     error_msg += f" (app: {app}, owner: {owner})"
-                ctx.error(error_msg)
+                await ctx.error(error_msg)
                 return self.format_error_response(error_msg, name=name)
 
             content = saved_search.content
@@ -1096,7 +1077,7 @@ class GetSavedSearchDetails(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to get saved search details for '{name}': {str(e)}")
-            ctx.error(f"Failed to get saved search details for '{name}': {str(e)}")
+            await ctx.error(f"Failed to get saved search details for '{name}': {str(e)}")
             return self.format_error_response(str(e), name=name)
 
     def _convert_splunk_boolean(self, value, default=False):

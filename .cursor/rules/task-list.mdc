@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: false
 ---
 # Task List Management
@@ -16,30 +16,30 @@ Guidelines for creating and managing task lists in markdown files to track proje
 2. Structure the file with these sections:
    ```markdown
    # Feature Name Implementation
-   
+
    Brief description of the feature and its purpose.
-   
+
    ## Completed Tasks
-   
+
    - [x] Task 1 that has been completed
    - [x] Task 2 that has been completed
-   
+
    ## In Progress Tasks
-   
+
    - [ ] Task 3 currently being worked on
    - [ ] Task 4 to be completed soon
-   
+
    ## Future Tasks
-   
+
    - [ ] Task 5 planned for future implementation
    - [ ] Task 6 planned for future implementation
-   
+
    ## Implementation Plan
-   
+
    Detailed description of how the feature will be implemented.
-   
+
    ### Relevant Files
-   
+
    - path/to/file1.ts - Description of purpose
    - path/to/file2.ts - Description of purpose
    ```

@@ -11,12 +11,12 @@ import asyncio
 import os
 import sys
 
+from src.tools.health.status import GetSplunkHealth
+
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-from src.tools.health.status import GetSplunkHealth
 
 
 async def demo_client_configuration():
@@ -123,7 +123,8 @@ async def demo_client_configuration():
     print("\n4️⃣  Real-World Usage Examples")
     print("-" * 50)
 
-    print("""
+    print(
+        """
     # Example 1: Cursor IDE Usage
     When using the tool in Cursor, you can provide configuration like this:
 
@@ -152,7 +153,8 @@ async def demo_client_configuration():
         splunk_password="secure-password",
         splunk_verify_ssl=True
     )
-    """)
+    """
+    )
 
     print("\n5️⃣  Benefits of Client Configuration")
     print("-" * 50)
