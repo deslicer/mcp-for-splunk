@@ -1,3 +1,14 @@
+# Docker Compose Development Configuration for MCP Server for Splunk
+#
+# This file is used by the build_and_run.sh script when --docker is specified
+# The script automatically detects your Splunk configuration and starts appropriate services
+#
+# Usage: ./scripts/build_and_run.sh --docker
+# - If SPLUNK_HOST=so1: Starts local Splunk + MCP Server + Inspector
+# - If SPLUNK_HOST=anything_else: Starts MCP Server + Inspector (connects to external Splunk)
+
+
+
 networks:
   splunk-network:
     driver: bridge
@@ -104,9 +115,9 @@ services:
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
 
-      # MCP Server settings - respect .env file configuration
+      # MCP Server settings - use port 8003 consistently for dev mode
       - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
-      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8000}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8003}
       - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
 
       # Development settings - Enable all hot reload features
@@ -133,7 +144,6 @@ services:
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
     depends_on:
       - traefik
-      - so1
     labels:
       # Enable Traefik for this service
       - "traefik.enable=true"
@@ -198,10 +208,8 @@ services:
           - path: ./Dockerfile
             action: rebuild
 
-  # Splunk Enterprise (Development Mode - enabled by default)
+  # Splunk Enterprise (Development Mode - only starts when SPLUNK_HOST=so1)
   so1:
-    profiles:
-      - splunk
     networks:
       splunk-network:
         aliases:

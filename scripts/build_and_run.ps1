@@ -578,7 +578,7 @@ function Start-LocalServer {
         Write-Host "   🔌 MCP Server (HTTP):  http://localhost:$mcpPort"
 
         if ($inspectorSupported) {
-            Write-Host "   📊 MCP Inspector:      http://localhost:6274 (pre-configured for port $mcpPort)"
+            Write-Host "   📊 MCP Inspector:      http://localhost:6274"
             Write-Host ""
             Write-Status "🎯 Testing Instructions:"
             Write-Host "   1. Open http://localhost:6274 in your browser"

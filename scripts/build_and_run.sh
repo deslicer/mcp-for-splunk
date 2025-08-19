@@ -114,7 +114,7 @@ prompt_splunk_config() {
     print_status "🔧 Splunk Configuration Setup"
     echo "=================================="
     echo
-    
+
     # Check if .env file exists, create from example if not
     if [ ! -f .env ]; then
         if [ -f env.example ]; then
@@ -126,20 +126,20 @@ prompt_splunk_config() {
             return 1
         fi
     fi
-    
+
     # Read current values from .env file
     local current_host=$(grep "^SPLUNK_HOST=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "")
     local current_port=$(grep "^SPLUNK_PORT=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "8089")
     local current_username=$(grep "^SPLUNK_USERNAME=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "admin")
     local current_password=$(grep "^SPLUNK_PASSWORD=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "")
-    
+
     echo "Current Splunk configuration:"
     echo "  Host: ${current_host:-'Not set'}"
     echo "  Port: ${current_port:-'8089'}"
     echo "  Username: ${current_username:-'admin'}"
     echo "  Password: ${current_password:+'***'}"
     echo
-    
+
     # If in Docker mode and SPLUNK_HOST is not 'so1', offer to restore Docker defaults
     local docker_defaults_restored=false
     if [ "$is_docker_mode" = true ] && [ "$current_host" != "so1" ] && [ -n "$current_host" ]; then
@@ -158,7 +158,7 @@ prompt_splunk_config() {
             echo
         fi
     fi
-    
+
     # Prompt for new values (skip if Docker defaults were restored)
     if [ "$docker_defaults_restored" = true ]; then
         # Use restored Docker defaults directly
@@ -174,14 +174,14 @@ prompt_splunk_config() {
         read -p "Enter Splunk username (current: ${current_username:-'admin'}, press Enter to keep): " new_username
         read -s -p "Enter Splunk password (press Enter to keep current): " new_password
         echo
-        
+
         # Use new values if provided, otherwise keep current
         local final_host=${new_host:-$current_host}
         local final_port=${new_port:-$current_port}
         local final_username=${new_username:-$current_username}
         local final_password=${new_password:-$current_password}
     fi
-    
+
     # Parse URL if provided (strip protocol and extract hostname)
     if [ -n "$new_host" ]; then
         if [[ "$new_host" =~ ^https?://(.+)$ ]]; then
@@ -190,23 +190,23 @@ prompt_splunk_config() {
             print_local "Note: SSL verification setting unchanged (preserves private CA configuration)"
         fi
     fi
-    
+
     # Validate required fields
     if [ -z "$final_host" ]; then
         print_error "SPLUNK_HOST is required. Please provide a value."
         return 1
     fi
-    
+
     if [ -z "$final_username" ]; then
         print_error "SPLUNK_USERNAME is required. Please provide a value."
         return 1
     fi
-    
+
     if [ -z "$final_password" ]; then
         print_error "SPLUNK_PASSWORD is required. Please provide a value."
         return 1
     fi
-    
+
     # Check if there are actual changes to make
     local has_changes=false
     if [ "$docker_defaults_restored" = true ]; then
@@ -214,7 +214,7 @@ prompt_splunk_config() {
     elif [ "$new_host" != "" ] || [ "$new_port" != "" ] || [ "$new_username" != "" ] || [ "$new_password" != "" ]; then
         has_changes=true
     fi
-    
+
     # Show final configuration
     echo
     echo "Final Splunk configuration:"
@@ -223,16 +223,16 @@ prompt_splunk_config() {
     echo "  Username: $final_username"
     echo "  Password: ***"
     echo
-    
+
     # Only ask for confirmation if there are actual changes
     if [ "$has_changes" = true ]; then
         # If Docker defaults were restored, automatically update without asking
         if [ "$docker_defaults_restored" = true ]; then
             print_status "Automatically updating .env file with restored Docker defaults..."
-            
+
             # Update .env file
             local temp_env=".env.tmp"
-            
+
             # Process .env file line by line
             while IFS= read -r line || [ -n "$line" ]; do
                 if [[ "$line" =~ ^SPLUNK_HOST= ]]; then
@@ -247,10 +247,10 @@ prompt_splunk_config() {
                     echo "$line" >> "$temp_env"
                 fi
             done < .env
-            
+
             # Replace original .env with updated version
             mv "$temp_env" .env
-            
+
             print_success ".env file updated successfully with Docker defaults!"
         else
             # Ask for confirmation for other types of changes
@@ -258,7 +258,7 @@ prompt_splunk_config() {
             if [[ "$confirm" =~ ^[Yy]$ ]]; then
                 # Update .env file
                 local temp_env=".env.tmp"
-                
+
                 # Process .env file line by line
                 while IFS= read -r line || [ -n "$line" ]; do
                     if [[ "$line" =~ ^SPLUNK_HOST= ]]; then
@@ -273,10 +273,10 @@ prompt_splunk_config() {
                         echo "$line" >> "$temp_env"
                     fi
                 done < .env
-                
+
                 # Replace original .env with updated version
                 mv "$temp_env" .env
-                
+
                 print_success ".env file updated successfully!"
             else
                 print_warning "Configuration update cancelled. Using existing values."
@@ -285,13 +285,13 @@ prompt_splunk_config() {
     else
         print_local "No changes detected. Using existing configuration."
     fi
-    
+
     # Always export the values for current session (whether updated or existing)
     export SPLUNK_HOST="$final_host"
     export SPLUNK_PORT="$final_port"
     export SPLUNK_USERNAME="$final_username"
     export SPLUNK_PASSWORD="$final_password"
-    
+
     print_success "Splunk configuration loaded for current session."
     return 0
 }
@@ -506,7 +506,7 @@ run_local_server() {
         # Check Node.js version (MCP Inspector 0.16.x requires Node.js 22+)
         local node_version=$(node --version 2>/dev/null | sed 's/v//')
         local node_major=$(echo "$node_version" | cut -d. -f1)
-        
+
         if [ "$node_major" -ge 22 ] 2>/dev/null; then
             inspector_supported=true
             print_local "Node.js v$node_version detected. MCP Inspector will be started after the MCP server is running..."
@@ -730,7 +730,7 @@ run_local_server() {
                         local final_attempts=0
                         local max_final_attempts=5
                         local final_success=false
-                        
+
                         while [ $final_attempts -lt $max_final_attempts ]; do
                             if curl -s -f "http://localhost:6274" > /dev/null 2>&1; then
                                 final_success=true
@@ -740,7 +740,7 @@ run_local_server() {
                             final_attempts=$((final_attempts + 1))
                             print_local "Final verification attempt $final_attempts/$max_final_attempts..."
                         done
-                        
+
                         if [ "$final_success" = true ]; then
                             print_success "MCP Inspector started successfully on port 6274 and is fully accessible!"
                             echo $inspector_pid > .inspector_pid
@@ -832,7 +832,7 @@ run_local_server() {
     echo "   🔌 MCP Server (HTTP):  http://localhost:$mcp_port"
 
     if [ "$inspector_available" = true ]; then
-        echo "   📊 MCP Inspector:      http://localhost:6274 (pre-configured for port $mcp_port)"
+        echo "   📊 MCP Inspector:      http://localhost:6274"
         echo
         print_status "🎯 Testing Instructions:"
         echo "   1. Open http://localhost:6274 in your browser"
@@ -930,35 +930,35 @@ get_docker_compose_cmd() {
 # Function to stop Docker services
 stop_docker_services() {
     print_status "Stopping Docker services..."
-    
+
     # Check if docker-compose is available
     if ! command -v docker-compose &> /dev/null; then
         print_error "docker-compose not found. Cannot stop services."
         exit 1
     fi
-    
+
     # Load environment variables from .env file for Docker Compose
     if [ -f .env ]; then
         load_env_file
     fi
-    
+
     # Determine which profiles to use based on current configuration
     local compose_cmd
     compose_cmd=$(get_docker_compose_cmd "dev")
-    
+
     print_status "Using command: $compose_cmd down"
-    
+
     # Stop all services
     if eval "$compose_cmd down"; then
         print_success "All Docker services stopped successfully!"
-        
+
         # Check if there are any remaining resources
         print_status "Checking for remaining resources..."
         if docker network ls | grep -q "mcp-server-for-splunk"; then
             print_warning "Some networks may still exist. You can remove them manually with:"
             print_warning "   docker network prune"
         fi
-        
+
         if docker volume ls | grep -q "mcp-server-for-splunk"; then
             print_warning "Some volumes may still exist. You can remove them manually with:"
             print_warning "   docker volume prune"
@@ -1085,13 +1085,13 @@ run_docker_setup() {
 
     print_status "Checking service status..."
     eval "$compose_cmd ps"
-    
+
     # Wait for MCP Inspector to be ready
     print_status "Waiting for MCP Inspector to be ready..."
     local inspector_ready=false
     local inspector_attempts=0
     local max_inspector_attempts=30
-    
+
     while [ $inspector_attempts -lt $max_inspector_attempts ] && [ "$inspector_ready" = false ]; do
         if command -v curl &> /dev/null; then
             if curl -s -f "http://localhost:6274" > /dev/null 2>&1; then
@@ -1106,7 +1106,7 @@ run_docker_setup() {
             print_local "Waiting for MCP Inspector... (attempt $inspector_attempts/$max_inspector_attempts)"
         fi
     done
-    
+
     if [ "$inspector_ready" = false ]; then
         print_warning "MCP Inspector may not be fully ready yet. Check logs:"
         print_warning "   $compose_cmd logs mcp-inspector"
