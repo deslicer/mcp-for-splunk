@@ -238,7 +238,7 @@ make test
 make test-contrib
 
 # Run with coverage
-pytest --cov=contrib tests/contrib/
+uv run pytest --cov=contrib tests/contrib/
 ```
 
 ## 🔍 Code Quality

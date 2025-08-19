@@ -96,7 +96,7 @@ Once running, you can access:
 
 ```bash
 # In another terminal, test the server
-MCP_SERVER_MODE=docker python test_mcp_server.py
+MCP_SERVER_MODE=docker uv run python test_mcp_server.py
 ```
 
 ### Using MCP Inspector
@@ -176,7 +176,7 @@ docker-compose up -d so1
 
 # Run MCP server locally
 export MCP_SERVER_MODE=docker
-python src/server.py
+uv run python src/server.py
 ```
 
 ## 🛑 Stopping Services

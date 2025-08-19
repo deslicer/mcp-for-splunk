@@ -286,7 +286,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **"Port already in use"**
 - The scripts auto-detect available ports
 - Check what's running: `netstat -tulpn | grep 8001`
-- Or use a different port: `fastmcp run src/server.py --port 8002`
+- Or use a different port: `uv run fastmcp run src/server.py --port 8002`
 
 **"Splunk connection failed"**
 ```bash
