@@ -60,6 +60,7 @@ Complete reference documentation for tools, resources, and APIs.
 | Reference | Description | Audience |
 |-----------|-------------|----------|
 | **[Tools Reference](reference/tools.md)** | Tool documentation | Developers |
+| **[Resources Reference](reference/resources.md)** | Resource documentation | Developers |
 
 ### 🤝 Community
 Guides for contributing and community participation.

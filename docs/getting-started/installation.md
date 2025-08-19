@@ -6,6 +6,8 @@ This guide provides comprehensive installation instructions for all prerequisite
 
 Before running the MCP Server for Splunk, ensure you have the following prerequisites installed on your system:
 
+> 🪟 Windows users: For a streamlined, Windows-specific setup (PowerShell scripts, troubleshooting, Docker tips), see the dedicated Windows guide: [Windows Setup Guide](../WINDOWS_GUIDE.md).
+
 ## 🖥️ **System Requirements**
 
 | Requirement | Minimum Version | Recommended | Platform Support |
@@ -393,6 +395,7 @@ Once all prerequisites are installed:
 ## 📚 **Additional Resources**
 
 - **[Main README](../README.md)** - Project overview and quick start
+- **[Windows Setup Guide](../WINDOWS_GUIDE.md)** - End-to-end Windows setup and troubleshooting
 - **[Docker Guide](../guides/deployment/DOCKER.md)** - Container deployment details
 - **[Testing Guide](../guides/TESTING.md)** - Testing and validation
 - **[Architecture Guide](../architecture/)** - Technical architecture overview
