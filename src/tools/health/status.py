@@ -77,7 +77,7 @@ class GetSplunkHealth(BaseTool):
         log_tool_execution("get_splunk_health")
 
         self.logger.info("Checking Splunk health status...")
-        ctx.info("Checking Splunk health status...")
+        await ctx.info("Checking Splunk health status...")
 
         # Extract client configuration from parameters
         kwargs = locals().copy()

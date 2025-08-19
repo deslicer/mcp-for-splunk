@@ -63,7 +63,7 @@ class ListApps(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info("Retrieving list of Splunk apps")
-        ctx.info("Retrieving list of Splunk apps")
+        await ctx.info("Retrieving list of Splunk apps")
 
         try:
             apps = []
@@ -79,9 +79,9 @@ class ListApps(BaseTool):
                     }
                 )
 
-            ctx.info(f"Found {len(apps)} apps")
+            await ctx.info(f"Found {len(apps)} apps")
             return self.format_success_response({"count": len(apps), "apps": apps})
         except Exception as e:
             self.logger.error(f"Failed to list apps: {str(e)}")
-            ctx.error(f"Failed to list apps: {str(e)}")
+            await ctx.error(f"Failed to list apps: {str(e)}")
             return self.format_error_response(str(e))
