@@ -46,7 +46,7 @@ git checkout dev1666
 ./scripts/build_and_run.bat --local
 ```
 
-### Option 2 - Docker Solution -
+### Option 2 - Docker Solution - Optional
 *This warning shall be ignored at this time*
   - WARN[0000] The "OPENAI_API_KEY" variable is not set. Defaulting to a blank string.
 ```bash
@@ -55,6 +55,8 @@ docker ps
 # Download and build the MCP server using Docker
 # Linux/MacOS
 ./scripts/build_and_run.sh --docker
+# To stop the containers
+./scripts/build_and_run.sh --stop
 
 # Windows Powershell
 ./scripts/build_and_run.ps1 --docker
@@ -69,9 +71,10 @@ docker ps
 - Open `http://localhost:6274`
 
 - Click Connect to browse and run tools
+
 ![MCP server connect](/media/mcp_server_connect.png)
 
-## Part 1 - Verification
+## Part 1 - Verification - Local Service
 1. Connect and list `server_info` resource.
 2. After you have connected to the MCP server, click the
 `server_info` in the **Resources** column.
@@ -79,7 +82,22 @@ docker ps
 
 4. Click on the green text in text: value field.
 
-If you see ```"status":"running"``` in the text you have complete **Part 1**
+If you see ```"status":"running"``` in the text you have complete **Part 1** ✅
+
+
+![MCP server connect](/media/mcp_server_connect_docker.png)
+
+## Part 1 - Verification - Docker Solution
+1. Connect and list `server_info` resource.
+2. After you have connected to the MCP server, click the
+`server_info` in the **Resources** column.
+3. To the right, the response message from `server_inf` is displayed.
+
+4. Click on the green text in text: value field.
+
+If you see ```"status":"running"``` in the text you have complete **Part 1** ✅
+
+
 
 ---
 
