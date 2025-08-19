@@ -97,11 +97,12 @@ class GetSplunkHealth(BaseTool):
                 "connection_source": "client_config" if client_config else "server_config",
             }
 
-            host_wide = await service.get("/services/server/status/resource-usage/hostwide")
-            self.logger.info(f"Host wide: {host_wide}")
+            # splunklib.client.Service.get is synchronous and returns a Record object
+            host_wide = service.get("/services/server/status/resource-usage/hostwide")
+            self.logger.info("Host wide: %s", host_wide)
 
-            ctx.info(f"Health check successful: {info}")
-            self.logger.info(f"Health check successful: {info}")
+            await ctx.info(f"Health check successful: {info}")
+            self.logger.info("Health check successful: %s", info)
             return info
 
         except Exception as e:
@@ -120,15 +121,15 @@ class GetSplunkHealth(BaseTool):
                             "connection_source": "server_config",
                             "note": "Client config failed, using server default",
                         }
-                        ctx.info(f"Health check successful with server config: {info}")
-                        self.logger.info(f"Health check successful with server config: {info}")
+                        await ctx.info(f"Health check successful with server config: {info}")
+                        self.logger.info("Health check successful with server config: %s", info)
                         return info
                 except Exception as fallback_error:
-                    self.logger.error(f"Both client and server configs failed: {fallback_error}")
+                    self.logger.error("Both client and server configs failed: %s", fallback_error)
 
             # Both attempts failed
-            self.logger.error(f"Health check failed: {str(e)}")
-            ctx.error(f"Health check failed: {str(e)}")
+            self.logger.error("Health check failed: %s", str(e))
+            await ctx.error(f"Health check failed: {str(e)}")
             return {
                 "status": "error",
                 "error": str(e),
