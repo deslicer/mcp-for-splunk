@@ -52,7 +52,7 @@ services:
         apk add --no-cache git &&
         npm install -g @modelcontextprotocol/inspector@0.16.5 &&
         echo 'Starting MCP Inspector...' &&
-        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector --transport streamable-http --server-url http://mcp-server:${MCP_SERVER_PORT:-8003}/mcp
+        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector --transport streamable-http --server-url http://mcp-server:8001/mcp
       "
     environment:
       - NODE_ENV=development
@@ -132,6 +132,8 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
       - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE:-0.7}
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
+      # Logging level for MCP server
+      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
     depends_on:
       - traefik
     labels:
