@@ -652,7 +652,9 @@ async def main():
     # Use uvicorn to run the server
     try:
         import uvicorn
-        config = uvicorn.Config(mcp_app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
+        # Serve the root Starlette app so the MCP app is available under "/mcp"
+        # and the HeaderCaptureMiddleware is applied to incoming HTTP requests
+        config = uvicorn.Config(root_app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
 
         server = uvicorn.Server(config)
         await server.serve()
