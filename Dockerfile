@@ -10,11 +10,18 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV MCP_SERVER_MODE=docker
 ENV PYTHONPATH=/app
 
-# Install system dependencies and uv
-RUN apt-get update && apt-get install -y \
+# Install system dependencies and uv (via official installer)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install uv
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install uv
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure uv is on PATH
+ENV PATH="${PATH}:/root/.cargo/bin"
 
 # Copy dependency files first for better caching
 COPY pyproject.toml uv.lock README.md ./
