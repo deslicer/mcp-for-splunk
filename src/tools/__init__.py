@@ -42,6 +42,14 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
+    # Embedded Documentation tools
+    "ListEmbeddedDocsTool",
+    "GetEmbeddedDocTool",
+    "SearchEmbeddedDocsTool",
+    "GetSplunkCheatSheetTool",
+    "GetSPLReferenceTool",
+    "GetTroubleshootingGuideTool",
+    "GetAdminGuideTool",
     # Workflow tools
     "WorkflowRunnerTool",
     "ListWorkflowsTool",
