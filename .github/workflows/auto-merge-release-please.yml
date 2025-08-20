@@ -33,5 +33,11 @@ jobs:
           echo "Ensuring checks have reported"
           gh pr checks "$PR_NUMBER" --repo "$REPO" || true
           echo "Attempting auto-merge (squash)"
-          gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --auto || true
+          state=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeStateStatus -q .mergeStateStatus || echo "UNKNOWN")
+          echo "mergeStateStatus=$state"
+          if [ "$state" = "CLEAN" ] || [ "$state" = "HAS_HOOKS" ] || [ "$state" = "UNSTABLE" ]; then
+            gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch || true
+          else
+            echo "PR not mergeable yet ($state)"
+          fi
 
