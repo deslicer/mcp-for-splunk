@@ -1,0 +1,27 @@
+name: auto-merge release-please PRs
+
+on:
+  pull_request:
+    types: [labeled, edited, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-merge when release-please label present
+        uses: peter-evans/auto-merge@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
+          required-labels: |
+            autorelease: pending
+          blocking-labels: |
+            do not merge
+          delete-branch: true
+
