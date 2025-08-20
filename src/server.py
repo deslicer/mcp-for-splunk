@@ -36,15 +36,29 @@ if project_root not in sys.path:
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
 os.makedirs(log_dir, exist_ok=True)
 
-# Enhanced logging configuration
+# Enhanced logging configuration (configurable via MCP_LOG_LEVEL)
+# Resolve log level from environment with safe defaults
+LOG_LEVEL_NAME = os.getenv("MCP_LOG_LEVEL", "INFO").upper()
+LOG_LEVEL = getattr(logging, LOG_LEVEL_NAME, logging.INFO)
+
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=LOG_LEVEL,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.path.join(log_dir, "mcp_splunk_server.log")),
         logging.StreamHandler(),
     ],
 )
+
+# Map Python logging level to uvicorn's expected string level
+_UVICORN_LEVEL_MAP = {
+    logging.DEBUG: "debug",
+    logging.INFO: "info",
+    logging.WARNING: "warning",
+    logging.ERROR: "error",
+    logging.CRITICAL: "critical",
+}
+UVICORN_LOG_LEVEL = _UVICORN_LEVEL_MAP.get(LOG_LEVEL, "info")
 logger = logging.getLogger(__name__)
 
 
@@ -467,7 +481,7 @@ async def main():
     try:
         import uvicorn
 
-        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        config = uvicorn.Config(app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
         server = uvicorn.Server(config)
         await server.serve()
     except ImportError:
