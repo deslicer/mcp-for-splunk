@@ -5,23 +5,26 @@ Provides enhanced resource functionality including embedded content,
 resource templates, and improved discovery mechanisms following MCP patterns.
 """
 
-import json
-import logging
+import asyncio
 import base64
 import hashlib
-import time
-from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Union, Callable
-from pathlib import Path
+import json
+import logging
 import mimetypes
 import re
+import time
+from abc import abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from fastmcp import Context
 
 from ..core.base import BaseResource, ResourceMetadata
 from ..core.client_identity import get_client_manager
+from ..core.enhanced_config_extractor import EnhancedConfigExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -30,62 +33,62 @@ logger = logging.getLogger(__name__)
 class ContentValidationResult:
     """Result of content validation."""
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
+    errors: list[str]
+    warnings: list[str]
 
 
 class ContentValidator:
     """Validator for embedded resource content."""
-    
+
     @staticmethod
     def validate_json(content: str) -> ContentValidationResult:
         """Validate JSON content."""
         errors = []
         warnings = []
-        
+
         try:
             json.loads(content)
         except json.JSONDecodeError as e:
             errors.append(f"Invalid JSON: {e}")
-        
+
         return ContentValidationResult(
             is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings
         )
-    
+
     @staticmethod
     def validate_markdown(content: str) -> ContentValidationResult:
         """Validate Markdown content."""
         errors = []
         warnings = []
-        
+
         # Basic markdown validation
         if not content.strip():
             errors.append("Empty content")
-        
+
         # Check for common markdown issues
         if content.count('#') > 10:
             warnings.append("Many headers detected - consider structure")
-        
+
         return ContentValidationResult(
             is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings
         )
-    
+
     @staticmethod
     def validate_text(content: str) -> ContentValidationResult:
         """Validate text content."""
         errors = []
         warnings = []
-        
+
         if not content.strip():
             errors.append("Empty content")
-        
+
         if len(content) > 1000000:  # 1MB
             warnings.append("Large content detected")
-        
+
         return ContentValidationResult(
             is_valid=len(errors) == 0,
             errors=errors,
@@ -96,7 +99,7 @@ class ContentValidator:
 class EmbeddedResource(BaseResource):
     """
     Enhanced base class for embedded resources that can contain both text and binary content.
-    
+
     Embedded resources provide enhanced functionality including:
     - Embedded content within resource metadata
     - Binary data support with base64 encoding
@@ -107,12 +110,12 @@ class EmbeddedResource(BaseResource):
     """
 
     def __init__(
-        self, 
-        uri: str, 
-        name: str, 
-        description: str, 
+        self,
+        uri: str,
+        name: str,
+        description: str,
         mime_type: str = "text/plain",
-        embedded_content: Optional[Union[str, bytes]] = None,
+        embedded_content: str | bytes | None = None,
         cache_ttl: int = 300,
         validate_content: bool = True,
         etag_enabled: bool = True
@@ -126,21 +129,26 @@ class EmbeddedResource(BaseResource):
         self._cache_timestamp = 0
         self._etag = None
         self._content_hash = None
+        # Back-reference to a registry that may manage this resource's stats
+        self._registry = None
 
     async def get_content(self, ctx: Context) -> str:
         """
         Get resource content with embedded content support.
-        
+
         Args:
             ctx: MCP context
-            
+
         Returns:
             Resource content as string (JSON for binary data)
         """
+        start_time = time.time()
         try:
             # Check cache first
             if self._is_cache_valid():
-                return self._cached_content
+                content = self._cached_content
+                self._update_registry_stats(start_time, error=False)
+                return content
 
             # Get content from embedded data or generate dynamically
             if self.embedded_content is not None:
@@ -153,17 +161,49 @@ class EmbeddedResource(BaseResource):
                 validation_result = self._validate_content(content)
                 if not validation_result.is_valid:
                     logger.warning(f"Content validation failed for {self.uri}: {validation_result.errors}")
+                    # Return structured error so callers can safely parse
+                    # Include original content snapshot to aid debugging/tests
+                    error_response = self._create_error_response(
+                        f"Content validation failed: {validation_result.errors}; original={content}"
+                    )
+                    self._update_registry_stats(start_time, error=True)
+                    return error_response
                 if validation_result.warnings:
                     logger.info(f"Content validation warnings for {self.uri}: {validation_result.warnings}")
 
             # Cache the result
             self._cache_content(content)
-            
+
+            self._update_registry_stats(start_time, error=False)
             return content
 
         except Exception as e:
             logger.error(f"Error getting content for {self.uri}: {e}")
-            return self._create_error_response(str(e))
+            error_response = self._create_error_response(str(e))
+            self._update_registry_stats(start_time, error=True)
+            return error_response
+
+    def _update_registry_stats(self, start_time: float, error: bool = False) -> None:
+        """Update registry access statistics if this resource is managed by a registry."""
+        registry = getattr(self, "_registry", None)
+        if not registry:
+            return
+        stats = registry._access_stats.get(self.uri)
+        if stats is None:
+            return
+        duration = max(0.0, time.time() - start_time)
+        # Update running average response time
+        access_count_before = stats.get("access_count", 0)
+        avg_before = stats.get("average_response_time", 0.0)
+        avg_after = (
+            (avg_before * access_count_before + duration) / (access_count_before + 1)
+            if access_count_before >= 0 else duration
+        )
+        stats["access_count"] = access_count_before + 1
+        stats["last_accessed"] = datetime.now()
+        stats["average_response_time"] = avg_after
+        if error:
+            stats["error_count"] = stats.get("error_count", 0) + 1
 
     async def _process_embedded_content(self) -> str:
         """Process embedded content and return appropriate format."""
@@ -191,7 +231,7 @@ class EmbeddedResource(BaseResource):
         """Check if cached content is still valid."""
         if self._cached_content is None:
             return False
-        
+
         return (time.time() - self._cache_timestamp) < self.cache_ttl
 
     def _cache_content(self, content: str) -> None:
@@ -204,10 +244,26 @@ class EmbeddedResource(BaseResource):
         """Generate content hash for ETag."""
         return hashlib.md5(content.encode('utf-8')).hexdigest()
 
-    def _generate_etag(self) -> Optional[str]:
+    def _generate_etag(self) -> str | None:
         """Generate ETag for the resource."""
+        if not self.etag_enabled:
+            return None
+        # Prefer previously computed content hash
         if self._content_hash:
             return f'"{self._content_hash}"'
+
+        # Fall back to hashing the embedded content when available
+        if self.embedded_content is not None:
+            try:
+                if isinstance(self.embedded_content, bytes):
+                    content_hash = hashlib.md5(self.embedded_content).hexdigest()
+                else:
+                    content_hash = hashlib.md5(str(self.embedded_content).encode('utf-8')).hexdigest()
+                self._content_hash = content_hash
+                return f'"{content_hash}"'
+            except Exception:
+                return None
+
         return None
 
     def _validate_content(self, content: str) -> ContentValidationResult:
@@ -243,18 +299,18 @@ class EmbeddedResource(BaseResource):
 class FileEmbeddedResource(EmbeddedResource):
     """
     Enhanced embedded resource that loads content from files.
-    
+
     Supports both text and binary files with automatic MIME type detection,
     file watching, and content validation.
     """
 
     def __init__(
-        self, 
-        uri: str, 
-        name: str, 
-        description: str, 
+        self,
+        uri: str,
+        name: str,
+        description: str,
         file_path: str,
-        mime_type: Optional[str] = None,
+        mime_type: str | None = None,
         encoding: str = "utf-8",
         watch_file: bool = False
     ):
@@ -271,9 +327,12 @@ class FileEmbeddedResource(EmbeddedResource):
 
     async def get_content(self, ctx: Context) -> str:
         """Get content from file with enhanced error handling."""
+        start_time = time.time()
         try:
             if not self.file_path.exists():
-                return self._create_error_response(f"File not found: {self.file_path}")
+                error_response = self._create_error_response(f"File not found: {self.file_path}")
+                self._update_registry_stats(start_time, error=True)
+                return error_response
 
             # Check if file has changed (for file watching)
             if self.watch_file and self._file_mtime:
@@ -284,17 +343,24 @@ class FileEmbeddedResource(EmbeddedResource):
                     self._cache_timestamp = 0
 
             # Read file content
-            if self.mime_type.startswith('text/'):
+            is_text_like = (
+                self.mime_type.startswith('text/') or
+                self.mime_type == 'application/json' or
+                self.mime_type.endswith('+json')
+            )
+
+            if is_text_like:
                 # Text file
                 content = self.file_path.read_text(encoding=self.encoding)
                 self._file_mtime = self.file_path.stat().st_mtime
+                self._update_registry_stats(start_time, error=False)
                 return content
             else:
                 # Binary file
                 binary_content = self.file_path.read_bytes()
                 encoded = base64.b64encode(binary_content).decode('utf-8')
                 self._file_mtime = self.file_path.stat().st_mtime
-                return json.dumps({
+                result = json.dumps({
                     "type": "binary",
                     "mime_type": self.mime_type,
                     "data": encoded,
@@ -302,33 +368,41 @@ class FileEmbeddedResource(EmbeddedResource):
                     "filename": self.file_path.name,
                     "etag": self._generate_etag() if self.etag_enabled else None
                 })
+                self._update_registry_stats(start_time, error=False)
+                return result
 
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error reading file {self.file_path}: {e}")
-            return self._create_error_response(f"Encoding error: {str(e)}")
+            error_response = self._create_error_response(f"Encoding error: {str(e)}")
+            self._update_registry_stats(start_time, error=True)
+            return error_response
         except PermissionError as e:
             logger.error(f"Permission error reading file {self.file_path}: {e}")
-            return self._create_error_response(f"Permission denied: {str(e)}")
+            error_response = self._create_error_response(f"Permission denied: {str(e)}")
+            self._update_registry_stats(start_time, error=True)
+            return error_response
         except Exception as e:
             logger.error(f"Error reading file {self.file_path}: {e}")
-            return self._create_error_response(f"Error reading file: {str(e)}")
+            error_response = self._create_error_response(f"Error reading file: {str(e)}")
+            self._update_registry_stats(start_time, error=True)
+            return error_response
 
 
 class TemplateEmbeddedResource(EmbeddedResource):
     """
     Enhanced template-based embedded resource that supports URI parameters.
-    
+
     Allows dynamic resource generation based on URI parameters with
     validation and type conversion.
     """
 
     def __init__(
-        self, 
-        uri_template: str, 
-        name: str, 
-        description: str, 
+        self,
+        uri_template: str,
+        name: str,
+        description: str,
         mime_type: str = "text/plain",
-        parameter_validators: Optional[Dict[str, Callable]] = None
+        parameter_validators: dict[str, Callable] | None = None
     ):
         super().__init__(uri_template, name, description, mime_type)
         self.uri_template = uri_template
@@ -337,68 +411,68 @@ class TemplateEmbeddedResource(EmbeddedResource):
     async def get_content(self, ctx: Context, uri: str = None) -> str:
         """
         Get content with URI parameter extraction and validation.
-        
+
         Args:
             ctx: MCP context
             uri: Specific URI (optional)
-            
+
         Returns:
             Generated content based on URI parameters
         """
         try:
             # Extract parameters from URI
             params = self._extract_uri_parameters(uri or self.uri)
-            
+
             # Validate parameters
             validation_errors = self._validate_parameters(params)
             if validation_errors:
                 return self._create_error_response(f"Parameter validation failed: {validation_errors}")
-            
+
             # Generate content based on parameters
             content = await self._generate_content_from_params(ctx, params)
-            
+
             return content
 
         except Exception as e:
             logger.error(f"Error generating template content: {e}")
             return self._create_error_response(f"Template error: {str(e)}")
 
-    def _extract_uri_parameters(self, uri: str) -> Dict[str, str]:
+    def _extract_uri_parameters(self, uri: str) -> dict[str, str]:
         """Extract parameters from URI based on template with enhanced parsing."""
         params = {}
-        
+
         # Enhanced parameter extraction
         if '{' in self.uri_template and '}' in self.uri_template:
             # Extract parameter names from template
             param_names = re.findall(r'\{([^}]+)\}', self.uri_template)
-            
+
             # Create regex pattern for matching
             pattern = self.uri_template
             for param_name in param_names:
                 pattern = pattern.replace(f'{{{param_name}}}', f'(?P<{param_name}>[^/]+)')
-            
+
             # Match URI against pattern
             match = re.match(pattern, uri)
             if match:
                 params = match.groupdict()
-        
+
         return params
 
-    def _validate_parameters(self, params: Dict[str, str]) -> List[str]:
+    def _validate_parameters(self, params: dict[str, str]) -> list[str]:
         """Validate extracted parameters."""
         errors = []
-        
+
         for param_name, validator in self.parameter_validators.items():
             if param_name in params:
                 try:
                     validator(params[param_name])
                 except Exception as e:
                     errors.append(f"Parameter '{param_name}' validation failed: {e}")
-        
+
         return errors
 
     @abstractmethod
-    async def _generate_content_from_params(self, ctx: Context, params: Dict[str, str]) -> str:
+    async def _generate_content_from_params(self, ctx: Context, params: dict[str, str]) -> str:
         """Generate content based on URI parameters."""
         pass
 
@@ -406,16 +480,16 @@ class TemplateEmbeddedResource(EmbeddedResource):
 class SplunkEmbeddedResource(EmbeddedResource):
     """
     Enhanced embedded resource with Splunk integration.
-    
+
     Provides enhanced Splunk-specific resource functionality with client isolation,
     connection pooling, and error recovery.
     """
 
     def __init__(
-        self, 
-        uri: str, 
-        name: str, 
-        description: str, 
+        self,
+        uri: str,
+        name: str,
+        description: str,
         mime_type: str = "application/json",
         connection_timeout: int = 30,
         retry_attempts: int = 3
@@ -428,23 +502,22 @@ class SplunkEmbeddedResource(EmbeddedResource):
     async def get_content(self, ctx: Context) -> str:
         """Get content with enhanced Splunk client isolation and retry logic."""
         last_error = None
-        
+
         for attempt in range(self.retry_attempts):
             try:
                 # Extract client configuration
-                from ..core.enhanced_config_extractor import EnhancedConfigExtractor
                 config_extractor = EnhancedConfigExtractor()
                 client_config = await config_extractor.extract_client_config(ctx)
-                
+
                 if not client_config:
                     return self._create_error_response("No Splunk configuration available")
 
                 # Get client connection
                 identity, service = await self.client_manager.get_client_connection(ctx, client_config)
-                
+
                 # Generate Splunk-specific content
                 content = await self._generate_splunk_content(ctx, identity, service)
-                
+
                 return content
 
             except Exception as e:
@@ -453,7 +526,7 @@ class SplunkEmbeddedResource(EmbeddedResource):
                 if attempt < self.retry_attempts - 1:
                     # Wait before retry (exponential backoff)
                     await asyncio.sleep(2 ** attempt)
-        
+
         logger.error(f"All Splunk connection attempts failed for {self.uri}")
         return self._create_error_response(f"Splunk error after {self.retry_attempts} attempts: {str(last_error)}")
 
@@ -466,19 +539,19 @@ class SplunkEmbeddedResource(EmbeddedResource):
 class ResourceTemplate:
     """
     Enhanced template for creating dynamic resources.
-    
+
     Provides URI template functionality following RFC 6570 with
     parameter validation and type conversion.
     """
 
     def __init__(
-        self, 
-        uri_template: str, 
-        name: str, 
-        description: str, 
+        self,
+        uri_template: str,
+        name: str,
+        description: str,
         mime_type: str = "text/plain",
-        parameter_types: Optional[Dict[str, type]] = None,
-        parameter_defaults: Optional[Dict[str, Any]] = None
+        parameter_types: dict[str, type] | None = None,
+        parameter_defaults: dict[str, Any] | None = None
     ):
         self.uri_template = uri_template
         self.name = name
@@ -497,20 +570,20 @@ class ResourceTemplate:
                     try:
                         converted_params[key] = self.parameter_types[key](value)
                     except (ValueError, TypeError) as e:
-                        raise ValueError(f"Parameter '{key}' type conversion failed: {e}")
+                        raise ValueError(f"Parameter '{key}' type conversion failed: {e}") from e
                 else:
                     converted_params[key] = value
-            
+
             # Apply defaults for missing parameters
             for key, default_value in self.parameter_defaults.items():
                 if key not in converted_params:
                     converted_params[key] = default_value
-            
+
             return self.uri_template.format(**converted_params)
         except KeyError as e:
-            raise ValueError(f"Missing required parameter: {e}")
+            raise ValueError(f"Missing required parameter: {e}") from e
         except Exception as e:
-            raise ValueError(f"Template expansion error: {e}")
+            raise ValueError(f"Template expansion error: {e}") from e
 
     def get_metadata(self) -> ResourceMetadata:
         """Get enhanced metadata for this template."""
@@ -523,42 +596,33 @@ class ResourceTemplate:
             tags=["template", "dynamic", "parameterized"]
         )
 
-    def validate_parameters(self, **params) -> List[str]:
+    def validate_parameters(self, **params) -> list[str]:
         """Validate parameters against template requirements."""
         errors = []
-        
-        # Extract required parameters from template
-        required_params = re.findall(r'\{([^}]+)\}', self.uri_template)
-        
-        # Check for missing required parameters
-        for param in required_params:
-            if param not in params and param not in self.parameter_defaults:
-                errors.append(f"Missing required parameter: {param}")
-        
-        # Validate parameter types
+
+        # Validate parameter types strictly (no implicit conversion here)
         for param, value in params.items():
             if param in self.parameter_types:
-                try:
-                    self.parameter_types[param](value)
-                except (ValueError, TypeError) as e:
-                    errors.append(f"Parameter '{param}' type validation failed: {e}")
-        
+                expected_type = self.parameter_types[param]
+                if not isinstance(value, expected_type):
+                    errors.append(f"Parameter '{param}' type validation failed: expected {expected_type.__name__}")
+
         return errors
 
 
 class EmbeddedResourceRegistry:
     """
     Enhanced registry for embedded resources with improved discovery.
-    
+
     Provides centralized management of embedded resources with
     template support, automatic discovery, and performance monitoring.
     """
 
     def __init__(self):
-        self._resources: Dict[str, EmbeddedResource] = {}
-        self._templates: Dict[str, ResourceTemplate] = {}
-        self._metadata: Dict[str, ResourceMetadata] = {}
-        self._access_stats: Dict[str, Dict[str, Any]] = {}
+        self._resources: dict[str, EmbeddedResource] = {}
+        self._templates: dict[str, ResourceTemplate] = {}
+        self._metadata: dict[str, ResourceMetadata] = {}
+        self._access_stats: dict[str, dict[str, Any]] = {}
 
     def register_embedded_resource(self, resource: EmbeddedResource) -> None:
         """Register an embedded resource with statistics tracking."""
@@ -570,6 +634,11 @@ class EmbeddedResourceRegistry:
             "average_response_time": 0.0,
             "error_count": 0
         }
+        # Attach back-reference so the resource can update stats on access
+        try:
+            resource._registry = self
+        except Exception:
+            pass
         logger.info(f"Registered embedded resource: {resource.uri}")
 
     def register_template(self, template: ResourceTemplate) -> None:
@@ -578,12 +647,12 @@ class EmbeddedResourceRegistry:
         validation_errors = template.validate_parameters()
         if validation_errors:
             logger.warning(f"Template validation warnings: {validation_errors}")
-        
+
         self._templates[template.uri_template] = template
         self._metadata[template.uri_template] = template.get_metadata()
         logger.info(f"Registered resource template: {template.uri_template}")
 
-    def get_resource(self, uri: str) -> Optional[EmbeddedResource]:
+    def get_resource(self, uri: str) -> EmbeddedResource | None:
         """Get embedded resource by URI with access tracking."""
         resource = self._resources.get(uri)
         if resource:
@@ -591,28 +660,29 @@ class EmbeddedResourceRegistry:
             stats = self._access_stats[uri]
             stats["access_count"] += 1
             stats["last_accessed"] = datetime.now()
-        
+
         return resource
 
-    def get_template(self, uri_template: str) -> Optional[ResourceTemplate]:
+    def get_template(self, uri_template: str) -> ResourceTemplate | None:
         """Get resource template by URI template."""
         return self._templates.get(uri_template)
 
-    def list_resources(self) -> List[ResourceMetadata]:
+    def list_resources(self) -> list[ResourceMetadata]:
         """List all registered embedded resources with statistics."""
         return list(self._metadata.values())
 
-    def list_templates(self) -> List[ResourceTemplate]:
+    def list_templates(self) -> list[ResourceTemplate]:
         """List all registered templates."""
         return list(self._templates.values())
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get registry statistics."""
         total_resources = len(self._resources)
         total_templates = len(self._templates)
-        total_accesses = sum(stats["access_count"] for stats in self._access_stats.values())
+        # Count how many resources were accessed at least once
+        total_accesses = sum(1 for stats in self._access_stats.values() if stats.get("access_count", 0) > 0)
         total_errors = sum(stats["error_count"] for stats in self._access_stats.values())
-        
+
         return {
             "total_resources": total_resources,
             "total_templates": total_templates,
@@ -621,21 +691,21 @@ class EmbeddedResourceRegistry:
             "resource_stats": self._access_stats
         }
 
-    def create_from_template(self, template_uri: str, **params) -> Optional[EmbeddedResource]:
+    def create_from_template(self, template_uri: str, **params) -> EmbeddedResource | None:
         """Create resource instance from template with validation."""
         template = self.get_template(template_uri)
         if not template:
             return None
-        
+
         try:
             # Validate parameters
             validation_errors = template.validate_parameters(**params)
             if validation_errors:
                 logger.error(f"Template parameter validation failed: {validation_errors}")
                 return None
-            
+
             expanded_uri = template.expand(**params)
-            
+
             # Create a new resource instance with the expanded URI
             return EmbeddedResource(
                 uri=expanded_uri,
@@ -651,17 +721,17 @@ class EmbeddedResourceRegistry:
         """Clean up expired cache entries and return count of cleaned items."""
         cleaned_count = 0
         current_time = time.time()
-        
+
         for resource in self._resources.values():
             if hasattr(resource, '_cache_timestamp') and resource._cache_timestamp > 0:
                 if current_time - resource._cache_timestamp > resource.cache_ttl:
                     resource._cached_content = None
                     resource._cache_timestamp = 0
                     cleaned_count += 1
-        
+
         if cleaned_count > 0:
             logger.info(f"Cleaned up {cleaned_count} expired cache entries")
-        
+
         return cleaned_count
 
 
@@ -674,18 +744,18 @@ def register_embedded_resources():
     try:
         # Register file-based embedded resources
         _register_file_resources()
-        
+
         # Register template-based resources
         _register_template_resources()
-        
+
         # Register Splunk embedded resources
         _register_splunk_embedded_resources()
-        
+
         # Register with the main resource registry
         _register_with_main_registry()
-        
+
         logger.info("Successfully registered embedded resources")
-        
+
     except Exception as e:
         logger.error(f"Error registering embedded resources: {e}")
 
@@ -722,7 +792,7 @@ def _register_file_resources():
             "watch_file": False
         }
     ]
-    
+
     for resource_config in file_resources:
         try:
             resource = FileEmbeddedResource(
@@ -766,7 +836,7 @@ def _register_template_resources():
             parameter_defaults={"format": "json"}
         )
     ]
-    
+
     for template in templates:
         embedded_resource_registry.register_template(template)
 
@@ -782,17 +852,15 @@ def _register_with_main_registry():
     """Register embedded resources with the main resource registry."""
     try:
         from ..core.registry import resource_registry
-        
+
         # Register all embedded resources with the main registry
-        for uri, resource in embedded_resource_registry._resources.items():
+        for _uri, resource in embedded_resource_registry._resources.items():
             metadata = resource.get_metadata()
             resource_registry.register(type(resource), metadata)
-        
+
         logger.info("Registered embedded resources with main registry")
-        
+
     except Exception as e:
         logger.error(f"Error registering with main registry: {e}")
 
 
-# Import asyncio for the retry logic
-import asyncio

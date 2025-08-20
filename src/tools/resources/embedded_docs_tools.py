@@ -6,14 +6,15 @@ including cheat sheets, SPL reference, troubleshooting guides, and admin guides.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 from fastmcp import Context
+
 from src.core.base import BaseTool
 from src.resources.embedded_splunk_docs import (
     embedded_splunk_docs_registry,
+    get_embedded_splunk_doc,
     list_embedded_splunk_docs,
-    get_embedded_splunk_doc
 )
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,12 @@ class ListEmbeddedDocsTool(BaseTool):
             description="List all available embedded Splunk documentation resources"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to list embedded documentation."""
         try:
             include_content = kwargs.get("include_content", False)
             docs = list_embedded_splunk_docs()
-            
+
             if include_content:
                 # Add content preview for each doc
                 for doc in docs:
@@ -45,14 +46,14 @@ class ListEmbeddedDocsTool(BaseTool):
                             doc["content_preview"] = content[:500] + "..." if len(content) > 500 else content
                         else:
                             doc["content_preview"] = str(content)[:500] + "..."
-            
+
             return {
                 "success": True,
                 "count": len(docs),
                 "documentation": docs,
                 "message": f"Found {len(docs)} embedded documentation resources"
             }
-            
+
         except Exception as e:
             logger.error(f"Error listing embedded docs: {e}")
             return {
@@ -71,13 +72,13 @@ class GetEmbeddedDocTool(BaseTool):
             description="Get specific embedded Splunk documentation by name or URI"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to get embedded documentation."""
         try:
             name = kwargs.get("name")
             uri = kwargs.get("uri")
             include_metadata = kwargs.get("include_metadata", True)
-            
+
             # Find the resource
             resource = None
             if name and name in embedded_splunk_docs_registry:
@@ -90,23 +91,23 @@ class GetEmbeddedDocTool(BaseTool):
                     "error": "Either 'name' or 'uri' must be provided",
                     "message": "Please specify either the documentation name or URI"
                 }
-            
+
             if not resource:
                 return {
                     "success": False,
                     "error": "Documentation not found",
                     "message": f"Could not find documentation for name={name}, uri={uri}"
                 }
-            
+
             # Get content
             content = await resource.get_content(ctx)
-            
+
             result = {
                 "success": True,
                 "content": content,
                 "message": f"Successfully retrieved {resource.name}"
             }
-            
+
             if include_metadata:
                 result["metadata"] = {
                     "name": resource.name,
@@ -115,9 +116,9 @@ class GetEmbeddedDocTool(BaseTool):
                     "mime_type": resource.mime_type,
                     "cache_ttl": resource.cache_ttl
                 }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error getting embedded doc: {e}")
             return {
@@ -136,43 +137,43 @@ class SearchEmbeddedDocsTool(BaseTool):
             description="Search within embedded Splunk documentation content"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to search embedded documentation."""
         try:
             query = kwargs.get("query", "").strip()
             docs_to_search = kwargs.get("docs", [])
             case_sensitive = kwargs.get("case_sensitive", False)
             max_results = kwargs.get("max_results", 10)
-            
+
             if not query:
                 return {
                     "success": False,
                     "error": "Search query is required",
                     "message": "Please provide a search query"
                 }
-            
+
             # Determine which docs to search
             if docs_to_search:
-                search_docs = {name: embedded_splunk_docs_registry[name] 
-                              for name in docs_to_search 
+                search_docs = {name: embedded_splunk_docs_registry[name]
+                              for name in docs_to_search
                               if name in embedded_splunk_docs_registry}
             else:
                 search_docs = embedded_splunk_docs_registry
-            
+
             results = []
             search_query = query if case_sensitive else query.lower()
-            
+
             for name, resource in search_docs.items():
                 try:
                     content = await resource.get_content(ctx)
                     search_content = content if case_sensitive else content.lower()
-                    
+
                     # Simple text search
                     if search_query in search_content:
                         # Find context around the match
                         lines = content.split('\n')
                         matching_lines = []
-                        
+
                         for i, line in enumerate(lines):
                             line_to_search = line if case_sensitive else line.lower()
                             if search_query in line_to_search:
@@ -185,7 +186,7 @@ class SearchEmbeddedDocsTool(BaseTool):
                                     "line": line.strip(),
                                     "context": context
                                 })
-                        
+
                         if matching_lines:
                             results.append({
                                 "doc_name": name,
@@ -193,11 +194,11 @@ class SearchEmbeddedDocsTool(BaseTool):
                                 "doc_uri": resource.uri,
                                 "matches": matching_lines[:max_results // len(search_docs)]
                             })
-                
+
                 except Exception as e:
                     logger.warning(f"Error searching in {name}: {e}")
                     continue
-            
+
             return {
                 "success": True,
                 "query": query,
@@ -206,7 +207,7 @@ class SearchEmbeddedDocsTool(BaseTool):
                 "total_matches": sum(len(r["matches"]) for r in results),
                 "message": f"Found {sum(len(r['matches']) for r in results)} matches across {len(results)} documents"
             }
-            
+
         except Exception as e:
             logger.error(f"Error searching embedded docs: {e}")
             return {
@@ -225,27 +226,27 @@ class GetSplunkCheatSheetTool(BaseTool):
             description="Get the comprehensive Splunk cheat sheet with search commands, SPL syntax, and common patterns"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to get the Splunk cheat sheet."""
         try:
             include_metadata = kwargs.get("include_metadata", True)
-            
+
             if "cheat_sheet" not in embedded_splunk_docs_registry:
                 return {
                     "success": False,
                     "error": "Cheat sheet not available",
                     "message": "Splunk cheat sheet is not available"
                 }
-            
+
             resource = embedded_splunk_docs_registry["cheat_sheet"]
             content = await resource.get_content(ctx)
-            
+
             result = {
                 "success": True,
                 "content": content,
                 "message": "Successfully retrieved Splunk cheat sheet"
             }
-            
+
             if include_metadata:
                 result["metadata"] = {
                     "name": resource.name,
@@ -253,9 +254,9 @@ class GetSplunkCheatSheetTool(BaseTool):
                     "description": resource.description,
                     "mime_type": resource.mime_type
                 }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error getting Splunk cheat sheet: {e}")
             return {
@@ -274,27 +275,27 @@ class GetSPLReferenceTool(BaseTool):
             description="Get the comprehensive SPL (Search Processing Language) reference with syntax and examples"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to get the SPL reference."""
         try:
             include_metadata = kwargs.get("include_metadata", True)
-            
+
             if "spl_reference" not in embedded_splunk_docs_registry:
                 return {
                     "success": False,
                     "error": "SPL reference not available",
                     "message": "SPL reference is not available"
                 }
-            
+
             resource = embedded_splunk_docs_registry["spl_reference"]
             content = await resource.get_content(ctx)
-            
+
             result = {
                 "success": True,
                 "content": content,
                 "message": "Successfully retrieved SPL reference"
             }
-            
+
             if include_metadata:
                 result["metadata"] = {
                     "name": resource.name,
@@ -302,9 +303,9 @@ class GetSPLReferenceTool(BaseTool):
                     "description": resource.description,
                     "mime_type": resource.mime_type
                 }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error getting SPL reference: {e}")
             return {
@@ -323,27 +324,27 @@ class GetTroubleshootingGuideTool(BaseTool):
             description="Get the comprehensive Splunk troubleshooting guide for common issues and solutions"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to get the troubleshooting guide."""
         try:
             include_metadata = kwargs.get("include_metadata", True)
-            
+
             if "troubleshooting" not in embedded_splunk_docs_registry:
                 return {
                     "success": False,
                     "error": "Troubleshooting guide not available",
                     "message": "Splunk troubleshooting guide is not available"
                 }
-            
+
             resource = embedded_splunk_docs_registry["troubleshooting"]
             content = await resource.get_content(ctx)
-            
+
             result = {
                 "success": True,
                 "content": content,
                 "message": "Successfully retrieved Splunk troubleshooting guide"
             }
-            
+
             if include_metadata:
                 result["metadata"] = {
                     "name": resource.name,
@@ -351,9 +352,9 @@ class GetTroubleshootingGuideTool(BaseTool):
                     "description": resource.description,
                     "mime_type": resource.mime_type
                 }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error getting troubleshooting guide: {e}")
             return {
@@ -372,27 +373,27 @@ class GetAdminGuideTool(BaseTool):
             description="Get the comprehensive Splunk administration guide for deployment and management"
         )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
         """Execute the tool to get the administration guide."""
         try:
             include_metadata = kwargs.get("include_metadata", True)
-            
+
             if "admin_guide" not in embedded_splunk_docs_registry:
                 return {
                     "success": False,
                     "error": "Admin guide not available",
                     "message": "Splunk administration guide is not available"
                 }
-            
+
             resource = embedded_splunk_docs_registry["admin_guide"]
             content = await resource.get_content(ctx)
-            
+
             result = {
                 "success": True,
                 "content": content,
                 "message": "Successfully retrieved Splunk administration guide"
             }
-            
+
             if include_metadata:
                 result["metadata"] = {
                     "name": resource.name,
@@ -400,9 +401,9 @@ class GetAdminGuideTool(BaseTool):
                     "description": resource.description,
                     "mime_type": resource.mime_type
                 }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Error getting admin guide: {e}")
             return {
@@ -422,7 +423,7 @@ get_troubleshooting_guide_tool = GetTroubleshootingGuideTool()
 get_admin_guide_tool = GetAdminGuideTool()
 
 
-def get_embedded_docs_tools() -> List[BaseTool]:
+def get_embedded_docs_tools() -> list[BaseTool]:
     """Get all embedded documentation tools."""
     return [
         list_embedded_docs_tool,

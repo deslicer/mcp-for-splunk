@@ -5,12 +5,9 @@ Provides embedded versions of Splunk documentation including cheat sheets,
 SPL reference, troubleshooting guides, and administration documentation.
 """
 
-import json
 import logging
-from typing import Dict, List, Optional
 
-from src.resources.embedded import EmbeddedResource, SplunkEmbeddedResource
-from src.core.base import ResourceMetadata
+from src.resources.embedded import EmbeddedResource
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +15,7 @@ logger = logging.getLogger(__name__)
 class SplunkCheatSheetEmbeddedResource(EmbeddedResource):
     """
     Embedded Splunk cheat sheet resource.
-    
+
     Provides comprehensive Splunk cheat sheet with search commands,
     SPL syntax, and common patterns.
     """
@@ -303,7 +300,7 @@ index=main (authentication OR login OR logout)
 class SPLReferenceEmbeddedResource(EmbeddedResource):
     """
     Embedded SPL (Search Processing Language) reference.
-    
+
     Provides comprehensive SPL syntax and command reference.
     """
 
@@ -700,7 +697,7 @@ index=main
 class SplunkTroubleshootingEmbeddedResource(EmbeddedResource):
     """
     Embedded Splunk troubleshooting guide.
-    
+
     Provides common troubleshooting scenarios and solutions.
     """
 
@@ -1036,7 +1033,7 @@ index=_internal sourcetype=splunkd_auth
 class SplunkAdminGuideEmbeddedResource(EmbeddedResource):
     """
     Embedded Splunk administration guide.
-    
+
     Provides administration tasks and best practices.
     """
 
@@ -1284,23 +1281,23 @@ embedded_splunk_docs_registry = {
 def register_embedded_splunk_docs():
     """Register all embedded Splunk documentation resources."""
     from src.resources.embedded import embedded_resource_registry
-    
+
     for name, resource in embedded_splunk_docs_registry.items():
         embedded_resource_registry.register_embedded_resource(resource)
         logger.info(f"Registered embedded Splunk documentation: {name}")
-    
+
     logger.info("Successfully registered all embedded Splunk documentation resources")
 
 
-def get_embedded_splunk_doc(uri: str) -> Optional[EmbeddedResource]:
+def get_embedded_splunk_doc(uri: str) -> EmbeddedResource | None:
     """Get embedded Splunk documentation by URI."""
-    for name, resource in embedded_splunk_docs_registry.items():
+    for _name, resource in embedded_splunk_docs_registry.items():
         if resource.uri == uri:
             return resource
     return None
 
 
-def list_embedded_splunk_docs() -> List[Dict[str, str]]:
+def list_embedded_splunk_docs() -> list[dict[str, str]]:
     """List all available embedded Splunk documentation."""
     docs = []
     for name, resource in embedded_splunk_docs_registry.items():
