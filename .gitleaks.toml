@@ -4,7 +4,7 @@
   description = "Allow known placeholders"
   regexes = [
     # Allow placeholder usage in compose files
-    "SPLUNK_HEC_TOKEN\s*[:=]\s*REDACTED"
+    'SPLUNK_HEC_TOKEN\s*[:=]\s*REDACTED'
   ]
 
 
