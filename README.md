@@ -1,7 +1,7 @@
 <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; padding: 1em 0;">
   <!-- Logo -->
   <div>
-    <img alight=left src="media/deslicer_white.svg" alt="Deslicer" width="200">
+    <img align="left" src="media/deslicer_white.svg" alt="Deslicer" width="200">
   </div>
 </div>
 
