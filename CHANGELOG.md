@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.2.1) (2025-08-20)
+
+
+### Bug Fixes
+
+* **readme:** correct logo image attribute for proper rendering ([#18](https://github.com/deslicer/mcp-for-splunk/issues/18)) ([d1c2e6b](https://github.com/deslicer/mcp-for-splunk/commit/d1c2e6bf66446657a09efbed2e919f13fb7f8d91))
+
 ## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.3.0) (2025-08-20)
 
 
