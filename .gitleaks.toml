@@ -1,0 +1,10 @@
+# Allowlist placeholder tokens so they don't trigger scans
+
+[allowlist]
+  description = "Allow known placeholders"
+  regexes = [
+    # Allow placeholder usage in compose files
+    "SPLUNK_HEC_TOKEN\s*[:=]\s*REDACTED"
+  ]
+
+
