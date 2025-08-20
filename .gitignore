@@ -116,3 +116,17 @@ logs/
 
 # Splunk License files
 lic/*.lic
+
+# Added by OSS cleanup (safe to dedupe)
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+htmlcov/
+logs/
+*.log
+src/logs/*.log
+lic/*.lic
