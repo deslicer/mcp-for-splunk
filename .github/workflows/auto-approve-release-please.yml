@@ -14,11 +14,15 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Approve release-please PRs from github-actions when labeled
+      - name: Approve release-please PRs when labeled
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTO_APPROVE_TOKEN }}
         run: |
           set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "AUTO_APPROVE_TOKEN is not configured; skipping auto-approve to avoid self-approval errors"
+            exit 0
+          fi
           PR_NUMBER='${{ github.event.pull_request.number }}'
           REPO='${{ github.repository }}'
           if [ -z "$PR_NUMBER" ]; then
@@ -33,9 +37,8 @@ jobs:
             echo "Label 'autorelease: pending' not present; skipping"
             exit 0
           fi
-          # Approve if it's a release-please PR by bot OR the release-please branch pattern OR standard release title
-          if [ "$author" = "github-actions[bot]" ] || echo "$head_ref" | grep -q '^release-please--branches--' || echo "$title" | grep -q '^chore\(main\): release '; then
-            echo "Approving PR #$PR_NUMBER"
+          if [ "$author" = "github-actions[bot]" ] || [ "$author" = "app/github-actions" ] || echo "$head_ref" | grep -q '^release-please--branches--' || echo "$title" | grep -q '^chore\(main\): release '; then
+            echo "Approving PR #$PR_NUMBER with AUTO_APPROVE_TOKEN actor"
             gh pr review "$PR_NUMBER" --repo "$REPO" --approve || true
           else
             echo "PR does not match release-please criteria; skipping approval"
