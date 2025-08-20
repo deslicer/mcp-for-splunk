@@ -336,8 +336,8 @@ Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUC
 <a name="support--community"></a>
 ## 🆘 Support & Community
 
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-org/mcp-server-for-splunk/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions)
+- **🐛 Issues**: [GitHub Issues](https://github.com/deslicer/mcp-server-for-splunk/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/deslicer/mcp-server-for-splunk/discussions)
 - **📖 Documentation**: Complete guides and references
 - **🔧 Interactive Testing**: MCP Inspector for real-time testing
 
