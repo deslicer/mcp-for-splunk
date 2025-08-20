@@ -132,6 +132,26 @@ class ResourceRegistry:
 
         logger.info(f"Registered resource: {uri} (category: {metadata.category})")
 
+    def register_instance(self, resource_instance: BaseResource, metadata: ResourceMetadata) -> None:
+        """
+        Register a specific resource instance with metadata.
+
+        This preserves constructor-specific state (e.g., file paths) that cannot be
+        reconstructed from generic metadata alone.
+
+        Args:
+            resource_instance: Concrete resource instance to register
+            metadata: Resource metadata
+        """
+        uri = metadata.uri
+
+        # Store both the class and the concrete instance
+        self._resources[uri] = type(resource_instance)
+        self._metadata[uri] = metadata
+        self._instances[uri] = resource_instance
+
+        logger.info(f"Registered resource instance: {uri} (category: {metadata.category})")
+
     def get_resource(self, uri: str) -> BaseResource | None:
         """
         Get a resource instance by URI.

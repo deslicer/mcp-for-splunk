@@ -25,6 +25,7 @@ from fastmcp import Context
 from ..core.base import BaseResource, ResourceMetadata
 from ..core.client_identity import get_client_manager
 from ..core.enhanced_config_extractor import EnhancedConfigExtractor
+from ..core.registry import resource_registry
 
 logger = logging.getLogger(__name__)
 
@@ -781,16 +782,16 @@ def _register_file_resources():
             "mime_type": "text/markdown",
             "encoding": "utf-8",
             "watch_file": True
-        },
-        {
-            "uri": "embedded://config/settings.json",
-            "name": "Application Settings",
-            "description": "Application configuration settings",
-            "file_path": "config/settings.json",
-            "mime_type": "application/json",
-            "encoding": "utf-8",
-            "watch_file": False
         }
+        # {
+        #     "uri": "embedded://config/settings.json",
+        #     "name": "Application Settings",
+        #     "description": "Application configuration settings",
+        #     "file_path": "config/settings.json",
+        #     "mime_type": "application/json",
+        #     "encoding": "utf-8",
+        #     "watch_file": False
+        # }
     ]
 
     for resource_config in file_resources:
@@ -805,6 +806,15 @@ def _register_file_resources():
                 watch_file=resource_config.get("watch_file", False)
             )
             embedded_resource_registry.register_embedded_resource(resource)
+
+            # Also register a concrete instance with the discovery registry so that
+            # FastMCP can retrieve the same instance without losing file_path state.
+            try:
+                metadata = resource.get_metadata()
+                # Ensure the discovery registry knows this exact instance
+                resource_registry.register_instance(resource, metadata)
+            except Exception as e:
+                logger.debug(f"Could not register instance for discovery: {e}")
         except Exception as e:
             logger.warning(f"Could not register file resource {resource_config['uri']}: {e}")
 

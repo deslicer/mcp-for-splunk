@@ -125,12 +125,22 @@ class ToolLoader:
         # Create the new signature
         wrapper_sig = inspect.Signature(filtered_params)
 
+        # Resolve metadata for this tool (do not assume class has METADATA)
+        try:
+            from .registry import tool_registry
+            metadata = tool_registry.get_metadata(tool_name)
+        except Exception:
+            metadata = None
+
         # Create the wrapper function
         async def tool_wrapper(*args, **kwargs):
             """Wrapper that delegates to the tool's execute method"""
             try:
                 # Create tool instance
-                tool_instance = tool_class(tool_name, "modular")
+                description = (
+                    metadata.description if metadata else (tool_class.__doc__ or "")
+                )
+                tool_instance = tool_class(tool_name, description)
 
                 # Get the current context using FastMCP's dependency function
                 try:
@@ -156,7 +166,9 @@ class ToolLoader:
 
         # Set function metadata
         tool_wrapper.__name__ = tool_name
-        tool_wrapper.__doc__ = tool_class.METADATA.description
+        tool_wrapper.__doc__ = (
+            metadata.description if metadata else (tool_class.__doc__ or f"Tool: {tool_name}")
+        )
         tool_wrapper.__signature__ = wrapper_sig
 
         # Set type annotations using the resolved type hints
