@@ -1,177 +1,97 @@
-# 🤖 Workflows Overview: AI-Powered Splunk Troubleshooting
+## Workflows Overview: AI-Powered Splunk Troubleshooting
 
-> **Quick introduction to the intelligent workflow system that transforms how you troubleshoot Splunk**
+> Use workflow tools to define, validate, discover, and execute JSON workflows. Legacy “dynamic agent” docs have been replaced by these tools.
 
-## What Are AI Workflows?
+### What are workflows?
 
-AI Workflows are **intelligent troubleshooting procedures** that combine:
-- **Expert Knowledge**: Years of Splunk troubleshooting experience encoded as systematic procedures
-- **AI Execution**: Intelligent agents that execute these procedures with human-like reasoning
-- **Parallel Processing**: Multiple diagnostic checks running simultaneously for 3-5x faster results
-- **Contextual Analysis**: Adapts to your specific Splunk environment and problem context
+Workflows are structured troubleshooting procedures that:
+- Encode expert Splunk practices as JSON
+- Run tasks in parallel phases for 3–5x speedups
+- Adapt to your context via time window and focus parameters
 
-## Complete Workflow Development Lifecycle
+### Prerequisites
+
+- Set OpenAI env vars in `.env` (copy from `env.example`):
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+OPENAI_TEMPERATURE=0.7
+OPENAI_MAX_TOKENS=4000
+```
+
+- Ensure OpenAI dependencies are available:
+
+```bash
+uv add openai
+uv add openai-agents
+```
+
+### Lifecycle
 
 ```mermaid
 graph LR
-    A[📋 Get Requirements] --> B[🛠️ Build Workflow]
-    B --> C[✅ Validate]
-    C --> D[🚀 Execute]
+    A[📋 workflow_requirements] --> B[🛠️ workflow_builder]
+    B --> C[✅ validate/process]
+    C --> D[🚀 workflow_runner]
     D --> E[📊 Results]
 
-    A1[workflow_requirements] --> A
-    B1[workflow_builder] --> B
-    C1[validation system] --> C
-    D1[workflow_runner] --> D
-    D2[dynamic_troubleshoot_agent] --> D
+    A -->|discover| F[📚 list_workflows]
 
     style A fill:#fff3e0
     style B fill:#f3e5f5
     style C fill:#e8f5e8
     style D fill:#e3f2fd
     style E fill:#e8f5e8
+    style F fill:#e3f2fd
 ```
 
-## Available Workflow Tools
+### Tools
 
-### **🏗️ Build Your Own AI Agents**
-| Tool | Purpose | Use Case |
-|------|---------|----------|
-| **`workflow_requirements`** | Get schema and requirements for custom workflows | Understand how to build workflows |
-| **`workflow_builder`** | Create, edit, and validate custom workflows | Build SOX compliance workflow |
+- `workflow_requirements`: schema, validation rules, best practices
+- `workflow_builder`: create/edit/validate/process workflows, generate templates
+- `list_workflows`: discover core and contrib workflow IDs
+- `workflow_runner`: execute a workflow by ID with context and summarization
 
-### **🚀 Execute Workflows**
-| Tool | Purpose | Use Case |
-|------|---------|----------|
-| **`dynamic_troubleshoot_agent`** | Main AI troubleshooting with auto-routing | "My dashboard shows no data" |
-| **`workflow_runner`** | Execute specific workflows by ID | Run performance analysis workflow |
-| **`list_workflows`** | Discover available workflows | See what troubleshooting options exist |
+### Quick start
 
-## Quick Start Examples
-
-### 🔍 **Troubleshoot Missing Data**
 ```python
-# AI automatically follows Splunk's 10-step missing data checklist
-result = await dynamic_troubleshoot_agent.execute(
-    problem_description="Critical dashboard shows no data since midnight",
-    workflow_type="missing_data_troubleshooting",
-    focus_index="production"
-)
-```
+from src.tools.workflows.list_workflows import create_list_workflows_tool
+from src.tools.workflows.workflow_runner import WorkflowRunnerTool
 
-### ⚡ **Analyze Performance Issues**
-```python
-# Comprehensive performance analysis with parallel execution
-result = await workflow_runner.execute(
+# Discover
+lister = create_list_workflows_tool()
+await lister.execute(ctx, format_type="summary")
+
+# Run core performance analysis
+runner = WorkflowRunnerTool("workflow_runner", "workflows")
+await runner.execute(
+    ctx=ctx,
     workflow_id="performance_analysis",
-    problem_description="Searches running 40% slower since yesterday",
-    complexity_level="advanced"
-)
-```
-
-### 🏗️ **Build Custom AI Agents**
-```python
-# Step 1: Get requirements and schema
-requirements = await workflow_requirements.execute(format_type="detailed")
-
-# Step 2: Create custom workflow
-custom_workflow = {
-    "workflow_id": "security_incident_response",
-    "name": "Security Incident Response",
-    "description": "Automated security incident analysis and response",
-    "tasks": [
-        {
-            "task_id": "threat_analysis",
-            "name": "Threat Analysis",
-            "instructions": "Analyze authentication failures and suspicious activities using: index=security earliest={earliest_time} latest={latest_time} | stats count by user, src_ip | where count > 10",
-            "required_tools": ["run_splunk_search"],
-            "dependencies": [],
-            "context_requirements": ["earliest_time", "latest_time"]
-        },
-        {
-            "task_id": "config_review",
-            "name": "Security Configuration Review",
-            "instructions": "Review security configurations for potential issues",
-            "required_tools": ["get_configurations"],
-            "dependencies": ["threat_analysis"]
-        }
-    ]
-}
-
-# Step 3: Validate and process the workflow
-result = await workflow_builder.execute(
-    mode="process",
-    workflow_data=custom_workflow
-)
-
-# Step 4: Execute your custom agent
-execution_result = await workflow_runner.execute(
-    workflow_id="security_incident_response",
-    problem_description="Suspicious login activity detected",
     earliest_time="-24h",
-    latest_time="now"
+    latest_time="now",
+    complexity_level="moderate",
 )
 ```
 
-## Key Benefits
+### Core workflows
 
-### 🕐 **90% Faster Resolution**
-- Parallel execution of diagnostic checks
-- Automated correlation of findings
-- Expert-level analysis without the wait
+- `missing_data_troubleshooting`: Systematic, 10-step missing data analysis based on Splunk guidance. Background reference: “Troubleshoot inputs with metrics.log” (`https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log`).
+- `performance_analysis`: Resource and search performance diagnostics.
 
-### 🎯 **100% Consistent Results**
-- Same systematic approach every time
-- No missed steps or forgotten checks
-- Reproducible troubleshooting procedures
+### Benefits
 
-### 🧠 **Zero Knowledge Dependency**
-- AI agents embody expert knowledge
-- Junior staff can perform senior-level analysis
-- Knowledge stays with the organization
+- **Consistency**: Encodes best-practice procedures
+- **Speed**: Parallel phases accelerate diagnostics
+- **Coverage**: Reduces human error and missed steps
+- **Automation**: Reuse for routine tasks with rich summaries
 
-### 📊 **Executive-Ready Insights**
-- AI-powered summarization
-- Business impact analysis
-- Actionable recommendations
+### Where workflows live
 
-## Workflow Categories
+- Core: `src/tools/workflows/core/`
+- Contrib: `contrib/workflows/<category>/<workflow_id>.json`
 
-### **Core Workflows** (Built-in)
-- **Missing Data Troubleshooting**: Systematic data visibility analysis
-- **Performance Analysis**: Comprehensive system performance diagnostics
+### See also
 
-### **Contrib Workflows** (Community)
-- **Simple Health Check**: Basic system health verification
-- **Authentication Analysis**: Security-focused authentication review
-- **Custom Workflows**: Organization-specific procedures
-
-## Integration Points
-
-### **MCP Clients**
-- **Cursor IDE**: Direct integration with coding workflows
-- **Claude Desktop**: Natural language troubleshooting interface
-- **Custom Applications**: API-based integration
-
-### **Existing Tools**
-- **Splunk REST API**: Seamless integration with existing Splunk infrastructure
-- **Search Tools**: Leverages all existing search and analysis capabilities
-- **Configuration Tools**: Integrates with admin and configuration tools
-
-## Next Steps
-
-### **🚀 Ready to Get Started?**
-1. **[Read the Full Guide](agents-as-tools-readme.md)** - Comprehensive overview with examples
-2. **Try a Workflow** - Start with `dynamic_troubleshoot_agent`
-3. **Build Custom Workflows** - Create procedures for your environment
-4. **Share with Team** - Scale intelligent troubleshooting across organization
-
-### **🔗 Related Documentation**
-- **[AI-Powered Troubleshooting Guide](agents-as-tools-readme.md)** - Complete feature overview
-- **[Getting Started](../../getting-started/)** - Initial setup and configuration
-- **[Tools Reference](../../reference/tools.md)** - Tool documentation
-- **[Contributing](../../contrib/contributing.md)** - Add your own workflows
-
----
-
-**Transform your Splunk operations from reactive to intelligent. Your team deserves AI-powered troubleshooting.**
+- `README.md` in this folder for a concise quick start
+- `workflow_runner_guide.md` for detailed execution parameters and progress behavior

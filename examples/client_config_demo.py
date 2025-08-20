@@ -12,6 +12,7 @@ import os
 import sys
 
 from src.tools.health.status import GetSplunkHealth
+from src.core.shared_context import http_headers_context
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -49,6 +50,15 @@ async def demo_client_configuration():
     health_tool = GetSplunkHealth("get_splunk_health", "Health check tool")
     ctx = MockContext()
 
+    def format_expected_error(e: Exception) -> str:
+        msg = str(e)
+        # Common demo/offline error when no real Splunk connection or async context is present
+        if "NoneType" in msg and "await" in msg:
+            return "Expected offline: no Splunk connection (demo without live server)."
+        if "Failed to establish a new connection" in msg or "Connection refused" in msg:
+            return "Expected offline: cannot reach the provided Splunk host."
+        return f"Expected offline: {msg[:120]}..."
+
     print("\n1️⃣  Testing without any configuration (should fail)")
     print("-" * 50)
 
@@ -56,69 +66,59 @@ async def demo_client_configuration():
         result = await health_tool.execute(ctx)
         print(f"Result: {result}")
     except Exception as e:
-        print(f"Expected failure: {e}")
+        print(format_expected_error(e))
 
-    print("\n2️⃣  Testing with client-provided configuration")
+    print("\n2️⃣  Testing with client-provided HTTP headers (recommended)")
     print("-" * 50)
 
-    # Example client configurations for different environments
+    # Example client configurations for different environments (converted to headers)
     environments = {
         "Development": {
-            "splunk_host": "dev-splunk.company.local",
-            "splunk_port": 8089,
-            "splunk_username": "dev-user",
-            "splunk_password": "dev-password",
-            "splunk_scheme": "http",
-            "splunk_verify_ssl": False,
+            "X-Splunk-Host": "dev-splunk.company.local",
+            "X-Splunk-Port": "8089",
+            "X-Splunk-Username": "dev-user",
+            "X-Splunk-Password": "dev-password",
+            "X-Splunk-Scheme": "http",
+            "X-Splunk-Verify-SSL": "false",
+            "X-Session-ID": "dev-session",
         },
         "Production": {
-            "splunk_host": "prod-splunk.company.com",
-            "splunk_port": 8089,
-            "splunk_username": "monitoring-service",
-            "splunk_password": "secure-prod-password",
-            "splunk_scheme": "https",
-            "splunk_verify_ssl": True,
+            "X-Splunk-Host": "prod-splunk.company.com",
+            "X-Splunk-Port": "8089",
+            "X-Splunk-Username": "monitoring-service",
+            "X-Splunk-Password": "secure-prod-password",
+            "X-Splunk-Scheme": "https",
+            "X-Splunk-Verify-SSL": "true",
+            "X-Session-ID": "prod-session",
         },
         "Cloud": {
-            "splunk_host": "customer.splunkcloud.com",
-            "splunk_port": 8089,
-            "splunk_username": "cloud-user",
-            "splunk_password": "cloud-token",
-            "splunk_scheme": "https",
-            "splunk_verify_ssl": True,
+            "X-Splunk-Host": "customer.splunkcloud.com",
+            "X-Splunk-Port": "8089",
+            "X-Splunk-Username": "cloud-user",
+            "X-Splunk-Password": "cloud-token",
+            "X-Splunk-Scheme": "https",
+            "X-Splunk-Verify-SSL": "true",
+            "X-Session-ID": "cloud-session",
         },
     }
 
     for env_name, config in environments.items():
         print(f"\n🌍 Testing {env_name} Environment:")
-        print(f"   Host: {config['splunk_host']}")
-        print(f"   Scheme: {config['splunk_scheme']}")
-        print(f"   SSL Verify: {config['splunk_verify_ssl']}")
+        print(f"   Host: {config['X-Splunk-Host']}")
+        print(f"   Scheme: {config['X-Splunk-Scheme']}")
+        print(f"   SSL Verify: {config['X-Splunk-Verify-SSL']}")
 
         try:
-            # This would fail with real connections, but demonstrates the parameter passing
-            result = await health_tool.execute(ctx, **config)
+            # Simulate HTTP header capture (normally set by ASGI middleware in src/server.py)
+            http_headers_context.set(config)
+
+            # Execute without kwargs; tool will read client config from headers
+            result = await health_tool.execute(ctx)
             print(f"   Result: {result}")
         except Exception as e:
-            print(f"   Expected connection failure: {str(e)[:100]}...")
+            print(f"   {format_expected_error(e)}")
 
-    print("\n3️⃣  Configuration Parameter Extraction Demo")
-    print("-" * 50)
-
-    # Demonstrate how the tool extracts client configuration
-    test_kwargs = {
-        "splunk_host": "example.com",
-        "splunk_username": "user",
-        "splunk_password": "pass",
-        "other_param": "should_remain",
-        "splunk_port": 8089,
-    }
-
-    print(f"Original parameters: {test_kwargs}")
-
-    client_config = health_tool.extract_client_config(test_kwargs)
-    print(f"Extracted client config: {client_config}")
-    print(f"Remaining parameters: {test_kwargs}")
+    # Note: When using HTTP transport, headers are preferred and extracted automatically server-side.
 
     print("\n4️⃣  Real-World Usage Examples")
     print("-" * 50)

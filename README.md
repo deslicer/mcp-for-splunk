@@ -27,7 +27,7 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 - **🤖 AI-Powered Workflows**: Intelligent troubleshooting agents that work like experts
 - **🤝 Community-Driven**: Extensible framework with contribution examples
 
-> **🚀 NEW: [AI-Powered Troubleshooting Agents](docs/guides/workflows/agents-as-tools-readme.md)** - Transform reactive firefighting into intelligent, systematic problem-solving with specialist AI workflows.
+> **🚀 NEW: [AI-Powered Troubleshooting Workflows](docs/guides/workflows/README.md)** - Transform reactive firefighting into intelligent, systematic problem-solving with specialist AI workflows.
 
 ## 📋 Table of Contents
 
@@ -58,11 +58,13 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 - [🆘 Support & Community](#support--community)
   - [Windows Support](#windows-support)
 - [📈 Project Stats](#project-stats)
-- [🎯 Ready to Get Started?](#ready-to-empower-your-ai-with-splunk)
+- [🎯 Ready to Get Started?](#ready-to-get-started)
 
 
-## 🚀 Quick Start {#quick-start}
+<a name="quick-start"></a>
+## 🚀 Quick Start
 
+<a name="prerequisites"></a>
 ### Prerequisites
 - Python 3.10+ and UV package manager
 - Docker (optional but recommended for full stack)
@@ -70,6 +72,7 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 
 > **📖 Complete Setup Guide**: [Installation Guide](docs/getting-started/installation.md)
 
+<a name="configuration"></a>
 ### Configuration
 
 **Before running the setup, configure your Splunk connection:**
@@ -83,6 +86,7 @@ cp env.example .env
 # - OR use the included Docker Splunk (requires Docker)
 ```
 
+<a name="one-command-setup"></a>
 ### One-Command Setup
 
 **Windows:**
@@ -112,9 +116,11 @@ cd mcp-server-for-splunk
 > `# - ./lic/splunk.lic:/tmp/license/splunk.lic:ro`. Create a `lic/` directory and mount your license file, or add the license via the Splunk Web UI after startup.
 
 
-## 🎯 What You Can Do {#what-you-can-do}
+<a name="what-you-can-do"></a>
+## 🎯 What You Can Do
 
-### 🤖 **AI-Powered Troubleshooting** (NEW!) {#ai-powered-troubleshooting-new}
+<a name="ai-powered-troubleshooting-new"></a>
+### 🤖 **AI-Powered Troubleshooting** (NEW!)
 
 Transform your Splunk troubleshooting from manual procedures to intelligent, automated workflows using the MCP server endpoints:
 
@@ -142,55 +148,64 @@ result = await workflow_runner.execute(
 
 **[📖 Read the Complete AI Workflows Guide →](docs/guides/workflows/README.md)** for detailed examples, workflow creation, and advanced troubleshooting techniques.
 
-## 📚 Documentation Hub {#documentation-hub}
+<a name="documentation-hub"></a>
+## 📚 Documentation Hub
 
 | Document | Purpose | Audience | Time |
 |----------|---------|----------|------|
-| **[🤖 AI-Powered Troubleshooting](docs/guides/workflows/agents-as-tools-readme.md)** | **Intelligent workflows and specialist agents** | **All users** | **5 min** |
+| **[🤖 AI-Powered Troubleshooting](docs/guides/workflows/README.md)** | **Intelligent workflows powered by the workflow tools** | **All users** | **5 min** |
 | **[Getting Started](docs/getting-started/)** | Complete setup guide with prerequisites | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
-| **[OpenAI Agent Integration](docs/guides/workflows/openai-agent-integration.md)** | Configure OpenAI agents and retry behavior | Developers | 10 min |
+| **[Workflows Guide](docs/guides/workflows/README.md)** | Create and run workflows (OpenAI env vars) | Developers | 10 min |
 | **[API Reference](docs/reference/tools.md)** | Tool documentation | Integrators | Reference |
 | **[Contributing](docs/contrib/contributing.md)** | Add your own tools | Contributors | 60 min |
 | **[📖 Contrib Guide](contrib/README.md)** | **Complete contribution framework** | **Contributors** | **15 min** |
 | **[Architecture](docs/architecture/)** | Technical deep-dive | Architects | Reference |
 | **[Tests Quick Start](docs/tests.md)** | First success test steps | Developers | 2 min |
 
-## 🔧 Available Tools & Capabilities {#available-tools--capabilities}
+<a name="available-tools--capabilities"></a>
+## 🔧 Available Tools & Capabilities
 
-### 🤖 **AI Workflows & Specialists** (NEW!) {#ai-workflows--specialists-new}
+<a name="ai-workflows--specialists-new"></a>
+### 🤖 **AI Workflows & Specialists** (NEW!)
 - **`list_workflows`**: Discover available troubleshooting workflows (core + contrib)
 - **`workflow_runner`**: Execute any workflow with full parameter control and progress tracking
 - **`workflow_builder`**: Create custom troubleshooting procedures for your organization
 - **Built-in Workflows**: Missing data troubleshooting, performance analysis, and more
 - **[📖 Complete Workflow Guide →](docs/guides/workflows/README.md)**
 
-### 🔍 Search & Analytics {#search--analytics}
+<a name="search--analytics"></a>
+### 🔍 Search & Analytics
 - **Smart Search**: Natural language to SPL conversion
 - **Real-time Search**: Background job management with progress tracking
 - **Saved Searches**: Create, execute, and manage search automation
 
-### 📊 Data Discovery {#data-discovery}
+<a name="data-discovery"></a>
+### 📊 Data Discovery
 - **Metadata Exploration**: Discover indexes, sources, and sourcetypes
 - **Schema Analysis**: Understand your data structure
 - **Usage Patterns**: Identify data volume and access patterns
 
-### 👥 Administration {#administration}
+<a name="administration"></a>
+### 👥 Administration
 - **App Management**: List, enable, disable Splunk applications
 - **User Management**: Comprehensive user and role administration
 - **Configuration Access**: Read and analyze Splunk configurations
 
-### 🏥 Health Monitoring {#health-monitoring}
+<a name="health-monitoring"></a>
+### 🏥 Health Monitoring
 - **System Health**: Monitor Splunk infrastructure status
 - **Degraded Feature Detection**: Proactive issue identification
 - **Alert Management**: Track and analyze triggered alerts
 
-## 🌐 Client Integration Examples {#client-integration-examples}
+<a name="client-integration-examples"></a>
+## 🌐 Client Integration Examples
 
 **💪 Multi-Client Configuration Strength**: One of the key advantages of this MCP Server for Splunk is its ability to support multiple client configurations simultaneously. You can run a single server instance and connect multiple clients with different Splunk environments, credentials, and configurations - all without restarting the server or managing separate processes.
 
-### 🔄 Multi-Client Benefits {#multi-client-benefits}
+<a name="multi-client-benefits"></a>
+### 🔄 Multi-Client Benefits
 
 **Session-Based Isolation**: Each client connection maintains its own Splunk session with independent authentication, preventing credential conflicts between different users or environments.
 
@@ -200,7 +215,8 @@ result = await workflow_runner.execute(
 
 **Resource Efficiency**: Eliminates the need to run separate MCP server instances for each Splunk environment, reducing resource consumption and management overhead.
 
-### Cursor IDE {#cursor-ide}
+<a name="cursor-ide"></a>
+### Cursor IDE
 ## Single Tenant ##
 
 ```json
@@ -249,7 +265,8 @@ result = await workflow_runner.execute(
 }
 ```
 
-### Google Agent Development Kit {#google-agent-development-kit}
+<a name="google-agent-development-kit"></a>
+### Google Agent Development Kit
 ```python
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 
@@ -262,11 +279,13 @@ splunk_agent = LlmAgent(
 )
 ```
 
-## 🤝 Community & Contribution {#community--contribution}
+<a name="community--contribution"></a>
+## 🤝 Community & Contribution
 
 Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security Policy](SECURITY.md) · [Governance](GOVERNANCE.md) · [License](LICENSE)
 
-### 🛠️ **Create Your Own Tools & Extensions** {#create-your-own-tools--extensions}
+<a name="create-your-own-tools--extensions"></a>
+### 🛠️ **Create Your Own Tools & Extensions**
 
 **🚀 Quick Start for Contributors:**
 ```bash
@@ -285,41 +304,49 @@ Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUC
 
 **[📖 Complete Contributing Guide →](contrib/README.md)** - Everything you need to know about creating tools, resources, and workflows for the MCP Server for Splunk.
 
-### **Contribution Categories** {#contribution-categories}
+<a name="contribution-categories"></a>
+### **Contribution Categories**
 - **🛡️ Security Tools**: Threat hunting, incident response, security analysis
 - **⚙️ DevOps Tools**: Monitoring, alerting, operations, SRE workflows
 - **📈 Analytics Tools**: Business intelligence, reporting, data analysis
 - **💡 Example Tools**: Learning templates and patterns for new contributors
 - **🔧 Custom Workflows**: AI-powered troubleshooting procedures for your organization
 
-## 🚀 Deployment Options {#deployment-options}
+<a name="deployment-options"></a>
+## 🚀 Deployment Options
 
-### Development (Local) {#development-local}
+<a name="development-local"></a>
+### Development (Local)
 - **Startup Time**: ~10 seconds
 - **Resource Usage**: Minimal (single Python process)
 - **Best For**: Development, testing, stdio-based AI clients
 
-### Production (Docker) {#production-docker}
+<a name="production-docker"></a>
+### Production (Docker)
 - **Features**: Load balancing, health checks, monitoring
 - **Includes**: Traefik, MCP Inspector, optional Splunk
 - **Best For**: Multi-client access, web-based AI agents
 
-### Enterprise (Kubernetes) {#enterprise-kubernetes}
+<a name="enterprise-kubernetes"></a>
+### Enterprise (Kubernetes)
 - **Scalability**: Horizontal scaling, high availability
 - **Security**: Pod-level isolation, secret management
 - **Monitoring**: Comprehensive observability stack
 
-## 🆘 Support & Community {#support--community}
+<a name="support--community"></a>
+## 🆘 Support & Community
 
 - **🐛 Issues**: [GitHub Issues](https://github.com/your-org/mcp-server-for-splunk/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions)
 - **📖 Documentation**: Complete guides and references
 - **🔧 Interactive Testing**: MCP Inspector for real-time testing
 
-### Windows Support {#windows-support}
+<a name="windows-support"></a>
+### Windows Support
 Windows users get first-class support with PowerShell scripts and comprehensive troubleshooting guides. See our [Windows Setup Guide](docs/WINDOWS_GUIDE.md).
 
-## 📈 Project Stats {#project-stats}
+<a name="project-stats"></a>
+## 📈 Project Stats
 
 - ✅ **20+ Production Tools** - Comprehensive Splunk operations
 - ✅ **14 Rich Resources** - System info and documentation access
@@ -330,7 +357,8 @@ Windows users get first-class support with PowerShell scripts and comprehensive 
 
 ---
 
-**Ready to empower your AI with Splunk?** 🎯 {#ready-to-empower-your-ai-with-splunk}
+<a name="ready-to-get-started"></a>
+## 🎯 Ready to Get Started?
 
 Choose your adventure:
 - **🚀 [Quick Start](docs/getting-started/)** - Get running in 15 minutes
