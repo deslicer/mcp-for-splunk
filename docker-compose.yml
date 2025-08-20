@@ -96,7 +96,7 @@ services:
     networks:
       - splunk-network
     ports:
-      - "${MCP_SERVER_PORT}:8001"       # MCP Server (8001 to avoid conflict with Splunk)
+      - "${MCP_SERVER_PORT:-8003}:8001"       # MCP Server (8001 to avoid conflict with Splunk)
     env_file:
       - .env              # Load environment variables from .env file
     environment:
