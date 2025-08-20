@@ -652,7 +652,7 @@ async def main():
     # Use uvicorn to run the server
     try:
         import uvicorn
-        config = uvicorn.Config(app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
+        config = uvicorn.Config(mcp_app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
 
         server = uvicorn.Server(config)
         await server.serve()
