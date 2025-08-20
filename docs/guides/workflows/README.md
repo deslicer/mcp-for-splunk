@@ -1,52 +1,76 @@
 # Workflows Guide
 
-## Overview
+### Overview
 
-Workflows in MCP Server for Splunk enable automated troubleshooting and validation using JSON-defined tasks executed by dependency-aware parallel micro-agents.
+Workflows automate Splunk troubleshooting and validation using JSON-defined tasks executed in dependency-aware parallel phases. You create, validate, discover, and run workflows using these tools:
 
-### Core Workflows
+- `workflow_requirements`: requirements and schema
+- `workflow_builder`: create/edit/validate/process workflows
+- `list_workflows`: discover available core and contrib workflows
+- `workflow_runner`: execute a workflow by ID
 
-- missing_data_troubleshooting
-- performance_analysis
+### Prerequisites (must-do)
 
-### Contrib Workflows
+- Set OpenAI environment variables in your `.env` (copy from `env.example`):
 
-User/custom workflows live under `contrib/workflows/` by category (e.g., `security/`, `performance/`, `examples/`). They are auto-discovered and validated at startup.
-
-## Discovering Workflows (📚)
-
-Use the `list_workflows` tool to see available workflow IDs from both core and contrib sources.
-
-Example call (client side):
-
-```python
-result = await list_workflows.execute(ctx, format_type="summary")
-print(result)
+```bash
+# OpenAI Agent Settings
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+OPENAI_TEMPERATURE=0.7
+OPENAI_MAX_TOKENS=4000
 ```
 
-## Executing Workflows (🚀)
+- Ensure OpenAI Agents SDK is installed (used by the runner for execution and tracing):
 
-Run workflows by ID using the `workflow_runner` tool. Provide time range and optional focus context.
+```bash
+uv add openai
+uv add openai-agents
+```
 
-Example call:
+### Where workflows live
+
+- Core: `src/tools/workflows/core/`
+- Contrib (your custom workflows): `contrib/workflows/<category>/<workflow_id>.json`
+
+### Core workflows
+
+- `missing_data_troubleshooting`: Systematic 10-step missing data analysis. Follows Splunk’s guidance for inputs and metrics troubleshooting; see [Troubleshoot inputs with metrics.log](https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log).
+- `performance_analysis`: Parallel performance diagnostics (resources, search performance, scheduling).
+
+### Discover workflows (📚)
 
 ```python
-result = await workflow_runner.execute(
+from src.tools.workflows.list_workflows import create_list_workflows_tool
+
+lister = create_list_workflows_tool()
+result = await lister.execute(ctx, format_type="summary")
+```
+
+### Run workflows (🚀)
+
+```python
+from src.tools.workflows.workflow_runner import WorkflowRunnerTool
+
+runner = WorkflowRunnerTool("workflow_runner", "workflows")
+result = await runner.execute(
     ctx=ctx,
-    workflow_id="simple_health_check",  # or missing_data_troubleshooting, performance_analysis
+    workflow_id="missing_data_troubleshooting",  # or performance_analysis
     earliest_time="-24h",
     latest_time="now",
-    focus_index=None,
+    focus_index="main",
     complexity_level="moderate",
     enable_summarization=True,
 )
 ```
 
-The runner reports frequent progress updates to avoid client timeouts and returns structured results with execution metrics.
+The runner reports progress regularly and returns structured results with execution metrics and optional AI summaries.
 
-## Creating Workflows (🔧)
+### Create workflows (🔧)
 
-Workflows are JSON files following the WorkflowDefinition schema. A minimal example:
+Use `workflow_builder` to generate templates or validate/process finished JSON.
+
+Minimal JSON structure:
 
 ```json
 {
@@ -67,50 +91,42 @@ Workflows are JSON files following the WorkflowDefinition schema. A minimal exam
 }
 ```
 
-Place contrib workflows at: `contrib/workflows/<category>/<workflow_id>.json`
+Save contrib workflows at `contrib/workflows/<category>/<workflow_id>.json`.
 
-## Validation (✅)
+### Validate (✅)
 
-- JSON Schema: use the schema returned by `workflow_requirements` with `format_type="schema"`.
-- Loader validation: contrib loader validates during discovery; errors surface in logs and via the `list_workflows` output.
+- Get JSON Schemas from `workflow_requirements` with `format_type="schema"`.
+- The contrib loader validates during discovery; errors are surfaced in logs and via `list_workflows` output.
 
-## Examples (📎)
+### Benefits (why workflows)
 
-See `examples/workflow_runner_demo.py` for a working client that loads `.env` and invokes the server using a real FastMCP client.
+- **Consistency**: Repeatable procedures using the same tools your team uses every day
+- **Speed**: Parallel phases produce 3–5x faster diagnostics vs sequential steps
+- **Coverage**: No missed checks; encode best practices (e.g., missing data 10-step flow)
+- **Automation**: Run routine tasks on a schedule or ad hoc with rich summaries
 
-## Hands‑On Lab (🧪)
+### Quick start (2 minutes)
 
-Start here for a guided, end-to-end experience creating and running your own workflow:
+1. Copy `.env.example` to `.env`, set `OPENAI_API_KEY` and optional model settings
+2. Start the server (Docker recommended): `docker compose up -d`
+3. Discover workflows with `list_workflows`
+4. Run `missing_data_troubleshooting` with `workflow_runner`
 
-- See: [AI Workflows Hands‑On Lab](../../labs/hands-on-lab.md)
-
-## Quick Start (🚀)
-
-1. Prepare environment
-   - Copy `.env.example` to `.env` and set `OPENAI_API_KEY`
-   - Start the server (Docker recommended): `docker compose up -d`
-2. Discover workflows
-   - Call `list_workflows` to view available IDs (core + contrib)
-3. Run a workflow
-   - Use `workflow_runner` with a workflow ID, e.g. `simple_health_check`
-
-Example (Python):
+Example:
 
 ```python
 from src.tools.workflows.list_workflows import create_list_workflows_tool
 from src.tools.workflows.workflow_runner import WorkflowRunnerTool
 
-# Assume you have an async FastMCP Context named ctx
 lister = create_list_workflows_tool()
-workflows = await lister.execute(ctx, format_type="summary")
+await lister.execute(ctx, format_type="summary")
 
 runner = WorkflowRunnerTool("workflow_runner", "workflows")
-result = await runner.execute(
-    ctx=ctx,
-    workflow_id="simple_health_check",
-    earliest_time="-24h",
-    latest_time="now",
-    complexity_level="moderate",
-)
-print(result["status"], result["workflow_name"])  # e.g., completed Simple Health Check
+await runner.execute(ctx, workflow_id="performance_analysis", earliest_time="-24h", latest_time="now")
 ```
+
+### More resources (📚)
+
+- `workflows-overview.md`: concepts and lifecycle
+- `workflow_runner_guide.md`: parameters, progress, and results
+- Splunk reference for missing data analysis: [Troubleshoot inputs with metrics.log](https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log)
