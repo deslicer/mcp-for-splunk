@@ -20,13 +20,77 @@ This guide provides Windows-specific instructions for setting up and running the
 | **Node.js** | MCP Inspector testing | [nodejs.org](https://nodejs.org/) |
 | **Windows Terminal** | Better terminal experience | [Microsoft Store](https://aka.ms/terminal) |
 
+### Python Installation (Windows)
+
+```powershell
+# Option 1: Microsoft Store (Recommended)
+# Search "Python" in Microsoft Store and install Python 3.11+
+
+# Option 2: Official installer
+# Download from https://python.org/downloads/
+# ✅ Check "Add Python to PATH" during installation
+
+# Option 3: Winget
+winget install Python.Python.3.12
+
+# Option 4: Chocolatey
+choco install python
+
+# Verify installation
+python --version
+pip --version
+```
+
+### UV Package Manager Installation (Windows)
+
+```powershell
+# Option 1: Official installer (Recommended)
+irm https://astral.sh/uv/install.ps1 | iex
+
+# Option 2: Winget
+winget install astral-sh.uv
+
+# Option 3: Pip fallback
+pip install uv
+
+# Verify installation
+uv --version
+```
+
+### Install All Prerequisites (one-liner)
+
+```powershell
+# Installs Python, uv, Node.js, Docker Desktop, and Git
+winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS Docker.DockerDesktop Git.Git
+
+# Verify installations
+python --version; uv --version; node --version; docker --version; git --version
+```
+
+### Prerequisites Verification
+
+Use the built-in verification script to validate your environment:
+
+```powershell
+# Basic check (recommended first)
+.\scripts\check-prerequisites.ps1
+
+# Detailed output with installation paths and suggestions
+.
+\scripts\check-prerequisites.ps1 -Detailed
+
+# Help and usage
+.
+\scripts\check-prerequisites.ps1 -Help
+```
+
 ## 🚀 Quick Start
 
 ### Option 1: PowerShell Script (Recommended)
 
 ```powershell
 # Clone the repository
-git clone https://github.com/your-org/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
 
 # Run the setup script
@@ -37,7 +101,7 @@ cd mcp-server-for-splunk
 
 ```cmd
 # Clone the repository
-git clone https://github.com/your-org/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
 
 # Run the setup script (calls PowerShell internally)
@@ -60,6 +124,23 @@ Copy-Item env.example .env
 
 # Run with FastMCP CLI
 uv run fastmcp run src/server.py
+```
+
+### Optional: Node.js Installation (for MCP Inspector)
+
+```powershell
+# Option 1: Official installer (Recommended)
+# Download from https://nodejs.org/
+
+# Option 2: Winget
+winget install OpenJS.NodeJS
+
+# Option 3: Chocolatey
+choco install nodejs
+
+# Verify installation
+node --version
+npm --version
 ```
 
 ## ⚙️ Configuration
@@ -96,6 +177,16 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # Or temporarily bypass for one session
 PowerShell -ExecutionPolicy Bypass -File .\scripts\build_and_run.ps1
 ```
+
+## 🏢 Splunk Requirements
+
+- **Splunk instance** (Enterprise or Cloud)
+- Valid Splunk credentials with appropriate permissions:
+  - Search capabilities for your intended indexes
+  - Admin access (for admin tools)
+  - KV Store access (for KV Store tools)
+
+> If you enable the `so1` Splunk container for local testing, you must provide your own Splunk Enterprise license. You can mount it by uncommenting the license volume in the compose file (e.g., `./lic/splunk.lic:/tmp/license/splunk.lic:ro`) or add it via the Splunk Web UI after startup.
 
 ## 🐳 Docker Setup
 

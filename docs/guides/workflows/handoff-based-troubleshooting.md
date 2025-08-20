@@ -240,7 +240,7 @@ The system tracks and optimizes context sent to specialist agents:
 
 3. **Run Test Script**:
    ```bash
-   python examples/test_handoff_troubleshooting.py
+   uv run python examples/test_handoff_troubleshooting.py
    ```
 
 4. **Integrate with MCP Server**:

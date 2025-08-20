@@ -14,7 +14,6 @@ The MCP Server for Splunk supports **flexible client configuration**, allowing M
 Both server implementations support client configuration:
 
 - ✅ **`src/server.py`** - Full support (HTTP headers + environment variables)
-- ✅ **`src/server.py`** - Full support (HTTP headers + environment variables)
 
 ## 🔧 **Configuration Methods**
 
@@ -24,31 +23,55 @@ Configure Splunk settings at the **MCP client level** instead of per-tool call.
 
 #### **For Cursor IDE / Claude Desktop**
 
-Add this to your `mcp.json` or settings:
+Add one or both of these to your `mcp.json` or settings, depending on transport:
+
+##### StdIO (env-based, single-tenant)
 
 ```json
 {
   "mcpServers": {
-    "splunk-prod": {
-      "command": "python",
-      "args": ["path/to/mcp-server-for-splunk/src/server.py"],
+    "splunk": {
+      "command": "fastmcp",
+      "args": ["run", "/path/to/src/server.py"],
       "env": {
-        "MCP_SPLUNK_HOST": "splunk-prod.company.com",
-        "MCP_SPLUNK_PORT": "8089",
-        "MCP_SPLUNK_USERNAME": "prod_user",
-        "MCP_SPLUNK_PASSWORD": "prod_password",
+        "MCP_SPLUNK_HOST": "your-splunk.com",
+        "MCP_SPLUNK_USERNAME": "your-user",
+        "MCP_SPLUNK_PASSWORD": "your-password",
         "MCP_SPLUNK_SCHEME": "https",
         "MCP_SPLUNK_VERIFY_SSL": "true"
       }
+    }
+  }
+}
+```
+
+##### HTTP (/mcp/ URL with headers, multi-tenant)
+
+```json
+{
+  "mcpServers": {
+    "splunk-in-docker": {
+      "url": "http://localhost:8002/mcp/",
+      "headers": {
+        "X-Splunk-Host": "so1",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "admin",
+        "X-Splunk-Password": "Chang3d!",
+        "X-Splunk-Scheme": "http",
+        "X-Splunk-Verify-SSL": "false",
+        "X-Session-ID": "splunk-in-docker-session"
+      }
     },
-    "splunk-dev": {
-      "command": "python",
-      "args": ["path/to/mcp-server-for-splunk/src/server.py"],
-      "env": {
-        "MCP_SPLUNK_HOST": "splunk-dev.company.com",
-        "MCP_SPLUNK_USERNAME": "dev_user",
-        "MCP_SPLUNK_PASSWORD": "dev_password",
-        "MCP_SPLUNK_VERIFY_SSL": "false"
+    "splunk-cloud-instance": {
+      "url": "http://localhost:8002/mcp/",
+      "headers": {
+        "X-Splunk-Host": "myorg.splunkcloud.com",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "admin@myorg.com",
+        "X-Splunk-Password": "Chang3d!Cloud",
+        "X-Splunk-Scheme": "https",
+        "X-Splunk-Verify-SSL": "true",
+        "X-Session-ID": "splunk-cloud-session"
       }
     }
   }
@@ -58,23 +81,26 @@ Add this to your `mcp.json` or settings:
 #### **For Google ADK Integration**
 
 ```python
-from mcp import Client
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.adk.core.agent import LlmAgent
+from google.adk.tools.mcp_tool.params import StdioServerParameters
 
-config = {
-    "mcpServers": {
-        "splunk-customer-a": {
-            "command": "python",
-            "args": ["./server.py"],
-            "env": {
-                "MCP_SPLUNK_HOST": "customer-a.splunk.com",
-                "MCP_SPLUNK_USERNAME": os.getenv("CUSTOMER_A_USERNAME"),
-                "MCP_SPLUNK_PASSWORD": os.getenv("CUSTOMER_A_PASSWORD")
-            }
-        }
-    }
-}
-
-client = Client(config)
+splunk_agent = LlmAgent(
+    model="gemini-2.0-flash",
+    tools=[
+        MCPToolset(
+            connection_params=StdioServerParameters(
+                command="fastmcp",
+                args=["run", "/path/to/src/server.py"],
+                env={
+                    "MCP_SPLUNK_HOST": "customer-a.splunk.com",
+                    "MCP_SPLUNK_USERNAME": "api_user",
+                    "MCP_SPLUNK_PASSWORD": "***"
+                }
+            )
+        )
+    ],
+)
 ```
 
 #### **For HTTP Transport**
@@ -85,7 +111,7 @@ When using HTTP transport, pass configuration via headers:
 from fastmcp.client.transports import StreamableHttpTransport
 
 transport = StreamableHttpTransport(
-    url="https://your-mcp-server.com/mcp",
+    url="https://your-mcp-server.com/mcp/",
     headers={
         "X-Splunk-Host": "splunk.company.com",
         "X-Splunk-Port": "8089",
@@ -97,6 +123,22 @@ transport = StreamableHttpTransport(
 )
 
 client = Client(transport)
+```
+
+Or initialize the client directly with an HTTP(S) URL (transport inferred):
+
+```python
+from fastmcp import Client
+import asyncio
+
+client = Client("https://your-mcp-server.com/mcp/")
+
+async def main():
+    async with client:
+        tools = await client.list_tools()
+        print(tools)
+
+asyncio.run(main())
 ```
 
 ### 2. Environment Variables Reference

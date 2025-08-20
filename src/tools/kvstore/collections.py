@@ -49,7 +49,7 @@ class ListKvstoreCollections(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
-        ctx.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
+        await ctx.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
 
         try:
             collections = []
@@ -68,13 +68,13 @@ class ListKvstoreCollections(BaseTool):
                     }
                 )
 
-            ctx.info(f"Found {len(collections)} collections")
+            await ctx.info(f"Found {len(collections)} collections")
             return self.format_success_response(
                 {"count": len(collections), "collections": collections}
             )
         except Exception as e:
             self.logger.error(f"Failed to list KV Store collections: {str(e)}")
-            ctx.error(f"Failed to list KV Store collections: {str(e)}")
+            await ctx.error(f"Failed to list KV Store collections: {str(e)}")
             return self.format_error_response(str(e))
 
 
@@ -138,7 +138,7 @@ class CreateKvstoreCollection(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info(f"Creating new KV Store collection: {collection} in app: {app}")
-        ctx.info(f"Creating new KV Store collection: {collection} in app: {app}")
+        await ctx.info(f"Creating new KV Store collection: {collection} in app: {app}")
 
         try:
             # Validate app name
@@ -167,7 +167,7 @@ class CreateKvstoreCollection(BaseTool):
             kvstore = service.kvstore[encoded_app]
             new_collection = kvstore.create(name=collection, **collection_config)
 
-            ctx.info(f"Collection {collection} created successfully")
+            await ctx.info(f"Collection {collection} created successfully")
             return self.format_success_response(
                 {
                     "collection": {
@@ -181,5 +181,5 @@ class CreateKvstoreCollection(BaseTool):
 
         except Exception as e:
             self.logger.error(f"Failed to create KV Store collection: {str(e)}")
-            ctx.error(f"Failed to create KV Store collection: {str(e)}")
+            await ctx.error(f"Failed to create KV Store collection: {str(e)}")
             return self.format_error_response(f"Failed to create collection: {str(e)}")

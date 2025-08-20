@@ -257,17 +257,17 @@ await ctx.info("Agent execution completed successfully")
 
 ```bash
 # Run OpenAI agent tests
-python -m pytest tests/test_openai_agent.py -v
+uv run pytest tests/test_openai_agent.py -v
 
 # Run integration tests
-python -m pytest tests/test_openai_agent.py tests/test_splunk_tools.py -v
+uv run pytest tests/test_openai_agent.py tests/test_splunk_tools.py -v
 ```
 
 ### Demo Script
 
 ```bash
 # Run the demonstration script
-python examples/openai_agent_demo.py
+uv run python examples/openai_agent_demo.py
 ```
 
 ### Mock Testing

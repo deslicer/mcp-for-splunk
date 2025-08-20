@@ -54,7 +54,7 @@ class GetKvstoreData(BaseTool):
             return self.format_error_response(error_msg)
 
         self.logger.info(f"Retrieving data from KV Store collection: {collection}")
-        ctx.info(f"Retrieving data from KV Store collection: {collection}")
+        await ctx.info(f"Retrieving data from KV Store collection: {collection}")
 
         try:
             # Get the collection from the appropriate app context
@@ -74,10 +74,10 @@ class GetKvstoreData(BaseTool):
             # Convert to list for response
             doc_list = list(documents)
 
-            ctx.info(f"Retrieved {len(doc_list)} documents from collection {collection}")
+            await ctx.info(f"Retrieved {len(doc_list)} documents from collection {collection}")
             return self.format_success_response({"count": len(doc_list), "documents": doc_list})
 
         except Exception as e:
             self.logger.error(f"Failed to retrieve KV Store data: {str(e)}")
-            ctx.error(f"Failed to retrieve KV Store data: {str(e)}")
+            await ctx.error(f"Failed to retrieve KV Store data: {str(e)}")
             return self.format_error_response(str(e))

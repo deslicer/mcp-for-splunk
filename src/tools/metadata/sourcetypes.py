@@ -70,11 +70,11 @@ class ListSourcetypes(BaseTool):
                     sourcetypes.append(result["sourcetype"])
 
             self.logger.info(f"Retrieved {len(sourcetypes)} sourcetypes")
-            ctx.info(f"Sourcetypes: {sourcetypes}")
+            await ctx.info(f"Sourcetypes: {sourcetypes}")
             return self.format_success_response(
                 {"sourcetypes": sorted(sourcetypes), "count": len(sourcetypes)}
             )
         except Exception as e:
             self.logger.error(f"Failed to retrieve sourcetypes: {str(e)}")
-            ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")
+            await ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")
             return self.format_error_response(str(e))
