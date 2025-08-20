@@ -8,6 +8,7 @@ environment variables.
 """
 
 import asyncio
+import os
 import sys
 
 from src.tools.health.status import GetSplunkHealth
@@ -49,6 +50,15 @@ async def demo_client_configuration():
     health_tool = GetSplunkHealth("get_splunk_health", "Health check tool")
     ctx = MockContext()
 
+    def format_expected_error(e: Exception) -> str:
+        msg = str(e)
+        # Common demo/offline error when no real Splunk connection or async context is present
+        if "NoneType" in msg and "await" in msg:
+            return "Expected offline: no Splunk connection (demo without live server)."
+        if "Failed to establish a new connection" in msg or "Connection refused" in msg:
+            return "Expected offline: cannot reach the provided Splunk host."
+        return f"Expected offline: {msg[:120]}..."
+
     print("\n1️⃣  Testing without any configuration (should fail)")
     print("-" * 50)
 
@@ -56,7 +66,7 @@ async def demo_client_configuration():
         result = await health_tool.execute(ctx)
         print(f"Result: {result}")
     except Exception as e:
-        print(f"Expected failure: {e}")
+        print(format_expected_error(e))
 
     print("\n2️⃣  Testing with client-provided HTTP headers (recommended)")
     print("-" * 50)
@@ -106,7 +116,7 @@ async def demo_client_configuration():
             result = await health_tool.execute(ctx)
             print(f"   Result: {result}")
         except Exception as e:
-            print(f"   Expected connection failure: {str(e)[:100]}...")
+            print(f"   {format_expected_error(e)}")
 
     # Note: When using HTTP transport, headers are preferred and extracted automatically server-side.
 
