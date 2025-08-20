@@ -543,8 +543,7 @@ run_local_server() {
     # Start the server with uv and better error handling
     print_local "Finding available port for MCP server..."
 
-    # Check for MCP_SERVER_PORT environment variable, default to 8001
-    local preferred_port=${MCP_SERVER_PORT:-8001}
+    local preferred_port=${MCP_SERVER_PORT:-8003}
     print_local "Preferred port from MCP_SERVER_PORT: $preferred_port"
 
     # Start from preferred port to avoid conflict with Splunk Web UI (port 8000)
@@ -896,7 +895,7 @@ should_run_splunk_docker() {
     fi
 }
 
-# Function to get Docker compose command with profiles
+# Function to get Docker compose command
 get_docker_compose_cmd() {
     local mode=$1
     local base_cmd="docker compose"
@@ -909,20 +908,6 @@ get_docker_compose_cmd() {
             base_cmd="docker compose"
             ;;
     esac
-
-    # Add Splunk profile if needed
-    if should_run_splunk_docker; then
-        if [ "$mode" = "dev" ]; then
-            base_cmd="$base_cmd --profile dev --profile splunk"
-        else
-            base_cmd="$base_cmd --profile splunk"
-        fi
-    else
-        # Only use dev profile when not including Splunk
-        if [ "$mode" = "dev" ]; then
-            base_cmd="$base_cmd --profile dev"
-        fi
-    fi
 
     echo "$base_cmd"
 }

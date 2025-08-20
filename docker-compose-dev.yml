@@ -26,7 +26,7 @@ services:
       - --providers.docker.exposedbydefault=false
       # Configure entrypoints
       - --entrypoints.web.address=:80
-      - --entrypoints.mcp.address=:${MCP_SERVER_PORT:-8001}
+      - --entrypoints.mcp.address=:${MCP_SERVER_PORT:-8003}
       - --entrypoints.inspector.address=:3002
       # Enable API and dashboard (optional, for debugging)
       - --api.dashboard=true
@@ -36,7 +36,7 @@ services:
       - --accesslog=true
     ports:
       - "80:80"           # HTTP
-      - "${MCP_SERVER_PORT:-8001}:${MCP_SERVER_PORT:-8001}"       # MCP Server port (Traefik entrypoint)
+      - "${MCP_SERVER_PORT:-8003}:8001"       # MCP Server port (Traefik entrypoint)
       - "3002:3002"       # MCP Inspector port (Traefik entrypoint)
       - "8080:8080"       # Traefik dashboard
     volumes:
@@ -64,7 +64,7 @@ services:
         apk add --no-cache git &&
         npm install -g @modelcontextprotocol/inspector@0.16.5 &&
         echo 'Starting MCP Inspector...' &&
-        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector --transport streamable-http --server-url http://mcp-server-dev:8003/mcp
+        DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector --transport streamable-http --server-url http://mcp-server-dev:${MCP_SERVER_PORT:-8003}/mcp
       "
     environment:
       - NODE_ENV=development
@@ -115,9 +115,9 @@ services:
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
 
-      # MCP Server settings - use port 8003 consistently for dev mode
+      # MCP Server settings - container uses port 8001 internally, Traefik uses MCP_SERVER_PORT
       - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
-      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8003}
+      - MCP_SERVER_PORT=8001
       - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
 
       # Development settings - Enable all hot reload features
@@ -153,8 +153,8 @@ services:
       - "traefik.http.routers.mcp-server.entrypoints=mcp"
       - "traefik.http.routers.mcp-server.service=mcp-server"
 
-      # Service definition pointing to container port (container uses MCP_SERVER_PORT from environment)
-      - "traefik.http.services.mcp-server.loadbalancer.server.port=8003"
+      # Service definition pointing to container port 8001 (container always uses 8001)
+      - "traefik.http.services.mcp-server.loadbalancer.server.port=8001"
 
       # Add middleware for CORS headers (important for web clients)
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolalloworiginlist=*"
