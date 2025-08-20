@@ -286,7 +286,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **"Port already in use"**
 - The scripts auto-detect available ports
 - Check what's running: `netstat -tulpn | grep 8001`
-- Or use a different port: `fastmcp run src/server.py --port 8002`
+- Or use a different port: `uv run fastmcp run src/server.py --port 8002`
 
 **"Splunk connection failed"**
 ```bash
@@ -307,12 +307,12 @@ curl -k -u username:password https://your-splunk:8089/services/server/info
 
 ### Learn More
 - **[Integration Guide](../guides/integration/)** - Connect different AI clients
-- **[API Reference](../api/)** - Complete tool documentation
+- **[Tools Reference](../reference/tools.md)** - Tool documentation
 - **[Architecture](../architecture/)** - How it all works together
 
 ### Extend & Contribute
-- **[Contributing Guide](../community/contributing.md)** - Add your own tools
-- **[Tool Development](../community/tool-development.md)** - Build custom functionality
+- **[Contributing Guide](../contrib/contributing.md)** - Add your own tools
+- **[Tool Development](../contrib/tool_development.md)** - Build custom functionality
 
 ### Deploy to Production
 - **[Deployment Guide](../guides/deployment/)** - Production-ready setup

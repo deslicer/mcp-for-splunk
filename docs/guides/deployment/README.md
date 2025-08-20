@@ -9,8 +9,8 @@ This section covers deployment strategies for the MCP Server for Splunk across d
 | **[Local Development](#local-development)** | Development, testing | Low | ~10 seconds |
 | **[Docker Compose](#docker-compose)** | Local testing, demos | Medium | ~2 minutes |
 | **[Production Docker](production.md)** | Production environments | Medium | ~5 minutes |
-| **[Kubernetes](kubernetes.md)** | Enterprise, scale | High | ~10 minutes |
-| **[Cloud Platforms](cloud.md)** | Cloud-native deployments | Medium-High | ~5-15 minutes |
+| Kubernetes (coming soon) | Enterprise, scale | High | ~10 minutes |
+| Cloud Platforms (coming soon) | Cloud-native deployments | Medium-High | ~5-15 minutes |
 
 ## 🚀 Quick Deployment
 
@@ -335,14 +335,14 @@ docker logs mcp-server | grep "slow_query"
 
 - **[Production Deployment](production.md)** - Enterprise-ready deployment
 - **[Docker Configuration](DOCKER.md)** - Container-specific setup
-- **[Kubernetes Deployment](kubernetes.md)** - Container orchestration
-- **[Cloud Platforms](cloud.md)** - AWS, Azure, GCP deployment
+- Kubernetes Deployment (coming soon)
+- Cloud Platforms (coming soon)
 
 ### Quick References
 
 - **[Configuration Reference](../configuration/)** - All configuration options
-- **[Security Guide](../security.md)** - Security best practices
-- **[Monitoring Guide](../monitoring.md)** - Observability setup
+- **[Security Guide](../security.md)**
+- **[Monitoring Guide](../monitoring.md)**
 
 ## 🎯 Choosing Your Deployment
 

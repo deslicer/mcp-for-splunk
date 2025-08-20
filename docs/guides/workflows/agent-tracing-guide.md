@@ -1,15 +1,12 @@
-# Agent Tracing Guide
+## Deprecated: Agent Tracing Guide
 
-This guide explains how to use the comprehensive tracing capabilities built into the MCP Server for Splunk's dynamic troubleshooting agent system. The tracing implementation follows the [OpenAI Agents SDK tracing documentation](https://openai.github.io/openai-agents-python/tracing/) and provides full observability from the top-level troubleshooting agent down to individual micro-agent tool calls.
+This legacy document described tracing for a prior “dynamic agent” orchestration layer. The current system executes workflows via `workflow_runner`, which internally uses OpenAI Agents SDK tracing for workflow execution and optional summarization.
 
-## Overview
+### How to trace now
 
-The tracing system provides end-to-end visibility into:
-
-- **Top-level troubleshooting workflows** - Problem analysis, workflow selection, and orchestration
-- **Workflow execution** - Dependency analysis, parallel task execution phases, and result synthesis
-- **Individual micro-agents** - Task execution, instruction building, and tool calls
-- **Splunk tool interactions** - Search queries, health checks, and data retrieval operations
+- Ensure OpenAI env vars are set in `.env` (copy from `env.example`).
+- Run workflows through `workflow_runner`; tracing is enabled internally when the OpenAI Agents SDK is available.
+- See `workflow_runner_guide.md` for execution details.
 
 ## Architecture
 
@@ -36,49 +33,28 @@ The tracing follows a hierarchical structure:
 └── 🧠 Orchestration Analysis
 ```
 
-## Prerequisites
-
-### Required Dependencies
+### Prerequisites
 
 ```bash
-# Install OpenAI Agents SDK with tracing support
-pip install openai-agents
-
-# Ensure your environment has the OpenAI API key
-export OPENAI_API_KEY="your-openai-api-key"
-```
-
-### Environment Variables
-
-The tracing system respects standard OpenAI Agents SDK environment variables:
-
-```bash
-# Enable/disable tracing globally
-export OPENAI_AGENTS_DISABLE_TRACING=0  # 0 = enabled, 1 = disabled
-
-# Configure sensitive data logging
-export OPENAI_AGENTS_DONT_LOG_MODEL_DATA=0    # 0 = log model data, 1 = don't log
-export OPENAI_AGENTS_DONT_LOG_TOOL_DATA=0     # 0 = log tool data, 1 = don't log
-
-# OpenAI API configuration for tracing backend
-export OPENAI_ORG_ID="your-org-id"           # Optional
-export OPENAI_PROJECT_ID="your-project-id"   # Optional
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+OPENAI_TEMPERATURE=0.7
+OPENAI_MAX_TOKENS=4000
 ```
 
 ## Using the Tracing System
 
-### Basic Usage
-
-The tracing is automatically enabled when you use the `dynamic_troubleshoot` tool:
+### Example
 
 ```python
-# Example usage - tracing happens automatically
-result = await dynamic_troubleshoot_tool.execute(
+from src.tools.workflows.workflow_runner import WorkflowRunnerTool
+
+runner = WorkflowRunnerTool("workflow_runner", "workflows")
+result = await runner.execute(
     ctx=context,
-    problem_description="My dashboard shows no data for the last 2 hours",
+    workflow_id="missing_data_troubleshooting",
     earliest_time="-24h",
-    latest_time="now",
-    workflow_type="auto"
+    latest_time="now"
 )
 ```
 
@@ -174,16 +150,9 @@ Example tool span attributes:
 }
 ```
 
-## Viewing Traces
+### Viewing traces
 
-### OpenAI Traces Dashboard
-
-Traces are automatically sent to OpenAI's traces dashboard when using a valid API key:
-
-1. Visit the [OpenAI Platform](https://platform.openai.com)
-2. Navigate to "Traces" in the sidebar
-3. Find your troubleshooting traces by name or time
-4. Drill down into spans for detailed execution flow
+- Use the OpenAI Platform “Traces” dashboard when the SDK is active.
 
 ### Custom Trace Processors
 
@@ -215,31 +184,9 @@ The OpenAI Agents SDK supports many observability platforms:
 
 See the [external processors list](https://openai.github.io/openai-agents-python/tracing/#external-tracing-processors-list) for details.
 
-## Troubleshooting
+### Troubleshooting
 
-### Tracing Not Working
-
-1. **Check OpenAI Agents SDK Installation**:
-   ```bash
-   pip show openai-agents
-   ```
-
-2. **Verify API Key**:
-   ```bash
-   echo $OPENAI_API_KEY
-   ```
-
-3. **Check Environment Variables**:
-   ```bash
-   echo $OPENAI_AGENTS_DISABLE_TRACING  # Should be 0 or unset
-   ```
-
-4. **Review Logs**:
-   ```python
-   # Enable verbose logging
-   from agents import enable_verbose_stdout_logging
-   enable_verbose_stdout_logging()
-   ```
+- Verify OpenAI dependencies are installed and `OPENAI_API_KEY` is set.
 
 ### Common Issues
 
@@ -360,14 +307,4 @@ class CustomAnalyticsProcessor:
 add_trace_processor(CustomAnalyticsProcessor())
 ```
 
-## Conclusion
-
-The comprehensive tracing system provides unprecedented visibility into the dynamic troubleshooting agent workflows. By following the OpenAI Agents SDK patterns, you get:
-
-- **Full observability** from top-level workflows to individual tool calls
-- **Rich metadata** for debugging and optimization
-- **Integration flexibility** with multiple observability platforms
-- **Performance insights** for workflow optimization
-- **Error tracking** for reliability improvements
-
-Use this tracing data to understand agent behavior, optimize performance, debug issues, and improve the overall troubleshooting experience.
+For current docs, see `workflows-overview.md`, `README.md` in this folder, and `workflow_runner_guide.md`.

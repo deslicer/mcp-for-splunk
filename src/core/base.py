@@ -69,9 +69,9 @@ class BaseTool(ABC):
         Get client configuration from MCP context.
 
         Checks multiple sources in priority order:
-        1. HTTP request headers (for HTTP transport)
-        2. MCP client environment variables
-        3. Server lifespan context
+        1. Context state (set by middleware per request)
+        2. HTTP request headers (for HTTP transport)
+        3. MCP client environment variables (lifespan context)
 
         Args:
             ctx: MCP context
@@ -79,7 +79,17 @@ class BaseTool(ABC):
         Returns:
             Client configuration dict or None
         """
-        # Try to get from HTTP request state (if HTTP transport)
+        # Priority 1: Context state (preferred, set by middleware)
+        try:
+            if hasattr(ctx, "get_state"):
+                state_cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+                if state_cfg:
+                    self.logger.info("Using client config from context state")
+                    return state_cfg
+        except Exception:
+            pass
+
+        # Priority 2: HTTP request state (if HTTP transport)
         try:
             if hasattr(ctx.request_context, "request") and hasattr(
                 ctx.request_context.request, "state"
@@ -92,7 +102,7 @@ class BaseTool(ABC):
         except Exception:
             pass
 
-        # Try to get from lifespan context (client environment)
+        # Priority 3: Lifespan context (client environment)
         try:
             splunk_ctx = ctx.request_context.lifespan_context
             if hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:

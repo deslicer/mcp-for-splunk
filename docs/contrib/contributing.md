@@ -15,7 +15,7 @@ Welcome to the community! We're excited to have you contribute to making AI and 
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/your-username/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
 
 # Set up development environment
@@ -238,7 +238,7 @@ make test
 make test-contrib
 
 # Run with coverage
-pytest --cov=contrib tests/contrib/
+uv run pytest --cov=contrib tests/contrib/
 ```
 
 ## 🔍 Code Quality
@@ -473,4 +473,4 @@ Every contribution makes a difference:
 
 Start with our [interactive tool generator](../../contrib/scripts/generate_tool.py) or browse [existing tools](../../contrib/tools/) for inspiration!
 
-**Questions?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - the community is here to help!
+**Questions?** Join our [GitHub Discussions](https://github.com/deslicer/mcp-server-for-splunk/discussions) - the community is here to help!

@@ -990,88 +990,10 @@ class PromptLoader:
                     self.logger.exception("Full traceback:")
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
 
-        elif prompt_name == "mcp_overview":
-            async def prompt_wrapper(detail_level: str = "basic") -> list[dict[str, Any]]:
-                """MCP overview prompt with optional detail level"""
-                try:
-                    prompt_instance = prompt_class(metadata.name, metadata.description)
-                    try:
-                        ctx = get_context()
-                    except Exception as e:
-                        self.logger.error(
-                            f"Could not get current context for prompt {prompt_name}: {e}"
-                        )
-                        raise RuntimeError(
-                            f"Prompt {prompt_name} can only be called within an MCP request context"
-                        ) from e
-
-                    result = await prompt_instance.get_prompt(ctx, detail_level=detail_level)
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    return [{"type": "text", "text": str(result)}]
-                except Exception as e:
-                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
-                    self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
-
-        elif prompt_name == "workflow_creation_guide":
-            async def prompt_wrapper(
-                workflow_type: str = "general", complexity: str = "simple"
-            ) -> list[dict[str, Any]]:
-                """Workflow creation guide prompt with parameters"""
-                try:
-                    prompt_instance = prompt_class(metadata.name, metadata.description)
-                    try:
-                        ctx = get_context()
-                    except Exception as e:
-                        self.logger.error(
-                            f"Could not get current context for prompt {prompt_name}: {e}"
-                        )
-                        raise RuntimeError(
-                            f"Prompt {prompt_name} can only be called within an MCP request context"
-                        ) from e
-
-                    result = await prompt_instance.get_prompt(
-                        ctx, workflow_type=workflow_type, complexity=complexity
-                    )
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    return [{"type": "text", "text": str(result)}]
-                except Exception as e:
-                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
-                    self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
-
-        elif prompt_name == "tool_usage_guide":
-            async def prompt_wrapper(
-                tool_name: str, scenario: str | None = None
-            ) -> list[dict[str, Any]]:
-                """Tool usage guide prompt"""
-                try:
-                    prompt_instance = prompt_class(metadata.name, metadata.description)
-                    try:
-                        ctx = get_context()
-                    except Exception as e:
-                        self.logger.error(
-                            f"Could not get current context for prompt {prompt_name}: {e}"
-                        )
-                        raise RuntimeError(
-                            f"Prompt {prompt_name} can only be called within an MCP request context"
-                        ) from e
-
-                    result = await prompt_instance.get_prompt(ctx, tool_name=tool_name, scenario=scenario)
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    return [{"type": "text", "text": str(result)}]
-                except Exception as e:
-                    self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
-                    self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
-
         else:
-            # New and generic prompts: accept arbitrary keyword arguments and pass through
-            async def prompt_wrapper() -> list[dict[str, Any]]:
-                """Generic prompt wrapper that forwards keyword arguments to get_prompt"""
+            # Intelligent wrapper for prompts with parameters - dynamically generate signature from metadata
+            async def prompt_wrapper(**kwargs) -> list[dict[str, Any]]:
+                """Intelligent prompt wrapper that handles parameters dynamically"""
                 try:
                     # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
@@ -1087,8 +1009,8 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method without extra arguments
-                    result = await prompt_instance.get_prompt(ctx)
+                    # Call the prompt's get_prompt method with all provided parameters
+                    result = await prompt_instance.get_prompt(ctx, **kwargs)
 
                     # Convert to FastMCP prompt format
                     if isinstance(result, dict) and "content" in result:
@@ -1101,6 +1023,68 @@ class PromptLoader:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
+
+            # Dynamically set the function signature based on prompt metadata
+            if hasattr(metadata, 'arguments') and metadata.arguments:
+                # Import inspect for signature manipulation
+                import inspect
+
+                # Create parameter objects for the function signature
+                params = []
+                for arg in metadata.arguments:
+                    # Determine parameter type annotation
+                    if arg.get("type") == "string":
+                        annotation = str
+                    elif arg.get("type") == "boolean":
+                        annotation = bool
+                    elif arg.get("type") == "number":
+                        annotation = int | float
+                    else:
+                        annotation = Any
+
+                    # Create parameter with proper defaults
+                    if arg.get("required", False):
+                        # Required parameter
+                        param = inspect.Parameter(
+                            name=arg["name"],
+                            kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            annotation=annotation
+                        )
+                    else:
+                        # Optional parameter with default
+                        default_value = None
+                        if arg.get("type") == "boolean":
+                            default_value = False
+                        elif arg.get("type") == "string":
+                            default_value = ""
+                        elif arg.get("type") == "number":
+                            default_value = 0
+
+                        param = inspect.Parameter(
+                            name=arg["name"],
+                            kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            default=default_value,
+                            annotation=annotation
+                        )
+
+                    params.append(param)
+
+                # Create new signature
+                new_sig = inspect.Signature(params, return_annotation=list[dict[str, Any]])
+                prompt_wrapper.__signature__ = new_sig
+
+                # Set type annotations
+                prompt_wrapper.__annotations__ = {}
+                for param in params:
+                    if param.annotation != inspect.Parameter.empty:
+                        prompt_wrapper.__annotations__[param.name] = param.annotation
+                prompt_wrapper.__annotations__["return"] = list[dict[str, Any]]
+
+                self.logger.debug(f"Generated parameterized signature for {prompt_name}: {new_sig}")
+            else:
+                # No parameters - use simple signature
+                prompt_wrapper.__signature__ = inspect.signature(lambda: None)
+                prompt_wrapper.__annotations__ = {"return": list[dict[str, Any]]}
 
         # Set function metadata
         prompt_wrapper.__name__ = prompt_name
