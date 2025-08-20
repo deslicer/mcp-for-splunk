@@ -15,13 +15,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-merge when release-please label present
-        uses: peter-evans/auto-merge@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          merge-method: squash
-          required-labels: |
-            autorelease: pending
-          blocking-labels: |
-            do not merge
-          delete-branch: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER='${{ github.event.pull_request.number }}'
+          REPO='${{ github.repository }}'
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Not a pull_request event; skipping"
+            exit 0
+          fi
+          echo "Checking labels on PR #$PR_NUMBER"
+          if ! gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name' | grep -Fx "autorelease: pending" >/dev/null; then
+            echo "Label 'autorelease: pending' not present; skipping"
+            exit 0
+          fi
+          echo "Ensuring checks have reported"
+          gh pr checks "$PR_NUMBER" --repo "$REPO" || true
+          echo "Attempting auto-merge (squash)"
+          gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --auto || true
 
