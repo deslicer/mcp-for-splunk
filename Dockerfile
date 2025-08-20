@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download and install uv
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
+ENV UV_INSTALL_DIR=/usr/local/bin
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 
 # Ensure uv is on PATH
