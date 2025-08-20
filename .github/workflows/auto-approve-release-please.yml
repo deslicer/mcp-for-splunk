@@ -26,15 +26,18 @@ jobs:
             exit 0
           fi
           author=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author -q .author.login)
-          echo "author=$author"
-          if [ "$author" != "github-actions[bot]" ]; then
-            echo "Not a release-please PR author; skipping"
-            exit 0
-          fi
+          head_ref=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefName -q .headRefName)
+          title=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title -q .title)
+          echo "author=$author head_ref=$head_ref title=$title"
           if ! gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name' | grep -Fx "autorelease: pending" >/dev/null; then
             echo "Label 'autorelease: pending' not present; skipping"
             exit 0
           fi
-          echo "Approving PR #$PR_NUMBER"
-          gh pr review "$PR_NUMBER" --repo "$REPO" --approve || true
+          # Approve if it's a release-please PR by bot OR the release-please branch pattern OR standard release title
+          if [ "$author" = "github-actions[bot]" ] || echo "$head_ref" | grep -q '^release-please--branches--' || echo "$title" | grep -q '^chore\(main\): release '; then
+            echo "Approving PR #$PR_NUMBER"
+            gh pr review "$PR_NUMBER" --repo "$REPO" --approve || true
+          else
+            echo "PR does not match release-please criteria; skipping approval"
+          fi
 
