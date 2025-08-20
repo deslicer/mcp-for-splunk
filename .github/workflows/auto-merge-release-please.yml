@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-merge when release-please label present
-        uses: peter-evans/auto-merge@v3
+        uses: peter-evans/auto-merge@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           merge-method: squash
