@@ -398,11 +398,16 @@ function Start-LocalServer {
 
     # Start the server with uv and better error handling
     Write-Local "Finding available port for MCP server..."
-    # Start from 8001 to avoid conflict with Splunk Web UI (port 8000)
-    $mcpPort = Find-AvailablePort -StartPort 8001
 
-    if ($mcpPort -ne 8001) {
-        Write-Warning "Port 8001 is in use. Using port $mcpPort instead."
+    # Check for MCP_SERVER_PORT environment variable, default to 8001
+    $preferredPort = if ($env:MCP_SERVER_PORT) { [int]$env:MCP_SERVER_PORT } else { 8001 }
+    Write-Local "Preferred port from MCP_SERVER_PORT: $preferredPort"
+
+    # Start from preferred port to avoid conflict with Splunk Web UI (port 8000)
+    $mcpPort = Find-AvailablePort -StartPort $preferredPort
+
+    if ($mcpPort -ne $preferredPort) {
+        Write-Warning "Port $preferredPort is in use. Using port $mcpPort instead."
     } else {
         Write-Local "Using port $mcpPort for MCP server."
     }
@@ -488,16 +493,18 @@ function Start-LocalServer {
                     Write-Success "Using existing MCP Inspector instance"
                     $inspectorAvailable = $true
                 } else {
-                    # Configure environment for inspector (env vars, not CLI flags)
+                                        # Configure environment for inspector (env vars, not CLI flags)
                     $env:DANGEROUSLY_OMIT_AUTH = "true"
                     $env:MCP_AUTO_OPEN_ENABLED = "false"
-                    $env:DEFAULT_TRANSPORT = "streamable-http"
-                    $env:DEFAULT_SERVER_URL = "http://localhost:$mcpPort/mcp"
+
+                    # Use command-line arguments for more reliable configuration
+                    $inspectorUrl = "http://localhost:$mcpPort/mcp/"
+                    Write-Local "Configuring MCP Inspector to connect to: $inspectorUrl"
 
                     Ensure-LogsDir
 
                     try {
-                        $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector" -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
+                        $inspectorProcess = Start-Process -FilePath "npx" -ArgumentList "--yes", "@modelcontextprotocol/inspector", "--transport", "streamable-http", "--server-url", $inspectorUrl -RedirectStandardOutput "logs/inspector.log" -RedirectStandardError "logs/inspector_error.log" -PassThru -NoNewWindow
                         Write-Local "Waiting for MCP Inspector to start..."
                         $attempts = 0
                         $maxAttempts = 10
@@ -576,7 +583,7 @@ function Start-LocalServer {
             Write-Status "🎯 Testing Instructions:"
             Write-Host "   1. Open http://localhost:6274 in your browser"
             Write-Host "   2. Ensure that Streamable HTTP is set"
-            Write-Host "   3. Update URL from default to: http://localhost:$mcpPort/mcp/"
+            Write-Host "   3. MCP Inspector is pre-configured to connect to port $mcpPort"
             Write-Host "   4. Click 'Connect' button at the bottom"
             Write-Host "   5. Test tools and resources interactively"
         } else {
@@ -584,7 +591,7 @@ function Start-LocalServer {
             Write-Status "🎯 Alternative Testing:"
             Write-Host "   1. Open https://inspector.mcp.dev/ in your browser"
             Write-Host "   2. Ensure that Streamable HTTP is set"
-            Write-Host "   3. Update URL from default to: http://localhost:$mcpPort/mcp/"
+            Write-Host "   3. Enter server URL: http://localhost:$mcpPort/mcp/"
             Write-Host "   4. Click 'Connect' button at the bottom"
             Write-Host "   5. Test tools and resources interactively"
             Write-Host ""
@@ -592,7 +599,7 @@ function Start-LocalServer {
             Write-Host "   • Check if Node.js is installed: node --version"
             Write-Host "   • Check inspector logs: Get-Content logs/inspector.log"
             Write-Host "   • Try manual install: npm install -g @modelcontextprotocol/inspector"
-            Write-Host "   • Manual start: `$env:DANGEROUSLY_OMIT_AUTH='true'; `$env:DEFAULT_TRANSPORT='streamable-http'; `$env:DEFAULT_SERVER_URL='http://localhost:$mcpPort/mcp'; npx @modelcontextprotocol/inspector"
+            Write-Host "   • Manual start: `$env:DANGEROUSLY_OMIT_AUTH='true'; `$env:DEFAULT_TRANSPORT='streamable-http'; `$env:DEFAULT_SERVER_URL='http://localhost:$mcpPort/mcp/'; npx @modelcontextprotocol/inspector"
         }
 
         Write-Host ""
@@ -875,6 +882,152 @@ function Stop-AllProcesses {
 $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
     Stop-AllProcesses
 }
+
+# Function to prompt for Splunk configuration and update .env file
+function Prompt-SplunkConfig {
+    Write-Host ""
+    Write-Status "🔧 Splunk Configuration Setup"
+    Write-Host "=================================="
+    Write-Host ""
+
+    # Check if .env file exists, create from example if not
+    if (-not (Test-Path ".env")) {
+        if (Test-Path "env.example") {
+            Write-Local "Creating .env file from env.example..."
+            Copy-Item "env.example" ".env"
+            Write-Success ".env file created from env.example"
+        } else {
+            Write-Error "env.example not found. Cannot create .env file."
+            return $false
+        }
+    }
+
+    # Read current values from .env file
+    $currentHost = ""
+    $currentPort = "8089"
+    $currentUsername = "admin"
+    $currentPassword = ""
+
+    if (Test-Path ".env") {
+        $envContent = Get-Content ".env"
+        foreach ($line in $envContent) {
+            if ($line -match "^SPLUNK_HOST=(.+)$") {
+                $currentHost = $matches[1].Trim('"', "'")
+            } elseif ($line -match "^SPLUNK_PORT=(.+)$") {
+                $currentPort = $matches[1].Trim('"', "'")
+            } elseif ($line -match "^SPLUNK_USERNAME=(.+)$") {
+                $currentUsername = $matches[1].Trim('"', "'")
+            } elseif ($line -match "^SPLUNK_PASSWORD=(.+)$") {
+                $currentPassword = $matches[1].Trim('"', "'")
+            }
+        }
+    }
+
+    Write-Host "Current Splunk configuration:"
+    Write-Host "  Host: $($currentHost ? $currentHost : 'Not set')"
+    Write-Host "  Port: $currentPort"
+    Write-Host "  Username: $currentUsername"
+    Write-Host "  Password: $($currentPassword ? '***' : 'Not set')"
+    Write-Host ""
+
+    # Prompt for new values
+    $newHost = Read-Host "Enter Splunk host/URL (current: $($currentHost ? $currentHost : 'Not set'), press Enter to keep)"
+    $newPort = Read-Host "Enter Splunk port (current: $currentPort, press Enter to keep)"
+    $newUsername = Read-Host "Enter Splunk username (current: $currentUsername, press Enter to keep)"
+    $newPassword = Read-Host "Enter Splunk password (press Enter to keep current)" -AsSecureString
+
+    # Use new values if provided, otherwise keep current
+    $finalHost = if ($newHost) { $newHost } else { $currentHost }
+    $finalPort = if ($newPort) { $newPort } else { $currentPort }
+    $finalUsername = if ($newUsername) { $newUsername } else { $currentUsername }
+    $finalPassword = if ($newPassword.Length -gt 0) {
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($newPassword)
+        [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    } else { $currentPassword }
+
+    # Parse URL if provided (strip protocol and extract hostname)
+    if ($newHost) {
+        if ($newHost -match "^https?://(.+)$") {
+            $finalHost = $matches[1]
+            Write-Local "Extracted hostname from URL: $finalHost"
+
+            # Set SSL verification based on protocol
+            if ($newHost -match "^https://") {
+                $env:SPLUNK_VERIFY_SSL = "true"
+                Write-Local "HTTPS detected - setting SPLUNK_VERIFY_SSL=true"
+            } else {
+                $env:SPLUNK_VERIFY_SSL = "false"
+                Write-Local "HTTP detected - setting SPLUNK_VERIFY_SSL=false"
+            }
+        }
+    }
+
+    # Validate required fields
+    if (-not $finalHost) {
+        Write-Error "SPLUNK_HOST is required. Please provide a value."
+        return $false
+    }
+
+    if (-not $finalUsername) {
+        Write-Error "SPLUNK_USERNAME is required. Please provide a value."
+        return $false
+    }
+
+    if (-not $finalPassword) {
+        Write-Error "SPLUNK_PASSWORD is required. Please provide a value."
+        return $false
+    }
+
+    # Show final configuration for confirmation
+    Write-Host ""
+    Write-Host "Final Splunk configuration:"
+    Write-Host "  Host: $finalHost"
+    Write-Host "  Port: $finalPort"
+    Write-Host "  Username: $finalUsername"
+    Write-Host "  Password: ***"
+    Write-Host ""
+
+    $confirm = Read-Host "Update .env file with these settings? (y/N)"
+    if ($confirm -match "^[Yy]$") {
+        # Update .env file
+        $tempEnv = ".env.tmp"
+        $envContent = Get-Content ".env"
+
+        # Process .env file line by line
+        foreach ($line in $envContent) {
+            if ($line -match "^SPLUNK_HOST=") {
+                "SPLUNK_HOST=$finalHost" | Out-File -FilePath $tempEnv -Append -Encoding ASCII
+            } elseif ($line -match "^SPLUNK_PORT=") {
+                "SPLUNK_PORT=$finalPort" | Out-File -FilePath $tempEnv -Append -Encoding ASCII
+            } elseif ($line -match "^SPLUNK_USERNAME=") {
+                "SPLUNK_USERNAME=$finalUsername" | Out-File -FilePath $tempEnv -Append -Encoding ASCII
+            } elseif ($line -match "^SPLUNK_PASSWORD=") {
+                "SPLUNK_PASSWORD=$finalPassword" | Out-File -FilePath $tempEnv -Append -Encoding ASCII
+            } else {
+                $line | Out-File -FilePath $tempEnv -Append -Encoding ASCII
+            }
+        }
+
+        # Replace original .env with updated version
+        Move-Item $tempEnv ".env" -Force
+
+        Write-Success ".env file updated successfully!"
+
+        # Set the new values for current session
+        $env:SPLUNK_HOST = $finalHost
+        $env:SPLUNK_PORT = $finalPort
+        $env:SPLUNK_USERNAME = $finalUsername
+        $env:SPLUNK_PASSWORD = $finalPassword
+
+        return $true
+    } else {
+        Write-Warning "Configuration update cancelled."
+        return $false
+    }
+}
+
+# Prompt for Splunk configuration before proceeding
+Prompt-SplunkConfig
 
 # Main logic: Check Docker availability and choose deployment method
 try {

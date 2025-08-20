@@ -2,8 +2,64 @@
 
 # Build and run MCP Server for Splunk
 # This script builds the Docker image and runs it with docker-compose, or falls back to local mode
+#
+# Usage:
+#   ./build_and_run.sh              # Interactive mode - choose deployment method
+#   ./build_and_run.sh --docker     # Force Docker deployment
+#   ./build_and_run.sh --local      # Force local deployment
+#
+# Arguments:
+#   --docker    Force Docker deployment (skip choice dialog)
+#   --local     Force local deployment (skip choice dialog)
+#   --help      Show this help message
 
 set -e  # Exit on error
+
+# Parse command line arguments first (before any other logic)
+DEPLOYMENT_MODE=""
+FORCE_MODE=false
+STOP_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --docker)
+            DEPLOYMENT_MODE="docker"
+            FORCE_MODE=true
+            shift
+            ;;
+        --local)
+            DEPLOYMENT_MODE="local"
+            FORCE_MODE=true
+            shift
+            ;;
+        --stop)
+            STOP_MODE=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo
+            echo "Options:"
+            echo "  --docker    Force Docker deployment (skip choice dialog)"
+            echo "  --local     Force local deployment (skip choice dialog)"
+            echo "  --stop      Stop all Docker services and clean up"
+            echo "  --help, -h  Show this help message"
+            echo
+            echo "Examples:"
+            echo "  $0              # Interactive mode - choose deployment method"
+            echo "  $0 --docker     # Force Docker deployment"
+            echo "  $0 --local      # Force local deployment"
+            echo "  $0 --stop       # Stop all Docker services"
+            echo
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option: $1" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+    esac
+done
 
 # Change to the project root directory (parent of scripts)
 cd "$(dirname "$0")/.."
@@ -49,6 +105,195 @@ ensure_logs_dir() {
         print_local "Creating logs directory..."
         mkdir -p logs
     fi
+}
+
+# Function to prompt for Splunk configuration and update .env file
+prompt_splunk_config() {
+    local is_docker_mode=${1:-false}
+    echo
+    print_status "🔧 Splunk Configuration Setup"
+    echo "=================================="
+    echo
+
+    # Check if .env file exists, create from example if not
+    if [ ! -f .env ]; then
+        if [ -f env.example ]; then
+            print_local "Creating .env file from env.example..."
+            cp env.example .env
+            print_success ".env file created from env.example"
+        else
+            print_error "env.example not found. Cannot create .env file."
+            return 1
+        fi
+    fi
+
+    # Read current values from .env file
+    local current_host=$(grep "^SPLUNK_HOST=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "")
+    local current_port=$(grep "^SPLUNK_PORT=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "8089")
+    local current_username=$(grep "^SPLUNK_USERNAME=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "admin")
+    local current_password=$(grep "^SPLUNK_PASSWORD=" .env 2>/dev/null | cut -d'=' -f2 | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || echo "")
+
+    echo "Current Splunk configuration:"
+    echo "  Host: ${current_host:-'Not set'}"
+    echo "  Port: ${current_port:-'8089'}"
+    echo "  Username: ${current_username:-'admin'}"
+    echo "  Password: ${current_password:+'***'}"
+    echo
+
+    # If in Docker mode and SPLUNK_HOST is not 'so1', offer to restore Docker defaults
+    local docker_defaults_restored=false
+    if [ "$is_docker_mode" = true ] && [ "$current_host" != "so1" ] && [ -n "$current_host" ]; then
+        echo "🚢 Docker Mode Detected:"
+        echo "   Current SPLUNK_HOST ($current_host) is different from Docker default (so1)"
+        echo "   This will use external Splunk instead of the included Docker container"
+        echo
+        read -p "Restore Docker defaults (so1) to include Splunk container? (y/N): " restore_docker
+        if [[ "$restore_docker" =~ ^[Yy]$ ]]; then
+            current_host="so1"
+            current_port="8089"
+            current_username="admin"
+            current_password="Chang3d!"
+            docker_defaults_restored=true
+            print_success "Restored Docker defaults: SPLUNK_HOST=so1, SPLUNK_PORT=8089, SPLUNK_USERNAME=admin, SPLUNK_PASSWORD=Chang3d!"
+            echo
+        fi
+    fi
+
+    # Prompt for new values (skip if Docker defaults were restored)
+    if [ "$docker_defaults_restored" = true ]; then
+        # Use restored Docker defaults directly
+        local final_host="$current_host"
+        local final_port="$current_port"
+        local final_username="$current_username"
+        local final_password="$current_password"
+        print_local "Using restored Docker defaults, skipping user input prompts..."
+    else
+        # Prompt for new values
+        read -p "Enter Splunk host/URL (current: ${current_host:-'Not set'}, press Enter to keep): " new_host
+        read -p "Enter Splunk port (current: ${current_port:-'8089'}, press Enter to keep): " new_port
+        read -p "Enter Splunk username (current: ${current_username:-'admin'}, press Enter to keep): " new_username
+        read -s -p "Enter Splunk password (press Enter to keep current): " new_password
+        echo
+
+        # Use new values if provided, otherwise keep current
+        local final_host=${new_host:-$current_host}
+        local final_port=${new_port:-$current_port}
+        local final_username=${new_username:-$current_username}
+        local final_password=${new_password:-$current_password}
+    fi
+
+    # Parse URL if provided (strip protocol and extract hostname)
+    if [ -n "$new_host" ]; then
+        if [[ "$new_host" =~ ^https?://(.+)$ ]]; then
+            final_host="${BASH_REMATCH[1]}"
+            print_local "Extracted hostname from URL: $final_host"
+            print_local "Note: SSL verification setting unchanged (preserves private CA configuration)"
+        fi
+    fi
+
+    # Validate required fields
+    if [ -z "$final_host" ]; then
+        print_error "SPLUNK_HOST is required. Please provide a value."
+        return 1
+    fi
+
+    if [ -z "$final_username" ]; then
+        print_error "SPLUNK_USERNAME is required. Please provide a value."
+        return 1
+    fi
+
+    if [ -z "$final_password" ]; then
+        print_error "SPLUNK_PASSWORD is required. Please provide a value."
+        return 1
+    fi
+
+    # Check if there are actual changes to make
+    local has_changes=false
+    if [ "$docker_defaults_restored" = true ]; then
+        has_changes=true
+    elif [ "$new_host" != "" ] || [ "$new_port" != "" ] || [ "$new_username" != "" ] || [ "$new_password" != "" ]; then
+        has_changes=true
+    fi
+
+    # Show final configuration
+    echo
+    echo "Final Splunk configuration:"
+    echo "  Host: $final_host"
+    echo "  Port: $final_port"
+    echo "  Username: $final_username"
+    echo "  Password: ***"
+    echo
+
+    # Only ask for confirmation if there are actual changes
+    if [ "$has_changes" = true ]; then
+        # If Docker defaults were restored, automatically update without asking
+        if [ "$docker_defaults_restored" = true ]; then
+            print_status "Automatically updating .env file with restored Docker defaults..."
+
+            # Update .env file
+            local temp_env=".env.tmp"
+
+            # Process .env file line by line
+            while IFS= read -r line || [ -n "$line" ]; do
+                if [[ "$line" =~ ^SPLUNK_HOST= ]]; then
+                    echo "SPLUNK_HOST='$final_host'" >> "$temp_env"
+                elif [[ "$line" =~ ^SPLUNK_PORT= ]]; then
+                    echo "SPLUNK_PORT='$final_port'" >> "$temp_env"
+                elif [[ "$line" =~ ^SPLUNK_USERNAME= ]]; then
+                    echo "SPLUNK_USERNAME='$final_username'" >> "$temp_env"
+                elif [[ "$line" =~ ^SPLUNK_PASSWORD= ]]; then
+                    echo "SPLUNK_PASSWORD='$final_password'" >> "$temp_env"
+                else
+                    echo "$line" >> "$temp_env"
+                fi
+            done < .env
+
+            # Replace original .env with updated version
+            mv "$temp_env" .env
+
+            print_success ".env file updated successfully with Docker defaults!"
+        else
+            # Ask for confirmation for other types of changes
+            read -p "Update .env file with these settings? (y/N): " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                # Update .env file
+                local temp_env=".env.tmp"
+
+                # Process .env file line by line
+                while IFS= read -r line || [ -n "$line" ]; do
+                    if [[ "$line" =~ ^SPLUNK_HOST= ]]; then
+                        echo "SPLUNK_HOST='$final_host'" >> "$temp_env"
+                    elif [[ "$line" =~ ^SPLUNK_PORT= ]]; then
+                        echo "SPLUNK_PORT='$final_port'" >> "$temp_env"
+                    elif [[ "$line" =~ ^SPLUNK_USERNAME= ]]; then
+                        echo "SPLUNK_USERNAME='$final_username'" >> "$temp_env"
+                    elif [[ "$line" =~ ^SPLUNK_PASSWORD= ]]; then
+                        echo "SPLUNK_PASSWORD='$final_password'" >> "$temp_env"
+                    else
+                        echo "$line" >> "$temp_env"
+                    fi
+                done < .env
+
+                # Replace original .env with updated version
+                mv "$temp_env" .env
+
+                print_success ".env file updated successfully!"
+            else
+                print_warning "Configuration update cancelled. Using existing values."
+            fi
+        fi
+    else
+        print_local "No changes detected. Using existing configuration."
+    fi
+
+    # Always export the values for current session (whether updated or existing)
+    export SPLUNK_HOST="$final_host"
+    export SPLUNK_PORT="$final_port"
+    export SPLUNK_USERNAME="$final_username"
+    export SPLUNK_PASSWORD="$final_password"
+
+    print_success "Splunk configuration loaded for current session."
+    return 0
 }
 
 # Function to load environment variables from .env file
@@ -218,6 +463,9 @@ setup_local_env() {
         print_warning "For local development, you can also use MCP_SPLUNK_* environment variables."
     fi
 
+    # Prompt for Splunk configuration with local mode
+    prompt_splunk_config false
+
     # Load environment variables from .env file
     load_env_file
 
@@ -254,9 +502,22 @@ run_local_server() {
     # Check if Node.js/npm is available for MCP Inspector (start after server port is known)
     local inspector_available=false
     local inspector_supported=false
-    if command -v npx &> /dev/null; then
-        inspector_supported=true
-        print_local "Node.js/npx detected. MCP Inspector will be started after the MCP server is running..."
+    if command -v node &> /dev/null && command -v npx &> /dev/null; then
+        # Check Node.js version (MCP Inspector 0.16.x requires Node.js 22+)
+        local node_version=$(node --version 2>/dev/null | sed 's/v//')
+        local node_major=$(echo "$node_version" | cut -d. -f1)
+
+        if [ "$node_major" -ge 22 ] 2>/dev/null; then
+            inspector_supported=true
+            print_local "Node.js v$node_version detected. MCP Inspector will be started after the MCP server is running..."
+        else
+            print_warning "Node.js v$node_version detected, but MCP Inspector 0.16.x requires Node.js 22+"
+            print_warning "MCP Inspector will not be available."
+            print_warning "To upgrade Node.js: https://nodejs.org/"
+            echo
+            print_warning "📚 For detailed installation instructions, see:"
+            print_warning "   docs/getting-started/installation.md#-nodejs-installation-optional---for-mcp-inspector"
+        fi
     else
         print_warning "Node.js/npx not found. MCP Inspector will not be available."
         print_warning "To install Node.js: https://nodejs.org/"
@@ -281,11 +542,15 @@ run_local_server() {
 
     # Start the server with uv and better error handling
     print_local "Finding available port for MCP server..."
-    # Start from 8001 to avoid conflict with Splunk Web UI (port 8000)
-    local mcp_port=$(find_available_port 8001)
 
-    if [ "$mcp_port" -ne 8001 ] 2>/dev/null; then
-        print_warning "Port 8001 is in use. Using port $mcp_port instead."
+    local preferred_port=${MCP_SERVER_PORT:-8003}
+    print_local "Preferred port from MCP_SERVER_PORT: $preferred_port"
+
+    # Start from preferred port to avoid conflict with Splunk Web UI (port 8000)
+    local mcp_port=$(find_available_port $preferred_port)
+
+    if [ "$mcp_port" -ne $preferred_port ] 2>/dev/null; then
+        print_warning "Port $preferred_port is in use. Using port $mcp_port instead."
     else
         print_local "Using port $mcp_port for MCP server."
     fi
@@ -385,12 +650,16 @@ run_local_server() {
                 # Configure environment for inspector (env vars, not CLI flags)
                 export DANGEROUSLY_OMIT_AUTH=true
                 export MCP_AUTO_OPEN_ENABLED=false
-                export DEFAULT_TRANSPORT=streamable-http
-                export DEFAULT_SERVER_URL="http://localhost:$mcp_port/mcp"
+
+                # Use command-line arguments for more reliable configuration
+                local inspector_url="http://localhost:$mcp_port/mcp/"
+                print_local "Configuring MCP Inspector to connect to: $inspector_url"
 
                 ensure_logs_dir
 
-                npx --yes @modelcontextprotocol/inspector > logs/inspector.log 2>&1 &
+                # Install and start MCP Inspector 0.16.5 specifically
+                print_local "Installing MCP Inspector 0.16.5..."
+                npx --yes @modelcontextprotocol/inspector@0.16.5 --transport streamable-http --server-url "$inspector_url" > logs/inspector.log 2>&1 &
                 local inspector_pid=$!
 
                 print_local "Waiting for MCP Inspector to start..."
@@ -418,7 +687,17 @@ run_local_server() {
                         fi
                     fi
 
-                    if command -v lsof &> /dev/null; then
+                    # Enhanced health check: Wait for HTTP endpoint to be accessible
+                    if command -v curl &> /dev/null; then
+                        print_local "Testing MCP Inspector HTTP endpoint (http://localhost:6274)..."
+                        if curl -s -f "http://localhost:6274" > /dev/null 2>&1; then
+                            inspector_running=true
+                            print_success "MCP Inspector HTTP endpoint is responding!"
+                            break
+                        else
+                            print_local "HTTP endpoint not yet responding (attempt $attempts/$max_attempts)..."
+                        fi
+                    elif command -v lsof &> /dev/null; then
                         if lsof -i :6274 &> /dev/null; then
                             inspector_running=true
                             break
@@ -444,9 +723,36 @@ run_local_server() {
                 done
 
                 if [ "$inspector_running" = true ]; then
-                    print_success "MCP Inspector started successfully on port 6274"
-                    echo $inspector_pid > .inspector_pid
-                    inspector_available=true
+                    # Final verification: Ensure the HTTP endpoint is fully accessible
+                    if command -v curl &> /dev/null; then
+                        print_local "Final verification: Testing MCP Inspector accessibility..."
+                        local final_attempts=0
+                        local max_final_attempts=5
+                        local final_success=false
+
+                        while [ $final_attempts -lt $max_final_attempts ]; do
+                            if curl -s -f "http://localhost:6274" > /dev/null 2>&1; then
+                                final_success=true
+                                break
+                            fi
+                            sleep 1
+                            final_attempts=$((final_attempts + 1))
+                            print_local "Final verification attempt $final_attempts/$max_final_attempts..."
+                        done
+
+                        if [ "$final_success" = true ]; then
+                            print_success "MCP Inspector started successfully on port 6274 and is fully accessible!"
+                            echo $inspector_pid > .inspector_pid
+                            inspector_available=true
+                        else
+                            print_warning "MCP Inspector started but HTTP endpoint is not fully accessible"
+                            inspector_available=false
+                        fi
+                    else
+                        print_success "MCP Inspector started successfully on port 6274"
+                        echo $inspector_pid > .inspector_pid
+                        inspector_available=true
+                    fi
                 else
                     print_warning "Failed to start MCP Inspector"
                     if [ -f logs/inspector.log ]; then
@@ -530,7 +836,7 @@ run_local_server() {
         print_status "🎯 Testing Instructions:"
         echo "   1. Open http://localhost:6274 in your browser"
         echo "   2. Ensure that Streamable HTTP is set"
-        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   3. MCP Inspector is pre-configured to connect to port $mcp_port"
         echo "   4. Click 'Connect' button at the bottom"
         echo "   5. Test tools and resources interactively"
     else
@@ -538,15 +844,15 @@ run_local_server() {
         print_status "🎯 Alternative Testing:"
         echo "   1. Open https://inspector.mcp.dev/ in your browser"
         echo "   2. Ensure that Streamable HTTP is set"
-        echo "   3. Update URL from default to: http://localhost:$mcp_port/mcp/"
+        echo "   3. Enter server URL: http://localhost:$mcp_port/mcp/"
         echo "   4. Click 'Connect' button at the bottom"
         echo "   5. Test tools and resources interactively"
         echo
         print_warning "💡 MCP Inspector Troubleshooting:"
-        echo "   • Check if Node.js is installed: node --version"
+        echo "   • Check if Node.js is installed: node --version (requires v22+)"
         echo "   • Check inspector logs: cat logs/inspector.log"
-        echo "   • Try manual install: npm install -g @modelcontextprotocol/inspector"
-        echo "   • Manual start: DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector"
+        echo "   • Try manual install: npm install -g @modelcontextprotocol/inspector@0.16.5"
+                    echo "   • Manual start: DANGEROUSLY_OMIT_AUTH=true DEFAULT_TRANSPORT=streamable-http DEFAULT_SERVER_URL=http://localhost:$mcp_port/mcp/ npx @modelcontextprotocol/inspector@0.16.5"
     fi
 
     echo
@@ -589,7 +895,7 @@ should_run_splunk_docker() {
     fi
 }
 
-# Function to get Docker compose command with profiles
+# Function to get Docker compose command
 get_docker_compose_cmd() {
     local mode=$1
     local base_cmd="docker compose"
@@ -603,16 +909,52 @@ get_docker_compose_cmd() {
             ;;
     esac
 
-    # Add Splunk profile if needed
-    if should_run_splunk_docker; then
-        if [ "$mode" = "dev" ]; then
-            base_cmd="$base_cmd --profile dev --profile splunk"
-        else
-            base_cmd="$base_cmd --profile splunk"
-        fi
+    echo "$base_cmd"
+}
+
+# Function to stop Docker services
+stop_docker_services() {
+    print_status "Stopping Docker services..."
+
+    # Check if docker-compose is available
+    if ! command -v docker-compose &> /dev/null; then
+        print_error "docker-compose not found. Cannot stop services."
+        exit 1
     fi
 
-    echo "$base_cmd"
+    # Load environment variables from .env file for Docker Compose
+    if [ -f .env ]; then
+        load_env_file
+    fi
+
+    # Determine which profiles to use based on current configuration
+    local compose_cmd
+    compose_cmd=$(get_docker_compose_cmd "dev")
+
+    print_status "Using command: $compose_cmd down"
+
+    # Stop all services
+    if eval "$compose_cmd down"; then
+        print_success "All Docker services stopped successfully!"
+
+        # Check if there are any remaining resources
+        print_status "Checking for remaining resources..."
+        if docker network ls | grep -q "mcp-server-for-splunk"; then
+            print_warning "Some networks may still exist. You can remove them manually with:"
+            print_warning "   docker network prune"
+        fi
+
+        if docker volume ls | grep -q "mcp-server-for-splunk"; then
+            print_warning "Some volumes may still exist. You can remove them manually with:"
+            print_warning "   docker volume prune"
+        fi
+    else
+        print_error "Failed to stop some Docker services"
+        print_warning "You may need to stop them manually:"
+        print_warning "   docker ps -a | grep mcp-server-for-splunk"
+        print_warning "   docker stop <container_id>"
+        exit 1
+    fi
 }
 
 # Function to run Docker setup
@@ -656,6 +998,9 @@ run_docker_setup() {
         print_warning "Created .env file. You may want to edit it with your Splunk configuration."
     fi
 
+    # Prompt for Splunk configuration with Docker mode enabled
+    prompt_splunk_config true
+
     # Load environment variables from .env file for Docker Compose
     load_env_file
 
@@ -694,8 +1039,10 @@ run_docker_setup() {
     # Show Splunk configuration info
     if should_run_splunk_docker; then
         print_local "Including Splunk Enterprise container (SPLUNK_HOST=${SPLUNK_HOST:-'not set'} indicates local Splunk)"
+        print_local "Using profiles: dev + splunk for complete stack"
     else
         print_local "Using external Splunk instance: $SPLUNK_HOST"
+        print_local "Using profile: dev only (no local Splunk)"
     fi
 
     print_status "Building Docker image..."
@@ -724,6 +1071,32 @@ run_docker_setup() {
     print_status "Checking service status..."
     eval "$compose_cmd ps"
 
+    # Wait for MCP Inspector to be ready
+    print_status "Waiting for MCP Inspector to be ready..."
+    local inspector_ready=false
+    local inspector_attempts=0
+    local max_inspector_attempts=30
+
+    while [ $inspector_attempts -lt $max_inspector_attempts ] && [ "$inspector_ready" = false ]; do
+        if command -v curl &> /dev/null; then
+            if curl -s -f "http://localhost:6274" > /dev/null 2>&1; then
+                inspector_ready=true
+                print_success "MCP Inspector is ready and accessible at http://localhost:6274"
+                break
+            fi
+        fi
+        sleep 2
+        inspector_attempts=$((inspector_attempts + 1))
+        if [ $((inspector_attempts % 5)) -eq 0 ]; then
+            print_local "Waiting for MCP Inspector... (attempt $inspector_attempts/$max_inspector_attempts)"
+        fi
+    done
+
+    if [ "$inspector_ready" = false ]; then
+        print_warning "MCP Inspector may not be fully ready yet. Check logs:"
+        print_warning "   $compose_cmd logs mcp-inspector"
+    fi
+
     print_status "Checking MCP server logs..."
     eval "$compose_cmd logs $service_name --tail=20"
 
@@ -737,14 +1110,19 @@ run_docker_setup() {
     else
         echo "   🌐 External Splunk:   $SPLUNK_HOST (configured in .env)"
     fi
-    echo "   🔌 MCP Server:        http://localhost:8001/mcp/"
+    echo "   🔌 MCP Server:        http://localhost:${MCP_SERVER_PORT:-8001}/mcp/"
     echo "   📊 MCP Inspector:     http://localhost:6274"
     echo
     print_status "🔍 To check logs:"
     echo "   $compose_cmd logs -f $service_name"
+    echo "   $compose_cmd logs -f mcp-inspector"
     echo
     print_status "🛑 To stop all services:"
     echo "   $compose_cmd down"
+    if should_run_splunk_docker; then
+        echo "   Note: Use '--remove-orphans' flag to ensure complete cleanup:"
+        echo "   $compose_cmd down --remove-orphans"
+    fi
 
     if [ "$docker_mode" = "dev" ]; then
         echo
@@ -820,45 +1198,101 @@ find_available_port() {
     return 1
 }
 
+# Splunk configuration will be prompted after deployment mode is chosen
+
 # Main logic: Check Docker availability and choose deployment method
 print_status "Checking available deployment options..."
 
 # Check if Docker is running
 if docker info > /dev/null 2>&1; then
     print_success "Docker is available and running."
+    DOCKER_AVAILABLE=true
+else
+    print_warning "Docker is not available."
+    DOCKER_AVAILABLE=false
+fi
 
-    # Ask user preference if both Docker and uv are available
-    if check_uv; then
-        echo
-        print_status "Both Docker and local development options are available."
-        echo "Choose deployment method:"
-        echo "  1) Docker (full stack with Splunk, Traefik, MCP Inspector)"
-        echo "  2) Local (FastMCP server only, lighter weight)"
-        echo
-        read -p "Enter your choice (1 or 2, default: 1): " choice
-        choice=${choice:-1}
+# Check if uv is available
+if check_uv; then
+    print_success "uv package manager is available."
+    UV_AVAILABLE=true
+else
+    print_warning "uv package manager is not available."
+    UV_AVAILABLE=false
+fi
 
-        case $choice in
-            1)
+# Handle forced deployment modes
+if [ "$FORCE_MODE" = true ]; then
+    case $DEPLOYMENT_MODE in
+        "docker")
+            if [ "$DOCKER_AVAILABLE" = true ]; then
+                print_status "Forcing Docker deployment as requested..."
                 run_docker_setup
-                ;;
-            2)
+            else
+                print_error "Docker deployment requested but Docker is not available."
+                print_error "Please start Docker or install Docker first."
+                exit 1
+            fi
+            ;;
+        "local")
+            if [ "$UV_AVAILABLE" = true ]; then
+                print_status "Forcing local deployment as requested..."
                 setup_local_env
                 run_local_server
-                ;;
-            *)
-                print_warning "Invalid choice. Using Docker deployment (default)."
-                run_docker_setup
-                ;;
-        esac
-    else
-        # Docker available but no uv, use Docker
-        run_docker_setup
-    fi
+            else
+                print_error "Local deployment requested but uv package manager is not available."
+                print_error "Please install uv first: curl -LsSf https://astral.sh/uv/install.sh | sh"
+                exit 1
+            fi
+            ;;
+    esac
+    exit 0
+fi
 
-elif check_uv; then
-    # Docker not available but uv is available, use local mode
-    print_warning "Docker is not available. Setting up local development mode..."
+# Handle stop mode
+if [ "$STOP_MODE" = true ]; then
+    if [ "$DOCKER_AVAILABLE" = true ]; then
+        stop_docker_services
+    else
+        print_error "Docker is not available. Cannot stop services."
+        exit 1
+    fi
+    exit 0
+fi
+
+# Interactive mode - ask user preference if both options are available
+if [ "$DOCKER_AVAILABLE" = true ] && [ "$UV_AVAILABLE" = true ]; then
+    echo
+    print_status "Both Docker and local development options are available."
+    echo "Choose deployment method:"
+    echo "  1) Docker (full stack with Splunk, Traefik, MCP Inspector)"
+    echo "  2) Local (FastMCP server only, lighter weight)"
+    echo
+    read -p "Enter your choice (1 or 2, default: 1): " choice
+    choice=${choice:-1}
+
+    case $choice in
+        1)
+            run_docker_setup
+            ;;
+        2)
+            setup_local_env
+            run_local_server
+            ;;
+        *)
+            print_warning "Invalid choice. Using Docker deployment (default)."
+            run_docker_setup
+            ;;
+    esac
+
+elif [ "$DOCKER_AVAILABLE" = true ]; then
+    # Only Docker available, use Docker
+    print_status "Only Docker is available. Using Docker deployment..."
+    run_docker_setup
+
+elif [ "$UV_AVAILABLE" = true ]; then
+    # Only uv available, use local mode
+    print_status "Only local development is available. Setting up local mode..."
     setup_local_env
     run_local_server
 

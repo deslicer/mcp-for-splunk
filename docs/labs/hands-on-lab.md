@@ -1,54 +1,103 @@
 # AI Workflows Hands‑On Lab
 
-Accelerate your understanding of MCP Server for Splunk by creating a custom tool and, optionally, building an AI-powered troubleshooting workflow. This lab is split into three parts for new users:
-
-1) Set up the project, 2) Create a custom tool, 3) (Extra) Create and run a workflow.
+Accelerate your understanding of MCP Server for Splunk by creating a custom tool and, optionally, building an AI-powered troubleshooting workflow.
+This instruction has been tailored for an supervised lab, for full documentation, see [README.md](README.md).
 
 ## Objectives
-
-- Set up the project and run the server
-- Create a custom Splunk tool using helper scripts (beginner-friendly)
-- Validate and run your tool in MCP Inspector
-- (Extra) Generate a workflow, include your tool, validate, and execute it
+This lab is split into three parts for new users
+1. **Set up the project**
+   - Set up the project and run the server
+3. **Create a custom tool**
+   - Create a custom Splunk tool using helper scripts (beginner-friendly)
+   - Validate and run your tool in MCP Inspector
+4. **Create and run a workflow** *(Extra)*
+   - Generate a workflow, include your tool, validate, and execute it
 
 ---
 
 ## Part 1 — Set up the project (🔧)
 
-Prepare your environment and run the server. See the main `README.md` for full details.
+Prepare your environment and to run the mcp server.
 
 ### Prerequisites
 
 - Python 3.10+ and UV package manager
-- Docker (optional but recommended for full stack)
-- Splunk instance (local/cloud) if you plan to build Splunk-backed tools or run workflows
+- Splunk test instance will be provided to you by email, let the instructor know if you haven't received an email.
 
-### Install and start
+### Clone Github Repository
 
 ```bash
-# Clone and enter the project (macOS/Linux)
-git clone https://github.com/your-org/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
-
-# Copy example env (you can skip OPENAI_API_KEY until Part 3)
-cp env.example .env
-
-# Start (Docker recommended)
-docker compose up -d
-
-Note: If you enable the `so1` Splunk container, you must provide your own Splunk Enterprise license. The compose files include a commented example to mount `./lic/splunk.lic` to `/tmp/license/splunk.lic`.
-
-# Or run the helper script (prompts for Docker vs local)
-./scripts/build_and_run.sh
+# Checkout dev1666 branch in git, this branch has a prepared .env file for you.
+git checkout dev1666
 ```
 
-Windows users can use the PowerShell script shown in `README.md`.
+### Option 1 - Local Service - Recommended
+```bash
+# Start the uv application using command line
+# Linux/MacOS
+./scripts/build_and_run.sh --local
+
+# Windows Powershell
+./scripts/build_and_run.ps1 --local
+
+# Windows
+./scripts/build_and_run.bat --local
+```
+
+### Option 2 - Docker Solution - Optional
+*This warning shall be ignored at this time*
+  - WARN[0000] The "OPENAI_API_KEY" variable is not set. Defaulting to a blank string.
+```bash
+# Ensure that Docker Desktop is started on your laptop
+docker ps
+# Download and build the MCP server using Docker
+# Linux/MacOS
+./scripts/build_and_run.sh --docker
+# To stop the containers
+./scripts/build_and_run.sh --stop
+
+# Windows Powershell
+./scripts/build_and_run.ps1 --docker
+
+# Windows
+./scripts/build_and_run.bat --docker
+```
+
 
 ### MCP Inspector
 
 - Open `http://localhost:6274`
-- Set URL to `http://localhost:8001/mcp/` (Docker) or `http://localhost:8002/mcp/` (dev compose)
+
 - Click Connect to browse and run tools
+
+![MCP server connect](/media/mcp_server_connect.png)
+
+## Part 1 - Verification - Local Service
+1. Connect and list `server_info` resource.
+2. After you have connected to the MCP server, click the
+`server_info` in the **Resources** column.
+3. To the right, the response message from `server_inf` is displayed.
+
+4. Click on the green text in text: value field.
+
+If you see ```"status":"running"``` in the text you have complete **Part 1** ✅
+
+
+![MCP server connect](/media/mcp_server_connect_docker.png)
+
+## Part 1 - Verification - Docker Solution
+1. Connect and list `server_info` resource.
+2. After you have connected to the MCP server, click the
+`server_info` in the **Resources** column.
+3. To the right, the response message from `server_inf` is displayed.
+
+4. Click on the green text in text: value field.
+
+If you see ```"status":"running"``` in the text you have complete **Part 1** ✅
+
+
 
 ---
 
