@@ -105,8 +105,13 @@ class SplunkToolRegistry:
             "get_splunk_health": "get_splunk_health",
         }
 
-        # Prefer static mapping to MCP names; fall back to the original name
-        return tool_name_mapping.get(requested_name, requested_name)
+        # First resolve dynamic aliases registered via register_tool()
+        # Example: "list_indexes" -> "list_splunk_indexes"
+        resolved_name = self._tool_name_map.get(requested_name, requested_name)
+
+        # Then translate any known synonyms/canonical names to MCP registry names
+        # Example: "list_splunk_indexes" -> "list_indexes"
+        return tool_name_mapping.get(resolved_name, resolved_name)
 
     def create_agent_tool(self, requested_name: str):
         """Create an OpenAI Agents function tool dynamically for a given MCP tool name.
