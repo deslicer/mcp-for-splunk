@@ -410,16 +410,23 @@ class ParallelWorkflowExecutor:
 
         logger.debug(f"Creating agent from task: {task.task_id}")
 
-        # Create tools based on required_tools
+        # Create tools based on required_tools (dynamic resolution via registry)
         agent_tools = []
         for tool_name in task.required_tools:
+            # Prefer dynamic factory for flexibility and alias support
+            dynamic_tool = self.tool_registry.create_agent_tool(tool_name)
+            if dynamic_tool is not None:
+                agent_tools.append(dynamic_tool)
+                continue
+
+            # Fallback to built-in wrappers for backwards compatibility
             if tool_name == "run_splunk_search":
                 agent_tools.append(self._create_splunk_search_tool())
             elif tool_name == "run_oneshot_search":
                 agent_tools.append(self._create_oneshot_search_tool())
             elif tool_name == "list_splunk_indexes":
                 agent_tools.append(self._create_list_indexes_tool())
-            elif tool_name == "get_current_user_info":
+            elif tool_name in ("get_current_user_info", "get_current_user", "me"):
                 agent_tools.append(self._create_user_info_tool())
             elif tool_name == "get_splunk_health":
                 agent_tools.append(self._create_health_tool())

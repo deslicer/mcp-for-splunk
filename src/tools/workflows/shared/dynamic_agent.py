@@ -202,15 +202,21 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
         tools = []
 
-        # Create tool functions for each required tool
+        # Create tool functions for each required tool using dynamic factory when possible
         for tool_name in self.task_definition.required_tools:
+            dynamic_tool = self.tool_registry.create_agent_tool(tool_name)
+            if dynamic_tool is not None:
+                tools.append(dynamic_tool)
+                continue
+
+            # Fallback to legacy wrappers for backwards compatibility
             if tool_name == "run_splunk_search":
                 tools.append(self._create_run_splunk_search_tool())
             elif tool_name == "run_oneshot_search":
                 tools.append(self._create_run_oneshot_search_tool())
             elif tool_name == "list_splunk_indexes":
                 tools.append(self._create_list_indexes_tool())
-            elif tool_name == "get_current_user_info":
+            elif tool_name in ("get_current_user_info", "get_current_user", "me"):
                 tools.append(self._create_get_user_info_tool())
             elif tool_name == "get_splunk_health":
                 tools.append(self._create_get_health_tool())
@@ -218,7 +224,7 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         # Add the result return function
         tools.append(self._create_return_result_tool())
 
-        logger.debug(f"[{self.name}] Created {len(tools)} agent tools")
+        logger.info(f"[{self.name}] Created {len(tools)} agent tools")
         return tools
 
     def _create_run_splunk_search_tool(self):

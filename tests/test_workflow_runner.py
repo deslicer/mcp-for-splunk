@@ -298,6 +298,54 @@ class TestWorkflowRunnerTool:
         assert "parallel execution" in metadata.description.lower()
 
     @pytest.mark.asyncio
+    async def test_dynamic_tool_resolution_aliases(self):
+        """Test that dynamic agent tool creation resolves aliases like 'me'."""
+        # Patch OpenAI agents availability and Agent class used in parallel executor
+        with patch(
+            "src.tools.workflows.shared.parallel_executor.OPENAI_AGENTS_AVAILABLE", True
+        ), patch("src.tools.workflows.shared.parallel_executor.Agent") as mock_agent:
+            from src.tools.workflows.shared.parallel_executor import ParallelWorkflowExecutor
+            from src.tools.workflows.shared.workflow_manager import TaskDefinition
+            from src.tools.workflows.shared.tools import SplunkToolRegistry
+
+            # Prepare a mock tool registry with dynamic factory
+            mock_registry = MagicMock(spec=SplunkToolRegistry)
+
+            # Return distinct sentinels per tool to verify both are attempted
+            def create_tool_side_effect(name):
+                return f"dynamic_tool:{name}"
+
+            mock_registry.create_agent_tool.side_effect = create_tool_side_effect
+
+            # Minimal config mock
+            mock_config = MagicMock()
+            mock_config.model = "gpt-4o"
+            mock_config.temperature = 0.7
+
+            # Instantiate executor
+            executor = ParallelWorkflowExecutor(config=mock_config, tool_registry=mock_registry)
+
+            # Define a task using alias 'me' and a canonical name
+            task = TaskDefinition(
+                task_id="t1",
+                name="Test Task",
+                description="Desc",
+                instructions="Do something",
+                required_tools=["me", "get_splunk_health"],
+            )
+
+            # Invoke agent creation (internal helper)
+            agent = executor._create_agent_from_task(task)
+
+            # Ensure Agent was constructed
+            assert mock_agent.called
+
+            # Verify dynamic factory was called for both names
+            assert mock_registry.create_agent_tool.call_count == 2
+            mock_registry.create_agent_tool.assert_any_call("me")
+            mock_registry.create_agent_tool.assert_any_call("get_splunk_health")
+
+    @pytest.mark.asyncio
     async def test_diagnostic_context_creation(
         self, workflow_runner_tool, mock_context, mock_workflow_infrastructure
     ):
