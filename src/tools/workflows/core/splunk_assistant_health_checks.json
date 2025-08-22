@@ -1,0 +1,235 @@
+{
+  "workflow_id": "splunk_assistant_health_checks",
+  "name": "Splunk Assistant Health Checks",
+  "description": "Runs a set of Splunk health, security, hygiene, and best-practice checks to surface risks and actionable recommendations.",
+  "tasks": [
+    {
+      "task_id": "unconfigured_mc_instances",
+      "name": "Unconfigured MC instances",
+      "description": "Checks distributed peers to ensure Monitoring Console roles are properly configured.",
+      "instructions": "Category: System and Environment\n\nRun the SPL and review any instances missing Monitoring Console role mapping.\n\nSPL to run:\n`| rest splunk_server=local /services/search/distributed/peers | search status=Up disabled=0 | eval severity_level = if(isnull(mvfind(search_groups,\"dmc_group_\")), 2, 0) | fields title peerName host host_fqdn version severity_level | rename title AS peerURI peerName AS serverName host_fqdn AS machine version AS splunk_version host AS instance`\n\nWhat to look for:\n- Instances with severity_level > 0 (not assigned to Monitoring Console roles).\n\nSuggested action:\nCheck the Monitoring Console General Setup view and assign appropriate server roles to instances marked as New.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "data_separation_opportunity_sourcetypes",
+      "name": "Data separation opportunity - sourcetypes",
+      "description": "Looks for indexes with an excessive number of sourcetypes.",
+      "instructions": "Category: Data Indexing\n\nSPL to run:\n`| tstats summariesonly=t count AS event_count dc(sourcetype) AS sourcetype_count WHERE index=* AND earliest=-24h BY index | eval severity_level = if(sourcetype_count > 30, 2, 0) | rename event_count AS \"Event Count\" sourcetype_count AS \"Sourcetype Count\"`\n\nWhat to look for:\n- Indexes with sourcetype_count > 30.\n\nSuggested action:\nConsider splitting noisy indexes or refactoring composite sourcetypes (e.g., embedded hostnames). Reasons to create new indexes include retention, access control, and performance.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "data_hygiene_events_future",
+      "name": "Data hygiene - events in the future",
+      "description": "Detects sourcetypes with future-dated events.",
+      "instructions": "Category: Data Hygiene\n\nSPL to run:\n`| tstats summariesonly=t count AS event_count dc(source) AS source_count dc(host) AS host_count latest(_time) AS latest_event_time where index=* AND (earliest=+5m latest=+10y) by index, sourcetype | eval severity_level=3, message=\"Event is in future by \".tostring(latest_event_time-now(), \"duration\") | convert ctime(latest_event_time) | eval instance=sourcetype | sort - event_count | append [ makeresults | eval severity_level = 0, event_count = 0, source_count = 0, host_count = 0 | stats values(severity_level) AS severity_level values(*_count) AS *_count] | eventstats max(severity_level) AS max_severity_level | where severity_level >= max_severity_level | fields - max_severity_level`\n\nWhat to look for:\n- Any returned sourcetypes (severity_level 3) with future timestamps.\n\nSuggested action:\nValidate timestamp extraction, timezone handling, NTP sync, and source-side time settings.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "data_hygiene_learned_sourcetypes",
+      "name": "Data hygiene - learned sourcetypes",
+      "description": "Finds auto-assigned (learned) sourcetypes in last 24 hours.",
+      "instructions": "Category: Data Hygiene\n\nSPL to run:\n`| tstats summariesonly=t count AS event_count WHERE index=* AND earliest=-24h BY sourcetype index | where match(sourcetype, \"\\-\\d+$|too_small$\") | eval severity_level=2, instance=sourcetype | sort -event_count | append [ makeresults | eval severity_level = 0, event_count = 0 | stats values(severity_level) AS severity_level values(*_count) AS *_count] | eventstats max(severity_level) AS max_severity_level | where severity_level >= max_severity_level | fields - max_severity_level`\n\nWhat to look for:\n- Learned sourcetypes (e.g., suffix patterns or \"too_small\").\n\nSuggested action:\nDefine explicit sourcetypes in props/transforms or inputs to avoid per-indexer learned variations.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "forwarder_output_throughput_limits",
+      "name": "Forwarder output throughput limits",
+      "description": "Identifies forwarders throttled by limits.conf in past 24 hours.",
+      "instructions": "Category: System and Environment\n\nSPL to run:\n`index=_internal sourcetype=splunkd ThruputProcessor data maxKBps | rex \"throughput\\s\\((?<KBps>\\d+)\" | stats count AS throttle_event_count avg(KBps) AS avg_KBps by host | eval avg_KBps = round(avg_KBps, 2), severity_level=2 | rename host AS instance | where throttle_event_count >= 10 | sort - throttle_event_count | append [ makeresults | eval severity_level = 0, throttle_event_count=0 | stats values(severity_level) AS severity_level values(*_count) AS *_count] | eventstats max(severity_level) AS max_severity_level | where severity_level >= max_severity_level | fields - max_severity_level`\n\nWhat to look for:\n- Instances with throttle_event_count >= 10.\n\nSuggested action:\nReview limits.conf throughput settings; persistent throttling risks data loss.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "deprecated_tls_version_check",
+      "name": "Deprecated TLS Protocol Versions in Splunk Configuration",
+      "description": "Flags configs where sslVersions or sslVersionsForClient are not tls1.2.",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest splunk_server=* \"/services/configs/conf-server\" | eval conf = \"server\" | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-inputs\" | eval conf = \"inputs\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-outputs\" | eval conf = \"outputs\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-web\" | eval conf = \"web\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-indexes\" | eval conf = \"indexes\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-authentication\" | eval conf = \"authentication\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-alert_actions\" | eval conf = \"alert_actions\" ] | append [ | rest splunk_server=* \"/servicesNS/-/-/configs/conf-deploymentclient\" | eval conf = \"deploymentclient\" ] | where sslVersions != \"tls1.2\" or sslVersionsForClient != \"tls1.2\" | eval app_conf_stanza_tls_version_too_low = 'eai:appName' . \": \" . conf . \".conf\" . \" [\" . title . \" ]\" | stats values(app_conf_stanza_tls_version_too_low) AS app_conf_stanzas_tls_version_too_low BY splunk_server | eval app_conf_stanzas_tls_version_too_low = mvjoin(app_conf_stanzas_tls_version_too_low, \", \") | eval severity_level = 3 | rename splunk_server as instance | table instance app_conf_stanzas_tls_version_too_low severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"\" app_conf_stanzas_tls_version_too_low | fillnull value=\"0\" severity_level | table instance app_conf_stanzas_tls_version_too_low severity_level] | stats values(app_conf_stanzas_tls_version_too_low) as app_conf_stanzas_tls_version_too_low sum(severity_level) as severity_level by instance`\n\nSuggested action:\nReplace deprecated TLS versions with \"tls1.2\" in highest-precedence .conf stanzas.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "ssl_alert_check",
+      "name": "TLS Errors",
+      "description": "Detects TLS/SSL alerts in the last hour indicating handshake failures.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"Received fatal SSL3 alert\" earliest=-60m | rex \"ssl_state='(?<ssl_state>[^']+)'.*alert_description='(?<alert>[^']+)'\" | stats values(alert) AS alerts, count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, alerts, sixty_min_event_count, severity_level | rename host as instance | table instance, alerts, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"\" alerts | fillnull value=\"0\" severity_level sixty_min_event_count | table instance alerts sixty_min_event_count severity_level] | stats values(alerts) as alerts sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nValidate TLS settings and ensure client/server share protocol versions and ciphers.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "invalid_certificate_check",
+      "name": "Invalid TLS Certificates",
+      "description": "Detects TLS/SSL alerts indicating invalid, expired, or unknown certificates in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"Received fatal SSL3 alert\" earliest=-60m | rex \"ssl_state='(?<ssl_state>[^']+)'.*alert_description='(?<alert>[^']+)'\" | where alert in (\"certificate unknown\", \"certificate expired\", \"bad certificate\") | stats values(alert) AS alerts, count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, alerts, sixty_min_event_count, severity_level | rename host as instance | table instance, alerts, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"\" alerts | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level alerts] | stats values(alerts) as alerts sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nVerify certificate validity/expiry and clock sync; use 'splunk cmd openssl' where available.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "unknown_ca_check",
+      "name": "Unknown Certificate Authority Certificates",
+      "description": "Detects TLS/SSL alerts for unknown CA in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"Received fatal SSL3 alert\" \"alert_description='unknown CA'\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nConfigure 'sslRootCAPath' and ensure valid CA certificates with X.509 v3 CA:TRUE exist in trust store.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "common_name_mismatch_check",
+      "name": "Certificate Common Name Mismatches",
+      "description": "Detects certificate CN mismatches in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"X509 certificate\" \"did not match any allowed names\" earliest=-60m | rex \"CN=(?<common_name>[^)]+).*allowed names \\((?<allowed_names>[^)]+)\\)\"| eval observed_cn_vs_allowed = \"{CN: \" . common_name . \"; Allowed CNs: \" . allowed_names . \"}\" | stats values(observed_cn_vs_allowed) AS observed_cns_vs_allowed BY host | eval observed_cns_vs_allowed = mvjoin(observed_cns_vs_allowed, \", \") | eval severity_level = 3 | table host, observed_cns_vs_allowed, severity_level | rename host as instance | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level | fillnull value=\"\" observed_cns_vs_allowed | table instance observed_cns_vs_allowed severity_level] | stats values(observed_cns_vs_allowed) as observed_cns_vs_allowed sum(severity_level) as severity_level by instance`\n\nSuggested action:\nAlign 'sslCommonNameToCheck' with presented certificate CN or replace certificate to match.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "incorrect_tls_protocol_version_check",
+      "name": "Incorrect TLS Protocol Versions",
+      "description": "Detects TLS protocol version mismatches causing handshake failures in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* (\"Received fatal SSL3 alert\" AND \"alert_description='protocol version'\") OR \"SSL23_GET_CLIENT_HELLO:unknown protocol\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nEnsure clients use TLS 1.2 and configure server 'sslVersions' to 'tls1.2'.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "cipher_suite_mismatch_check",
+      "name": "TLS Cipher Suite Mismatches",
+      "description": "Detects TLS handshake failures due to no mutually shared ciphers in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"ssl3_get_client_hello:no shared cipher\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nAlign cipher suites between client and server for the mutually shared TLS protocol version.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "mtls_certificate_verification_failure_check",
+      "name": "Mutual TLS (mTLS) Certificate Verification Failures",
+      "description": "Detects failed client certificate verification for mTLS in last hour.",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"ssl3_get_client_certificate:certificate verify failed\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nValidate client certificate validity, CN match, and CA chain presence in server trust store.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "mtls_missing_client_certificate_check",
+      "name": "Mutual TLS (mTLS) Missing Client Certificates",
+      "description": "Detects mTLS handshakes where the client did not present a certificate (last hour).",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"peer did not return a certificate\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nConfigure clients to present valid certificates for mTLS; verify readability and validity.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "missing_cipher_check",
+      "name": "Missing TLS Ciphers",
+      "description": "Detects when client has no ciphers compatible with attempted TLS version (last hour).",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"SSL23_CLIENT_HELLO:no ciphers available\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nAdd at least one cipher compatible with TLS 1.2 to client configuration and ensure server supports it.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "missing_x509_ca_basic_constraint_check",
+      "name": "CA Certificates Missing X.509 v3 CA:TRUE",
+      "description": "Detects CA certs missing X.509 v3 basicConstraint 'CA:TRUE' (last hour).",
+      "instructions": "Category: Security\n\nSPL to run:\n`index=_internal source=*splunkd.log* \"not a valid Certificate Authority (CA)\" \"required=X509_CA_V3_basicConstraints\" earliest=-60m | stats count AS sixty_min_event_count BY host | eval alerts = mvjoin(alerts, \", \") | eval severity_level = 3 | table host, sixty_min_event_count, severity_level | rename host as instance | table instance, sixty_min_event_count, severity_level | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\" severity_level sixty_min_event_count | table instance sixty_min_event_count severity_level] | stats sum(sixty_min_event_count) as sixty_min_event_count sum(severity_level) as severity_level by instance`\n\nSuggested action:\nReplace or fix CA certificates to include X.509 v3 basicConstraints with CA:TRUE.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "end_of_life_splunk_built_apps",
+      "name": "Splunk-built Apps at End of Life",
+      "description": "Detects Splunk-built apps that have reached end of life (Warning).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest /services/apps/local splunk_server=* | table title, label, author, version, splunk_server | join splunk_server type=outer [| rest /services/server/info splunk_server=* | fields splunk_server fips_mode | stats count by splunk_server fips_mode | fields splunk_server fips_mode] | eval split_version = split(version, \".\") | eval installed_major = mvindex(split_version, 0) | eval installed_minor = mvindex(split_version, 1) | eval installed_patch = mvindex(split_version, 2) | fields - split_version | fields title, label, author, version, splunk_server installed_major installed_minor installed_patch | eval splunk_server=if(like(splunk_server,\"idx%\"),\"all indexers\", splunk_server) | lookup splunk-upgrade-readiness-checks-installed-apps title | search check_eol_apps=* OR check_compatible_app_version=* OR check_fips_compatible_app_version=* OR check_fips_incompatible_app=* | eval status=if(check_eol_apps=\"TRUE\",\"non-conforming\",\"conforming\") | rename splunk_server AS instance | eval metric = \"appid=\" + title + \", app_version=\" + version | eval severity_level = if(status=\"conforming\",\"0\", \"2\") | rename title as app_id | table app_id instance, metric, severity_level | stats values(instance) as instances max(severity_level) as severity_level by app_id metric`\n\nSuggested action:\nUninstall apps that reached end of life.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "known_outdated_splunk_built_app_versions",
+      "name": "Known Outdated Splunk-built App Versions",
+      "description": "Flags apps incompatible with upcoming Splunk platform versions (Warning).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest /services/apps/local splunk_server=* | table title, label, author, version, splunk_server | eval split_version = split(version, \".\") | eval installed_major = mvindex(split_version, 0) | eval installed_minor = mvindex(split_version, 1) | eval installed_patch = mvindex(split_version, 2) | fields - split_version | fields title, label, author, version, splunk_server installed_major installed_minor installed_patch | lookup splunk-upgrade-readiness-checks-installed-apps title | search check_eol_apps=* OR check_compatible_app_version=* OR check_fips_compatible_app_version=* OR check_fips_incompatible_app=* | eval splunk_check_compatible_app_version = split(check_compatible_app_version, \".\") | eval check_major = mvindex(splunk_check_compatible_app_version, 0) | eval check_minor = mvindex(splunk_check_compatible_app_version, 1) | eval check_patch = mvindex(splunk_check_compatible_app_version, 2) | fields - split_version | eval status=if((installed_major<check_major) OR (installed_major=check_major AND installed_minor<check_minor) OR (installed_major=check_major AND installed_minor=check_minor AND installed_patch<check_patch),\"non-conforming\", \"conforming\") | eval outdated_apps=if(status==\"non-conforming\",label.\" needs to update to version \".check_compatible_app_version.\" or higher. Currently version \".version, label.\" is at a conforming version.\") | rename splunk_server AS instance | rename outdated_apps as metric, title as app_id | eval severity_level = if(status==\"conforming\", \"0\", \"2\") | table app_id, instance, metric, severity_level | stats values(instance) as instances max(severity_level) as severity_level by app_id metric`\n\nSuggested action:\nUpdate apps to at least the indicated compatible version (prefer latest).",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "fips_incompatible_apps",
+      "name": "FIPS-incompatible Splunk-built Apps",
+      "description": "Detects apps incompatible with FIPS mode (Warning).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest /services/apps/local splunk_server=* | table title, label, author, version, splunk_server | join splunk_server type=outer [| rest /services/server/info splunk_server=* | fields splunk_server fips_mode | stats count by splunk_server fips_mode | fields splunk_server fips_mode] | eval split_version = split(version, \".\") | eval installed_major = mvindex(split_version, 0) | eval installed_minor = mvindex(split_version, 1) | eval installed_patch = mvindex(split_version, 2) | fields - split_version | fields title, label, fips_mode, author, version, splunk_server | lookup splunk-upgrade-readiness-checks-installed-apps title | search check_eol_apps=* OR check_compatible_app_version=* OR check_fips_compatible_app_version=* OR check_fips_incompatible_app=* | eval status=if(check_fips_incompatible_app==\"TRUE\", \"non-conforming\", \"conforming\") | rename splunk_server AS instance | rename title AS metric | eval app_id=metric | eval severity_level = if(status==\"conforming\", \"0\",\"2\") | stats values(instance) as instances max(severity_level) as severity_level by app_id metric`\n\nSuggested action:\nUninstall FIPS-incompatible apps when running in FIPS mode.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "known_outdated_splunk_built_app_versions_for_fips",
+      "name": "Known Outdated Splunk-built App Versions for FIPS",
+      "description": "Flags apps on FIPS nodes that are below required compatible versions (Warning).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest /services/apps/local splunk_server=* | table title, label, author, version, splunk_server | join splunk_server type=outer [| rest /services/server/info splunk_server=* | fields splunk_server fips_mode | stats count by splunk_server fips_mode | fields splunk_server fips_mode] | eval split_version = split(version, \".\") | eval installed_major = mvindex(split_version, 0) | eval installed_minor = mvindex(split_version, 1) | eval installed_patch = mvindex(split_version, 2) | fields title, label, fips_mode, author, version, splunk_server installed_major installed_minor installed_patch | lookup upgrade_readiness_app_checks.csv title | search check_fips_compatible_app_version=* fips_mode=1 | eval splunk_check_fips_compatible_app_version = split(check_fips_compatible_app_version, \".\") | eval check_major = mvindex(splunk_check_fips_compatible_app_version, 0) | eval check_minor = mvindex(splunk_check_fips_compatible_app_version, 1) | eval check_patch = mvindex(splunk_check_fips_compatible_app_version, 2) | fields - split_version | where (installed_major<check_major) OR (installed_major=check_major AND installed_minor<check_minor) OR (installed_major=check_major AND installed_minor=check_minor AND installed_patch<=check_patch) | eval outdated_apps=label.\" needs to update to version \".check_fips_compatible_app_version.\" or higher. Currently version \".version | rename splunk_server AS instance | rename outdated_apps as metric | eval severity_level = if(metric=\"\", \"0\", \"2\") | search severity_level > 0 | table instance, metric, severity_level`\n\nSuggested action:\nUpdate detected apps on FIPS nodes to required compatible versions.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "mongodb_version_in_acceptable_range_check",
+      "name": "MongoDB Version",
+      "description": "Verifies KV Store (MongoDB) version meets 4.2 requirement (Critical if not).",
+      "instructions": "Category: Security / KV Store\n\nSPL to run:\n`| rest splunk_server=* services/kvstore/version | fields splunk_server, status.version | rename splunk_server AS instance, status.version AS metric | eval metric = substr(metric, 0, 3) | eval severity_level = case( metric=\"4.2\" OR metric=\"7.0\", 0, true(), 2) | table instance, metric, severity_level`\n\nSuggested action:\nEnsure MongoDB (KV Store) is at 4.2+ prior to upgrading to Splunk 10.0.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "deprecated_hdr_check",
+      "name": "Presence of Hadoop Data Roll",
+      "description": "Detects if deprecated Hadoop Data Roll is present (Warning).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest splunk_server=* /services/data/vix-providers | search NOT vix.hadoop_data_roll IN (1 t true y yes) | stats count by splunk_server | eval severity_level=if(count>0,2,0) | fields splunk_server severity_level`\n\nSuggested action:\nMigrate off Hadoop Data Roll; consult archive indexed data docs (feature off by default in 10.0).",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "v1_search_api_disabled",
+      "name": "v1 Search API",
+      "description": "Evaluates presence of v1APIBlockGETSearchLaunch=true in restmap.conf (Warning if not).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest services/configs/conf-restmap | fields splunk_server, v1APIBlockGETSearchLaunch | stats values(v1APIBlockGETSearchLaunch) AS v1APIBlockGETSearchLaunch BY splunk_server | fillnull v1APIBlockGETSearchLaunch value=0 | rename splunk_server AS instance, v1APIBlockGETSearchLaunch AS metric | eval severity_level = case(metric=1, 0, true(), 2)`\n\nSuggested action:\nBlock usage of legacy v1 Search APIs by setting v1APIBlockGETSearchLaunch = true in [global] stanza.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "deprecated_call_check",
+      "name": "Deprecated REST API Call Check",
+      "description": "Detects calls to deprecated v1 search endpoints in last 7 days (Critical if present).",
+      "instructions": "Category: Security\n\nSPL to run:\n`earliest=-7d@d index=_internal method=GET (sourcetype::splunkd_access OR sourcetype::splunkd_ui_access OR sourcetype::splunk_web_access) (uri=\"*/results_preview?search=*\" OR uri=\"*/results_preview?%&search=*\" OR uri=\"*/results?search=*\" OR uri=\"*/results?%&search=*\" OR uri=\"*/results/export?search=*\" OR uri=\"*/results/export?%&search=*\" OR uri=\"*/events?search=*\" OR uri=\"*/events?%&search=*\" OR uri=\"*/events/export?search=*\" OR uri=\"*/events/export?%&search=*\" OR uri=\"*/jobs/export*\" OR uri=\"*/parser*\") AND NOT uri=\"*/v2/*\" | eval metric=\"user=\".user.\" uri=\".uri | rename host AS instance | table instance metric | stats count AS deprecated_api_calls by instance | append [| makeresults count=1 splunk_server=* annotate=true | rename splunk_server as instance | fillnull value=\"0\"  deprecated_api_calls | table instance deprecated_api_calls] | stats sum(deprecated_api_calls) AS deprecated_api_calls by instance | eval metric=\"Deprecated_API_Calls=\".deprecated_api_calls | eval severity_level=if(deprecated_api_calls>0,3,0) | fields - deprecated_api_calls`\n\nDrilldown example:\n`earliest=-7d@d index=_internal host=$instance$ method=GET (sourcetype::splunkd_access OR sourcetype::splunkd_ui_access OR sourcetype::splunk_web_access) (uri=\"*/results_preview?search=*\" OR uri=\"*/results_preview?%&search=*\" OR uri=\"*/results?search=*\" OR uri=\"*/results?%&search=*\" OR uri=\"*/results/export?search=*\" OR uri=\"*/results/export?%&search=*\" OR uri=\"*/events?search=*\" OR uri=\"*/events?%&search=*\" OR uri=\"*/events/export?search=*\" OR uri=\"*/events/export?%&search=*\" OR uri=\"*/jobs/export*\" OR uri=\"*/parser*\") AND NOT uri=\"*/v2/*\" | table _time host user uri useragent`\n\nSuggested action:\nUpdate clients/apps to use latest REST endpoints.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    },
+    {
+      "task_id": "system_python_version_in_acceptable_range_check",
+      "name": "Python Version Usage",
+      "description": "Evaluates Python runtime usage, ensuring Python 3.9 is forced on supported versions (Critical otherwise).",
+      "instructions": "Category: Security\n\nSPL to run:\n`| rest splunk_server=* services/configs/conf-server | fields splunk_server, python.version | search python.version = * | join type=left splunk_server [| rest splunk_server=* /services/server/info | fields splunk_server version ] | rename splunk_server AS instance | rename python.version AS python_version | eval version = split(version, \".\") | eval major = mvindex(version, 0) | eval minor = mvindex(version, 1) | eval metric = case( (major >= 10 OR (major = 9 AND minor >= 3)) AND python_version=\"force_python3\", \"Your Splunk platform deployment is configured to use Python 3.9.\", major < 8, \"Your Splunk platform deployment is configured to use Python 2.7.\", python_version=\"force_python3\", \"Your Splunk platform deployment is configured to use Python 3.7.\", true(), \"Your Splunk platform deployment is configured to use \" . python_version . \".\") | eval severity_level = case( metric=\"Your Splunk platform deployment is configured to use Python 3.9.\", 0, metric=\"Your Splunk platform deployment is configured to use Python 3.7.\", 3, metric=\"Your Splunk platform deployment is configured to use Python 2.7.\", 3, true(), 3) | table instance python_version metric severity_level`\n\nSuggested action:\nOn Splunk 9.3/9.4 set server.conf python.version=force_python3; validate app compatibility with Python 3.9 prior to upgrading to 10.0.",
+      "required_tools": ["run_splunk_search"],
+      "dependencies": [],
+      "context_requirements": []
+    }
+  ],
+  "default_context": {}
+}
+
+
