@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.1...v0.3.0) (2025-08-22)
+
+
+### Features
+
+* **workflows:** dynamic MCP tool mapping for workflow tasks + alias support ([#27](https://github.com/deslicer/mcp-for-splunk/issues/27)) ([126d64d](https://github.com/deslicer/mcp-for-splunk/commit/126d64dbbdbc96d28f28fd4efe8bee137dc06f20))
+
 ## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.2.1) (2025-08-20)
 
 
