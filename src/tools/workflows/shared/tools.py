@@ -54,7 +54,12 @@ class SplunkToolRegistry:
 
         # Register aliases for tool name mapping
         if aliases:
-            tool_name = getattr(tool_func, "__name__", str(tool_func))
+            # Prefer explicit name attribute (FunctionTool provides .name)
+            tool_name = (
+                getattr(tool_func, "name", None)
+                or getattr(tool_func, "__name__", None)
+                or str(tool_func)
+            )
             for alias in aliases:
                 self._tool_name_map[alias] = tool_name
                 logger.debug(f"Registered tool alias: {alias} -> {tool_name}")
@@ -83,6 +88,121 @@ class SplunkToolRegistry:
 
         return tool_names
 
+    def _resolve_mcp_tool_name(self, requested_name: str) -> str:
+        """Resolve a requested tool name or alias to an MCP tool name.
+
+        This uses both the explicit alias map in this registry and a static
+        mapping for common synonyms used in workflows.
+        """
+        # Handle common synonyms used in workflow JSON (map to MCP registry names)
+        tool_name_mapping = {
+            "get_current_user": "me",
+            "get_current_user_info": "me",
+            "list_splunk_indexes": "list_indexes",
+            "list_indexes": "list_indexes",
+            "run_oneshot_search": "run_oneshot_search",
+            "run_splunk_search": "run_splunk_search",
+            "get_splunk_health": "get_splunk_health",
+        }
+
+        # First resolve dynamic aliases registered via register_tool()
+        # Example: "list_indexes" -> "list_splunk_indexes"
+        resolved_name = self._tool_name_map.get(requested_name, requested_name)
+
+        # Then translate any known synonyms/canonical names to MCP registry names
+        # Example: "list_splunk_indexes" -> "list_indexes"
+        return tool_name_mapping.get(resolved_name, resolved_name)
+
+    def create_agent_tool(self, requested_name: str):
+        """Create an OpenAI Agents function tool dynamically for a given MCP tool name.
+
+        Returns the function tool or None if it cannot be created (e.g., Agents SDK not available
+        or the tool is not found in the MCP registry).
+        """
+        if not OPENAI_AGENTS_AVAILABLE:
+            return None
+
+        try:
+            # Import MCP tool registry for direct access
+            try:
+                from ....core.registry import tool_registry as mcp_tool_registry
+            except ImportError:
+                from src.core.registry import tool_registry as mcp_tool_registry
+
+            # Resolve alias to canonical MCP name
+            mcp_name = self._resolve_mcp_tool_name(requested_name)
+
+            # Look up the MCP tool instance and metadata
+            tool = mcp_tool_registry.get_tool(mcp_name)
+            if not tool:
+                logger.warning(f"Requested agent tool '{requested_name}' not found as MCP tool '{mcp_name}'")
+                return None
+
+            metadata = mcp_tool_registry.get_metadata(mcp_name)
+
+            # Build a thin wrapper that matches the underlying tool's execute signature (minus ctx)
+            import inspect
+
+            execute_sig = inspect.signature(tool.execute)
+            params: list[inspect.Parameter] = []
+            for name, param in execute_sig.parameters.items():
+                if name in ("self", "ctx"):
+                    continue
+                params.append(
+                    inspect.Parameter(
+                        name=name,
+                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        default=param.default,
+                        annotation=param.annotation,
+                    )
+                )
+
+            wrapper_sig = inspect.Signature(params)
+
+            async def dynamic_tool_wrapper(*args, **kwargs) -> str:
+                # Ensure we have a context bound so tools can report progress
+                ctx = self.get_context()
+                # Keep context in registry for any nested calls
+                self.set_context(ctx)
+
+                try:
+                    bound = wrapper_sig.bind(*args, **kwargs)
+                    bound.apply_defaults()
+                except TypeError:
+                    # If binding fails due to signature mismatch, fall back to passing kwargs through
+                    bound = None
+
+                result = await tool.execute(ctx, **(bound.arguments if bound else kwargs))
+                return str(result)
+
+            # Apply an explicit signature and annotations before wrapping
+            try:
+                dynamic_tool_wrapper.__signature__ = wrapper_sig
+                # Build annotations for strict schema generation
+                annotations: dict[str, Any] = {"return": str}
+                for p in wrapper_sig.parameters.values():
+                    # Default to str if annotation is missing
+                    ann = p.annotation if p.annotation is not inspect._empty else str
+                    annotations[p.name] = ann
+                dynamic_tool_wrapper.__annotations__ = annotations
+
+                # Wrap as an Agents function tool with explicit name/description
+                wrapped = function_tool(
+                    dynamic_tool_wrapper,
+                    name_override=mcp_name,
+                    description_override=(metadata.description if metadata else mcp_name),
+                )
+                return wrapped
+            except Exception as e:
+                logger.error(
+                    "Failed to finalize dynamic agent tool for '%s': %s", requested_name, e
+                )
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to create dynamic agent tool for '{requested_name}': {e}", exc_info=True)
+            return None
+
     async def call_tool(self, tool_name: str, args: dict[str, Any] = None) -> dict[str, Any]:
         """Call a tool by name with arguments using the MCP tool registry."""
         if args is None:
@@ -100,24 +220,8 @@ class SplunkToolRegistry:
             # Get current context
             ctx = self.get_context()
 
-            # Map tool names to MCP tool names if needed
-            tool_name_mapping = {
-                "get_current_user": "me",
-                "get_current_user_info": "me",
-                "list_splunk_indexes": "list_indexes",
-                "list_indexes": "list_indexes",
-                "run_oneshot_search": "run_oneshot_search",
-                "run_splunk_search": "run_splunk_search",
-                "get_splunk_health": "get_splunk_health",
-            }
-
-            # Check tool name mapping first
-            mcp_tool_name = tool_name_mapping.get(tool_name, tool_name)
-
-            # Check if it's an alias
-            if tool_name in self._tool_name_map:
-                actual_tool_name = self._tool_name_map[tool_name]
-                mcp_tool_name = tool_name_mapping.get(actual_tool_name, actual_tool_name)
+            # Resolve to MCP registry name (supports aliases)
+            mcp_tool_name = self._resolve_mcp_tool_name(tool_name)
 
             # Get the tool from the MCP registry
             tool = mcp_tool_registry.get_tool(mcp_tool_name)
