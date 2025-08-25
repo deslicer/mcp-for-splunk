@@ -35,7 +35,7 @@ uv add openai-agents
 
 ### Core workflows
 
-- `missing_data_troubleshooting`: Systematic 10-step missing data analysis. Follows Splunk’s guidance for inputs and metrics troubleshooting; see [Troubleshoot inputs with metrics.log](https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-enterprise-log-files/troubleshoot-inputs-with-metrics.log).
+- `missing_data_troubleshooting`: Systematic 10-step missing data analysis. Follows Splunk’s guidance for inputs and metrics troubleshooting; see [I can't find my data!](https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-web-and-search-problems/i-cant-find-my-data).
 - `performance_analysis`: Parallel performance diagnostics (resources, search performance, scheduling).
 
 ### Discover workflows (📚)
