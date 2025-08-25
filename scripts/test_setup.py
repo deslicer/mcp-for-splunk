@@ -7,6 +7,7 @@ This replaces the curl-based "First Success Test" with a cleaner FastMCP client 
 import asyncio
 import os
 import sys
+from dotenv import load_dotenv
 
 try:
     from fastmcp import Client
@@ -14,6 +15,9 @@ except ImportError:
     print("❌ FastMCP is not installed. The server setup script should have installed it.")
     print("   Try running: uv pip install fastmcp")
     sys.exit(1)
+
+# Load environment variables from a .env file if present
+load_dotenv()
 
 def _build_server_url_from_env() -> str:
     """Build MCP server URL from environment variables.
