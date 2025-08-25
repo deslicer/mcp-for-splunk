@@ -3,9 +3,10 @@ Tools for managing Splunk KV Store collections.
 """
 
 from typing import Any
-from urllib.parse import quote
 
 from fastmcp import Context
+from splunklib import client as spl_client
+from splunklib.binding import HTTPError
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
@@ -53,20 +54,29 @@ class ListKvstoreCollections(BaseTool):
 
         try:
             collections = []
-            kvstore = service.kvstore
-
+            original_namespace = getattr(service, "namespace", None)
             if app:
-                kvstore = service.kvstore[app]
+                service.namespace = spl_client.namespace(app=app, owner="nobody", sharing="app")
 
-            for collection in kvstore:
-                collections.append(
-                    {
-                        "name": collection.name,
-                        "fields": collection.content.get("fields", []),
-                        "accelerated_fields": collection.content.get("accelerated_fields", {}),
-                        "replicated": collection.content.get("replicated", False),
-                    }
-                )
+            try:
+                kvstore = service.kvstore
+                for collection in kvstore:
+                    # Derive fields from either 'fields' dict or 'field.<name>' entries
+                    content = collection.content or {}
+                    fields_dict = content.get("fields")
+                    if not fields_dict:
+                        fp = {k.split(".", 1)[1]: v for k, v in content.items() if isinstance(k, str) and k.startswith("field.")}
+                        fields_dict = fp if fp else {}
+                    collections.append(
+                        {
+                            "name": collection.name,
+                            "fields": fields_dict,
+                            "accelerated_fields": content.get("accelerated_fields", {}),
+                            "replicated": content.get("replicated", False),
+                        }
+                    )
+            finally:
+                service.namespace = original_namespace
 
             await ctx.info(f"Found {len(collections)} collections")
             return self.format_success_response(
@@ -99,7 +109,8 @@ class CreateKvstoreCollection(BaseTool):
             "        - 'lookup_table': Data enrichment table\n"
             "    fields (list[dict], optional): Field definitions specifying data types and constraints\n"
             "    accelerated_fields (dict, optional): Index definitions for faster queries\n"
-            "    replicated (bool, optional): Whether to replicate across cluster (default: True)\n\n"
+            "    replicated (bool, optional): Whether to replicate across cluster (default: True)\n"
+            "    create_lookup_definition (bool, optional): Also create a transforms.conf lookup definition (default: False)\n\n"
             "Outputs: created collection with name, fields, accelerated_fields, replicated.\n"
             "Security: creation is constrained by app-level permissions."
         ),
@@ -116,6 +127,7 @@ class CreateKvstoreCollection(BaseTool):
         fields: list[dict[str, Any]] | None = None,
         accelerated_fields: dict[str, list[list[str]]] | None = None,
         replicated: bool = True,
+        create_lookup_definition: bool = False,
     ) -> dict[str, Any]:
         """
         Create a new KV Store collection.
@@ -126,6 +138,7 @@ class CreateKvstoreCollection(BaseTool):
             fields: Optional list of field definitions
             accelerated_fields: Optional dict defining indexed fields
             replicated: Whether the collection should be replicated (default: True)
+            create_lookup_definition: Whether to create a transforms.conf lookup definition
 
         Returns:
             Dict containing creation status and collection details
@@ -151,21 +164,95 @@ class CreateKvstoreCollection(BaseTool):
                     "Collection name must contain only alphanumeric characters and underscores"
                 )
 
-            # URL encode the app name to handle special characters
-            encoded_app = quote(app, safe="")
+            # Prepare collection configuration (do not duplicate 'name' argument)
+            # Note: Some Splunk versions/handlers do not support a 'replicated' flag at create time
+            # Keep parameter for API compatibility but ignore its value here.
+            _replication_requested = bool(replicated)
+            collection_config: dict[str, Any] = {}
 
-            # Prepare collection configuration
-            collection_config = {"name": collection, "replicated": replicated}
-
+            # Normalize fields: accept list of {name,type} or list of strings (default to string)
+            field_params: dict[str, str] = {}
+            normalized_fields: dict[str, str] = {}
             if fields:
-                collection_config["field"] = fields
+                for f in fields:
+                    if isinstance(f, dict):
+                        field_name = f.get("name") or f.get("field")
+                        field_type = (f.get("type") or "string").lower()
+                        if field_name:
+                            normalized_fields[str(field_name)] = str(field_type)
+                    elif isinstance(f, str):
+                        normalized_fields[f] = "string"
+                if normalized_fields:
+                    # Prefer REST-compatible 'field.<name>' parameters for creation
+                    field_params = {f"field.{k}": v for k, v in normalized_fields.items()}
+                    # Include in config for the initial attempt
+                    collection_config.update(field_params)
 
             if accelerated_fields:
                 collection_config["accelerated_fields"] = accelerated_fields
 
-            # Create the collection
-            kvstore = service.kvstore[encoded_app]
-            new_collection = kvstore.create(name=collection, **collection_config)
+            # Switch namespace to the target app (owner=nobody, sharing=app) for creation
+            original_namespace = getattr(service, "namespace", None)
+            service.namespace = spl_client.namespace(app=app, owner="nobody", sharing="app")
+            try:
+                # Create collection with robust handling (skip create if it already exists)
+                if collection in service.kvstore:
+                    new_collection = service.kvstore[collection]
+                else:
+                    try:
+                        # First try positional signature
+                        new_collection = service.kvstore.create(collection, **collection_config)
+                    except (TypeError, KeyError):
+                        # Retry using keyword name
+                        new_collection = service.kvstore.create(name=collection, **collection_config)
+                    except HTTPError as e:
+                        # Retry with 'fields' dict if REST-style params were not accepted
+                        if field_params and e.status == 400:
+                            fallback_config = {k: v for k, v in collection_config.items() if not k.startswith("field.")}
+                            fallback_config["fields"] = {k.split(".", 1)[1]: v for k, v in field_params.items()}
+                            try:
+                                new_collection = service.kvstore.create(collection, **fallback_config)
+                            except (TypeError, KeyError):
+                                new_collection = service.kvstore.create(name=collection, **fallback_config)
+                        elif e.status == 409:
+                            # Already exists - treat as idempotent success by returning existing collection
+                            new_collection = service.kvstore[collection]
+                        else:
+                            raise
+
+                # Ensure schema via update_field for each normalized field (best-effort)
+                if normalized_fields:
+                    for fname, ftype in normalized_fields.items():
+                        try:
+                            new_collection.update_field(fname, ftype)
+                        except Exception:
+                            # Ignore schema update errors; surface only creation failures
+                            pass
+
+                # Optionally create a transforms.conf lookup definition in this app
+                lookup_info: dict[str, Any] | None = None
+                if create_lookup_definition:
+                    try:
+                        transforms = service.confs["transforms"]
+                        lookup_name = collection
+                        fields_list = ", ".join(["_key"] + list(normalized_fields.keys())) if normalized_fields else "_key"
+                        if lookup_name not in transforms:
+                            transforms.create(
+                                lookup_name,
+                                **{
+                                    "external_type": "kvstore",
+                                    "collection": collection,
+                                    "fields_list": fields_list,
+                                    "case_sensitive_match": "false",
+                                },
+                            )
+                        lookup_info = {"name": lookup_name, "fields_list": fields_list}
+                    except Exception:
+                        # Non-fatal; continue without lookup creation data
+                        lookup_info = {"name": collection, "created": False}
+            finally:
+                # Restore original namespace
+                service.namespace = original_namespace
 
             await ctx.info(f"Collection {collection} created successfully")
             return self.format_success_response(
@@ -175,7 +262,8 @@ class CreateKvstoreCollection(BaseTool):
                         "fields": new_collection.content.get("fields", []),
                         "accelerated_fields": new_collection.content.get("accelerated_fields", {}),
                         "replicated": new_collection.content.get("replicated", False),
-                    }
+                    },
+                    **({"lookup_definition": lookup_info} if lookup_info else {}),
                 }
             )
 
