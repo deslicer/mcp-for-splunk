@@ -5,7 +5,10 @@ This replaces the curl-based "First Success Test" with a cleaner FastMCP client 
 """
 
 import asyncio
+import os
+import json
 import sys
+from dotenv import load_dotenv
 
 try:
     from fastmcp import Client
@@ -14,16 +17,30 @@ except ImportError:
     print("   Try running: uv pip install fastmcp")
     sys.exit(1)
 
+# Load environment variables from a .env file if present
+load_dotenv()
 
-async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
+def _build_server_url_from_env() -> str:
+    """Build MCP server URL from environment variables.
+
+    Uses MCP_SERVER_HOST and MCP_SERVER_PORT with sensible defaults.
+    """
+    host = os.getenv("MCP_SERVER_HOST", "localhost").strip()
+    port = str(os.getenv("MCP_SERVER_PORT", "8001")).strip()
+    return f"http://{host}:{port}/mcp/"
+
+
+async def test_server_connection(url: str = ""):
     """Test the MCP server connection and basic functionality."""
 
-    print(f"🔍 Testing MCP Server at {url}")
+    resolved_url = url or _build_server_url_from_env()
+
+    print(f"🔍 Testing MCP Server at {resolved_url}")
     print("-" * 50)
 
     try:
         # Create client
-        client = Client(url)
+        client = Client(resolved_url)
 
         async with client:
             # Test 1: Server connectivity
@@ -75,7 +92,40 @@ async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
                     try:
                         result = await client.call_tool(health_tool.name, {})
                         print(f"  ✓ Called '{health_tool.name}' successfully")
-                        print(f"  Result: {result}")
+
+                        # Try to extract structured info from the result
+                        status_info = None
+                        if hasattr(result, "structured_content") and isinstance(result.structured_content, dict):
+                            status_info = result.structured_content
+                        elif hasattr(result, "data") and isinstance(result.data, dict):
+                            status_info = result.data
+                        else:
+                            # Fallback: parse first text content as JSON if present
+                            try:
+                                texts = []
+                                if hasattr(result, "content") and result.content:
+                                    for item in result.content:
+                                        text_val = getattr(item, "text", None)
+                                        if text_val:
+                                            texts.append(text_val)
+                                if texts:
+                                    status_info = json.loads(texts[0])
+                            except Exception:
+                                status_info = None
+
+                        if isinstance(status_info, dict):
+                            status = status_info.get("status", "unknown")
+                            version = status_info.get("version", "unknown")
+                            server_name = status_info.get("server_name", status_info.get("server", "unknown"))
+                            source = status_info.get("connection_source", "")
+                            print(f"  Connection Status: {status}")
+                            print(f"  Server: {server_name}")
+                            print(f"  Version: {version}")
+                            if source:
+                                print(f"  Source: {source}")
+                        else:
+                            # If we cannot parse, show raw result as fallback
+                            print(f"  Result: {result}")
                     except Exception as e:
                         print(f"  ⚠️  Could not call '{health_tool.name}': {e}")
                         print("  This might be normal if Splunk is not configured yet.")
@@ -93,7 +143,7 @@ async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
             print("4. Start using the available tools and resources!")
 
     except ConnectionError:
-        print(f"❌ Could not connect to MCP Server at {url}")
+        print(f"❌ Could not connect to MCP Server at {resolved_url}")
         print("   Make sure the server is running with:")
         print("   ./scripts/build_and_run.sh (macOS/Linux)")
         print("   .\\scripts\\build_and_run.ps1 (Windows)")
@@ -106,7 +156,7 @@ async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
 def main():
     """Main entry point."""
     # Check if a custom URL was provided
-    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8001/mcp/"
+    url = sys.argv[1] if len(sys.argv) > 1 else ""
 
     # Run the async test
     asyncio.run(test_server_connection(url))
