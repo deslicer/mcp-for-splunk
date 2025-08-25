@@ -76,8 +76,7 @@ class ListKvstoreCollections(BaseTool):
                         }
                     )
             finally:
-                if original_namespace is not None:
-                    service.namespace = original_namespace
+                service.namespace = original_namespace
 
             await ctx.info(f"Found {len(collections)} collections")
             return self.format_success_response(
@@ -253,8 +252,7 @@ class CreateKvstoreCollection(BaseTool):
                         lookup_info = {"name": collection, "created": False}
             finally:
                 # Restore original namespace
-                if original_namespace is not None:
-                    service.namespace = original_namespace
+                service.namespace = original_namespace
 
             await ctx.info(f"Collection {collection} created successfully")
             return self.format_success_response(
