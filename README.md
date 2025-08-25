@@ -91,15 +91,15 @@ cp env.example .env
 
 **Windows:**
 ```powershell
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 .\scripts\build_and_run.ps1
 ```
 
 **macOS/Linux:**
 ```bash
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 ./scripts/build_and_run.sh
 
 # Optional: install Docker on Linux if needed

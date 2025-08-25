@@ -90,8 +90,8 @@ Use the built-in verification script to validate your environment:
 
 ```powershell
 # Clone the repository
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 
 # Run the setup script
 .\scripts\build_and_run.ps1
@@ -101,8 +101,8 @@ cd mcp-server-for-splunk
 
 ```cmd
 # Clone the repository
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 
 # Run the setup script (calls PowerShell internally)
 .\scripts\build_and_run.bat
