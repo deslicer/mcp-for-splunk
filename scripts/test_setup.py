@@ -5,6 +5,7 @@ This replaces the curl-based "First Success Test" with a cleaner FastMCP client 
 """
 
 import asyncio
+import os
 import sys
 
 try:
@@ -14,16 +15,27 @@ except ImportError:
     print("   Try running: uv pip install fastmcp")
     sys.exit(1)
 
+def _build_server_url_from_env() -> str:
+    """Build MCP server URL from environment variables.
 
-async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
+    Uses MCP_SERVER_HOST and MCP_SERVER_PORT with sensible defaults.
+    """
+    host = os.getenv("MCP_SERVER_HOST", "localhost").strip()
+    port = str(os.getenv("MCP_SERVER_PORT", "8001")).strip()
+    return f"http://{host}:{port}/mcp/"
+
+
+async def test_server_connection(url: str = ""):
     """Test the MCP server connection and basic functionality."""
 
-    print(f"🔍 Testing MCP Server at {url}")
+    resolved_url = url or _build_server_url_from_env()
+
+    print(f"🔍 Testing MCP Server at {resolved_url}")
     print("-" * 50)
 
     try:
         # Create client
-        client = Client(url)
+        client = Client(resolved_url)
 
         async with client:
             # Test 1: Server connectivity
@@ -93,7 +105,7 @@ async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
             print("4. Start using the available tools and resources!")
 
     except ConnectionError:
-        print(f"❌ Could not connect to MCP Server at {url}")
+        print(f"❌ Could not connect to MCP Server at {resolved_url}")
         print("   Make sure the server is running with:")
         print("   ./scripts/build_and_run.sh (macOS/Linux)")
         print("   .\\scripts\\build_and_run.ps1 (Windows)")
@@ -106,7 +118,7 @@ async def test_server_connection(url: str = "http://localhost:8001/mcp/"):
 def main():
     """Main entry point."""
     # Check if a custom URL was provided
-    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8001/mcp/"
+    url = sys.argv[1] if len(sys.argv) > 1 else ""
 
     # Run the async test
     asyncio.run(test_server_connection(url))
