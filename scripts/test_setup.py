@@ -6,6 +6,7 @@ This replaces the curl-based "First Success Test" with a cleaner FastMCP client 
 
 import asyncio
 import os
+import json
 import sys
 from dotenv import load_dotenv
 
@@ -91,7 +92,40 @@ async def test_server_connection(url: str = ""):
                     try:
                         result = await client.call_tool(health_tool.name, {})
                         print(f"  ✓ Called '{health_tool.name}' successfully")
-                        print(f"  Result: {result}")
+
+                        # Try to extract structured info from the result
+                        status_info = None
+                        if hasattr(result, "structured_content") and isinstance(result.structured_content, dict):
+                            status_info = result.structured_content
+                        elif hasattr(result, "data") and isinstance(result.data, dict):
+                            status_info = result.data
+                        else:
+                            # Fallback: parse first text content as JSON if present
+                            try:
+                                texts = []
+                                if hasattr(result, "content") and result.content:
+                                    for item in result.content:
+                                        text_val = getattr(item, "text", None)
+                                        if text_val:
+                                            texts.append(text_val)
+                                if texts:
+                                    status_info = json.loads(texts[0])
+                            except Exception:
+                                status_info = None
+
+                        if isinstance(status_info, dict):
+                            status = status_info.get("status", "unknown")
+                            version = status_info.get("version", "unknown")
+                            server_name = status_info.get("server_name", status_info.get("server", "unknown"))
+                            source = status_info.get("connection_source", "")
+                            print(f"  Connection Status: {status}")
+                            print(f"  Server: {server_name}")
+                            print(f"  Version: {version}")
+                            if source:
+                                print(f"  Source: {source}")
+                        else:
+                            # If we cannot parse, show raw result as fallback
+                            print(f"  Result: {result}")
                     except Exception as e:
                         print(f"  ⚠️  Could not call '{health_tool.name}': {e}")
                         print("  This might be normal if Splunk is not configured yet.")
