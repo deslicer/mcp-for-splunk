@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.1...v0.3.0) (2025-08-25)
+
+
+### Features
+
+* **workflows:** dynamic MCP tool mapping for workflow tasks + alias support ([#27](https://github.com/deslicer/mcp-for-splunk/issues/27)) ([126d64d](https://github.com/deslicer/mcp-for-splunk/commit/126d64dbbdbc96d28f28fd4efe8bee137dc06f20))
+
+
+### Documentation
+
+* switch clone URLs to HTTPS and update cd to mcp-for-splunk ([#31](https://github.com/deslicer/mcp-for-splunk/issues/31)) ([5266150](https://github.com/deslicer/mcp-for-splunk/commit/526615030247b306a8302ce72485049a3c6c080a))
+* **workflows:** Add missing_data_troubleshooting workflow README ([#33](https://github.com/deslicer/mcp-for-splunk/issues/33)) ([3e31285](https://github.com/deslicer/mcp-for-splunk/commit/3e31285e00f10c48aca6b650d3e936252095eaaa))
+
 ## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.2.1) (2025-08-20)
 
 
