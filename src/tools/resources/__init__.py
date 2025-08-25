@@ -1,27 +1,8 @@
 """
 Resource tools for MCP Server.
 
-Provides tools for accessing embedded resources and documentation.
+This module is reserved for future resource-related tools.
+Documentation tools are available in the src.tools.docs module.
 """
 
-from .embedded_docs_tools import (
-    GetAdminGuideTool,
-    GetEmbeddedDocTool,
-    GetSPLReferenceTool,
-    GetSplunkCheatSheetTool,
-    GetTroubleshootingGuideTool,
-    ListEmbeddedDocsTool,
-    SearchEmbeddedDocsTool,
-    get_embedded_docs_tools,
-)
-
-__all__ = [
-    "ListEmbeddedDocsTool",
-    "GetEmbeddedDocTool",
-    "SearchEmbeddedDocsTool",
-    "GetSplunkCheatSheetTool",
-    "GetSPLReferenceTool",
-    "GetTroubleshootingGuideTool",
-    "GetAdminGuideTool",
-    "get_embedded_docs_tools",
-]
+__all__ = []
