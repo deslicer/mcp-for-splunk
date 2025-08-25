@@ -20,8 +20,8 @@ Perfect for development and AI client integration:
 
 ```bash
 # Clone and setup
-git clone https://github.com/your-org/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/your-org/mcp-for-splunk.git
+cd mcp-for-splunk
 
 # One-command setup
 ./scripts/build_and_run.sh    # macOS/Linux

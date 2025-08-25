@@ -15,8 +15,8 @@ Welcome to the community! We're excited to have you contribute to making AI and 
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 
 # Set up development environment
 ./scripts/build_and_run.sh --dev

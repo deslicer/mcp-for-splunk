@@ -27,8 +27,8 @@ Prepare your environment and to run the mcp server.
 ### Clone Github Repository
 
 ```bash
-git clone https://github.com/deslicer/mcp-server-for-splunk.git
-cd mcp-server-for-splunk
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
 # Checkout dev1666 branch in git, this branch has a prepared .env file for you.
 git checkout dev1666
 ```

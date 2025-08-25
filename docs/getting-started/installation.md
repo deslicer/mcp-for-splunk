@@ -372,8 +372,8 @@ Once all prerequisites are installed:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/deslicer/mcp-server-for-splunk.git
-   cd mcp-server-for-splunk
+   git clone https://github.com/deslicer/mcp-for-splunk.git
+   cd mcp-for-splunk
    ```
 
 2. **Run the verification script:**
