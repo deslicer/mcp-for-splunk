@@ -10,7 +10,7 @@ Automate Splunk's "I can't find my data" investigation with a single, repeatable
 
 Picture this all-too-common Splunk scenario: your security team alerts you that logs seem to be vanishing from a critical index—maybe due to forwarder dropouts, misconfigured permissions, or subtle time range mismatches. What used to involve hours of manual debugging, cross-referencing docs, and inconsistent approaches across engineers can now be streamlined into a single, automated process with MCP for Splunk.
 
-Our `workflows/core/missing_data_troubleshooting.json` takes Splunk's official "I can't find my data" troubleshooting guide and converts it into a fully executable, 10-task workflow. This JSON-defined automation lets AI agents orchestrate the entire diagnostic process systematically, pulling in required tools like `mcp_splunk-show_run_splunk_search` and `mcp_splunk-show_me` (for user info), resolving dependencies automatically, and even running parallel checks where possible. The result is a structured executive summary with recommendations, ensuring every run is consistent, auditable, and faster than manual efforts.
+Our `workflows/core/missing_data_troubleshooting.json` takes Splunk's official "I can't find my data" troubleshooting guide and converts it into a fully executable, 10-task workflow. This JSON-defined automation lets AI agents orchestrate the entire diagnostic process systematically, pulling in required tools like `run_splunk_search` and `me` (for user info), resolving dependencies automatically, and even running parallel checks where possible. The result is a structured executive summary with recommendations, ensuring every run is consistent, auditable, and faster than manual efforts.
 
 ### What the workflow does
 
@@ -36,5 +36,3 @@ Each task includes detailed instructions for the LLM, required tools, dependenci
 
 - JSON definition: `../../src/tools/workflows/core/missing_data_troubleshooting.json`
 - Workflow docs hub: `./README.md`
-
-
