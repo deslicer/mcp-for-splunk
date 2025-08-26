@@ -45,7 +45,7 @@ __all__ = [
     "CreateKvstoreCollection",
     # Documentation tools (embedded resources for agentic frameworks)
     "ListAvailableTopics",
-    "ListTroubleshootingTopics", 
+    "ListTroubleshootingTopics",
     "ListAdminTopics",
     "ListSPLCommands",
     "GetSplunkDocumentation",
