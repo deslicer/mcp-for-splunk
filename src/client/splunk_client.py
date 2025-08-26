@@ -78,7 +78,6 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
         Exception: If connection cannot be established
     """
     splunk_config = get_splunk_config(client_config)
-    logger.info(f"Splunk config: {splunk_config}")
 
     # Validate required parameters
     if not splunk_config["username"] or not splunk_config["password"]:
