@@ -17,7 +17,7 @@ networks:
 services:
   # Traefik reverse proxy and load balancer
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.5
     container_name: traefik-dev
     restart: unless-stopped
     command:
@@ -36,7 +36,7 @@ services:
       - --accesslog=true
     ports:
       - "80:80"           # HTTP
-      - "${MCP_SERVER_PORT:-8003}:8001"       # MCP Server port (Traefik entrypoint)
+      - "${MCP_SERVER_PORT:-8003}:${MCP_SERVER_PORT:-8003}"       # MCP Server port (Traefik entrypoint)
       - "3002:3002"       # MCP Inspector port (Traefik entrypoint)
       - "8080:8080"       # Traefik dashboard
     volumes:
@@ -151,7 +151,7 @@ services:
       - "traefik.enable=true"
 
       # HTTP router for MCP server (Streamable HTTP transport)
-      - "traefik.http.routers.mcp-server.rule=PathPrefix(`/mcp/`)"
+      - "traefik.http.routers.mcp-server.rule=PathPrefix(`/mcp`)"
       - "traefik.http.routers.mcp-server.entrypoints=mcp"
       - "traefik.http.routers.mcp-server.service=mcp-server"
 
