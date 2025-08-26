@@ -8,6 +8,7 @@ This module contains the core tools maintained by the project team.
 # Import all core tools to make them discoverable  # noqa: F401,F403
 from .admin import *  # noqa: F401,F403
 from .alerts import *  # noqa: F401,F403
+from .docs import *  # noqa: F401,F403
 from .health import *  # noqa: F401,F403
 from .kvstore import *  # noqa: F401,F403
 from .metadata import *  # noqa: F401,F403
@@ -42,14 +43,17 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
-    # Embedded Documentation tools
-    "ListEmbeddedDocsTool",
-    "GetEmbeddedDocTool",
-    "SearchEmbeddedDocsTool",
-    "GetSplunkCheatSheetTool",
-    "GetSPLReferenceTool",
-    "GetTroubleshootingGuideTool",
-    "GetAdminGuideTool",
+    # Documentation tools (embedded resources for agentic frameworks)
+    "ListAvailableTopics",
+    "ListTroubleshootingTopics",
+    "ListAdminTopics",
+    "ListSPLCommands",
+    "GetSplunkDocumentation",
+    "GetSplunkCheatSheet",
+    "DiscoverSplunkDocs",
+    "GetSPLReference",
+    "GetTroubleshootingGuide",
+    "GetAdminGuide",
     # Workflow tools
     "WorkflowRunnerTool",
     "ListWorkflowsTool",
