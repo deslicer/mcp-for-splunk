@@ -32,8 +32,6 @@ services:
     # Optional: Provide your own Splunk license by mounting a local file
     # volumes:
     #   - ./lic/splunk.lic:/tmp/license/splunk.lic:ro
-    volumes:
-        - ./opt-splunk:/opt/splunk/var/run/splunk/dispatch
     healthcheck:
       test: ["CMD", "curl", "-s", "-k", "https://localhost:8089/services/server/info"]
       interval: 30s
