@@ -56,6 +56,7 @@ __all__ = [
     "GetAdminGuide",
     # Workflow tools
     "WorkflowRunnerTool",
+    "GetExecutedWorkflowsTool",
     "ListWorkflowsTool",
     "WorkflowBuilderTool",
     "WorkflowRequirementsTool",

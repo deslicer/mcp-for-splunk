@@ -18,6 +18,7 @@ from src.core.base import BaseTool, ToolMetadata
 
 # Import workflow execution infrastructure
 from .shared import AgentConfig, SplunkDiagnosticContext, SplunkToolRegistry
+from .shared.executed_store import get_executed_store
 from .shared.parallel_executor import ParallelWorkflowExecutor
 from .shared.workflow_manager import WorkflowManager
 from .summarization_tool import create_summarization_tool
@@ -342,8 +343,16 @@ you need to run, or for building automated troubleshooting pipelines.""",
 
         if OPENAI_AGENTS_AVAILABLE and trace:
             # Use OpenAI Agents SDK tracing with correct API
-            with trace(workflow_name=trace_name, metadata=trace_metadata):
-                return await self._execute_with_tracing(
+            with trace(workflow_name=trace_name, metadata=trace_metadata) as _trace:
+                # Expose trace_id to downstream tasks via FastMCP context state if available
+                try:
+                    if hasattr(ctx, "set_state"):
+                        trace_id_val = getattr(_trace, "id", None) or getattr(_trace, "trace_id", None)
+                        ctx.set_state("openai_trace_id", trace_id_val)
+                        logger.info("Workflow trace_id resolved: %s", trace_id_val)
+                except Exception:
+                    pass
+                result = await self._execute_with_tracing(
                     ctx,
                     workflow_id,
                     problem_description,
@@ -356,6 +365,20 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     enable_summarization,
                     execution_start_time,
                 )
+                # Attach top-level trace metadata
+                try:
+                    trace_base = os.getenv("OPENAI_TRACES_BASE_URL", "https://platform.openai.com/logs/trace")
+                    trace_id = getattr(_trace, "id", None) or getattr(_trace, "trace_id", None)
+                    result.setdefault("tracing_info", {})
+                    result["tracing_info"]["trace_id"] = trace_id
+                    result["tracing_info"]["trace_url"] = (
+                        f"{trace_base}?trace_id={trace_id}" if trace_base and trace_id else None
+                    )
+                    # Ensure trace_name is also present at the workflow level
+                    result["tracing_info"]["trace_name"] = trace_name
+                except Exception:
+                    pass
+                return result
         else:
             # Fallback without tracing
             logger.warning("OpenAI Agents tracing not available, executing without traces")
@@ -600,9 +623,16 @@ you need to run, or for building automated troubleshooting pipelines.""",
                 "task_results": {
                     task_id: {
                         "status": result.status,
+                        "severity": getattr(result, "severity", result.status),
+                        "success_score": getattr(result, "success_score", None),
+                        "success": getattr(result, "success", None),
                         "findings": result.findings,
                         "recommendations": result.recommendations,
                         "details": result.details,
+                        "trace_url": getattr(result, "trace_url", None),
+                        "trace_name": getattr(result, "trace_name", None),
+                        "trace_timestamp": getattr(result, "trace_timestamp", None),
+                        "correlation_id": getattr(result, "correlation_id", None),
                     }
                     for task_id, result in workflow_result.task_results.items()
                 },
@@ -651,6 +681,13 @@ you need to run, or for building automated troubleshooting pipelines.""",
             )
             logger.info(f"Summarization enabled: {enable_summarization}")
             logger.info("=" * 80)
+
+            # Persist latest executed workflow for this session+workflow_id
+            try:
+                store = get_executed_store()
+                store.upsert_latest(ctx, workflow_id=workflow_id, result=result)
+            except Exception as e:
+                logger.warning("Failed to persist executed workflow: %s", e)
 
             return result
 

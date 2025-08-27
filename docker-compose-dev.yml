@@ -144,6 +144,11 @@ services:
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
       # Logging level for MCP server (dev)
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+    volumes:
+      # Mount local data directory for executed workflows persistence
+      - ./.data:/app/.data
+      # Ensure relative data dir also maps if used
+      - ./data:/app/data
     depends_on:
       - traefik
     labels:
