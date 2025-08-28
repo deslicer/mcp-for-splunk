@@ -49,10 +49,35 @@ class DiagnosticResult:
     findings: list[str]
     recommendations: list[str]
     details: dict[str, Any] = None
+    # Extended fields for reliability scoring
+    severity: str | None = None  # Explicit severity, defaults from status
+    success_score: float | None = None  # 0.0-1.0 assessment of instruction fulfillment
+    success: bool | None = None  # Derived true/false indicator of success
+    # Optional tracing/telemetry fields (may be populated by agents/runners)
+    trace_url: str | None = None
+    trace_name: str | None = None
+    trace_timestamp: int | None = None
+    correlation_id: str | None = None
 
     def __post_init__(self):
         if self.details is None:
             self.details = {}
+        # Normalize and backfill extended fields
+        if not self.severity:
+            # Default severity mirrors status
+            self.severity = self.status
+        # Clamp/derive success score if provided; else infer from status
+        if self.success_score is not None:
+            try:
+                self.success_score = max(0.0, min(1.0, float(self.success_score)))
+            except Exception:
+                self.success_score = None
+        if self.success_score is None:
+            # Heuristic mapping from status to score
+            mapping = {"healthy": 1.0, "warning": 0.6, "critical": 0.2, "error": 0.0}
+            self.success_score = mapping.get(self.status, 0.5)
+        if self.success is None:
+            self.success = self.status in ("healthy", "warning") and self.success_score >= 0.5
 
 
 @dataclass

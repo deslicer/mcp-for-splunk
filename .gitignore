@@ -131,3 +131,7 @@ logs/
 src/logs/*.log
 lic/*.lic
 /.cursor/
+
+# Local data storage
+.data/
+data/

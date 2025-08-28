@@ -654,7 +654,13 @@ async def main():
         import uvicorn
         # Serve the root Starlette app so the MCP app is available under "/mcp"
         # and the HeaderCaptureMiddleware is applied to incoming HTTP requests
-        config = uvicorn.Config(root_app, host=host, port=port, log_level=UVICORN_LOG_LEVEL)
+        config = uvicorn.Config(
+            root_app,
+            host=host,
+            port=port,
+            log_level=UVICORN_LOG_LEVEL,
+            ws="wsproto",
+        )
 
         server = uvicorn.Server(config)
         await server.serve()

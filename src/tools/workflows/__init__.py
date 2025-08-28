@@ -7,6 +7,7 @@ custom troubleshooting workflows that integrate with the dynamic troubleshoot ag
 
 # Import workflow tools for automatic discovery
 try:
+    from .get_executed_workflows import GetExecutedWorkflowsTool
     from .list_workflows import ListWorkflowsTool
     from .summarization_tool import SummarizationTool, create_summarization_tool
     from .workflow_builder import WorkflowBuilderTool
@@ -20,6 +21,7 @@ try:
         "WorkflowRunnerTool",
         "create_summarization_tool",
         "SummarizationTool",
+        "GetExecutedWorkflowsTool",
     ]
 except ImportError as e:
     # Handle import errors gracefully

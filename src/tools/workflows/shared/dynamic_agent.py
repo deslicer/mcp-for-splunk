@@ -7,6 +7,7 @@ for specific agent files and enables task-driven parallelization.
 
 import logging
 import time
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -102,6 +103,7 @@ class DynamicMicroAgent:
 
         # Store current context for tool calls
         self._current_ctx = None
+        self._current_trace_info: dict[str, Any] = {}
 
         # Validate task definition
         self._validate_task_definition()
@@ -171,6 +173,11 @@ Always return your results as a structured DiagnosticResult by calling the `retu
 - findings: JSON string containing array of discovered issues or observations
 - recommendations: JSON string containing array of actionable recommendations
 - details: JSON string containing object with additional context and data
+
+Optional enhanced fields (recommended for reliability and traceability):
+- severity: explicit severity label if different from status
+- success_score: number 0.0-1.0 indicating how fully the instruction was satisfied
+- trace_url: URL to the OpenAI trace for this step (if available)
 
 Use proper JSON formatting for the string parameters to ensure they can be parsed correctly.
             """
@@ -544,7 +551,13 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
         """Create tool for returning diagnostic results."""
 
         async def return_diagnostic_result(
-            status: str, findings: str, recommendations: str, details: str = ""
+            status: str,
+            findings: str,
+            recommendations: str,
+            details: str = "",
+            severity: str | None = None,
+            success_score: float | None = None,
+            trace_url: str | None = None,
         ) -> str:
             """Return the diagnostic result for this task.
 
@@ -553,6 +566,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 findings: JSON string of discovered issues or observations (list)
                 recommendations: JSON string of actionable recommendations (list)
                 details: Optional JSON string with additional context (dict)
+                severity: Optional explicit severity label; defaults to status
+                success_score: Optional 0.0-1.0 score for instruction fulfillment
+                trace_url: Optional URL to OpenAI trace for this step
             """
             import json
 
@@ -567,6 +583,13 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 recommendations_list = [recommendations] if recommendations else []
                 details_dict = {"raw_details": details} if details else {}
 
+            # Build traceability context (not used at per-step level)
+
+            # Fill URLs if missing from provided args using env-provided bases
+            # No longer attach per-step trace URLs; top-level workflow result carries trace info
+            trace_url = None
+
+            logger.info(f"Trace URL: {trace_url}")
             # Store the result for later retrieval
             self._task_result = DiagnosticResult(
                 step=self.task_definition.task_id,
@@ -574,6 +597,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 findings=findings_list,
                 recommendations=recommendations_list,
                 details=details_dict,
+                severity=severity,
+                success_score=success_score if success_score is not None else None,
+                # no per-step trace fields
             )
 
             logger.debug(
@@ -683,6 +709,18 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
 
         # Store the context for tool calls
         self._current_ctx = ctx
+        # Initialize per-task trace context for URLs and correlation
+        try:
+            trace_timestamp = int(time.time() * 1000)
+            trace_name = f"micro_agent_task_{self.task_definition.task_id}_{trace_timestamp}"
+            correlation_id = str(uuid.uuid4())
+            self._current_trace_info = {
+                "trace_timestamp": trace_timestamp,
+                "trace_name": trace_name,
+                "correlation_id": correlation_id,
+            }
+        except Exception:
+            self._current_trace_info = {}
 
         logger.info(f"[{self.name}] Starting task execution: {self.task_definition.name}")
 

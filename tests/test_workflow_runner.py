@@ -10,9 +10,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp import Context
+from src.tools.workflows.shared.context import DiagnosticResult
 
 # Test the workflow runner tool
 from src.tools.workflows.workflow_runner import WorkflowRunnerTool
+from src.tools.workflows.get_executed_workflows import GetExecutedWorkflowsTool
 
 
 class TestWorkflowRunnerTool:
@@ -79,11 +81,25 @@ class TestWorkflowRunnerTool:
             mock_manager_instance.get_workflow.return_value = mock_workflow
             mock_manager_instance.list_workflows.return_value = [mock_workflow]
 
-            # Mock workflow result
+            # Mock workflow result with one task having the new fields
             mock_result = MagicMock()
             mock_result.status = "completed"
             mock_result.workflow_id = "test_workflow"
-            mock_result.task_results = {}
+            # Build a realistic DiagnosticResult so the runner flattens fields correctly
+            task_result = DiagnosticResult(
+                step="step_1",
+                status="healthy",
+                findings=["All good"],
+                recommendations=["Proceed"],
+                details={"k": "v"},
+                severity="healthy",
+                success_score=0.95,
+                trace_url="https://platform.openai.com/logs?api=traces",
+                trace_name="agent_execution_step_1_123",
+                trace_timestamp=1234567890000,
+                correlation_id="corr-123",
+            )
+            mock_result.task_results = {"step_1": task_result}
             mock_result.summary = {
                 "execution_phases": 1,
                 "parallel_efficiency": 0.8,
@@ -150,6 +166,18 @@ class TestWorkflowRunnerTool:
         assert "execution_metadata" in result
         assert "workflow_execution" in result
         assert "summarization" in result
+
+        # Verify new per-step fields are present and logs_url is not
+        assert "task_results" in result
+        assert "step_1" in result["task_results"]
+        step = result["task_results"]["step_1"]
+        assert step["status"] == "healthy"
+        assert step["severity"] == "healthy"
+        assert isinstance(step["success_score"], float)
+        assert step["success"] is True
+        assert isinstance(step["trace_url"], str) and step["trace_url"]
+        assert "logs_url" not in step  # removed per new design
+        assert "trace_name" in step and "trace_timestamp" in step and "correlation_id" in step
 
         # Verify summarization was enabled
         assert result["summarization"]["enabled"] is True
@@ -246,6 +274,35 @@ class TestWorkflowRunnerTool:
         assert metadata["parallel_execution"] is True
         assert metadata["summarization_enabled"] is True
         assert "tracing_enabled" in metadata
+
+    @pytest.mark.asyncio
+    async def test_store_and_retrieve_executed_workflows(
+        self, workflow_runner_tool, mock_context, mock_workflow_infrastructure
+    ):
+        """Workflow completion should be stored and retrievable by session."""
+        # Execute a workflow to trigger storage
+        await workflow_runner_tool.execute(
+            ctx=mock_context, workflow_id="test_workflow", enable_summarization=False
+        )
+
+        # Retrieve via tool (list for session)
+        getter = GetExecutedWorkflowsTool("get_executed_workflows", "workflows")
+        list_result = await getter.execute(ctx=mock_context)
+
+        assert list_result["status"] == "ok"
+        assert list_result["count"] >= 1
+        first = list_result["executed_workflows"][0]
+        assert first["workflow_id"] == "test_workflow"
+        assert "executed_workflow_id" in first
+        assert "executed_at" in first
+        assert "status" in first
+
+        # Retrieve specific id
+        by_id = await getter.execute(ctx=mock_context, id=first["executed_workflow_id"])
+        assert by_id["status"] == "ok"
+        rec = by_id["executed_workflow"]
+        assert rec["workflow_id"] == "test_workflow"
+        assert rec["result"]["workflow_id"] == "test_workflow"
 
     @pytest.mark.asyncio
     async def test_workflow_execution_error_handling(

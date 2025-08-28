@@ -723,6 +723,14 @@ class ParallelWorkflowExecutor:
         if not recommendations:
             recommendations = ["Review analysis results for further actions"]
 
+        # No per-step trace fields anymore; top-level workflow result carries trace info
+
+        # Set severity equal to status by default; compute success_score heuristically
+        severity = status
+        success_score = {"healthy": 1.0, "warning": 0.6, "critical": 0.2, "error": 0.0}.get(
+            status, 0.5
+        )
+
         return DiagnosticResult(
             step=task.task_id,
             status=status,
@@ -733,6 +741,8 @@ class ParallelWorkflowExecutor:
                 "task_name": task.name,
                 "execution_method": "parallel_agent",
             },
+            severity=severity,
+            success_score=success_score,
         )
 
     # Tool creation methods (similar to the existing dynamic_agent.py approach)

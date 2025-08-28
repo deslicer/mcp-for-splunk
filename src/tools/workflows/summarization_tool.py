@@ -427,20 +427,34 @@ Always structure your analysis comprehensively and provide practical, implementa
                         result_findings = result.findings or []
                         result_recommendations = result.recommendations or []
                         result_details = result.details or {}
+                        result_severity = getattr(result, "severity", result_status)
+                        result_success_score = getattr(result, "success_score", None)
+                        result_trace_url = getattr(result, "trace_url", None)
                     elif isinstance(result, dict):
                         # Plain dictionary format
                         result_status = result.get("status", "unknown")
                         result_findings = result.get("findings", [])
                         result_recommendations = result.get("recommendations", [])
                         result_details = result.get("details", {})
+                        result_severity = result.get("severity", result_status)
+                        result_success_score = result.get("success_score")
+                        result_trace_url = result.get("trace_url")
                     else:
                         # Fallback
                         result_status = "unknown"
                         result_findings = []
                         result_recommendations = []
                         result_details = {}
+                        result_severity = "unknown"
+                        result_success_score = None
+                        result_trace_url = None
 
                     analysis_input += f"Status: {result_status}\n"
+                    analysis_input += f"Severity: {result_severity}\n"
+                    if result_success_score is not None:
+                        analysis_input += f"Success Score: {result_success_score:.2f}\n"
+                    if result_trace_url:
+                        analysis_input += f"Trace: {result_trace_url}\n"
 
                     if result_findings:
                         analysis_input += "Findings:\n"
@@ -463,6 +477,7 @@ Always structure your analysis comprehensively and provide practical, implementa
                             "error",
                             "execution_time",
                             "agent_output",
+                            "trace_url",
                         ]
                         detail_items = []
                         for key in important_keys:
