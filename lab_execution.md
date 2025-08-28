@@ -52,6 +52,11 @@ Reference: `https://github.com/deslicer/dev1666/blob/main/set-up-your-mcp-server
 
 Cited Guide: [`Set up MCP for Splunk`](https://github.com/deslicer/dev1666/blob/main/set-up-your-mcp-server-for-splunk.md)
 
+### Second Run (Lab 1)
+- Status: ✅ Success
+- Notes: Stopped any existing server, re-synced dependencies, restarted on port 8003, and re-verified with the script. Received HTTP 200 and full success output including `status:"running"` and `get_splunk_health` connected.
+- Next Action: Proceed to Lab 2 rerun
+
 ---
 
 ## Lab 2: Create your custom MCP tool (🧩)
@@ -90,6 +95,14 @@ Reference: `https://github.com/deslicer/dev1666/blob/main/create-your-custom-mcp
 - Next Action: Lab 2 complete
 
 Cited Guide: [`Create your custom MCP tool`](https://github.com/deslicer/dev1666/blob/main/create-your-custom-mcp-tool.md)
+
+### Second Run (Lab 2)
+- Status: ⚠️ Partial
+- Notes: Generated a new tool `hello_world_v2` via stdin piping; tool file created at `contrib/tools/examples/hello_world_v2.py`. Validation produced warnings (TODOs and missing tests); no errors. Inspector step skipped (same reason as above).
+- Commands:
+  - `printf '1\n1\nhello_world_v2\nSecond run example tool\n2\n\n1\n' | uv run python ./contrib/scripts/generate_tool.py`
+  - `uv run python ./contrib/scripts/validate_tools.py contrib/tools/examples/hello_world_v2.py`
+- Next Action: Complete
 
 ---
 

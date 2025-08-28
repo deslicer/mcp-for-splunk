@@ -1,7 +1,5 @@
-/workspace/.venv/lib/python3.13/site-packages/splunklib/client.py:782: SyntaxWarning: invalid escape sequence '\/'
-  versionSearch = re.search('(?:servicesNS\/[^/]+\/[^/]+|services)\/[^/]+\/v(\d+)\/', path)
-2025-08-28 08:58:05,745 - src.server - INFO - ClientConfigMiddleware initialized
-2025-08-28 08:58:05,750 - server_module - INFO - ClientConfigMiddleware initialized
+2025-08-28 09:22:28,922 - src.server - INFO - ClientConfigMiddleware initialized
+2025-08-28 09:22:28,928 - server_module - INFO - ClientConfigMiddleware initialized
 
 
 ╭─ FastMCP 2.0 ──────────────────────────────────────────────────────────────╮
@@ -27,193 +25,193 @@
 ╰────────────────────────────────────────────────────────────────────────────╯
 
 
-[08/28/25 08:58:05] INFO     Starting MCP server 'MCP Server for  server.py:1522
+[08/28/25 09:22:28] INFO     Starting MCP server 'MCP Server for  server.py:1522
                              Splunk' with transport 'http' on                   
                              http://127.0.0.1:8003/mcp                          
 /workspace/.venv/lib/python3.13/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
   warnings.warn(  # deprecated in 14.0 - 2024-11-09
 /workspace/.venv/lib/python3.13/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
   from websockets.server import WebSocketServerProtocol
-INFO:     Started server process [3144]
+INFO:     Started server process [6048]
 INFO:     Waiting for application startup.
-2025-08-28 08:58:05,816 - mcp.server.streamable_http_manager - INFO - StreamableHTTP session manager started
+2025-08-28 09:22:28,949 - mcp.server.streamable_http_manager - INFO - StreamableHTTP session manager started
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8003 (Press CTRL+C to quit)
-INFO:     127.0.0.1:36636 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37040 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-2025-08-28 08:58:16,467 - mcp.server.streamable_http_manager - INFO - Created new transport with session ID: 01b4b1b0dbd64e64b8fdfd9487b1e732
-2025-08-28 08:58:16,469 - server_module - INFO - Initializing Splunk connection with client configuration support...
-2025-08-28 08:58:16,471 - src.client.splunk_client - INFO - Connecting to Splunk at https://orange-ab.splunkcloud.com:8089
-2025-08-28 08:58:16,521 - src.client.splunk_client - INFO - Successfully connected to Splunk
-2025-08-28 08:58:16,521 - server_module - INFO - Splunk connection established successfully using server environment
-2025-08-28 08:58:16,521 - server_module - INFO - Loading MCP components...
-2025-08-28 08:58:16,521 - src.core.loader.ComponentLoader - INFO - Starting component loading...
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://cheat-sheet (category: reference)
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://discovery (category: discovery)
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://spl-reference (category: reference)
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/troubleshooting/{topic} (category: troubleshooting)
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/spl-reference/{command} (category: reference)
-2025-08-28 08:58:16,538 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/admin/{topic} (category: administration)
-2025-08-28 08:58:16,538 - src.resources.splunk_docs - INFO - Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)
-2025-08-28 08:58:17,117 - src.tools.workflows.shared.dynamic_agent - INFO - OpenAI agents SDK loaded successfully for dynamic micro-agents
-2025-08-28 08:58:17,126 - src.tools.workflows.shared.workflow_manager - INFO - OpenAI Agents tracing capabilities loaded successfully
-2025-08-28 08:58:17,127 - src.tools.workflows.shared.parallel_executor - INFO - OpenAI agents SDK loaded successfully for parallel execution
-2025-08-28 08:58:17,133 - src.tools.workflows.summarization_tool - INFO - OpenAI agents SDK loaded successfully for summarization tool
-2025-08-28 08:58:17,141 - src.tools.workflows.workflow_runner - INFO - OpenAI agents SDK loaded successfully for workflow runner
-2025-08-28 08:58:17,141 - src.core.registry - INFO - Registered tool: get_configurations (category: admin)
-2025-08-28 08:58:17,141 - src.core.registry - INFO - Registered tool: list_apps (category: admin)
-2025-08-28 08:58:17,141 - src.core.registry - INFO - Registered tool: list_users (category: admin)
-2025-08-28 08:58:17,141 - src.core.registry - INFO - Registered tool: me (category: admin)
-2025-08-28 08:58:17,141 - src.core.registry - INFO - Registered tool: enhance_tool_description (category: admin)
-2025-08-28 08:58:17,144 - src.core.registry - INFO - Registered tool: manage_apps (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'list_apps' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_apps (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_configurations' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_configurations (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'me' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: me (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'enhance_tool_description' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: enhance_tool_description (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'list_users' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_users (category: admin)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_triggered_alerts (category: alerts)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'list_triggered_alerts' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_triggered_alerts (category: alerts)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: discover_splunk_docs (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_admin_guide (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_spl_reference (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_splunk_cheat_sheet (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_splunk_documentation (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_troubleshooting_guide (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_admin_topics (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_available_topics (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_spl_commands (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: list_troubleshooting_topics (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'discover_splunk_docs' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: discover_splunk_docs (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_admin_guide' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_admin_guide (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_spl_reference' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_spl_reference (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_splunk_cheat_sheet' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_splunk_cheat_sheet (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_splunk_documentation' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_splunk_documentation (category: documentation)
-2025-08-28 08:58:17,145 - src.core.registry - WARNING - Tool 'get_troubleshooting_guide' is already registered, overwriting
-2025-08-28 08:58:17,145 - src.core.registry - INFO - Registered tool: get_troubleshooting_guide (category: documentation)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_admin_topics' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_admin_topics (category: documentation)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_available_topics' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_available_topics (category: documentation)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_spl_commands' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_spl_commands (category: documentation)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_troubleshooting_topics' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_troubleshooting_topics (category: documentation)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_splunk_health (category: health)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'get_splunk_health' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_splunk_health (category: health)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: create_kvstore_collection (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_kvstore_data (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_kvstore_collections (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'create_kvstore_collection' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: create_kvstore_collection (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_kvstore_collections' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_kvstore_collections (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'get_kvstore_data' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_kvstore_data (category: kvstore)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_metadata (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_indexes (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_sources (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_sourcetypes (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'get_metadata' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: get_metadata (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_indexes' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_indexes (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_sources' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_sources (category: metadata)
-2025-08-28 08:58:17,146 - src.core.registry - WARNING - Tool 'list_sourcetypes' is already registered, overwriting
-2025-08-28 08:58:17,146 - src.core.registry - INFO - Registered tool: list_sourcetypes (category: metadata)
-2025-08-28 08:58:17,147 - src.core.discovery - ERROR - Error importing module src.tools.resources: No module named 'src.tools.resources.embedded_docs_tools'
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: create_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: delete_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: execute_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: get_saved_search_details (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: run_splunk_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: list_saved_searches (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: run_oneshot_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: update_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - WARNING - Tool 'run_splunk_search' is already registered, overwriting
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: run_splunk_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - WARNING - Tool 'run_oneshot_search' is already registered, overwriting
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: run_oneshot_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - WARNING - Tool 'create_saved_search' is already registered, overwriting
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: create_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - WARNING - Tool 'delete_saved_search' is already registered, overwriting
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: delete_saved_search (category: search)
-2025-08-28 08:58:17,147 - src.core.registry - WARNING - Tool 'execute_saved_search' is already registered, overwriting
-2025-08-28 08:58:17,147 - src.core.registry - INFO - Registered tool: execute_saved_search (category: search)
-2025-08-28 08:58:17,148 - src.core.registry - WARNING - Tool 'get_saved_search_details' is already registered, overwriting
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: get_saved_search_details (category: search)
-2025-08-28 08:58:17,148 - src.core.registry - WARNING - Tool 'list_saved_searches' is already registered, overwriting
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: list_saved_searches (category: search)
-2025-08-28 08:58:17,148 - src.core.registry - WARNING - Tool 'update_saved_search' is already registered, overwriting
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: update_saved_search (category: search)
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: list_workflows (category: workflows)
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: workflow_builder (category: workflows)
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: workflow_requirements (category: workflows)
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: workflow_runner (category: workflows)
-2025-08-28 08:58:17,148 - src.core.registry - WARNING - Tool 'list_workflows' is already registered, overwriting
-2025-08-28 08:58:17,148 - src.core.registry - INFO - Registered tool: list_workflows (category: workflows)
-2025-08-28 08:58:17,149 - src.core.registry - WARNING - Tool 'workflow_builder' is already registered, overwriting
-2025-08-28 08:58:17,149 - src.core.registry - INFO - Registered tool: workflow_builder (category: workflows)
-2025-08-28 08:58:17,149 - src.core.registry - WARNING - Tool 'workflow_requirements' is already registered, overwriting
-2025-08-28 08:58:17,149 - src.core.registry - INFO - Registered tool: workflow_requirements (category: workflows)
-2025-08-28 08:58:17,149 - src.core.registry - WARNING - Tool 'workflow_runner' is already registered, overwriting
-2025-08-28 08:58:17,149 - src.core.registry - INFO - Registered tool: workflow_runner (category: workflows)
-2025-08-28 08:58:17,150 - src.core.registry - INFO - Registered tool: hello_world (category: examples)
-2025-08-28 08:58:17,151 - src.core.registry - INFO - Registered tool: get_latest_feature_health (category: health)
-2025-08-28 08:58:17,151 - src.core.registry - WARNING - Tool 'get_latest_feature_health' is already registered, overwriting
-2025-08-28 08:58:17,151 - src.core.registry - INFO - Registered tool: get_latest_feature_health (category: health)
-2025-08-28 08:58:17,151 - src.core.discovery - INFO - Discovered and registered 76 tools
-2025-08-28 08:58:17,152 - src.core.loader.ToolLoader - INFO - Loaded tool: get_configurations
-2025-08-28 08:58:17,152 - src.core.loader.ToolLoader - INFO - Loaded tool: list_apps
-2025-08-28 08:58:17,152 - src.core.loader.ToolLoader - INFO - Loaded tool: list_users
-2025-08-28 08:58:17,153 - src.core.loader.ToolLoader - INFO - Loaded tool: me
-2025-08-28 08:58:17,153 - src.core.loader.ToolLoader - INFO - Loaded tool: enhance_tool_description
-2025-08-28 08:58:17,154 - src.core.loader.ToolLoader - INFO - Loaded tool: manage_apps
-2025-08-28 08:58:17,154 - src.core.loader.ToolLoader - INFO - Loaded tool: list_triggered_alerts
-2025-08-28 08:58:17,155 - src.core.loader.ToolLoader - INFO - Loaded tool: discover_splunk_docs
-2025-08-28 08:58:17,155 - src.core.loader.ToolLoader - INFO - Loaded tool: get_admin_guide
-2025-08-28 08:58:17,156 - src.core.loader.ToolLoader - INFO - Loaded tool: get_spl_reference
-2025-08-28 08:58:17,156 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_cheat_sheet
-2025-08-28 08:58:17,157 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_documentation
-2025-08-28 08:58:17,157 - src.core.loader.ToolLoader - INFO - Loaded tool: get_troubleshooting_guide
-2025-08-28 08:58:17,157 - src.core.loader.ToolLoader - INFO - Loaded tool: list_admin_topics
-2025-08-28 08:58:17,158 - src.core.loader.ToolLoader - INFO - Loaded tool: list_available_topics
-2025-08-28 08:58:17,158 - src.core.loader.ToolLoader - INFO - Loaded tool: list_spl_commands
-2025-08-28 08:58:17,158 - src.core.loader.ToolLoader - INFO - Loaded tool: list_troubleshooting_topics
-2025-08-28 08:58:17,159 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_health
-2025-08-28 08:58:17,160 - src.core.loader.ToolLoader - INFO - Loaded tool: create_kvstore_collection
-2025-08-28 08:58:17,161 - src.core.loader.ToolLoader - INFO - Loaded tool: get_kvstore_data
-2025-08-28 08:58:17,161 - src.core.loader.ToolLoader - INFO - Loaded tool: list_kvstore_collections
-2025-08-28 08:58:17,162 - src.core.loader.ToolLoader - INFO - Loaded tool: get_metadata
-2025-08-28 08:58:17,162 - src.core.loader.ToolLoader - INFO - Loaded tool: list_indexes
-2025-08-28 08:58:17,163 - src.core.loader.ToolLoader - INFO - Loaded tool: list_sources
-2025-08-28 08:58:17,163 - src.core.loader.ToolLoader - INFO - Loaded tool: list_sourcetypes
-2025-08-28 08:58:17,164 - src.core.loader.ToolLoader - INFO - Loaded tool: create_saved_search
-2025-08-28 08:58:17,165 - src.core.loader.ToolLoader - INFO - Loaded tool: delete_saved_search
-2025-08-28 08:58:17,166 - src.core.loader.ToolLoader - INFO - Loaded tool: execute_saved_search
-2025-08-28 08:58:17,167 - src.core.loader.ToolLoader - INFO - Loaded tool: get_saved_search_details
-2025-08-28 08:58:17,167 - src.core.loader.ToolLoader - INFO - Loaded tool: run_splunk_search
-2025-08-28 08:58:17,168 - src.core.loader.ToolLoader - INFO - Loaded tool: list_saved_searches
-2025-08-28 08:58:17,169 - src.core.loader.ToolLoader - INFO - Loaded tool: run_oneshot_search
-2025-08-28 08:58:17,170 - src.core.loader.ToolLoader - INFO - Loaded tool: update_saved_search
-2025-08-28 08:58:17,171 - src.core.loader.ToolLoader - INFO - Loaded tool: list_workflows
-2025-08-28 08:58:17,172 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_builder
-2025-08-28 08:58:17,173 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_requirements
-2025-08-28 08:58:17,174 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_runner
-2025-08-28 08:58:17,174 - src.core.loader.ToolLoader - ERROR - Failed to register tool 'hello_world': Functions with **kwargs are not supported as tools
-2025-08-28 08:58:17,174 - src.core.loader.ToolLoader - ERROR - Full registration error:
+INFO:     127.0.0.1:53820 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57010 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+2025-08-28 09:22:38,258 - mcp.server.streamable_http_manager - INFO - Created new transport with session ID: 0dc136a0a6214346b79507b1decb5614
+2025-08-28 09:22:38,260 - server_module - INFO - Initializing Splunk connection with client configuration support...
+2025-08-28 09:22:38,261 - src.client.splunk_client - INFO - Connecting to Splunk at https://orange-ab.splunkcloud.com:8089
+2025-08-28 09:22:38,487 - src.client.splunk_client - INFO - Successfully connected to Splunk
+2025-08-28 09:22:38,487 - server_module - INFO - Splunk connection established successfully using server environment
+2025-08-28 09:22:38,487 - server_module - INFO - Loading MCP components...
+2025-08-28 09:22:38,487 - src.core.loader.ComponentLoader - INFO - Starting component loading...
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://cheat-sheet (category: reference)
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://discovery (category: discovery)
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://spl-reference (category: reference)
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/troubleshooting/{topic} (category: troubleshooting)
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/spl-reference/{command} (category: reference)
+2025-08-28 09:22:38,491 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/admin/{topic} (category: administration)
+2025-08-28 09:22:38,491 - src.resources.splunk_docs - INFO - Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)
+2025-08-28 09:22:38,767 - src.tools.workflows.shared.dynamic_agent - INFO - OpenAI agents SDK loaded successfully for dynamic micro-agents
+2025-08-28 09:22:38,768 - src.tools.workflows.shared.workflow_manager - INFO - OpenAI Agents tracing capabilities loaded successfully
+2025-08-28 09:22:38,769 - src.tools.workflows.shared.parallel_executor - INFO - OpenAI agents SDK loaded successfully for parallel execution
+2025-08-28 09:22:38,770 - src.tools.workflows.summarization_tool - INFO - OpenAI agents SDK loaded successfully for summarization tool
+2025-08-28 09:22:38,772 - src.tools.workflows.workflow_runner - INFO - OpenAI agents SDK loaded successfully for workflow runner
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: get_configurations (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: list_apps (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: list_users (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: me (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: enhance_tool_description (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: manage_apps (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - WARNING - Tool 'list_apps' is already registered, overwriting
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: list_apps (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - WARNING - Tool 'get_configurations' is already registered, overwriting
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: get_configurations (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - WARNING - Tool 'me' is already registered, overwriting
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: me (category: admin)
+2025-08-28 09:22:38,772 - src.core.registry - WARNING - Tool 'enhance_tool_description' is already registered, overwriting
+2025-08-28 09:22:38,772 - src.core.registry - INFO - Registered tool: enhance_tool_description (category: admin)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_users' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_users (category: admin)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_triggered_alerts (category: alerts)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_triggered_alerts' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_triggered_alerts (category: alerts)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: discover_splunk_docs (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_admin_guide (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_spl_reference (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_splunk_cheat_sheet (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_splunk_documentation (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_troubleshooting_guide (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_admin_topics (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_available_topics (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_spl_commands (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_troubleshooting_topics (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'discover_splunk_docs' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: discover_splunk_docs (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'get_admin_guide' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_admin_guide (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'get_spl_reference' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_spl_reference (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'get_splunk_cheat_sheet' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_splunk_cheat_sheet (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'get_splunk_documentation' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_splunk_documentation (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'get_troubleshooting_guide' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: get_troubleshooting_guide (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_admin_topics' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_admin_topics (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_available_topics' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_available_topics (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_spl_commands' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_spl_commands (category: documentation)
+2025-08-28 09:22:38,773 - src.core.registry - WARNING - Tool 'list_troubleshooting_topics' is already registered, overwriting
+2025-08-28 09:22:38,773 - src.core.registry - INFO - Registered tool: list_troubleshooting_topics (category: documentation)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_splunk_health (category: health)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'get_splunk_health' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_splunk_health (category: health)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: create_kvstore_collection (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_kvstore_data (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_kvstore_collections (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'create_kvstore_collection' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: create_kvstore_collection (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'list_kvstore_collections' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_kvstore_collections (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'get_kvstore_data' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_kvstore_data (category: kvstore)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_metadata (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_indexes (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_sources (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_sourcetypes (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'get_metadata' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: get_metadata (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'list_indexes' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_indexes (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'list_sources' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_sources (category: metadata)
+2025-08-28 09:22:38,774 - src.core.registry - WARNING - Tool 'list_sourcetypes' is already registered, overwriting
+2025-08-28 09:22:38,774 - src.core.registry - INFO - Registered tool: list_sourcetypes (category: metadata)
+2025-08-28 09:22:38,775 - src.core.discovery - ERROR - Error importing module src.tools.resources: No module named 'src.tools.resources.embedded_docs_tools'
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: create_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: delete_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: execute_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: get_saved_search_details (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: run_splunk_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: list_saved_searches (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: run_oneshot_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: update_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'run_splunk_search' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: run_splunk_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'run_oneshot_search' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: run_oneshot_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'create_saved_search' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: create_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'delete_saved_search' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: delete_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'execute_saved_search' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: execute_saved_search (category: search)
+2025-08-28 09:22:38,775 - src.core.registry - WARNING - Tool 'get_saved_search_details' is already registered, overwriting
+2025-08-28 09:22:38,775 - src.core.registry - INFO - Registered tool: get_saved_search_details (category: search)
+2025-08-28 09:22:38,776 - src.core.registry - WARNING - Tool 'list_saved_searches' is already registered, overwriting
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: list_saved_searches (category: search)
+2025-08-28 09:22:38,776 - src.core.registry - WARNING - Tool 'update_saved_search' is already registered, overwriting
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: update_saved_search (category: search)
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: list_workflows (category: workflows)
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: workflow_builder (category: workflows)
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: workflow_requirements (category: workflows)
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: workflow_runner (category: workflows)
+2025-08-28 09:22:38,776 - src.core.registry - WARNING - Tool 'list_workflows' is already registered, overwriting
+2025-08-28 09:22:38,776 - src.core.registry - INFO - Registered tool: list_workflows (category: workflows)
+2025-08-28 09:22:38,777 - src.core.registry - WARNING - Tool 'workflow_builder' is already registered, overwriting
+2025-08-28 09:22:38,777 - src.core.registry - INFO - Registered tool: workflow_builder (category: workflows)
+2025-08-28 09:22:38,777 - src.core.registry - WARNING - Tool 'workflow_requirements' is already registered, overwriting
+2025-08-28 09:22:38,777 - src.core.registry - INFO - Registered tool: workflow_requirements (category: workflows)
+2025-08-28 09:22:38,777 - src.core.registry - WARNING - Tool 'workflow_runner' is already registered, overwriting
+2025-08-28 09:22:38,777 - src.core.registry - INFO - Registered tool: workflow_runner (category: workflows)
+2025-08-28 09:22:38,777 - src.core.registry - INFO - Registered tool: hello_world (category: examples)
+2025-08-28 09:22:38,778 - src.core.registry - INFO - Registered tool: get_latest_feature_health (category: health)
+2025-08-28 09:22:38,778 - src.core.registry - WARNING - Tool 'get_latest_feature_health' is already registered, overwriting
+2025-08-28 09:22:38,778 - src.core.registry - INFO - Registered tool: get_latest_feature_health (category: health)
+2025-08-28 09:22:38,778 - src.core.discovery - INFO - Discovered and registered 76 tools
+2025-08-28 09:22:38,779 - src.core.loader.ToolLoader - INFO - Loaded tool: get_configurations
+2025-08-28 09:22:38,779 - src.core.loader.ToolLoader - INFO - Loaded tool: list_apps
+2025-08-28 09:22:38,779 - src.core.loader.ToolLoader - INFO - Loaded tool: list_users
+2025-08-28 09:22:38,779 - src.core.loader.ToolLoader - INFO - Loaded tool: me
+2025-08-28 09:22:38,780 - src.core.loader.ToolLoader - INFO - Loaded tool: enhance_tool_description
+2025-08-28 09:22:38,781 - src.core.loader.ToolLoader - INFO - Loaded tool: manage_apps
+2025-08-28 09:22:38,781 - src.core.loader.ToolLoader - INFO - Loaded tool: list_triggered_alerts
+2025-08-28 09:22:38,781 - src.core.loader.ToolLoader - INFO - Loaded tool: discover_splunk_docs
+2025-08-28 09:22:38,782 - src.core.loader.ToolLoader - INFO - Loaded tool: get_admin_guide
+2025-08-28 09:22:38,783 - src.core.loader.ToolLoader - INFO - Loaded tool: get_spl_reference
+2025-08-28 09:22:38,783 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_cheat_sheet
+2025-08-28 09:22:38,783 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_documentation
+2025-08-28 09:22:38,784 - src.core.loader.ToolLoader - INFO - Loaded tool: get_troubleshooting_guide
+2025-08-28 09:22:38,784 - src.core.loader.ToolLoader - INFO - Loaded tool: list_admin_topics
+2025-08-28 09:22:38,785 - src.core.loader.ToolLoader - INFO - Loaded tool: list_available_topics
+2025-08-28 09:22:38,785 - src.core.loader.ToolLoader - INFO - Loaded tool: list_spl_commands
+2025-08-28 09:22:38,785 - src.core.loader.ToolLoader - INFO - Loaded tool: list_troubleshooting_topics
+2025-08-28 09:22:38,786 - src.core.loader.ToolLoader - INFO - Loaded tool: get_splunk_health
+2025-08-28 09:22:38,787 - src.core.loader.ToolLoader - INFO - Loaded tool: create_kvstore_collection
+2025-08-28 09:22:38,788 - src.core.loader.ToolLoader - INFO - Loaded tool: get_kvstore_data
+2025-08-28 09:22:38,788 - src.core.loader.ToolLoader - INFO - Loaded tool: list_kvstore_collections
+2025-08-28 09:22:38,789 - src.core.loader.ToolLoader - INFO - Loaded tool: get_metadata
+2025-08-28 09:22:38,789 - src.core.loader.ToolLoader - INFO - Loaded tool: list_indexes
+2025-08-28 09:22:38,790 - src.core.loader.ToolLoader - INFO - Loaded tool: list_sources
+2025-08-28 09:22:38,790 - src.core.loader.ToolLoader - INFO - Loaded tool: list_sourcetypes
+2025-08-28 09:22:38,791 - src.core.loader.ToolLoader - INFO - Loaded tool: create_saved_search
+2025-08-28 09:22:38,792 - src.core.loader.ToolLoader - INFO - Loaded tool: delete_saved_search
+2025-08-28 09:22:38,793 - src.core.loader.ToolLoader - INFO - Loaded tool: execute_saved_search
+2025-08-28 09:22:38,794 - src.core.loader.ToolLoader - INFO - Loaded tool: get_saved_search_details
+2025-08-28 09:22:38,794 - src.core.loader.ToolLoader - INFO - Loaded tool: run_splunk_search
+2025-08-28 09:22:38,795 - src.core.loader.ToolLoader - INFO - Loaded tool: list_saved_searches
+2025-08-28 09:22:38,796 - src.core.loader.ToolLoader - INFO - Loaded tool: run_oneshot_search
+2025-08-28 09:22:38,797 - src.core.loader.ToolLoader - INFO - Loaded tool: update_saved_search
+2025-08-28 09:22:38,798 - src.core.loader.ToolLoader - INFO - Loaded tool: list_workflows
+2025-08-28 09:22:38,799 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_builder
+2025-08-28 09:22:38,799 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_requirements
+2025-08-28 09:22:38,800 - src.core.loader.ToolLoader - INFO - Loaded tool: workflow_runner
+2025-08-28 09:22:38,800 - src.core.loader.ToolLoader - ERROR - Failed to register tool 'hello_world': Functions with **kwargs are not supported as tools
+2025-08-28 09:22:38,800 - src.core.loader.ToolLoader - ERROR - Full registration error:
 Traceback (most recent call last):
   File "/workspace/src/core/loader.py", line 217, in load_tools
     self.mcp_server.tool(name=tool_name)(tool_wrapper)
@@ -241,109 +239,109 @@ Traceback (most recent call last):
         "Functions with **kwargs are not supported as tools"
     )
 ValueError: Functions with **kwargs are not supported as tools
-2025-08-28 08:58:17,176 - src.core.loader.ToolLoader - INFO - Loaded tool: get_latest_feature_health
-2025-08-28 08:58:17,176 - src.core.loader.ToolLoader - INFO - Loaded 38 tools into MCP server
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://cheat-sheet' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://cheat-sheet (category: reference)
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://discovery' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://discovery (category: discovery)
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://spl-reference' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://spl-reference (category: reference)
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/troubleshooting/{topic}' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/troubleshooting/{topic} (category: troubleshooting)
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/spl-reference/{command}' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/spl-reference/{command} (category: reference)
-2025-08-28 08:58:17,176 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/admin/{topic}' is already registered, overwriting
-2025-08-28 08:58:17,176 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/admin/{topic} (category: administration)
-2025-08-28 08:58:17,176 - src.resources.splunk_docs - INFO - Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered embedded resource: embedded://docs/README.md
-2025-08-28 08:58:17,185 - src.core.registry - INFO - Registered resource instance: embedded://docs/README.md (category: embedded)
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered embedded resource: embedded://docs/CHANGELOG.md
-2025-08-28 08:58:17,185 - src.core.registry - INFO - Registered resource instance: embedded://docs/CHANGELOG.md (category: embedded)
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered resource template: embedded://docs/{doc_type}/{filename}
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered resource template: embedded://config/{config_type}
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered resource template: embedded://data/{dataset}/{format}
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Splunk embedded resources registration placeholder
-2025-08-28 08:58:17,185 - src.core.registry - WARNING - Resource 'embedded://docs/README.md' is already registered, overwriting
-2025-08-28 08:58:17,185 - src.core.registry - INFO - Registered resource: embedded://docs/README.md (category: embedded)
-2025-08-28 08:58:17,185 - src.core.registry - WARNING - Resource 'embedded://docs/CHANGELOG.md' is already registered, overwriting
-2025-08-28 08:58:17,185 - src.core.registry - INFO - Registered resource: embedded://docs/CHANGELOG.md (category: embedded)
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Registered embedded resources with main registry
-2025-08-28 08:58:17,185 - src.resources.embedded - INFO - Successfully registered embedded resources
-2025-08-28 08:58:17,186 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/cheat-sheet
-2025-08-28 08:58:17,186 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: cheat_sheet
-2025-08-28 08:58:17,186 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/spl-reference
-2025-08-28 08:58:17,186 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: spl_reference
-2025-08-28 08:58:17,186 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/troubleshooting
-2025-08-28 08:58:17,186 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: troubleshooting
-2025-08-28 08:58:17,186 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/admin-guide
-2025-08-28 08:58:17,186 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: admin_guide
-2025-08-28 08:58:17,186 - src.resources.embedded_splunk_docs - INFO - Successfully registered all embedded Splunk documentation resources
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://config/{config_file} (category: configuration)
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://health/status (category: monitoring)
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://apps/installed (category: applications)
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://indexes/list (category: metadata)
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://savedsearches/list (category: search)
-2025-08-28 08:58:17,192 - src.core.registry - INFO - Registered resource: splunk://search/results/completed (category: search)
-2025-08-28 08:58:17,192 - src.resources - INFO - Pre-registered 6 core Splunk resources with discovery system
-2025-08-28 08:58:17,192 - src.core.loader.ResourceLoader - INFO - Registered Splunk documentation resources
-2025-08-28 08:58:17,192 - src.core.loader.ResourceLoader - INFO - Starting registration of dynamic documentation handlers...
-2025-08-28 08:58:17,193 - src.core.loader.ResourceLoader - INFO - Registering troubleshooting documentation handler...
-2025-08-28 08:58:17,193 - src.core.loader.ResourceLoader - INFO - ✅ Troubleshooting handler registered successfully
-2025-08-28 08:58:17,193 - src.core.loader.ResourceLoader - INFO - Registering SPL command documentation handler...
-2025-08-28 08:58:17,194 - src.core.loader.ResourceLoader - INFO - ✅ SPL command handler registered successfully
-2025-08-28 08:58:17,194 - src.core.loader.ResourceLoader - INFO - Registering admin guide documentation handler...
-2025-08-28 08:58:17,194 - src.core.loader.ResourceLoader - INFO - ✅ Admin guide handler registered successfully
-2025-08-28 08:58:17,194 - src.core.loader.ResourceLoader - INFO - Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)
+2025-08-28 09:22:38,803 - src.core.loader.ToolLoader - INFO - Loaded tool: get_latest_feature_health
+2025-08-28 09:22:38,803 - src.core.loader.ToolLoader - INFO - Loaded 38 tools into MCP server
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://cheat-sheet' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://cheat-sheet (category: reference)
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://discovery' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://discovery (category: discovery)
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://spl-reference' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://spl-reference (category: reference)
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/troubleshooting/{topic}' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/troubleshooting/{topic} (category: troubleshooting)
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/spl-reference/{command}' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/spl-reference/{command} (category: reference)
+2025-08-28 09:22:38,803 - src.core.registry - WARNING - Resource 'splunk-docs://{version}/admin/{topic}' is already registered, overwriting
+2025-08-28 09:22:38,803 - src.core.registry - INFO - Registered resource: splunk-docs://{version}/admin/{topic} (category: administration)
+2025-08-28 09:22:38,803 - src.resources.splunk_docs - INFO - Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resource: embedded://docs/README.md
+2025-08-28 09:22:38,805 - src.core.registry - INFO - Registered resource instance: embedded://docs/README.md (category: embedded)
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resource: embedded://docs/CHANGELOG.md
+2025-08-28 09:22:38,805 - src.core.registry - INFO - Registered resource instance: embedded://docs/CHANGELOG.md (category: embedded)
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered resource template: embedded://docs/{doc_type}/{filename}
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered resource template: embedded://config/{config_type}
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered resource template: embedded://data/{dataset}/{format}
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Splunk embedded resources registration placeholder
+2025-08-28 09:22:38,805 - src.core.registry - WARNING - Resource 'embedded://docs/README.md' is already registered, overwriting
+2025-08-28 09:22:38,805 - src.core.registry - INFO - Registered resource: embedded://docs/README.md (category: embedded)
+2025-08-28 09:22:38,805 - src.core.registry - WARNING - Resource 'embedded://docs/CHANGELOG.md' is already registered, overwriting
+2025-08-28 09:22:38,805 - src.core.registry - INFO - Registered resource: embedded://docs/CHANGELOG.md (category: embedded)
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resources with main registry
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Successfully registered embedded resources
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/cheat-sheet
+2025-08-28 09:22:38,805 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: cheat_sheet
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/spl-reference
+2025-08-28 09:22:38,805 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: spl_reference
+2025-08-28 09:22:38,805 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/troubleshooting
+2025-08-28 09:22:38,806 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: troubleshooting
+2025-08-28 09:22:38,806 - src.resources.embedded - INFO - Registered embedded resource: embedded://splunk/docs/admin-guide
+2025-08-28 09:22:38,806 - src.resources.embedded_splunk_docs - INFO - Registered embedded Splunk documentation: admin_guide
+2025-08-28 09:22:38,806 - src.resources.embedded_splunk_docs - INFO - Successfully registered all embedded Splunk documentation resources
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://config/{config_file} (category: configuration)
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://health/status (category: monitoring)
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://apps/installed (category: applications)
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://indexes/list (category: metadata)
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://savedsearches/list (category: search)
+2025-08-28 09:22:38,806 - src.core.registry - INFO - Registered resource: splunk://search/results/completed (category: search)
+2025-08-28 09:22:38,806 - src.resources - INFO - Pre-registered 6 core Splunk resources with discovery system
+2025-08-28 09:22:38,806 - src.core.loader.ResourceLoader - INFO - Registered Splunk documentation resources
+2025-08-28 09:22:38,806 - src.core.loader.ResourceLoader - INFO - Starting registration of dynamic documentation handlers...
+2025-08-28 09:22:38,806 - src.core.loader.ResourceLoader - INFO - Registering troubleshooting documentation handler...
+2025-08-28 09:22:38,807 - src.core.loader.ResourceLoader - INFO - ✅ Troubleshooting handler registered successfully
+2025-08-28 09:22:38,807 - src.core.loader.ResourceLoader - INFO - Registering SPL command documentation handler...
+2025-08-28 09:22:38,808 - src.core.loader.ResourceLoader - INFO - ✅ SPL command handler registered successfully
+2025-08-28 09:22:38,808 - src.core.loader.ResourceLoader - INFO - Registering admin guide documentation handler...
+2025-08-28 09:22:38,808 - src.core.loader.ResourceLoader - INFO - ✅ Admin guide handler registered successfully
+2025-08-28 09:22:38,808 - src.core.loader.ResourceLoader - INFO - Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)
 /workspace/.venv/lib/python3.13/site-packages/pydantic/json_schema.py:2324: PydanticJsonSchemaWarning: Default value <class 'src.resources.splunk_config.SplunkConfigResource'> is not JSON serializable; excluding default from JSON schema [non-serializable-default]
   warnings.warn(message, PydanticJsonSchemaWarning)
-2025-08-28 08:58:17,196 - src.core.loader.ResourceLoader - INFO - Successfully loaded 11 resources
-2025-08-28 08:58:17,197 - src.core.registry - INFO - Registered prompt: mcp_overview (category: mcp_usage)
-2025-08-28 08:58:17,197 - src.core.registry - INFO - Registered prompt: tool_usage_guide (category: mcp_usage)
-2025-08-28 08:58:17,197 - src.core.registry - INFO - Registered prompt: workflow_creation_guide (category: mcp_usage)
-2025-08-28 08:58:17,197 - src.core.discovery - INFO - Discovered and registered 3 prompts
-2025-08-28 08:58:17,198 - src.prompts - INFO - Successfully registered 3 prompts
-2025-08-28 08:58:17,198 - src.core.registry - WARNING - Prompt 'mcp_overview' is already registered, overwriting
-2025-08-28 08:58:17,198 - src.core.registry - INFO - Registered prompt: mcp_overview (category: mcp_usage)
-2025-08-28 08:58:17,198 - src.core.registry - WARNING - Prompt 'tool_usage_guide' is already registered, overwriting
-2025-08-28 08:58:17,198 - src.core.registry - INFO - Registered prompt: tool_usage_guide (category: mcp_usage)
-2025-08-28 08:58:17,198 - src.core.registry - WARNING - Prompt 'workflow_creation_guide' is already registered, overwriting
-2025-08-28 08:58:17,198 - src.core.registry - INFO - Registered prompt: workflow_creation_guide (category: mcp_usage)
-2025-08-28 08:58:17,198 - src.core.discovery - INFO - Discovered and registered 3 prompts
-2025-08-28 08:58:17,198 - src.prompts - INFO - Successfully registered 3 prompts
-2025-08-28 08:58:17,198 - src.core.loader.PromptLoader - INFO - Registered Splunk prompts
-2025-08-28 08:58:17,198 - src.core.loader.PromptLoader - INFO - Registered prompt: mcp_overview
-2025-08-28 08:58:17,199 - src.core.loader.PromptLoader - INFO - Registered prompt: tool_usage_guide
-2025-08-28 08:58:17,199 - src.core.loader.PromptLoader - INFO - Registered prompt: workflow_creation_guide
-2025-08-28 08:58:17,199 - src.core.loader.PromptLoader - INFO - Successfully loaded 3 prompts
-2025-08-28 08:58:17,199 - src.core.loader.ComponentLoader - INFO - Loaded 52 total components: {'tools': 38, 'resources': 11, 'prompts': 3}
-2025-08-28 08:58:17,199 - server_module - INFO - Successfully loaded components: {'tools': 38, 'resources': 11, 'prompts': 3}
-INFO:     127.0.0.1:37040 - "POST /mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37048 - "GET /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37050 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37048 - "GET /mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:37050 - "POST /mcp HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:37056 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37056 - "POST /mcp HTTP/1.1" 200 OK
-2025-08-28 08:58:17,210 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
-2025-08-28 08:58:17,210 - server_module - INFO - ClientConfigMiddleware: processing tools/list (session_id=None)
-INFO:     127.0.0.1:37058 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37058 - "POST /mcp HTTP/1.1" 200 OK
-2025-08-28 08:58:17,219 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
-2025-08-28 08:58:17,219 - server_module - INFO - ClientConfigMiddleware: processing resources/list (session_id=None)
-INFO:     127.0.0.1:37074 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37074 - "POST /mcp HTTP/1.1" 200 OK
-2025-08-28 08:58:17,223 - mcp.server.lowlevel.server - INFO - Processing request of type ReadResourceRequest
-2025-08-28 08:58:17,223 - server_module - INFO - ClientConfigMiddleware: processing resources/read (session_id=None)
-INFO:     127.0.0.1:37086 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:37086 - "POST /mcp HTTP/1.1" 200 OK
-2025-08-28 08:58:17,227 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
-2025-08-28 08:58:17,231 - server_module - INFO - ClientConfigMiddleware: processing tools/call (session_id=None)
-2025-08-28 08:58:17,231 - src.core.utils - INFO - Executing tool: get_splunk_health
-2025-08-28 08:58:17,231 - src.core.base.GetSplunkHealth - INFO - Checking Splunk health status...
-2025-08-28 08:58:17,361 - src.core.base.GetSplunkHealth - INFO - Host wide: {'status': 200, 'reason': 'OK', 'headers': [('Date', 'Thu, 28 Aug 2025 08:58:17 GMT'), ('Expires', 'Thu, 26 Oct 1978 00:00:00 GMT'), ('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0'), ('Content-Type', 'text/xml; charset=UTF-8'), ('X-Content-Type-Options', 'nosniff'), ('Content-Length', '4116'), ('Vary', 'Cookie, Authorization'), ('Connection', 'Close'), ('Set-Cookie', 'splunkd_8089=udwCBGhdHrw^BLc3tjaI0LiUkbBZVnWiVOFEAb_XApExuwHKK9QTvSJR0VcIkeSSmZFLeIHjIxxtgu03qdSvXBaETl4RalNuk9PIvoFgoI58dc7MTneUH83g6ctF7d5Zq5lmJpRloDoo3BrvLbnmncXiz8RJveRwTppFDN; Path=/; Secure; HttpOnly; Max-Age=3600; Expires=Thu, 28 Aug 2025 09:58:17 GMT'), ('X-Frame-Options', 'SAMEORIGIN'), ('Server', 'Splunkd')], 'body': <splunklib.binding.ResponseReader object at 0x7f35f85b2ef0>}
-2025-08-28 08:58:17,361 - src.core.base.GetSplunkHealth - INFO - Health check successful: {'status': 'connected', 'version': '9.3.2411.113', 'server_name': 'sh-i-0b8d6e25a9e673e6e.orange-ab.splunkcloud.com', 'connection_source': 'server_config'}
-INFO:     127.0.0.1:37100 - "DELETE /mcp/ HTTP/1.1" 307 Temporary Redirect
-2025-08-28 08:58:17,367 - mcp.server.streamable_http - INFO - Terminating session: 01b4b1b0dbd64e64b8fdfd9487b1e732
-INFO:     127.0.0.1:37100 - "DELETE /mcp HTTP/1.1" 200 OK
-2025-08-28 08:58:17,368 - server_module - INFO - Shutting down Splunk connection
+2025-08-28 09:22:38,810 - src.core.loader.ResourceLoader - INFO - Successfully loaded 11 resources
+2025-08-28 09:22:38,810 - src.core.registry - INFO - Registered prompt: mcp_overview (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.registry - INFO - Registered prompt: tool_usage_guide (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.registry - INFO - Registered prompt: workflow_creation_guide (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.discovery - INFO - Discovered and registered 3 prompts
+2025-08-28 09:22:38,811 - src.prompts - INFO - Successfully registered 3 prompts
+2025-08-28 09:22:38,811 - src.core.registry - WARNING - Prompt 'mcp_overview' is already registered, overwriting
+2025-08-28 09:22:38,811 - src.core.registry - INFO - Registered prompt: mcp_overview (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.registry - WARNING - Prompt 'tool_usage_guide' is already registered, overwriting
+2025-08-28 09:22:38,811 - src.core.registry - INFO - Registered prompt: tool_usage_guide (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.registry - WARNING - Prompt 'workflow_creation_guide' is already registered, overwriting
+2025-08-28 09:22:38,811 - src.core.registry - INFO - Registered prompt: workflow_creation_guide (category: mcp_usage)
+2025-08-28 09:22:38,811 - src.core.discovery - INFO - Discovered and registered 3 prompts
+2025-08-28 09:22:38,811 - src.prompts - INFO - Successfully registered 3 prompts
+2025-08-28 09:22:38,811 - src.core.loader.PromptLoader - INFO - Registered Splunk prompts
+2025-08-28 09:22:38,811 - src.core.loader.PromptLoader - INFO - Registered prompt: mcp_overview
+2025-08-28 09:22:38,812 - src.core.loader.PromptLoader - INFO - Registered prompt: tool_usage_guide
+2025-08-28 09:22:38,812 - src.core.loader.PromptLoader - INFO - Registered prompt: workflow_creation_guide
+2025-08-28 09:22:38,812 - src.core.loader.PromptLoader - INFO - Successfully loaded 3 prompts
+2025-08-28 09:22:38,812 - src.core.loader.ComponentLoader - INFO - Loaded 52 total components: {'tools': 38, 'resources': 11, 'prompts': 3}
+2025-08-28 09:22:38,812 - server_module - INFO - Successfully loaded components: {'tools': 38, 'resources': 11, 'prompts': 3}
+INFO:     127.0.0.1:57010 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57020 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57026 - "GET /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57020 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:57026 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57032 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57032 - "POST /mcp HTTP/1.1" 200 OK
+2025-08-28 09:22:38,823 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2025-08-28 09:22:38,823 - server_module - INFO - ClientConfigMiddleware: processing tools/list (session_id=None)
+INFO:     127.0.0.1:57046 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57046 - "POST /mcp HTTP/1.1" 200 OK
+2025-08-28 09:22:38,832 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2025-08-28 09:22:38,832 - server_module - INFO - ClientConfigMiddleware: processing resources/list (session_id=None)
+INFO:     127.0.0.1:57052 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57052 - "POST /mcp HTTP/1.1" 200 OK
+2025-08-28 09:22:38,836 - mcp.server.lowlevel.server - INFO - Processing request of type ReadResourceRequest
+2025-08-28 09:22:38,836 - server_module - INFO - ClientConfigMiddleware: processing resources/read (session_id=None)
+INFO:     127.0.0.1:57068 - "POST /mcp/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:57068 - "POST /mcp HTTP/1.1" 200 OK
+2025-08-28 09:22:38,840 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2025-08-28 09:22:38,844 - server_module - INFO - ClientConfigMiddleware: processing tools/call (session_id=None)
+2025-08-28 09:22:38,844 - src.core.utils - INFO - Executing tool: get_splunk_health
+2025-08-28 09:22:38,844 - src.core.base.GetSplunkHealth - INFO - Checking Splunk health status...
+2025-08-28 09:22:39,049 - src.core.base.GetSplunkHealth - INFO - Host wide: {'status': 200, 'reason': 'OK', 'headers': [('Date', 'Thu, 28 Aug 2025 09:22:39 GMT'), ('Expires', 'Thu, 26 Oct 1978 00:00:00 GMT'), ('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0'), ('Content-Type', 'text/xml; charset=UTF-8'), ('X-Content-Type-Options', 'nosniff'), ('Content-Length', '4116'), ('Vary', 'Cookie, Authorization'), ('Connection', 'Close'), ('Set-Cookie', 'splunkd_8089=eUnclkEEg8c18_tSs6ZfULQOT0k9MRskWf3NZpNIw6YmtyC1Q5HYQMIsUPsewHRJk9KT^YHCtYXk9uxGykCS2nW5j90xb4on60ZjwA2fPoqf4bNc8gblMoxTqDpGkVCg6p251jW_8zGd5PrvNHQi^iCfUZE5CH3TsTNLppA; Path=/; Secure; HttpOnly; Max-Age=3600; Expires=Thu, 28 Aug 2025 10:22:39 GMT'), ('X-Frame-Options', 'SAMEORIGIN'), ('Server', 'Splunkd')], 'body': <splunklib.binding.ResponseReader object at 0x7f2da634bf10>}
+2025-08-28 09:22:39,049 - src.core.base.GetSplunkHealth - INFO - Health check successful: {'status': 'connected', 'version': '9.3.2411.113', 'server_name': 'sh-i-0b8d6e25a9e673e6e.orange-ab.splunkcloud.com', 'connection_source': 'server_config'}
+INFO:     127.0.0.1:57076 - "DELETE /mcp/ HTTP/1.1" 307 Temporary Redirect
+2025-08-28 09:22:39,056 - mcp.server.streamable_http - INFO - Terminating session: 0dc136a0a6214346b79507b1decb5614
+INFO:     127.0.0.1:57076 - "DELETE /mcp HTTP/1.1" 200 OK
+2025-08-28 09:22:39,056 - server_module - INFO - Shutting down Splunk connection
