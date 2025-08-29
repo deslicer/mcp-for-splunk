@@ -287,12 +287,93 @@ def get_tool_info() -> dict[str, str]:
             "custom_params": custom_params,
         }
 
+    else:
+        # Optional: add custom parameters for basic template as explicit args
+        print("\n4. Custom Parameters (optional)")
+        print("Add custom parameters to your tool's execute signature?")
+        print("   1. Yes")
+        print("   2. No")
+
+        while True:
+            try:
+                choice = int(get_user_input("Select option (1-2)", required=True))
+                if choice == 1:
+                    use_custom_params = True
+                    break
+                elif choice == 2:
+                    use_custom_params = False
+                    break
+                else:
+                    print("Please enter 1 or 2")
+            except ValueError:
+                print("Please enter a valid number")
+
+        custom_params = []
+        if use_custom_params:
+            while True:
+                try:
+                    num_params = int(
+                        get_user_input(
+                            "How many custom parameters do you want to add?", required=True
+                        )
+                    )
+                    if num_params < 0:
+                        print("Please enter a non-negative number")
+                        continue
+                    elif num_params == 0:
+                        print("No custom parameters will be added")
+                        break
+                    else:
+                        break
+                except ValueError:
+                    print("Please enter a valid number")
+
+            for i in range(num_params):
+                print(f"\nParameter {i + 1} of {num_params}:")
+                param_name = get_user_input("Parameter name (snake_case)", required=True)
+
+                print(f"Type for {param_name}:")
+                print("   1. str")
+                print("   2. int")
+                print("   3. bool")
+                print("   4. float")
+
+                type_options = ["str", "int", "bool", "float"]
+                while True:
+                    try:
+                        type_choice = int(get_user_input("Select type (1-4)", required=True))
+                        if 1 <= type_choice <= 4:
+                            param_type = type_options[type_choice - 1]
+                            break
+                        else:
+                            print("Please enter a number between 1 and 4")
+                    except ValueError:
+                        print("Please enter a valid number")
+
+                param_desc = get_user_input(f"Description for {param_name}", required=True)
+                param_default = get_user_input(
+                    f"Default value for {param_name} (optional)", required=False
+                )
+
+                custom_params.append(
+                    {
+                        "name": param_name,
+                        "type": param_type,
+                        "description": param_desc,
+                        "default": param_default,
+                    }
+                )
+
+        template_data = {"custom_params": custom_params}
+
     # Get additional details
     section_num = (
         7
         if template == "splunk_search" and template_data.get("custom_params")
         else 5
         if template == "splunk_search"
+        else 5
+        if template_data.get("custom_params")
         else 4
     )
     print(f"\n{section_num}. Additional Configuration")
@@ -528,8 +609,65 @@ def generate_tool_file(info: dict[str, str]) -> str:
     if info["template"] == "splunk_search":
         return generate_splunk_search_tool_file(info)
 
-    # Default basic template (existing functionality)
+    # Default basic template with explicit parameters (FastMCP-compatible)
     tags_str = ", ".join(f'"{tag}"' for tag in info["tags"])
+
+    # Generate custom parameters for basic template
+    custom_params_str = ""
+    custom_params_docstring = ""
+    custom_params_logging = ""
+    custom_params_dict_entries = ""
+
+    if info.get("custom_params"):
+        param_parts = []
+        doc_parts = []
+        log_parts = []
+        dict_parts = []
+
+        for param in info["custom_params"]:
+            param_name = param["name"]
+            param_type = param["type"]
+
+            if param["default"]:
+                param_default = param["default"]
+                if param_type == "str":
+                    if not (param_default.startswith('"') and param_default.endswith('"')):
+                        param_default = f'"{param_default}"'
+                elif param_type == "bool":
+                    if param_default.lower() in ["true", "1", "yes"]:
+                        param_default = "True"
+                    elif param_default.lower() in ["false", "0", "no"]:
+                        param_default = "False"
+                    else:
+                        param_default = "False"
+                elif param_type == "int":
+                    try:
+                        int(param_default)
+                    except ValueError:
+                        param_default = "0"
+                elif param_type == "float":
+                    try:
+                        float(param_default)
+                    except ValueError:
+                        param_default = "0.0"
+            else:
+                param_default = {"str": '""', "int": "0", "bool": "False", "float": "0.0"}[
+                    param_type
+                ]
+
+            type_hint = {"str": "str", "int": "int", "bool": "bool", "float": "float"}[
+                param_type
+            ]
+
+            param_parts.append(f"{param_name}: {type_hint} = {param_default}")
+            doc_parts.append(f"            {param_name}: {param['description']}")
+            log_parts.append(param_name)
+            dict_parts.append(f"\n                '{param_name}': {param_name},")
+
+        custom_params_str = ", " + ", ".join(param_parts)
+        custom_params_docstring = "\n" + "\n".join(doc_parts)
+        custom_params_logging = ", " + ", ".join([f"{p}={p}" for p in log_parts])
+        custom_params_dict_entries = "".join(dict_parts)
 
     template = f'''"""
 {info["description"]}
@@ -562,12 +700,12 @@ class {info["class_name"]}(BaseTool):
         version="1.0.0"
     )
 
-    async def execute(self, ctx: Context, **kwargs) -> Dict[str, Any]:
+    async def execute(self, ctx: Context{custom_params_str}) -> Dict[str, Any]:
         """
         Execute the {info["name"]} functionality.
 
         Args:
-            **kwargs: Tool-specific parameters
+{custom_params_docstring if info.get("custom_params") else "            (no parameters)"}
 
         Returns:
             Dict containing the tool results
@@ -575,7 +713,7 @@ class {info["class_name"]}(BaseTool):
         Example:
             {info["snake_name"]}() -> {{"result": "TODO: Add example result"}}
         """
-        log_tool_execution("{info["snake_name"]}", **kwargs)
+        log_tool_execution("{info["snake_name"]}"{custom_params_logging})
 
         self.logger.info(f"Executing {info["name"]} tool")
         ctx.info(f"Running {info["name"]} operation")
@@ -589,10 +727,14 @@ class {info["class_name"]}(BaseTool):
             #     return self.format_error_response(error_msg)
             #
             # Example implementation:
+            parameters = {{
+{custom_params_dict_entries if info.get("custom_params") else ""}
+            }}
+
             result = {{
                 "message": "TODO: Implement {info["name"]} functionality",
                 "tool": "{info["snake_name"]}",
-                "parameters": kwargs
+                "parameters": parameters
             }}
 
             return self.format_success_response(result)
@@ -746,6 +888,30 @@ def generate_test_file(info: dict[str, str]) -> str:
         return generate_splunk_search_test_file(info)
 
     # Default basic template
+    # Build example call args if custom params exist
+    call_args = ""
+    if info.get("custom_params"):
+        arg_parts = []
+        for param in info["custom_params"]:
+            name = param["name"]
+            typ = param["type"]
+            if param["default"]:
+                val = param["default"]
+                if typ == "str" and not (val.startswith('"') and val.endswith('"')):
+                    val = f'"{val}"'
+                elif typ == "bool":
+                    low = val.lower()
+                    if low in ["true", "1", "yes"]:
+                        val = "True"
+                    elif low in ["false", "0", "no"]:
+                        val = "False"
+                    else:
+                        val = "False"
+            else:
+                val = {"str": '"value"', "int": "1", "bool": "True", "float": "1.0"}[typ]
+            arg_parts.append(f"{name}={val}")
+        call_args = ", " + ", ".join(arg_parts)
+
     template = f'''"""
 Tests for {info["class_name"]}.
 """
@@ -780,7 +946,7 @@ class Test{info["class_name"]}:
     async def test_execute_success(self, tool, mock_context):
         """Test successful tool execution."""
         # TODO: Implement test for successful execution
-        result = await tool.execute(mock_context)
+        result = await tool.execute(mock_context{call_args})
 
         assert result["status"] == "success"
         assert "tool" in result
@@ -790,9 +956,7 @@ class Test{info["class_name"]}:
     async def test_execute_with_parameters(self, tool, mock_context):
         """Test tool execution with parameters."""
         # TODO: Add test with specific parameters
-        test_params = {{"param1": "value1"}}
-
-        result = await tool.execute(mock_context, **test_params)
+        result = await tool.execute(mock_context{call_args})
 
         assert result["status"] == "success"
         # TODO: Add assertions for parameter handling

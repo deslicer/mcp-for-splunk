@@ -168,6 +168,15 @@ class ToolValidator:
         elif args[1].arg != "ctx":
             self.warnings.append("Second parameter should be named 'ctx'")
 
+        # Disallow **kwargs in execute signature (FastMCP compatibility requirement)
+        if getattr(execute_method.args, "kwarg", None) is not None:
+            self.errors.append(
+                "execute method must not use **kwargs; define explicit parameters instead"
+            )
+        # Optionally warn on *args as well to encourage explicit params
+        if getattr(execute_method.args, "vararg", None) is not None:
+            self.warnings.append("Avoid using *args in execute; prefer explicit parameters")
+
         # Check for async
         if not isinstance(execute_method, ast.AsyncFunctionDef):
             self.errors.append("execute method must be async")
