@@ -35,8 +35,8 @@ project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Create logs directory if it doesn't exist
-log_dir = os.path.join(os.path.dirname(__file__), "logs")
+# Create logs directory at project root if it doesn't exist
+log_dir = os.path.join(project_root, "logs")
 os.makedirs(log_dir, exist_ok=True)
 
 # Enhanced logging configuration (configurable via MCP_LOG_LEVEL)
