@@ -28,6 +28,11 @@ uv run mcp-server --local --detached
 
 # Windows (PowerShell):
 # uv run mcp-server --local --detached
+
+# Verify the server
+uv run test-mcp-server
+# Optional: show detailed tools/resources and health output
+uv run test-mcp-server --detailed
 ```
 
 Skip to [First Success Test](#first-success-test) →

@@ -385,8 +385,21 @@ Once all prerequisites are installed:
    - **macOS/Linux:** `./scripts/check-prerequisites.sh`
 
 3. **Start the server via project script:**
-   - **Windows:** `uv run mcp-server --local --detached`
-   - **macOS/Linux:** `./scripts/smart-install.sh --dry-run && ./scripts/smart-install.sh && uv run mcp-server --local --detached`
+   - **Windows:**
+     ```powershell
+     uv run mcp-server --local --detached
+     uv run test-mcp-server
+     # Optional: show detailed tools/resources and health output
+     uv run test-mcp-server --detailed
+     ```
+   - **macOS/Linux:**
+     ```bash
+     ./scripts/smart-install.sh --dry-run && ./scripts/smart-install.sh
+     uv run mcp-server --local --detached
+     uv run test-mcp-server
+     # Optional: show detailed tools/resources and health output
+     uv run test-mcp-server --detailed
+     ```
 
 4. **The script will automatically:**
    - Install Python dependencies with UV
