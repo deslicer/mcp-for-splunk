@@ -52,6 +52,7 @@ class CliArgs:
     force_docker: bool
     force_local: bool
     stop: bool
+    restart: bool
     detached: bool
     no_inspector: bool
     local_only: bool
@@ -74,6 +75,14 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
     )
     parser.add_argument(
         "--stop", action="store_true", help="Stop Docker services and clean up", dest="stop"
+    )
+    parser.add_argument(
+        "--restart",
+        action="store_true",
+        help=(
+            "Stop any running MCP processes/services, then start local server detached using current .env (no prompts)"
+        ),
+        dest="restart",
     )
     parser.add_argument(
         "--local-only",
@@ -106,6 +115,7 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         force_docker=ns.force_docker,
         force_local=ns.force_local,
         stop=ns.stop,
+        restart=ns.restart,
         detached=ns.detached,
         no_inspector=ns.no_inspector,
         local_only=ns.local_only,
@@ -1093,6 +1103,30 @@ def main(argv: list[str] | None = None) -> int:
 
         # Prefer non-zero if any failed
         return rc_local or rc_docker
+
+    if args.restart:
+        # Stop everything, then start local server in detached mode using existing .env strictly
+        print_status("Restart requested: stopping running services/processes first...")
+        rc_local = stop_local_processes()
+        rc_docker = stop_docker_services()
+        if rc_local or rc_docker:
+            print_warning("Some components may not have stopped cleanly; continuing with restart.")
+
+        # Ensure uv available for local run
+        if not check_uv_available() and not install_uv_if_missing():
+            print_error("uv package manager is required for local restart.")
+            return 1
+
+        # Strictly use current .env without prompts
+        env_path = Path(".env")
+        if not env_path.exists():
+            print_error(".env file is required for --restart. Please create it first.")
+            return 1
+        print_local("Loading existing .env without prompting...")
+        load_env_file(env_path)
+
+        # Start local server detached and skip inspector only if user requested via flag
+        return run_local_server(detached=True, skip_inspector=args.no_inspector)
 
     if args.force_docker and args.force_local:
         print_error("Cannot force both --docker and --local. Choose one.")
