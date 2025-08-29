@@ -15,6 +15,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+import signal
 
 
 # ANSI colors
@@ -53,6 +54,8 @@ class CliArgs:
     stop: bool
     detached: bool
     no_inspector: bool
+    local_only: bool
+    docker_only: bool
 
 
 def parse_args(argv: list[str] | None = None) -> CliArgs:
@@ -71,6 +74,18 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
     )
     parser.add_argument(
         "--stop", action="store_true", help="Stop Docker services and clean up", dest="stop"
+    )
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        help="With --stop: stop only local FastMCP processes (skip Docker)",
+        dest="local_only",
+    )
+    parser.add_argument(
+        "--docker-only",
+        action="store_true",
+        help="With --stop: stop only Docker services (skip local)",
+        dest="docker_only",
     )
     parser.add_argument(
         "--detached",
@@ -93,6 +108,8 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         stop=ns.stop,
         detached=ns.detached,
         no_inspector=ns.no_inspector,
+        local_only=ns.local_only,
+        docker_only=ns.docker_only,
     )
 
 
@@ -460,6 +477,14 @@ def is_port_listening(port: int) -> bool:
         return False
 
 
+def print_access_points(mcp_port: int) -> None:
+    print()
+    print_status("📋 Access Points:")
+    print(f"   🔌 MCP Server (HTTP):  http://localhost:{mcp_port}")
+    print(f"   🔌 MCP Server API:     http://localhost:{mcp_port}/mcp/")
+    print(f"   🩺 MCP Health Dashboard: http://localhost:{mcp_port}")
+
+
 def start_mcp_inspector(mcp_port: int) -> bool:
     """Start MCP Inspector (Node 22+ required). Returns True if available/running."""
     # If already running on 6274, reuse
@@ -640,9 +665,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
 
     print_success(f"MCP server is listening on port {mcp_port}!")
     print_status("🎉 Local MCP Server Ready!")
-    print_status("📋 Access Points:")
-    print(f"   🔌 MCP Server (HTTP):  http://localhost:{mcp_port}")
-    print(f"   🔌 MCP Server API:     http://localhost:{mcp_port}/mcp/")
+    print_access_points(mcp_port)
 
     print()
     print_status("📊 Log Files:")
@@ -664,18 +687,19 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
         pid_file.write_text(str(proc.pid), encoding='utf-8')
         print()
         print_success(f"✅ Local server is running detached (PID {proc.pid}).")
-        print_status("📋 Access Links:")
-        print(f"   🔌 MCP Server API:     http://localhost:{mcp_port}/mcp/")
+        print_access_points(mcp_port)
         if started_inspector:
             print("   📊 MCP Inspector:     http://localhost:6274")
+        print()
         print_status("🛑 To stop the server:")
-        print(f"   kill $(cat {pid_file})")
-        print("   # or: pkill -f 'fastmcp run' (stops all matching processes)")
+        print("   mcp-server --stop")
         return 0
 
     print()
     print_status("🛑 To stop the server: press Ctrl+C")
     print_local("Monitoring server; press Ctrl+C to stop.")
+    # Always re-print access points as the final lines for easy copy/paste
+    print_access_points(mcp_port)
 
     try:
         while True:
@@ -689,12 +713,22 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
                             print_error(line)
                     except (OSError, UnicodeDecodeError):
                         print_error("(failed to read log file)")
+                # Ensure inspector and pid artifacts are cleaned up on exit
+                try:
+                    stop_local_processes()
+                except (OSError, ValueError, subprocess.SubprocessError):
+                    pass
                 return proc.returncode or 1
             time.sleep(5)
     except KeyboardInterrupt:
         print_local("Stopping MCP Server...")
         if proc.poll() is None:
             proc.terminate()
+        # Ensure inspector and pid artifacts are cleaned up on Ctrl+C
+        try:
+            stop_local_processes()
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
         return 0
 
 
@@ -702,11 +736,216 @@ def stop_docker_services() -> int:
     print_status("Stopping Docker services...")
     available, base_cmd = check_compose_available()
     if not available:
-        print_error("docker-compose or docker compose not found. Cannot stop services.")
-        return 1
-    cmd = base_cmd + ["down"]
-    print_local(f"Using command: {' '.join(cmd)}")
-    return run_cmd(cmd)
+        print_warning("docker-compose or docker compose not found; skipping Docker stop.")
+        return 0
+
+    # Check if any compose-managed containers are running
+    ps_quiet = base_cmd + ["ps", "-q"]
+    try:
+        out = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
+        running_ids = [l for l in out.stdout.strip().splitlines() if l.strip()]
+    except FileNotFoundError:
+        running_ids = []
+
+    if not running_ids:
+        print_status("No Docker MCP services appear to be running (compose ps is empty).")
+        return 0
+
+    print_status(f"Stopping Docker services (found {len(running_ids)} running container(s))...")
+    down_cmd = base_cmd + ["down"]
+    rc = run_cmd(down_cmd)
+    if rc == 0:
+        # Verify after stopping
+        out2 = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
+        remaining = [l for l in out2.stdout.strip().splitlines() if l.strip()]
+        if remaining:
+            print_warning(f"Some Docker containers may still be running: {len(remaining)}")
+        else:
+            print_success("Docker services stopped.")
+    else:
+        print_error("Failed to stop some Docker services.")
+    return rc
+
+
+def stop_local_processes() -> int:
+    base_dir = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    os.chdir(base_dir)
+
+    # Stop by PID file if present
+    pid_file = base_dir / ".mcp_local_server.pid"
+    inspector_pid_file = base_dir / ".inspector_pid"
+
+    # Detect initial processes
+    initial_pids: set[int] = set()
+    if pid_file.exists():
+        try:
+            p_str = pid_file.read_text(encoding="utf-8").strip()
+            p = int(p_str)
+            initial_pids.add(p)
+        except (OSError, ValueError):
+            pass
+
+    patterns = [
+        "fastmcp run src/server.py",
+        "fastmcp run",
+    ]
+    for pat in patterns:
+        if shutil.which("pgrep") is not None:
+            out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)
+            if out.returncode == 0 and out.stdout:
+                for line in out.stdout.strip().splitlines():
+                    try:
+                        initial_pids.add(int(line.strip()))
+                    except ValueError:
+                        continue
+
+    if pid_file.exists():
+        try:
+            pid_str = pid_file.read_text(encoding="utf-8").strip()
+            pid = int(pid_str)
+            print_status(f"Stopping local MCP Server (PID {pid})...")
+            os.kill(pid, signal.SIGTERM)
+            # Wait briefly for termination
+            for _ in range(10):
+                try:
+                    os.kill(pid, 0)
+                    import time as _t
+                    _t.sleep(0.3)
+                except ProcessLookupError:
+                    break
+            else:
+                print_warning("Process did not exit after SIGTERM; sending SIGKILL...")
+                os.kill(pid, signal.SIGKILL)
+            pid_file.unlink(missing_ok=True)
+            print_success("Local MCP Server stopped.")
+        except (OSError, ValueError) as e:
+            print_warning(f"Could not stop PID from file: {e}")
+
+    # Stop inspector if present
+    if inspector_pid_file.exists():
+        try:
+            ipid_str = inspector_pid_file.read_text(encoding="utf-8").strip()
+            ipid = int(ipid_str)
+            print_status(f"Stopping MCP Inspector (PID {ipid})...")
+            os.kill(ipid, signal.SIGTERM)
+            inspector_pid_file.unlink(missing_ok=True)
+            print_success("MCP Inspector stop signal sent.")
+        except (OSError, ValueError) as e:
+            # If the process is already gone or PID invalid, still remove stale pid file
+            print_warning(f"Could not stop inspector PID from file: {e}")
+            inspector_pid_file.unlink(missing_ok=True)
+            print_status("Removed stale .inspector_pid file.")
+
+    # Additional inspector stop attempts for port 6274
+    try:
+        import socket as _socket
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        s.settimeout(0.2)
+        port_open = s.connect_ex(("127.0.0.1", 6274)) == 0
+        s.close()
+    except OSError:
+        port_open = False
+
+    if port_open:
+        if shutil.which("lsof"):
+            out = subprocess.run(["lsof", "-t", "-i", ":6274"], capture_output=True, text=True, check=False)
+            pids = [line.strip() for line in out.stdout.splitlines() if line.strip()]
+            for pid_str in pids:
+                try:
+                    pid = int(pid_str)
+                    print_status(f"Stopping MCP Inspector (port 6274) PID {pid}...")
+                    os.kill(pid, signal.SIGTERM)
+                    print_success("MCP Inspector stop signal sent.")
+                except (ValueError, OSError):
+                    continue
+        else:
+            if shutil.which("pkill"):
+                print_status("Trying pkill -f '@modelcontextprotocol/inspector'...")
+                subprocess.run(["pkill", "-f", "@modelcontextprotocol/inspector"], check=False)
+            elif shutil.which("pgrep") and shutil.which("kill"):
+                out = subprocess.run(["pgrep", "-f", "@modelcontextprotocol/inspector"], capture_output=True, text=True, check=False)
+                if out.returncode == 0 and out.stdout:
+                    for line in out.stdout.strip().splitlines():
+                        try:
+                            pid = int(line.strip())
+                            print_status(f"Killing Inspector PID {pid} matching '@modelcontextprotocol/inspector'...")
+                            os.kill(pid, signal.SIGTERM)
+                        except (ValueError, OSError):
+                            continue
+
+        # After attempting to stop inspector by port/name, remove stale pid file if present
+        inspector_pid_file.unlink(missing_ok=True)
+
+    # Fall back to pkill for fastmcp patterns
+    for pat in patterns:
+        if shutil.which("pkill") is not None:
+            print_status(f"Trying pkill -f '{pat}'...")
+            subprocess.run(["pkill", "-f", pat], check=False)
+        else:
+            if shutil.which("pgrep") and shutil.which("kill"):
+                out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)
+                if out.returncode == 0 and out.stdout:
+                    for line in out.stdout.strip().splitlines():
+                        try:
+                            pid = int(line.strip())
+                            print_status(f"Killing PID {pid} matching '{pat}'...")
+                            os.kill(pid, signal.SIGTERM)
+                        except (ValueError, OSError):
+                            continue
+
+    # Small grace period to allow processes to exit cleanly before verification
+    try:
+        import time as _t
+        _t.sleep(0.3)
+    except (ImportError, RuntimeError, OSError):
+        pass
+
+    # Verify post-state
+    remaining_pids: set[int] = set()
+    if pid_file.exists():
+        try:
+            p_str = pid_file.read_text(encoding="utf-8").strip()
+            p = int(p_str)
+            remaining_pids.add(p)
+        except (OSError, ValueError):
+            pass
+    for pat in patterns:
+        if shutil.which("pgrep") is not None:
+            out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)
+            if out.returncode == 0 and out.stdout:
+                for line in out.stdout.strip().splitlines():
+                    try:
+                        remaining_pids.add(int(line.strip()))
+                    except ValueError:
+                        continue
+
+    # Confirm candidates are truly alive (avoid false positives from zombie/exited processes)
+    alive_remaining: set[int] = set()
+    for pid in list(remaining_pids):
+        try:
+            os.kill(pid, 0)  # raises ProcessLookupError if not running
+            alive_remaining.add(pid)
+        except ProcessLookupError:
+            continue
+        except PermissionError:
+            # If we lack permission, assume it's alive to be safe
+            alive_remaining.add(pid)
+
+    initially_running = len(initial_pids)
+    now_running = len(alive_remaining)
+    stopped_count = max(0, initially_running - now_running)
+
+    if initially_running == 0:
+        print_status("No local MCP processes found.")
+        return 0
+
+    if stopped_count > 0:
+        print_success(f"Stopped {stopped_count} local MCP process(es).")
+    if now_running > 0:
+        print_warning(
+            f"{now_running} MCP process(es) may still be running: {', '.join(map(str, sorted(alive_remaining)))}"
+        )
+    return 0
 
 
 def run_docker_setup() -> int:
@@ -798,6 +1037,7 @@ def run_docker_setup() -> int:
     else:
         print(f"   🌐 External Splunk:   {os.environ.get('SPLUNK_HOST')}")
     print(f"   🔌 MCP Server:        http://localhost:{os.environ.get('MCP_SERVER_PORT', '8001')}/mcp/")
+    print(f"   🩺 MCP Health Dashboard: http://localhost:{os.environ.get('MCP_SERVER_PORT', '8001')}")
     print("   📊 MCP Inspector:     http://localhost:6274")
     print()
     print_status("🔍 To check logs:")
@@ -839,10 +1079,20 @@ def main(argv: list[str] | None = None) -> int:
 
     # Handle forced modes first
     if args.stop:
-        if not docker_available:
-            print_error("Docker is not available. Cannot stop services.")
+        if args.local_only and args.docker_only:
+            print_error("Cannot use --local-only and --docker-only together.")
             return 1
-        return stop_docker_services()
+
+        rc_local = 0
+        rc_docker = 0
+
+        if not args.docker_only:
+            rc_local = stop_local_processes()
+        if not args.local_only:
+            rc_docker = stop_docker_services()
+
+        # Prefer non-zero if any failed
+        return rc_local or rc_docker
 
     if args.force_docker and args.force_local:
         print_error("Cannot force both --docker and --local. Choose one.")
