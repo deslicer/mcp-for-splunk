@@ -982,7 +982,7 @@ class Test{info["class_name"]}:
     return template
 
 
-def create_files(info: dict[str, str]) -> None:
+def create_files(info: dict[str, str]) -> tuple[str, str | None]:
     """Create the tool and test files."""
 
     # Determine project root (assuming script is in contrib/scripts/)
@@ -996,7 +996,7 @@ def create_files(info: dict[str, str]) -> None:
     # Create __init__.py if it doesn't exist
     init_file = tool_dir / "__init__.py"
     if not init_file.exists():
-        with open(init_file, "w") as f:
+        with open(init_file, "w", encoding="utf-8") as f:
             f.write(f'"""\n{TOOL_CATEGORIES[info["category"]]}\n"""\n')
 
     # Create tool file
@@ -1019,10 +1019,10 @@ def create_files(info: dict[str, str]) -> None:
             except ValueError:
                 print("Please enter a valid number")
 
-    with open(tool_file, "w") as f:
+    with open(tool_file, "w", encoding="utf-8") as f:
         f.write(generate_tool_file(info))
 
-    print(f"✓ Created tool file: {tool_file}")
+    print(f"\033[92m✓\033[0m Created tool file: {tool_file}")
 
     # Ask about test file
     print("\nCreate test file?")
@@ -1052,15 +1052,17 @@ def create_files(info: dict[str, str]) -> None:
         for parent in [project_root / "tests" / "contrib", test_dir]:
             init_file = parent / "__init__.py"
             if not init_file.exists():
-                with open(init_file, "w") as f:
+                with open(init_file, "w", encoding="utf-8") as f:
                     f.write('"""\nContrib tests\n"""\n')
 
         # Create test file
         test_file = test_dir / f"test_{info['snake_name']}.py"
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             f.write(generate_test_file(info))
+        print(f"\033[92m✓\033[0m Created test file: {test_file}")
+        return str(tool_file), str(test_file)
 
-        print(f"✓ Created test file: {test_file}")
+    return str(tool_file), None
 
 
 def main():
@@ -1112,21 +1114,31 @@ def main():
                 print("Please enter a valid number")
 
         if create:
-            create_files(info)
+            tool_path, test_path = create_files(info)
 
             print(f"\n{'=' * 60}")
-            print("Tool Created Successfully!")
+            print("\033[1m\033[92m✔ Tool created successfully!\033[0m")
             print(f"{'=' * 60}")
-            print("\nNext steps:")
-            print("1. Edit the generated file to implement your tool logic")
-            print("2. Replace TODO comments with actual implementation")
-            print("3. Add proper error handling and validation")
-            print("4. Update the test file with comprehensive tests")
-            print(
-                f"5. Test your tool: pytest tests/contrib/{info['category']}/test_{info['snake_name']}.py"
-            )
-            print("6. Add your tool to the registry if needed")
-            print(f"\nFile location: contrib/tools/{info['category']}/{info['snake_name']}.py")
+            print(f"\n\033[96mFile location\033[0m: {tool_path}")
+
+            print("\n\033[1mNext steps:\033[0m")
+            print("  1) Open the tool file and implement your logic:")
+            print(f"     {tool_path}")
+            print("  2) Validate the tool (schema and structure checks):")
+            # Prefer contrib-relative path for validate command
+            contrib_tool_path = f"contrib/tools/{info['category']}/{info['snake_name']}.py"
+            print(f"     validate-tool {contrib_tool_path}")
+            print("  3) Replace TODOs, add error handling and parameter validation")
+            if test_path:
+                print("  4) Run tests for your tool:")
+                print(f"     pytest {test_path}")
+                print("  5) Add to registry if needed")
+            else:
+                print("  4) (Optional) Create tests later and run them with:")
+                print(
+                    f"     pytest tests/contrib/{info['category']}/test_{info['snake_name']}.py"
+                )
+                print("  5) Add to registry if needed")
 
         else:
             print("Tool creation cancelled.")
