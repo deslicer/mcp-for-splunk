@@ -17,7 +17,6 @@ import sys
 import time
 from pathlib import Path
 
-
 # Colors
 BLUE = "\033[0;34m"
 GREEN = "\033[0;32m"
@@ -83,7 +82,7 @@ def stop_docker() -> int:
     ps_quiet = cmd + ["ps", "-q"]
     try:
         out = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-        running_ids = [l for l in out.stdout.strip().splitlines() if l.strip()]
+        running_ids = [line for line in out.stdout.strip().splitlines() if line.strip()]
     except FileNotFoundError:
         running_ids = []
 
@@ -98,7 +97,7 @@ def stop_docker() -> int:
         if rc == 0:
             # Verify after stopping
             out2 = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-            remaining = [l for l in out2.stdout.strip().splitlines() if l.strip()]
+            remaining = [line for line in out2.stdout.strip().splitlines() if line.strip()]
             if remaining:
                 warn(f"Some Docker containers may still be running: {len(remaining)}")
             else:
@@ -266,7 +265,7 @@ def stop_local() -> int:
     if stopped_count > 0:
         success(f"Stopped {stopped_count} local MCP process(es).")
     if now_running > 0:
-        warn(f"{now_running} MCP process(es) may still be running: {', '.join(map(str, sorted(remaining_pids)))})")
+        warn(f"{now_running} MCP process(es) may still be running: {', '.join(map(str, sorted(remaining_pids)))}")
     return 0
 
 

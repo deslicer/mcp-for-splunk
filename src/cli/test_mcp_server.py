@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+
 from dotenv import load_dotenv
 
 try:

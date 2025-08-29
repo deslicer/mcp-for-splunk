@@ -11,12 +11,11 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-import signal
-
 
 # ANSI colors
 COLOR_RED = "\033[0;31m"
@@ -753,7 +752,7 @@ def stop_docker_services() -> int:
     ps_quiet = base_cmd + ["ps", "-q"]
     try:
         out = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-        running_ids = [l for l in out.stdout.strip().splitlines() if l.strip()]
+        running_ids = [line for line in out.stdout.strip().splitlines() if line.strip()]
     except FileNotFoundError:
         running_ids = []
 
@@ -767,7 +766,7 @@ def stop_docker_services() -> int:
     if rc == 0:
         # Verify after stopping
         out2 = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-        remaining = [l for l in out2.stdout.strip().splitlines() if l.strip()]
+        remaining = [line for line in out2.stdout.strip().splitlines() if line.strip()]
         if remaining:
             print_warning(f"Some Docker containers may still be running: {len(remaining)}")
         else:
@@ -1024,7 +1023,7 @@ def run_docker_setup() -> int:
 
     # Up
     print_status("Starting services with docker compose...")
-    code = run_cmd(compose_cmd + ["up", "-d"]) 
+    code = run_cmd(compose_cmd + ["up", "-d"])
     if code != 0:
         print_error("Failed to start services")
         return code
