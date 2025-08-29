@@ -270,6 +270,10 @@ We've included comprehensive scripts to verify all prerequisites are correctly i
 # For detailed information including installation paths
 ./scripts/check-prerequisites.sh --detailed
 
+# Smart install (preview, then install missing prerequisites)
+./scripts/smart-install.sh --dry-run
+./scripts/smart-install.sh
+
 # For help and usage information
 ./scripts/check-prerequisites.sh --help
 ```
@@ -380,9 +384,9 @@ Once all prerequisites are installed:
    - **Windows:** `.\scripts\check-prerequisites.ps1`
    - **macOS/Linux:** `./scripts/check-prerequisites.sh`
 
-3. **Choose your setup method:**
-   - **Windows:** `.\scripts\build_and_run.ps1`
-   - **macOS/Linux:** `./scripts/build_and_run.sh`
+3. **Start the server via project script:**
+   - **Windows:** `uv run mcp-server --local --detached`
+   - **macOS/Linux:** `./scripts/smart-install.sh --dry-run && ./scripts/smart-install.sh && uv run mcp-server --local --detached`
 
 4. **The script will automatically:**
    - Install Python dependencies with UV
