@@ -34,6 +34,8 @@ urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 mcp-splunk-server = "src.server:main"
 generate-tool = "contrib.scripts.generate_tool:main"
 validate-tool = "contrib.scripts.validate_tools:main"
+start-mcp = "src.cli.build_and_run:main"
+stop-mcp = "src.cli.stop_mcp:main"
 
 [project.optional-dependencies]
 dev = [
