@@ -112,6 +112,8 @@ dmypy.json
 
 # MCP Inspector
 .inspector_pid
+# MCP Server
+.mcp_local_server.pid
 logs/
 
 # Splunk License files

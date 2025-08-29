@@ -67,6 +67,7 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 <a name="prerequisites"></a>
 ### Prerequisites
 - Python 3.10+ and UV package manager
+- Nodejs (optional used for mcp inspector)
 - Docker (optional but recommended for full stack)
 - Splunk instance with API access (or use included Docker Splunk)
 
@@ -93,22 +94,38 @@ cp env.example .env
 ```powershell
 git clone https://github.com/deslicer/mcp-for-splunk.git
 cd mcp-for-splunk
-.\scripts\build_and_run.ps1
+
+```python
+# Start the MCP Server (project script)
+uv run mcp-server --local --detached
+
+# Verify the server
+uv run test-mcp-server
+# Optional: show detailed tools/resources and health output
+uv run test-mcp-server --detailed
 ```
 
 **macOS/Linux:**
 ```bash
 git clone https://github.com/deslicer/mcp-for-splunk.git
 cd mcp-for-splunk
-./scripts/build_and_run.sh
 
-# Optional: install Docker on Linux if needed
-# curl -fsSL https://get.docker.com -o install-docker.sh && sudo sh install-docker.sh
-# Or use the bundled helper script
-# ./scripts/get-docker.sh --dry-run
+# (Recommended) Preview what would be installed
+./scripts/smart-install.sh --dry-run
+
+# Install missing prerequisites (base: Python, uv, Git, Node)
+./scripts/smart-install.sh
+
+# Start the MCP Server (project script)
+uv run mcp-server --local --detached
+
+# Verify the server
+uv run test-mcp-server
+# Optional: show detailed tools/resources and health output
+uv run test-mcp-server --detailed
 ```
 
-> **💡 Deployment Options**: The script will prompt you to choose:
+> **💡 Deployment Options**: The `mcp-server` command will prompt you to choose:
 > - **Docker** (Option 1): Full stack with Splunk, Traefik, MCP Inspector - recommended if Docker is installed
 > - **Local** (Option 2): Lightweight FastMCP server only - for users without Docker
 
@@ -289,14 +306,14 @@ Quick links: [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUC
 
 **🚀 Quick Start for Contributors:**
 ```bash
-# Interactive tool generator (recommended for beginners)
-./contrib/scripts/generate_tool.py
+# Interactive tool generator (project script)
+uv run generate-tool
 
 # Browse existing tools for inspiration
 ./contrib/scripts/list_tools.py
 
-# Validate your tool implementation
-./contrib/scripts/validate_tools.py
+# Validate your tool implementation (project script)
+uv run validate-tools
 
 # Test your contribution
 ./contrib/scripts/test_contrib.py

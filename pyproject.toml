@@ -5,7 +5,7 @@ description = "MCP server for Splunk"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "MCP Server for Splunk", email = "developer@example.com"}
+    {name = "MCP for Splunk", email = "developer@example.com"}
 ]
 keywords = ["mcp", "splunk", "model-context-protocol"]
 classifiers = [
@@ -31,7 +31,11 @@ license = { file = "LICENSE" }
 urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 
 [project.scripts]
-mcp-splunk-server = "src.server:main"
+generate-tool = "contrib.scripts.generate_tool:main"
+validate-tools = "contrib.scripts.validate_tools:main"
+mcp-server = "src.cli.build_and_run:main"
+test-mcp-server = "src.cli.test_mcp_server:main"
+
 
 [project.optional-dependencies]
 dev = [

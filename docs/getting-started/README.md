@@ -18,9 +18,21 @@ By the end of this guide, you'll have:
 # Clone and run in one shot
 git clone https://github.com/your-org/mcp-server-for-splunk.git
 cd mcp-server-for-splunk
-./scripts/build_and_run.sh    # macOS/Linux
-# OR
-.\scripts\build_and_run.ps1   # Windows
+
+# macOS/Linux: preview and install prerequisites
+./scripts/smart-install.sh --dry-run
+./scripts/smart-install.sh
+
+# Start the MCP Server (project script)
+uv run mcp-server --local --detached
+
+# Windows (PowerShell):
+# uv run mcp-server --local --detached
+
+# Verify the server
+uv run test-mcp-server
+# Optional: show detailed tools/resources and health output
+uv run test-mcp-server --detailed
 ```
 
 Skip to [First Success Test](#first-success-test) →
@@ -83,19 +95,13 @@ The setup script will automatically detect your environment and present options:
 
 ### Step 4: Run the Setup
 
-**Windows (PowerShell):**
-```powershell
-.\scripts\build_and_run.ps1
-```
-
-**Windows (Command Prompt):**
-```cmd
-.\scripts\build_and_run.bat
-```
-
-**macOS/Linux:**
 ```bash
-./scripts/build_and_run.sh
+# macOS/Linux
+./scripts/smart-install.sh --dry-run && ./scripts/smart-install.sh
+uv run mcp-server --local --detached
+
+# Windows (PowerShell)
+uv run mcp-server --local --detached
 ```
 
 The script will:
