@@ -38,6 +38,7 @@ validate-tools = "contrib.scripts.validate_tools:main"
 validate-tool = "contrib.scripts.validate_tools:main"
 >>>>>>> 7d5c39d (adds support for mcp-server --stop)
 mcp-server = "src.cli.build_and_run:main"
+test-mcp-server = "src.cli.test_mcp_server:main"
 
 
 [project.optional-dependencies]
