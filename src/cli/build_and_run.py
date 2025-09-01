@@ -345,19 +345,34 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         final_host, final_port, final_user, final_pass = cur_host, cur_port, cur_user, cur_pass
         print_local("Using restored Docker defaults, skipping user input prompts...")
     else:
-        new_host = input(f"Enter Splunk host/URL (current: {cur_host or 'Not set'}, press Enter to keep): ").strip()
-        new_port = input(f"Enter Splunk port (current: {cur_port or '8089'}, press Enter to keep): ").strip()
-        new_user = input(f"Enter Splunk username (current: {cur_user or 'admin'}, press Enter to keep): ").strip()
+        # Helper to prompt with enforcement
+        def prompt_value(label: str, current: str, default: str | None = None, required: bool = True) -> str:
+            value = current
+            while True:
+                if current:
+                    p = f"Enter {label} (press Enter to keep current: {current}): "
+                else:
+                    p = f"Enter {label} (required, current: Not set): "
+                new = input(p).strip()
+                if new:
+                    value = new
+                elif current:
+                    value = current
+                elif default:
+                    value = default
+                if required and not value:
+                    print_error(f"{label} is required. Please provide a value.")
+                    continue
+                return value
+
+        final_host = prompt_value("Splunk host/URL", cur_host)
+        final_port = prompt_value("Splunk port", cur_port, default="8089", required=False)
+        final_user = prompt_value("Splunk username", cur_user, default="admin")
         try:
-            new_pass = input("Enter Splunk password (press Enter to keep current): ").strip()
+            final_pass = prompt_value("Splunk password", "***" if cur_pass else "", required=True)
         except KeyboardInterrupt:
             print()
-            new_pass = ""
-
-        final_host = new_host or cur_host
-        final_port = new_port or cur_port
-        final_user = new_user or cur_user
-        final_pass = new_pass or cur_pass
+            final_pass = cur_pass
 
         # Strip protocol if URL provided
         if final_host.startswith("http://") or final_host.startswith("https://"):
