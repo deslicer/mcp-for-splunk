@@ -171,9 +171,9 @@ install_linux() {
   case "$PM" in
     apt)
       if [[ "$DRY_RUN" == true ]]; then
-        note "Would run: sudo apt update"
+        note "Would run: sudo apt update && sudo apt upgrade -y"
       else
-        sudo apt update
+        sudo apt update && sudo apt upgrade -y
       fi
       # Python: try 3.11 first, fallback to default python3
       if ! command -v python3 >/dev/null 2>&1; then
@@ -242,13 +242,14 @@ install_linux() {
         fi
       fi
 
-      # Node.js (base install)
+      # Node.js (install latest LTS via Nodesource)
       if ! command -v node >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
-          note "Node.js not found; would install: sudo apt install -y nodejs npm"
+          note "Node.js not found; would install latest LTS via Nodesource"
         else
-          note "Installing Node.js..."
-          sudo apt install -y nodejs npm
+          note "Installing latest Node.js LTS via Nodesource..."
+          curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+          sudo apt install -y nodejs
           ok "Node.js installed ($(node --version))"
         fi
       else
@@ -278,6 +279,11 @@ install_linux() {
       fi
       ;;
     dnf|yum)
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would run: sudo $PM update -y"
+      else
+        sudo $PM update -y
+      fi
       # Python
       if ! command -v python3 >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -331,13 +337,14 @@ install_linux() {
         fi
       fi
 
-      # Node.js (base install)
+      # Node.js (install latest LTS via Nodesource)
       if ! command -v node >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
-          note "Node.js not found; would install: sudo $PM install -y nodejs npm"
+          note "Node.js not found; would install latest LTS via Nodesource"
         else
-          note "Installing Node.js..."
-          sudo $PM install -y nodejs npm
+          note "Installing latest Node.js LTS via Nodesource..."
+          curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+          sudo $PM install -y nodejs
           ok "Node.js installed ($(node --version))"
         fi
       else
