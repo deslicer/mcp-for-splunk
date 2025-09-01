@@ -225,17 +225,21 @@ install_linux() {
       fi
 
       # Add check
-      if ! command -v uv >/dev/null 2>&1; then
-        export PATH="$HOME/.cargo/bin:$PATH"
-        if command -v uv >/dev/null 2>&1; then
-          ok "uv now available in this session ($(uv --version))"
-          note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
-        else
-          err "uv installation failed - please install manually from https://astral.sh/uv"
-          exit 1
-        fi
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
       else
-        ok "uv already installed ($(uv --version))"
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
       fi
 
       # Node.js (base install)
@@ -310,17 +314,21 @@ install_linux() {
       fi
 
       # Add check
-      if ! command -v uv >/dev/null 2>&1; then
-        export PATH="$HOME/.cargo/bin:$PATH"
-        if command -v uv >/dev/null 2>&1; then
-          ok "uv now available in this session ($(uv --version))"
-          note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
-        else
-          err "uv installation failed - please install manually from https://astral.sh/uv"
-          exit 1
-        fi
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
       else
-        ok "uv already installed ($(uv --version))"
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
       fi
 
       # Node.js (base install)
@@ -416,7 +424,6 @@ else
 fi
 
 ok "Prerequisite check/install complete"
-note "You can now run: ./scripts/check-prerequisites.sh --detailed"
-note "Then continue with: uv run mcp-server --local --detached"
+note "You can now follow the next steps in the lab"
 
 
