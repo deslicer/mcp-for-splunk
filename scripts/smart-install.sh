@@ -224,6 +224,20 @@ install_linux() {
         ok "uv already installed ($(uv --version))"
       fi
 
+      # Add check
+      if ! command -v uv >/dev/null 2>&1; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+        if command -v uv >/dev/null 2>&1; then
+          ok "uv now available in this session ($(uv --version))"
+          note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+        else
+          err "uv installation failed - please install manually from https://astral.sh/uv"
+          exit 1
+        fi
+      else
+        ok "uv already installed ($(uv --version))"
+      fi
+
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -290,6 +304,20 @@ install_linux() {
           note "Installing uv via official installer..."
           curl -LsSf https://astral.sh/uv/install.sh | sh
           note "If uv not found, ensure \"$HOME/.cargo/bin\" is in your PATH"
+        fi
+      else
+        ok "uv already installed ($(uv --version))"
+      fi
+
+      # Add check
+      if ! command -v uv >/dev/null 2>&1; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+        if command -v uv >/dev/null 2>&1; then
+          ok "uv now available in this session ($(uv --version))"
+          note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+        else
+          err "uv installation failed - please install manually from https://astral.sh/uv"
+          exit 1
         fi
       else
         ok "uv already installed ($(uv --version))"
