@@ -346,11 +346,12 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         print_local("Using restored Docker defaults, skipping user input prompts...")
     else:
         # Helper to prompt with enforcement
-        def prompt_value(label: str, current: str, default: str | None = None, required: bool = True) -> str:
+        def prompt_value(label: str, current: str, display_current: str | None = None, default: str | None = None, required: bool = True) -> str:
             value = current
+            display = display_current if display_current is not None else current
             while True:
                 if current:
-                    p = f"Enter {label} (press Enter to keep current: {current}): "
+                    p = f"Enter {label} (press Enter to keep current: {display}): "
                 else:
                     p = f"Enter {label} (required, current: Not set): "
                 new = input(p).strip()
@@ -369,7 +370,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         final_port = prompt_value("Splunk port", cur_port, default="8089", required=False)
         final_user = prompt_value("Splunk username", cur_user, default="admin")
         try:
-            final_pass = prompt_value("Splunk password", "***" if cur_pass else "", required=True)
+            final_pass = prompt_value("Splunk password", cur_pass, display_current="***" if cur_pass else "", required=True)
         except KeyboardInterrupt:
             print()
             final_pass = cur_pass
@@ -404,6 +405,8 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
     print("  Password: ***")
     print()
 
+    # Note: final_pass contains the actual password value (not masked);
+    # the display_current is only for prompt masking, actual value is preserved/updated
     if has_changes:
         if docker_defaults_restored:
             print_status("Automatically updating .env file with restored Docker defaults...")
@@ -716,7 +719,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
             print("   📊 MCP Inspector:     http://localhost:6274")
         print()
         print_status("🛑 To stop the server:")
-        print("   mcp-server --stop")
+        print("   uv run mcp-server --stop")
         return 0
 
     print()
