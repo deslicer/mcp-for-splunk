@@ -249,11 +249,11 @@ if [[ ${#missing_requirements[@]} -eq 0 ]]; then
     if [[ ${#optional_missing[@]} -eq 0 ]]; then
         print_success "All optional tools are also available!"
         echo
-        echo -e "${GREEN}🚀 You're ready to run: ./scripts/build_and_run.sh${NC}"
+        echo -e "${GREEN}🚀 You're ready to run: uv run mcp-server --local -d${NC}"
     else
         print_info "Some optional tools are missing, but you can still proceed."
         echo
-        echo -e "${GREEN}🚀 You can run: ./scripts/build_and_run.sh${NC}"
+        echo -e "${GREEN}🚀 You can run: uv run mcp-server --local -d${NC}"
         echo "   (Some features like MCP Inspector or Docker stack may not be available)"
     fi
 else
