@@ -29,9 +29,13 @@ load_dotenv()
 def _ensure_utf8_output() -> None:
     """Best-effort: ensure stdout/stderr can print Unicode on Windows CI."""
     try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
-    except (AttributeError, ValueError, OSError):
+        reconfig_out = getattr(sys.stdout, "reconfigure", None)
+        reconfig_err = getattr(sys.stderr, "reconfigure", None)
+        if callable(reconfig_out):
+            reconfig_out(encoding="utf-8", errors="replace")
+        if callable(reconfig_err):
+            reconfig_err(encoding="utf-8", errors="replace")
+    except (ValueError, OSError):
         pass
 
 

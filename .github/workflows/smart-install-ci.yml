@@ -90,6 +90,19 @@ jobs:
           Copy-Item env.lab .env -Force
           Write-Host "Copied env.lab to .env"
 
+      - name: Validate .env exists (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          if (Test-Path .env) {
+            Write-Host ".env exists"
+            # Optional: show first few lines for debugging
+            Get-Content .env -TotalCount 5 | ForEach-Object { Write-Host $_ }
+          } else {
+            Write-Error ".env not found after copy"
+            exit 1
+          }
+
       - name: Start server (POSIX)
         if: matrix.os != 'windows-latest'
         shell: bash
