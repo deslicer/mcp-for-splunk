@@ -224,6 +224,24 @@ install_linux() {
         ok "uv already installed ($(uv --version))"
       fi
 
+      # Add check
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
+      else
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
+      fi
+
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -295,6 +313,24 @@ install_linux() {
         ok "uv already installed ($(uv --version))"
       fi
 
+      # Add check
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
+      else
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
+      fi
+
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -357,8 +393,37 @@ case "$OS_NAME" in
 esac
 
 echo
+
+# Final verification
+note "Verifying core dependencies..."
+
+missing=()
+if ! command -v python3 >/dev/null 2>&1; then missing+=("python3"); fi
+if ! command -v uv >/dev/null 2>&1; then missing+=("uv"); fi
+if ! command -v git >/dev/null 2>&1; then missing+=("git"); fi
+
+if [[ ${#missing[@]} -gt 0 ]]; then
+  err "Missing core dependencies: ${missing[*]}"
+  err "Please install manually and ensure they are in your PATH"
+  exit 1
+fi
+
+ok "All core dependencies verified"
+
+# Check optionals
+if ! command -v node >/dev/null 2>&1; then
+  note "Node.js not found (optional for MCP Inspector)"
+else
+  ok "Node.js verified ($(node --version))"
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  note "Docker not found (optional for containerized deployment)"
+else
+  ok "Docker verified ($(docker --version | head -n1))"
+fi
+
 ok "Prerequisite check/install complete"
-note "You can now run: ./scripts/check-prerequisites.sh --detailed"
-note "Then continue with: uv run mcp-server --local --detached"
+note "You can now follow the next steps in the lab"
 
 

@@ -30,9 +30,9 @@ uv run mcp-server --local --detached
 # uv run mcp-server --local --detached
 
 # Verify the server
-uv run test-mcp-server
+uv run mcp-server --test
 # Optional: show detailed tools/resources and health output
-uv run test-mcp-server --detailed
+uv run mcp-server --test --detailed
 ```
 
 Skip to [First Success Test](#first-success-test) →

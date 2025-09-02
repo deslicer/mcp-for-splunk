@@ -137,3 +137,7 @@ lic/*.lic
 # Local data storage
 .data/
 data/
+
+# Local env backups
+.env_bak
+

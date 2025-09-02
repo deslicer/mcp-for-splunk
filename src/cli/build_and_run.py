@@ -56,6 +56,9 @@ class CliArgs:
     no_inspector: bool
     local_only: bool
     docker_only: bool
+    test: bool
+    detailed: bool
+    setup: bool
 
 
 def parse_args(argv: list[str] | None = None) -> CliArgs:
@@ -108,6 +111,24 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         help="Do not auto-start MCP Inspector in local mode",
         dest="no_inspector",
     )
+    parser.add_argument(
+        "--test", "-t",
+        action="store_true",
+        help="Run MCP server test (standalone or after starting)",
+        dest="test"
+    )
+    parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed output in test (use with --test)",
+        dest="detailed"
+    )
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Force Splunk credential setup prompt (even if .env is configured)",
+        dest="setup"
+    )
 
     ns = parser.parse_args(argv)
     return CliArgs(
@@ -119,6 +140,9 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         no_inspector=ns.no_inspector,
         local_only=ns.local_only,
         docker_only=ns.docker_only,
+        test=ns.test,
+        detailed=ns.detailed,
+        setup=ns.setup,
     )
 
 
@@ -259,6 +283,10 @@ def update_env_file(env_path: Path, updates: dict[str, str]) -> None:
     with env_path.open("r", encoding="utf-8") as f:
         lines = f.readlines()
 
+    # Normalize: ensure last line ends with \n to prevent concatenation on append
+    if lines and not lines[-1].endswith('\n'):
+        lines[-1] += '\n'
+
     keys = set(updates.keys())
     new_lines: list[str] = []
     for line in lines:
@@ -345,19 +373,43 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         final_host, final_port, final_user, final_pass = cur_host, cur_port, cur_user, cur_pass
         print_local("Using restored Docker defaults, skipping user input prompts...")
     else:
-        new_host = input(f"Enter Splunk host/URL (current: {cur_host or 'Not set'}, press Enter to keep): ").strip()
-        new_port = input(f"Enter Splunk port (current: {cur_port or '8089'}, press Enter to keep): ").strip()
-        new_user = input(f"Enter Splunk username (current: {cur_user or 'admin'}, press Enter to keep): ").strip()
+        # Helper to prompt with enforcement
+        def prompt_value(label: str, current: str, display_current: str | None = None, default: str | None = None, required: bool = True, secure_mode: bool = False) -> str:
+            import getpass
+            value = current
+            display = display_current if display_current is not None else current
+            while True:
+                if current:
+                    p = f"Enter {label} (press Enter to keep current: {display}): "
+                else:
+                    p = f"Enter {label} (required, current: Not set): "
+                if secure_mode:
+                    new = getpass.getpass(p)
+                else:
+                    new = input(p).strip()
+                if new:
+                    value = new
+                elif current:
+                    if secure_mode and current:  # Confirm keep for secure fields
+                        confirm = input("Keep current value? (y/N): ").strip().lower()
+                        if confirm != 'y':
+                            continue
+                    value = current
+                elif default:
+                    value = default
+                if required and not value:
+                    print_error(f"{label} is required. Please provide a value.")
+                    continue
+                return value
+
+        final_host = prompt_value("Splunk host/URL", cur_host)
+        final_port = prompt_value("Splunk port", cur_port, default="8089", required=False)
+        final_user = prompt_value("Splunk username", cur_user, default="admin")
         try:
-            new_pass = input("Enter Splunk password (press Enter to keep current): ").strip()
+            final_pass = prompt_value("Splunk password", cur_pass, display_current="***" if cur_pass else "", required=True, secure_mode=True)
         except KeyboardInterrupt:
             print()
-            new_pass = ""
-
-        final_host = new_host or cur_host
-        final_port = new_port or cur_port
-        final_user = new_user or cur_user
-        final_pass = new_pass or cur_pass
+            final_pass = cur_pass
 
         # Strip protocol if URL provided
         if final_host.startswith("http://") or final_host.startswith("https://"):
@@ -389,6 +441,8 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
     print("  Password: ***")
     print()
 
+    # Note: final_pass contains the actual password value (not masked);
+    # the display_current is only for prompt masking, actual value is preserved/updated
     if has_changes:
         if docker_defaults_restored:
             print_status("Automatically updating .env file with restored Docker defaults...")
@@ -421,7 +475,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
     return True
 
 
-def setup_local_env() -> int:
+def setup_local_env(force_setup: bool = False) -> int:
     print_local("Setting up local development environment...")
 
     if not install_uv_if_missing():
@@ -442,18 +496,44 @@ def setup_local_env() -> int:
 
     # Ensure .env exists
     env_path = Path(".env")
-    if not env_path.exists():
+    was_existing = env_path.exists()
+    if not was_existing:
         print_warning(".env file not found. Creating from env.example...")
         example = Path("env.example")
         if example.exists():
             env_path.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
-            print_warning("Created .env file. You may want to edit it with your Splunk configuration.")
-            print_warning("For local development, you can also use MCP_SPLUNK_* environment variables.")
+            print_warning("Created .env file from env.example.")
+            print_status("Prompting for Splunk configuration to customize...")
         else:
             print_warning("env.example not found. Proceeding without .env.")
 
-    # Prompt and load configuration
-    prompt_splunk_config(is_docker_mode=False)
+    # Check if prompting is needed
+    if not force_setup and was_existing:
+        # Read current .env to check key vars
+        current: dict[str, str] = {}
+        if env_path.exists():
+            with env_path.open("r", encoding="utf-8") as f:
+                for raw in f:
+                    line = raw.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    v = v.strip().strip('"').strip("'")
+                    current[k] = v
+
+        has_host = bool(current.get("SPLUNK_HOST", "").strip())
+        has_user = bool(current.get("SPLUNK_USERNAME", "").strip())
+        has_pass = bool(current.get("SPLUNK_PASSWORD", "").strip())
+
+        if has_host and has_user and has_pass:
+            print_status("Splunk configuration in .env looks complete. Skipping setup prompt.")
+            load_env_file(env_path)
+            print_success("Local environment setup complete!")
+            return 0
+
+    # Prompt and load configuration if needed or forced
+    if not prompt_splunk_config(is_docker_mode=False):
+        return 1
     load_env_file(env_path)
 
     print_success("Local environment setup complete!")
@@ -579,7 +659,11 @@ def start_mcp_inspector(mcp_port: int) -> bool:
         return False
 
 
-def run_local_server(detached: bool = False, skip_inspector: bool = False) -> int:
+def run_local_server(detached: bool = False, skip_inspector: bool = False, run_test: bool = False, detailed: bool = False) -> int:
+    # Ensure any existing local processes are stopped first
+    print_status("Checking for and stopping any existing local MCP processes...")
+    stop_local_processes()
+
     print_local("Starting MCP server locally with FastMCP CLI...")
 
     if not install_uv_if_missing():
@@ -600,7 +684,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
     else:
         print_local(f"Using port {mcp_port} for MCP server.")
 
-    log_file = Path("logs/mcp_server.log")
+    log_file = Path("logs/mcp_splunk_server.log")
     # Preflight: ensure fastmcp is importable; if not, install
     test_code = subprocess.run(["uv", "run", "python", "-c", "import fastmcp; print('ok')"], capture_output=True, text=True, check=False)
     if test_code.returncode != 0:
@@ -624,7 +708,12 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
 
     # Start server
     with log_file.open("w", encoding="utf-8") as lf:
-        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf)
+        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True)
+
+    # Always write PID file for monitoring/testing
+    pid_file = Path('.mcp_local_server.pid')
+    pid_file.write_text(str(proc.pid), encoding='utf-8')
+    print_local(f"Server PID: {proc.pid} (written to {pid_file})")
 
     print_local("Waiting for MCP server to start...")
     import time
@@ -641,6 +730,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
                     print_error(line)
             except (OSError, UnicodeDecodeError):
                 print_error("(failed to read log file)")
+        # Cleanup PID on early failure
+        pid_file.unlink(missing_ok=True)
         return 1
 
     # Check port listening up to 5 attempts
@@ -670,6 +761,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
         if proc.poll() is None:
             proc.terminate()
         print_error("Attempting to run server in foreground for debugging...")
+        # Cleanup PID on failure
+        pid_file.unlink(missing_ok=True)
         return run_cmd(cmd)
 
     print_success(f"MCP server is listening on port {mcp_port}!")
@@ -690,10 +783,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
             print("   📊 MCP Inspector:     http://localhost:6274")
             print("   📄 MCP Inspector: logs/inspector.log")
 
-    # Detached mode: write PID file and exit
+    # Detached mode: exit after start
     if detached:
-        pid_file = Path('.mcp_local_server.pid')
-        pid_file.write_text(str(proc.pid), encoding='utf-8')
         print()
         print_success(f"✅ Local server is running detached (PID {proc.pid}).")
         print_access_points(mcp_port)
@@ -702,7 +793,15 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
         print()
         print_status("🛑 To stop the server:")
         print("   mcp-server --stop")
-        return 0
+
+        if run_test:
+            print_status("Running MCP server test...")
+            test_cmd = ["uv", "run", "python", "src/cli/test_mcp_server.py"]
+            if detailed:
+                test_cmd.append("--detailed")
+            run_cmd(test_cmd)
+
+        return 0  # Exit main script immediately after starting detached and optional test
 
     print()
     print_status("🛑 To stop the server: press Ctrl+C")
@@ -711,34 +810,45 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False) -> in
     print_access_points(mcp_port)
 
     try:
-        while True:
-            if proc.poll() is not None:
-                print_error("MCP server process exited.")
-                if log_file.exists():
-                    print_error("=== Recent server logs ===")
-                    try:
-                        lines = log_file.read_text(encoding="utf-8").splitlines()[-10:]
-                        for line in lines:
-                            print_error(line)
-                    except (OSError, UnicodeDecodeError):
-                        print_error("(failed to read log file)")
-                # Ensure inspector and pid artifacts are cleaned up on exit
-                try:
-                    stop_local_processes()
-                except (OSError, ValueError, subprocess.SubprocessError):
-                    pass
-                return proc.returncode or 1
-            time.sleep(5)
+        while proc.poll() is None:
+            time.sleep(1)
     except KeyboardInterrupt:
         print_local("Stopping MCP Server...")
         if proc.poll() is None:
             proc.terminate()
+            # Wait for up to 10 seconds for graceful shutdown
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                print_warning("Process did not exit gracefully; sending SIGKILL...")
+                proc.kill()
         # Ensure inspector and pid artifacts are cleaned up on Ctrl+C
         try:
             stop_local_processes()
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
+        # Cleanup PID file
+        pid_file.unlink(missing_ok=True)
         return 0
+
+    # Handle natural process exit (e.g., crash or manual kill)
+    print_error("MCP server process exited unexpectedly.")
+    if log_file.exists():
+        print_error("=== Recent server logs (last 10 lines) ===")
+        try:
+            lines = log_file.read_text(encoding="utf-8").splitlines()[-10:]
+            for line in lines:
+                print_error(line)
+        except (OSError, UnicodeDecodeError):
+            print_error("(failed to read log file)")
+    # Cleanup
+    try:
+        stop_local_processes()
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    # Cleanup PID file
+    pid_file.unlink(missing_ok=True)
+    return proc.returncode or 1
 
 
 def stop_docker_services() -> int:
@@ -837,8 +947,19 @@ def stop_local_processes() -> int:
             ipid = int(ipid_str)
             print_status(f"Stopping MCP Inspector (PID {ipid})...")
             os.kill(ipid, signal.SIGTERM)
+            # Wait briefly for inspector termination
+            for _ in range(10):
+                try:
+                    os.kill(ipid, 0)
+                    import time as _t
+                    _t.sleep(0.3)
+                except ProcessLookupError:
+                    break
+            else:
+                print_warning("Inspector did not exit after SIGTERM; sending SIGKILL...")
+                os.kill(ipid, signal.SIGKILL)
             inspector_pid_file.unlink(missing_ok=True)
-            print_success("MCP Inspector stop signal sent.")
+            print_success("MCP Inspector stopped.")
         except (OSError, ValueError) as e:
             # If the process is already gone or PID invalid, still remove stale pid file
             print_warning(f"Could not stop inspector PID from file: {e}")
@@ -868,7 +989,10 @@ def stop_local_processes() -> int:
                 except (ValueError, OSError):
                     continue
         else:
-            if shutil.which("pkill"):
+            if shutil.which("fuser"):
+                print_status("Using fuser to kill processes on port 6274...")
+                subprocess.run(["fuser", "-k", "6274/tcp"], check=False)
+            elif shutil.which("pkill"):
                 print_status("Trying pkill -f '@modelcontextprotocol/inspector'...")
                 subprocess.run(["pkill", "-f", "@modelcontextprotocol/inspector"], check=False)
             elif shutil.which("pgrep") and shutil.which("kill"):
@@ -905,7 +1029,7 @@ def stop_local_processes() -> int:
     # Small grace period to allow processes to exit cleanly before verification
     try:
         import time as _t
-        _t.sleep(0.3)
+        _t.sleep(0.5)
     except (ImportError, RuntimeError, OSError):
         pass
 
@@ -957,7 +1081,7 @@ def stop_local_processes() -> int:
     return 0
 
 
-def run_docker_setup() -> int:
+def run_docker_setup(run_test: bool = False) -> int:
     print_status("Using Docker deployment mode...")
 
     # Ensure compose available
@@ -1063,6 +1187,11 @@ def run_docker_setup() -> int:
         print("   • Enhanced debugging and logging")
         print("   • Use: "+" ".join(compose_cmd + ["logs", "-f", service_name]))
 
+    if run_test:
+        print_status("Running MCP server test...")
+        test_cmd = ["uv", "run", "python", "src/cli/test_mcp_server.py", "--detailed"]
+        run_cmd(test_cmd)
+
     return 0
 
 
@@ -1085,6 +1214,14 @@ def main(argv: list[str] | None = None) -> int:
         print_success("uv package manager is available.")
     else:
         print_warning("uv package manager is not available.")
+
+    # Handle standalone --test first (no startup)
+    if args.test and not (args.force_docker or args.force_local or args.restart or args.stop):
+        print_status("Running standalone MCP server test...")
+        test_cmd = ["uv", "run", "python", "src/cli/test_mcp_server.py"]
+        if args.detailed:
+            test_cmd.append("--detailed")
+        return run_cmd(test_cmd)
 
     # Handle forced modes first
     if args.stop:
@@ -1125,7 +1262,7 @@ def main(argv: list[str] | None = None) -> int:
         load_env_file(env_path)
 
         # Start local server detached and skip inspector only if user requested via flag
-        return run_local_server(detached=True, skip_inspector=args.no_inspector)
+        return run_local_server(detached=True, skip_inspector=args.no_inspector, run_test=args.test, detailed=args.detailed)
 
     if args.force_docker and args.force_local:
         print_error("Cannot force both --docker and --local. Choose one.")
@@ -1137,7 +1274,7 @@ def main(argv: list[str] | None = None) -> int:
             print_error("Please start Docker or install Docker first.")
             return 1
         print_status("Forcing Docker deployment as requested...")
-        return run_docker_setup()
+        return run_docker_setup(run_test=args.test)
 
     if args.force_local:
         if not uv_available:
@@ -1145,18 +1282,18 @@ def main(argv: list[str] | None = None) -> int:
             print_error("Please install uv first: curl -LsSf https://astral.sh/uv/install.sh | sh")
             return 1
         print_status("Forcing local deployment as requested...")
-        code = setup_local_env()
+        code = setup_local_env(force_setup=args.setup)
         if code != 0:
             return code
-        return run_local_server(detached=args.detached, skip_inspector=args.no_inspector)
+        return run_local_server(detached=args.detached, skip_inspector=args.no_inspector, run_test=args.test, detailed=args.detailed)
 
     # Interactive mode selection
     if docker_available and uv_available:
         selected = interactive_choice()
         if selected == "docker":
-            return run_docker_setup()
+            return run_docker_setup(run_test=args.test)
         else:
-            code = setup_local_env()
+            code = setup_local_env(force_setup=args.setup)
             if code != 0:
                 return code
             # If not explicitly detached by flag, ask interactively
@@ -1164,15 +1301,15 @@ def main(argv: list[str] | None = None) -> int:
             if not local_detached:
                 ans = (input("Run local server detached (background)? (y/N): ").strip() or "n").lower()
                 local_detached = ans == 'y'
-            return run_local_server(detached=local_detached, skip_inspector=args.no_inspector)
+            return run_local_server(detached=local_detached, skip_inspector=args.no_inspector, run_test=args.test, detailed=args.detailed)
 
     if docker_available:
         print_status("Only Docker is available. Using Docker deployment...")
-        return not_implemented_yet("Docker deployment")
+        return run_docker_setup(run_test=args.test)
 
     if uv_available:
         print_status("Only local development is available. Setting up local mode...")
-        code = setup_local_env()
+        code = setup_local_env(force_setup=args.setup)
         if code != 0:
             return code
         # If not explicitly detached by flag, ask interactively
@@ -1180,7 +1317,7 @@ def main(argv: list[str] | None = None) -> int:
         if not local_detached:
             ans = (input("Run local server detached (background)? (y/N): ").strip() or "n").lower()
             local_detached = ans == 'y'
-        return run_local_server(detached=local_detached, skip_inspector=args.no_inspector)
+        return run_local_server(detached=local_detached, skip_inspector=args.no_inspector, run_test=args.test, detailed=args.detailed)
 
     print_error("Neither Docker nor uv package manager are available.")
     print_error("Please install one of the following:")
