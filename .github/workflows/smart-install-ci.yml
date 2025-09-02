@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         scenario: [default, python-version]
     steps:
       - name: Checkout
@@ -42,18 +42,33 @@ jobs:
             uv-cache-${{ runner.os }}-
 
       - name: Prepare .python-version (scenario)
-        if: matrix.scenario == 'python-version'
+        if: matrix.scenario == 'python-version' && matrix.os != 'windows-latest'
         shell: bash
         run: |
           echo "3.11" > .python-version
           echo "Using .python-version: $(cat .python-version)"
 
-      - name: Run installer
+      - name: Prepare .python-version (Windows scenario)
+        if: matrix.scenario == 'python-version' && matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Set-Content -Path .python-version -Value '3.11'
+          Write-Host "Using .python-version: $(Get-Content .python-version)"
+
+      - name: Run installer (POSIX)
+        if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           bash scripts/smart-install.sh
 
-      - name: Verify uv and Python
+      - name: Run installer (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          pwsh -File scripts/smart-install.ps1
+
+      - name: Verify uv and Python (POSIX)
+        if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           set -euxo pipefail
@@ -63,5 +78,16 @@ jobs:
           echo "Found Python: ${PY}"
           "${PY}" -V
           "${PY}" -c "import sys; print(sys.version)"
+
+      - name: Verify uv and Python (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          uv --version
+          uv python list | Out-Null
+          $py = uv python find
+          Write-Host "Found Python: $py"
+          & $py -V
+          & $py -c 'import sys; print(sys.version)'
 
 
