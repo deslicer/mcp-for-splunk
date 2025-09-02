@@ -29,7 +29,8 @@ function Ensure-UvInstalled {
   try {
     # Per docs: irm https://astral.sh/uv/install.ps1 | iex
     # Execute the installer script in the CURRENT PowerShell session to avoid nested processes
-    Invoke-Expression (Invoke-RestMethod -Uri 'https://astral.sh/uv/install.ps1') | Out-Null
+    $uvInstallScript = Invoke-RestMethod -Uri 'https://astral.sh/uv/install.ps1' -ErrorAction Stop
+    Invoke-Expression $uvInstallScript
   } catch {
     Write-Err "uv installation failed: $($_.Exception.Message)"
     throw
