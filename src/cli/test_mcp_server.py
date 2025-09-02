@@ -26,6 +26,15 @@ except ImportError:
 load_dotenv()
 
 
+def _ensure_utf8_output() -> None:
+    """Best-effort: ensure stdout/stderr can print Unicode on Windows CI."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError, OSError):
+        pass
+
+
 def _build_server_url_from_env() -> str:
     """Build MCP server URL from environment variables.
 
@@ -33,6 +42,12 @@ def _build_server_url_from_env() -> str:
     """
     host = os.getenv("MCP_SERVER_HOST", "localhost").strip()
     port = str(os.getenv("MCP_SERVER_PORT", "8001")).strip()
+    # Normalize host: avoid connecting to 0.0.0.0 which is a bind address, not a client address
+    if host in {"0.0.0.0", "::", ""}:
+        host = "localhost"
+    # Strip scheme if provided
+    if host.startswith("http://") or host.startswith("https://"):
+        host = host.split("://", 1)[1]
     return f"http://{host}:{port}/mcp/"
 
 
@@ -154,6 +169,7 @@ async def test_server_connection(url: str = "", detailed: bool = False):
 
 def main():
     """Main entry point."""
+    _ensure_utf8_output()
     parser = argparse.ArgumentParser(prog="test-mcp-server", description="Quick MCP server verification")
     parser.add_argument("--url", help="Override server URL (e.g., http://localhost:8003/mcp/)", default="")
     parser.add_argument("--detailed", action="store_true", help="Show detailed tool/resource and health output")
