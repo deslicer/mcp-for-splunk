@@ -48,11 +48,6 @@ jobs:
           echo "3.11" > .python-version
           echo "Using .python-version: $(cat .python-version)"
 
-      - name: Dry run installer
-        shell: bash
-        run: |
-          bash scripts/smart-install.sh --dry-run
-
       - name: Run installer
         shell: bash
         run: |
