@@ -30,16 +30,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache uv artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/uv
-            ~/.local/share/uv
-            ~/.local/bin
-          key: uv-cache-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/.python-version') }}
-          restore-keys: |
-            uv-cache-${{ runner.os }}-
+      - name: Purge uv artifacts (POSIX)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          rm -rf ~/.cache/uv || true
+          rm -rf ~/.local/share/uv || true
+          rm -rf ~/.local/bin/uv ~/.local/bin/uvx ~/.local/bin/uvw || true
+          echo "Purged uv caches and binaries"
+
+      - name: Purge uv artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\uv" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "$env:USERPROFILE\.local\share\uv" -ErrorAction SilentlyContinue
+          Remove-Item -Force "$env:USERPROFILE\.local\bin\uv.exe" -ErrorAction SilentlyContinue
+          Remove-Item -Force "$env:USERPROFILE\.local\bin\uvx.exe" -ErrorAction SilentlyContinue
+          Remove-Item -Force "$env:USERPROFILE\.local\bin\uvw.exe" -ErrorAction SilentlyContinue
+          Write-Host "Purged uv caches and binaries"
 
       - name: Prepare .python-version (scenario)
         if: matrix.scenario == 'python-version' && matrix.os != 'windows-latest'
