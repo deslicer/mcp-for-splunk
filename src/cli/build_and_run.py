@@ -792,7 +792,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
             print("   📊 MCP Inspector:     http://localhost:6274")
         print()
         print_status("🛑 To stop the server:")
-        print("   mcp-server --stop")
+        print("   uv run mcp-server --stop")
 
         if run_test:
             print_status("Running MCP server test...")
