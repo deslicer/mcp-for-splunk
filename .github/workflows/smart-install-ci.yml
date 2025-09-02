@@ -1,0 +1,72 @@
+name: Smart Install CI
+
+on:
+  push:
+    paths:
+      - 'scripts/smart-install.sh'
+      - '.github/workflows/smart-install-ci.yml'
+  pull_request:
+    paths:
+      - 'scripts/smart-install.sh'
+      - '.github/workflows/smart-install-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smart-install-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-smart-install:
+    name: ${{ matrix.os }} • ${{ matrix.scenario }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        scenario: [default, python-version]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache uv artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.local/share/uv
+            ~/.local/bin
+          key: uv-cache-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/.python-version') }}
+          restore-keys: |
+            uv-cache-${{ runner.os }}-
+
+      - name: Prepare .python-version (scenario)
+        if: matrix.scenario == 'python-version'
+        shell: bash
+        run: |
+          echo "3.11" > .python-version
+          echo "Using .python-version: $(cat .python-version)"
+
+      - name: Dry run installer
+        shell: bash
+        run: |
+          bash scripts/smart-install.sh --dry-run
+
+      - name: Run installer
+        shell: bash
+        run: |
+          bash scripts/smart-install.sh
+
+      - name: Verify uv and Python
+        shell: bash
+        run: |
+          set -euxo pipefail
+          uv --version
+          uv python list || true
+          PY=$(uv python find)
+          echo "Found Python: ${PY}"
+          "${PY}" -V
+          "${PY}" -c "import sys; print(sys.version)"
+
+

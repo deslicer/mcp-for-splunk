@@ -76,6 +76,109 @@ detect_linux_pm() {
   echo unknown
 }
 
+# Determine desired Python version/spec from .python-version or pyproject.toml
+resolve_python_request() {
+  PY_REQUEST=""
+  if [[ -f ".python-version" ]]; then
+    PY_REQUEST=$(tr -d ' \t' < .python-version)
+  fi
+
+  if [[ -z "${PY_REQUEST}" && -f "pyproject.toml" ]]; then
+    # Extract requires-python from [project] section
+    PY_REQUEST=$(awk '
+      BEGIN{inproj=0}
+      /^\[project\]/{inproj=1; next}
+      /^\[/{if(inproj==1){exit} inproj=0}
+      inproj && $0 ~ /requires-python\s*=\s*"[^"]+"/ {print; exit}
+    ' pyproject.toml | sed -E 's/.*requires-python\s*=\s*"([^"]+)".*/\1/')
+  fi
+
+  if [[ -z "${PY_REQUEST}" ]]; then
+    PY_REQUEST="3.11"
+    note "No Python requirement detected; defaulting to ${PY_REQUEST}"
+  else
+    note "Detected Python requirement: ${PY_REQUEST}"
+  fi
+}
+
+# Install uv if missing. Prefer Homebrew on macOS, official installer otherwise
+ensure_uv_installed() {
+  if command -v uv >/dev/null 2>&1; then
+    ok "uv already installed ($(uv --version))"
+    return
+  fi
+
+  case "$(uname -s)" in
+    Darwin)
+      if command -v brew >/dev/null 2>&1; then
+        if [[ "$DRY_RUN" == true ]]; then
+          note "uv not found; would install uv via Homebrew"
+        else
+          note "Installing uv via Homebrew..."
+          brew install uv
+          ok "uv installed ($(uv --version))"
+        fi
+      else
+        if [[ "$DRY_RUN" == true ]]; then
+          note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
+        else
+          note "Installing uv via official installer..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          # Ensure current session can find uv if installed to ~/.local/bin
+          export PATH="$HOME/.local/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv installed ($(uv --version))"
+          else
+            err "uv installation failed - please install from https://astral.sh/uv"
+            exit 1
+          fi
+        fi
+      fi
+      ;;
+    Linux)
+      if [[ "$DRY_RUN" == true ]]; then
+        note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
+      else
+        note "Installing uv via official installer..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$PATH"
+        if command -v uv >/dev/null 2>&1; then
+          ok "uv installed ($(uv --version))"
+        else
+          err "uv installation failed - please install from https://astral.sh/uv"
+          exit 1
+        fi
+      fi
+      ;;
+    *)
+      err "Unsupported OS for uv install"
+      ;;
+  esac
+}
+
+# Install a Python version via uv based on detected request
+install_python_with_uv() {
+  local req="$1"
+  if [[ "$DRY_RUN" == true ]]; then
+    note "Would install Python via uv: uv python install ${req}"
+  else
+    note "Installing Python via uv (${req})..."
+    uv python install "${req}"
+    ok "Python (${req}) installed via uv"
+  fi
+
+  if [[ "$DRY_RUN" == true ]]; then
+    note "Would verify Python availability with: uv python find '${req}'"
+  else
+    if PY_PATH=$(uv python find "${req}" 2>/dev/null); then
+      ok "Python available at: ${PY_PATH}"
+    else
+      err "uv could not find a compatible Python for request: ${req}"
+      exit 1
+    fi
+  fi
+}
+
 install_mac() {
   # Homebrew
   if ! command -v brew >/dev/null 2>&1; then
@@ -90,35 +193,27 @@ install_mac() {
     ok "Homebrew already installed ($(brew --version | head -n1))"
   fi
 
-  # Python (prefer 3.11)
-  if ! command -v python3 >/dev/null 2>&1; then
-    if [[ "$DRY_RUN" == true ]]; then
-      note "Python not found; would install Python 3.11"
-    else
-      note "Installing Python (3.11)..."
-      brew install python@3.11
-      ok "Python installed ($(python3 --version 2>/dev/null || echo 'python3'))"
-    fi
-  else
-    ok "Python already installed ($(python3 --version))"
-  fi
-
   # uv
   if ! command -v uv >/dev/null 2>&1; then
     if [[ "$DRY_RUN" == true ]]; then
-      note "uv not found; would install uv (Homebrew; fallback to pip)"
+      note "uv not found; would install uv (Homebrew; fallback to official installer)"
     else
-      note "Installing uv (Homebrew; fallback to pip)..."
+      note "Installing uv (Homebrew; fallback to official installer)..."
       if brew install uv >/dev/null 2>&1; then
         ok "uv installed with Homebrew ($(uv --version))"
       else
-        pip3 install --user uv
-        ok "uv installed with pip ($(uv --version 2>/dev/null || echo 'installed'))"
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$PATH"
+        ok "uv installed via official installer ($(uv --version 2>/dev/null || echo 'installed'))"
       fi
     fi
   else
     ok "uv already installed ($(uv --version))"
   fi
+
+  # Python via uv (respect .python-version or pyproject.toml)
+  resolve_python_request
+  install_python_with_uv "${PY_REQUEST}"
 
   # Git
   if ! command -v git >/dev/null 2>&1; then
@@ -175,33 +270,6 @@ install_linux() {
       else
         sudo apt update
       fi
-      # Python: try 3.11 first, fallback to default python3
-      if ! command -v python3 >/dev/null 2>&1; then
-        if apt-cache policy python3.11 >/dev/null 2>&1; then
-          if [[ "$DRY_RUN" == true ]]; then
-            note "Python not found; would install: python3.11 python3.11-pip python3.11-venv"
-            note "Would configure update-alternatives for python3 -> python3.11"
-          else
-            note "Installing Python 3.11..."
-            sudo apt install -y python3.11 python3.11-pip python3.11-venv
-            sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 || true
-          fi
-        else
-          if [[ "$DRY_RUN" == true ]]; then
-            note "Python not found; would install: python3 python3-pip python3-venv"
-          else
-            note "Installing Python (default python3)..."
-            sudo apt install -y python3 python3-pip python3-venv
-          fi
-        fi
-        if [[ "$DRY_RUN" == true ]]; then
-          ok "Python install planned"
-        else
-          ok "Python installed ($(python3 --version 2>/dev/null || echo 'python3'))"
-        fi
-      else
-        ok "Python already installed ($(python3 --version))"
-      fi
 
       # Git & curl
       if ! command -v git >/dev/null 2>&1; then
@@ -212,35 +280,11 @@ install_linux() {
       else ok "curl already installed ($(curl --version | head -n1))"; fi
 
       # uv
-      if ! command -v uv >/dev/null 2>&1; then
-        if [[ "$DRY_RUN" == true ]]; then
-          note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
-        else
-          note "Installing uv via official installer..."
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          note "If uv not found, ensure \"$HOME/.cargo/bin\" is in your PATH"
-        fi
-      else
-        ok "uv already installed ($(uv --version))"
-      fi
+      ensure_uv_installed
 
-      # Add check
-      if [[ "$DRY_RUN" == true ]]; then
-        note "Would verify uv availability and adjust PATH if necessary"
-      else
-        if ! command -v uv >/dev/null 2>&1; then
-          export PATH="$HOME/.cargo/bin:$PATH"
-          if command -v uv >/dev/null 2>&1; then
-            ok "uv now available in this session ($(uv --version))"
-            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
-          else
-            err "uv installation failed - please install manually from https://astral.sh/uv"
-            exit 1
-          fi
-        else
-          ok "uv already installed ($(uv --version))"
-        fi
-      fi
+      # Python via uv (respect .python-version or pyproject.toml)
+      resolve_python_request
+      install_python_with_uv "${PY_REQUEST}"
 
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
@@ -278,20 +322,6 @@ install_linux() {
       fi
       ;;
     dnf|yum)
-      # Python
-      if ! command -v python3 >/dev/null 2>&1; then
-        if [[ "$DRY_RUN" == true ]]; then
-          note "Python not found; would install: sudo $PM install -y python3 python3-pip"
-          ok "Python install planned"
-        else
-          note "Installing Python..."
-          sudo $PM install -y python3 python3-pip
-          ok "Python installed ($(python3 --version 2>/dev/null || echo 'python3'))"
-        fi
-      else
-        ok "Python already installed ($(python3 --version))"
-      fi
-
       # Git & curl
       if ! command -v git >/dev/null 2>&1; then
         if [[ "$DRY_RUN" == true ]]; then note "Would install: sudo $PM install -y git"; else sudo $PM install -y git; ok "Git installed ($(git --version))"; fi
@@ -301,35 +331,11 @@ install_linux() {
       else ok "curl already installed ($(curl --version | head -n1))"; fi
 
       # uv
-      if ! command -v uv >/dev/null 2>&1; then
-        if [[ "$DRY_RUN" == true ]]; then
-          note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
-        else
-          note "Installing uv via official installer..."
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          note "If uv not found, ensure \"$HOME/.cargo/bin\" is in your PATH"
-        fi
-      else
-        ok "uv already installed ($(uv --version))"
-      fi
+      ensure_uv_installed
 
-      # Add check
-      if [[ "$DRY_RUN" == true ]]; then
-        note "Would verify uv availability and adjust PATH if necessary"
-      else
-        if ! command -v uv >/dev/null 2>&1; then
-          export PATH="$HOME/.cargo/bin:$PATH"
-          if command -v uv >/dev/null 2>&1; then
-            ok "uv now available in this session ($(uv --version))"
-            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
-          else
-            err "uv installation failed - please install manually from https://astral.sh/uv"
-            exit 1
-          fi
-        else
-          ok "uv already installed ($(uv --version))"
-        fi
-      fi
+      # Python via uv (respect .python-version or pyproject.toml)
+      resolve_python_request
+      install_python_with_uv "${PY_REQUEST}"
 
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
@@ -398,7 +404,6 @@ echo
 note "Verifying core dependencies..."
 
 missing=()
-if ! command -v python3 >/dev/null 2>&1; then missing+=("python3"); fi
 if ! command -v uv >/dev/null 2>&1; then missing+=("uv"); fi
 if ! command -v git >/dev/null 2>&1; then missing+=("git"); fi
 
@@ -425,5 +430,13 @@ fi
 
 ok "Prerequisite check/install complete"
 note "You can now follow the next steps in the lab"
+
+# Additional check: ensure a usable Python executable is discoverable by uv
+if PY_FOUND=$(uv python find 2>/dev/null); then
+  ok "uv can find Python (${PY_FOUND})"
+else
+  err "uv cannot find a Python interpreter. Please re-run this installer or install Python via uv manually."
+  exit 1
+fi
 
 
