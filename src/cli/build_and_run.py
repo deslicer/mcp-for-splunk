@@ -283,6 +283,10 @@ def update_env_file(env_path: Path, updates: dict[str, str]) -> None:
     with env_path.open("r", encoding="utf-8") as f:
         lines = f.readlines()
 
+    # Normalize: ensure last line ends with \n to prevent concatenation on append
+    if lines and not lines[-1].endswith('\n'):
+        lines[-1] += '\n'
+
     keys = set(updates.keys())
     new_lines: list[str] = []
     for line in lines:
