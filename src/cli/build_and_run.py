@@ -1220,6 +1220,13 @@ def run_docker_setup(run_test: bool = False, no_prompt: bool = False) -> int:
 def main(argv: list[str] | None = None) -> int:
     os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
+    # Ensure stdout/stderr can handle Unicode on Windows CI consoles
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError, OSError):
+        pass
+
     show_intro()
 
     args = parse_args(argv)
