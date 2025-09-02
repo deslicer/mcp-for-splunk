@@ -771,7 +771,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
 
     print()
     print_status("📊 Log Files:")
-    print("   📄 MCP Server:    logs/mcp_server.log")
+    print("   📄 MCP Server:    logs/mcp_splunk_server.log")
 
     # Start MCP Inspector (best-effort)
     started_inspector = False
