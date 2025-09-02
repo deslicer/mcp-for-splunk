@@ -684,7 +684,7 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
     else:
         print_local(f"Using port {mcp_port} for MCP server.")
 
-    log_file = Path("logs/mcp_server.log")
+    log_file = Path("logs/mcp_splunk_server.log")
     # Preflight: ensure fastmcp is importable; if not, install
     test_code = subprocess.run(["uv", "run", "python", "-c", "import fastmcp; print('ok')"], capture_output=True, text=True, check=False)
     if test_code.returncode != 0:
@@ -708,7 +708,12 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
 
     # Start server
     with log_file.open("w", encoding="utf-8") as lf:
-        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf)
+        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True)
+
+    # Always write PID file for monitoring/testing
+    pid_file = Path('.mcp_local_server.pid')
+    pid_file.write_text(str(proc.pid), encoding='utf-8')
+    print_local(f"Server PID: {proc.pid} (written to {pid_file})")
 
     print_local("Waiting for MCP server to start...")
     import time
@@ -725,6 +730,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
                     print_error(line)
             except (OSError, UnicodeDecodeError):
                 print_error("(failed to read log file)")
+        # Cleanup PID on early failure
+        pid_file.unlink(missing_ok=True)
         return 1
 
     # Check port listening up to 5 attempts
@@ -754,6 +761,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
         if proc.poll() is None:
             proc.terminate()
         print_error("Attempting to run server in foreground for debugging...")
+        # Cleanup PID on failure
+        pid_file.unlink(missing_ok=True)
         return run_cmd(cmd)
 
     print_success(f"MCP server is listening on port {mcp_port}!")
@@ -774,10 +783,8 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
             print("   📊 MCP Inspector:     http://localhost:6274")
             print("   📄 MCP Inspector: logs/inspector.log")
 
-    # Detached mode: write PID file and exit
+    # Detached mode: exit after start
     if detached:
-        pid_file = Path('.mcp_local_server.pid')
-        pid_file.write_text(str(proc.pid), encoding='utf-8')
         print()
         print_success(f"✅ Local server is running detached (PID {proc.pid}).")
         print_access_points(mcp_port)
@@ -820,7 +827,28 @@ def run_local_server(detached: bool = False, skip_inspector: bool = False, run_t
             stop_local_processes()
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
+        # Cleanup PID file
+        pid_file.unlink(missing_ok=True)
         return 0
+
+    # Handle natural process exit (e.g., crash or manual kill)
+    print_error("MCP server process exited unexpectedly.")
+    if log_file.exists():
+        print_error("=== Recent server logs (last 10 lines) ===")
+        try:
+            lines = log_file.read_text(encoding="utf-8").splitlines()[-10:]
+            for line in lines:
+                print_error(line)
+        except (OSError, UnicodeDecodeError):
+            print_error("(failed to read log file)")
+    # Cleanup
+    try:
+        stop_local_processes()
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    # Cleanup PID file
+    pid_file.unlink(missing_ok=True)
+    return proc.returncode or 1
 
 
 def stop_docker_services() -> int:
