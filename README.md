@@ -100,9 +100,9 @@ cd mcp-for-splunk
 uv run mcp-server --local --detached
 
 # Verify the server
-uv run test-mcp-server
+uv run mcp-server --test
 # Optional: show detailed tools/resources and health output
-uv run test-mcp-server --detailed
+uv run mcp-server --test --detailed
 ```
 
 **macOS/Linux:**
@@ -120,9 +120,9 @@ cd mcp-for-splunk
 uv run mcp-server --local --detached
 
 # Verify the server
-uv run test-mcp-server
+uv run mcp-server --test
 # Optional: show detailed tools/resources and health output
-uv run test-mcp-server --detailed
+uv run mcp-server --test --detailed
 ```
 
 > **💡 Deployment Options**: The `mcp-server` command will prompt you to choose:
