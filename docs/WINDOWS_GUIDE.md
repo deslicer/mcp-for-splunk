@@ -2,14 +2,35 @@
 
 This guide provides Windows-specific instructions for setting up and running the MCP Server for Splunk.
 
+## 🚀 Quick Start (Recommended)
+
+```powershell
+# Clone the repository
+git clone https://github.com/deslicer/mcp-for-splunk.git
+cd mcp-for-splunk
+
+# Install prerequisites (uv, Node.js, Python via uv)
+pwsh -File scripts/smart-install.ps1
+
+# Run the server
+uv run mcp-server --local
+```
+
+What happens:
+- Installs uv (official Windows installer)
+- Installs Node.js (for MCP Inspector) via WinGet (Chocolatey fallback)
+- Uses uv to install a compatible Python based on `.python-version` or `requires-python` in `pyproject.toml`
+- Verifies with `uv python find`
+
+References: uv Windows install commands and guidance are from the official documentation: Installing uv on Windows and Python versions.
+
 ## 📋 Prerequisites
 
 ### Required Software
 
 | Software | Version | Installation Method | Notes |
-|----------|---------|-------------------|-------|
-| **PowerShell** | 5.1+ or Core 7+ | Built-in or [Microsoft Store](https://aka.ms/powershell) | Required for main script |
-| **Python** | 3.10+ | [Microsoft Store](https://apps.microsoft.com/store/detail/python-310/9PJPW5LDXLZ5) or [python.org](https://python.org) | Use Microsoft Store version for best PATH handling |
+|----------|---------|---------------------|-------|
+| **PowerShell** | 5.1+ or Core 7+ | Built-in or [Microsoft Store](https://aka.ms/powershell) | Required for scripts |
 | **Git** | Latest | [git-scm.com](https://git-scm.com/download/win) | For cloning the repository |
 
 ### Optional Software
@@ -20,51 +41,38 @@ This guide provides Windows-specific instructions for setting up and running the
 | **Node.js** | MCP Inspector testing | [nodejs.org](https://nodejs.org/) |
 | **Windows Terminal** | Better terminal experience | [Microsoft Store](https://aka.ms/terminal) |
 
-### Python Installation (Windows)
+### uv and Python (managed by uv)
+
+You do not need a preinstalled system Python. The smart installer uses uv to install and manage a compatible Python automatically based on `.python-version` or `requires-python`.
+
+Install uv (Windows):
 
 ```powershell
-# Option 1: Microsoft Store (Recommended)
-# Search "Python" in Microsoft Store and install Python 3.11+
+# Official installer (Recommended)
+powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Option 2: Official installer
-# Download from https://python.org/downloads/
-# ✅ Check "Add Python to PATH" during installation
-
-# Option 3: Winget
-winget install Python.Python.3.12
-
-# Option 4: Chocolatey
-choco install python
-
-# Verify installation
-python --version
-pip --version
-```
-
-### UV Package Manager Installation (Windows)
-
-```powershell
-# Option 1: Official installer (Recommended)
-irm https://astral.sh/uv/install.ps1 | iex
-
-# Option 2: Winget
-winget install astral-sh.uv
-
-# Option 3: Pip fallback
-pip install uv
-
-# Verify installation
+# Verify
 uv --version
 ```
 
-### Install All Prerequisites (one-liner)
+### Optional: Alternate uv installation methods
 
 ```powershell
-# Installs Python, uv, Node.js, Docker Desktop, and Git
-winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS Docker.DockerDesktop Git.Git
+# WinGet
+winget install astral-sh.uv
+
+# PyPI (pipx preferred)
+pipx install uv
+```
+
+### Install All Prerequisites (optional one-liner)
+
+```powershell
+# Installs uv, Node.js, Docker Desktop, and Git
+winget install astral-sh.uv OpenJS.NodeJS Docker.DockerDesktop Git.Git
 
 # Verify installations
-python --version; uv --version; node --version; docker --version; git --version
+uv --version; node --version; docker --version; git --version
 ```
 
 ### Prerequisites Verification
@@ -111,12 +119,11 @@ cd mcp-for-splunk
 ### Option 3: Manual Setup
 
 ```powershell
-# Install uv package manager
-winget install astral-sh.uv
-# OR: pip install uv
+# Install uv (Windows official installer)
+powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Install dependencies
-uv sync --dev
+# Ensure a Python is available via uv
+uv python list || uv python install 3.11
 
 # Configure Splunk connection
 Copy-Item env.example .env
