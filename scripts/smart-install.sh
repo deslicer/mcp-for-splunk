@@ -124,8 +124,8 @@ ensure_uv_installed() {
         else
           note "Installing uv via official installer..."
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          # Ensure current session can find uv if installed to ~/.local/bin
-          export PATH="$HOME/.local/bin:$PATH"
+          # Ensure current session can find uv if installed to ~/.local/bin or ~/.cargo/bin
+          export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
           if command -v uv >/dev/null 2>&1; then
             ok "uv installed ($(uv --version))"
           else
@@ -141,7 +141,8 @@ ensure_uv_installed() {
       else
         note "Installing uv via official installer..."
         curl -LsSf https://astral.sh/uv/install.sh | sh
-        export PATH="$HOME/.local/bin:$PATH"
+        # Ensure current session can find uv if installed to ~/.local/bin or ~/.cargo/bin
+        export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
         if command -v uv >/dev/null 2>&1; then
           ok "uv installed ($(uv --version))"
         else
@@ -193,23 +194,8 @@ install_mac() {
     ok "Homebrew already installed ($(brew --version | head -n1))"
   fi
 
-  # uv
-  if ! command -v uv >/dev/null 2>&1; then
-    if [[ "$DRY_RUN" == true ]]; then
-      note "uv not found; would install uv (Homebrew; fallback to official installer)"
-    else
-      note "Installing uv (Homebrew; fallback to official installer)..."
-      if brew install uv >/dev/null 2>&1; then
-        ok "uv installed with Homebrew ($(uv --version))"
-      else
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        export PATH="$HOME/.local/bin:$PATH"
-        ok "uv installed via official installer ($(uv --version 2>/dev/null || echo 'installed'))"
-      fi
-    fi
-  else
-    ok "uv already installed ($(uv --version))"
-  fi
+  # uv (use shared installer to avoid duplication and ensure verification)
+  ensure_uv_installed
 
   # Python via uv (respect .python-version or pyproject.toml)
   resolve_python_request
