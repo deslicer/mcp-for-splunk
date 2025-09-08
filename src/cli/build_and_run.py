@@ -576,11 +576,114 @@ def print_access_points(mcp_port: int) -> None:
 
 def start_mcp_inspector(mcp_port: int) -> bool:
     """Start MCP Inspector (Node 22+ required). Returns True if available/running."""
-    # If already running on 6274, reuse
-    if is_port_listening(6274):
-        print_warning("MCP Inspector appears to already be running on port 6274")
-        print_success("Using existing MCP Inspector instance")
-        return True
+    # Helper: prefer lsof to detect listeners, fallback to socket probe
+    def _is_port_in_use_via_lsof(port: int) -> bool:
+        if shutil.which("lsof") is not None:
+            try:
+                out = subprocess.run(
+                    ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                return any(line.strip() for line in out.stdout.splitlines())
+            except FileNotFoundError:
+                pass
+        return is_port_listening(port)
+
+    # Killer helper (available for any port)
+    def _kill_port_listeners(port: int) -> None:
+        killed_pids: set[int] = set()
+        
+        def _proc_name(pid: int) -> str:
+            try:
+                out = subprocess.run(
+                    ["ps", "-p", str(pid), "-o", "comm="],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                return (out.stdout or "").strip() or "unknown"
+            except Exception:
+                return "unknown"
+        # Prefer lsof on macOS/Linux
+        if shutil.which("lsof") is not None:
+            try:
+                out = subprocess.run(
+                    ["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                found_pids: list[int] = []
+                for line in out.stdout.strip().splitlines():
+                    try:
+                        pid = int(line.strip())
+                    except ValueError:
+                        continue
+                    found_pids.append(pid)
+                if found_pids:
+                    readable = [f"{p} ({_proc_name(p)})" for p in found_pids]
+                    print_status(f"🔎 Found {len(found_pids)} listener(s) on port {port}: {', '.join(readable)}")
+                for pid in found_pids:
+                    try:
+                        pname = _proc_name(pid)
+                        print_status(f"⏹ Stopping {pname} (PID {pid}) with SIGTERM...")
+                        os.kill(pid, signal.SIGTERM)
+                        print_success(f"✅ SIGTERM sent to PID {pid}")
+                        killed_pids.add(pid)
+                    except OSError:
+                        continue
+            except FileNotFoundError:
+                pass
+
+        # Fallbacks if lsof unavailable or ineffective
+        if not killed_pids and shutil.which("fuser") is not None:
+            print_status(f"🛠 Using fuser to free port {port}...")
+            subprocess.run(["fuser", "-k", f"{port}/tcp"], check=False)
+
+        if not killed_pids and shutil.which("pkill") is not None:
+            # Best effort kill by inspector process name
+            print_status("🛠 Using pkill to stop MCP Inspector processes...")
+            subprocess.run(["pkill", "-f", "@modelcontextprotocol/inspector"], check=False)
+
+        # Small wait and escalate to SIGKILL if needed
+        if killed_pids:
+            try:
+                import time as _t
+                _t.sleep(0.5)
+            except (ImportError, RuntimeError, OSError):
+                pass
+            for pid in list(killed_pids):
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    continue
+                except PermissionError:
+                    continue
+                else:
+                    try:
+                        print_warning(f"⚠️ PID {pid} still running; sending SIGKILL...")
+                        os.kill(pid, signal.SIGKILL)
+                        print_success(f"✅ SIGKILL sent to PID {pid}")
+                    except OSError:
+                        pass
+
+    # Ensure nothing else is listening on required ports (Inspector UI 6274, Proxy 6277)
+    import time as _t
+    for required_port in (6277, 6274):
+        if _is_port_in_use_via_lsof(required_port):
+            print_warning(f"🔒 Port {required_port} is busy. Stopping the existing listener before starting MCP Inspector...")
+            _kill_port_listeners(required_port)
+            # Verify port is now free (use lsof-based check)
+            for _ in range(10):
+                if not _is_port_in_use_via_lsof(required_port):
+                    print_success(f"🟢 Port {required_port} is free.")
+                    break
+                _t.sleep(0.3)
+            if _is_port_in_use_via_lsof(required_port):
+                print_error(f"❌ Could not free port {required_port} after multiple attempts. Cannot start MCP Inspector.")
+                return False
 
     if shutil.which("node") is None or shutil.which("npx") is None:
         print_warning("Node.js/npx not found. MCP Inspector will not be available.")
