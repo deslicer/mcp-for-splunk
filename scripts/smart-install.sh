@@ -266,11 +266,35 @@ install_linux() {
       else ok "curl already installed ($(curl --version | head -n1))"; fi
 
       # uv
-      ensure_uv_installed
+      if ! command -v uv >/dev/null 2>&1; then
+        if [[ "$DRY_RUN" == true ]]; then
+          note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
+        else
+          note "Installing uv via official installer..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          note "If uv not found, ensure \"$HOME/.cargo/bin\" is in your PATH"
+        fi
+      else
+        ok "uv already installed ($(uv --version))"
+      fi
 
-      # Python via uv (respect .python-version or pyproject.toml)
-      resolve_python_request
-      install_python_with_uv "${PY_REQUEST}"
+      # Add check
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
+      else
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
+      fi
 
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
@@ -317,11 +341,35 @@ install_linux() {
       else ok "curl already installed ($(curl --version | head -n1))"; fi
 
       # uv
-      ensure_uv_installed
+      if ! command -v uv >/dev/null 2>&1; then
+        if [[ "$DRY_RUN" == true ]]; then
+          note "uv not found; would install via official installer (curl -LsSf https://astral.sh/uv/install.sh | sh)"
+        else
+          note "Installing uv via official installer..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          note "If uv not found, ensure \"$HOME/.cargo/bin\" is in your PATH"
+        fi
+      else
+        ok "uv already installed ($(uv --version))"
+      fi
 
-      # Python via uv (respect .python-version or pyproject.toml)
-      resolve_python_request
-      install_python_with_uv "${PY_REQUEST}"
+      # Add check
+      if [[ "$DRY_RUN" == true ]]; then
+        note "Would verify uv availability and adjust PATH if necessary"
+      else
+        if ! command -v uv >/dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          if command -v uv >/dev/null 2>&1; then
+            ok "uv now available in this session ($(uv --version))"
+            note "For permanent access, add 'export PATH=\"$HOME/.cargo/bin:$PATH\"' to your ~/.bashrc or shell profile and restart your terminal"
+          else
+            err "uv installation failed - please install manually from https://astral.sh/uv"
+            exit 1
+          fi
+        else
+          ok "uv already installed ($(uv --version))"
+        fi
+      fi
 
       # Node.js (base install)
       if ! command -v node >/dev/null 2>&1; then
@@ -390,6 +438,7 @@ echo
 note "Verifying core dependencies..."
 
 missing=()
+if ! command -v python3 >/dev/null 2>&1; then missing+=("python3"); fi
 if ! command -v uv >/dev/null 2>&1; then missing+=("uv"); fi
 if ! command -v git >/dev/null 2>&1; then missing+=("git"); fi
 
@@ -416,13 +465,5 @@ fi
 
 ok "Prerequisite check/install complete"
 note "You can now follow the next steps in the lab"
-
-# Additional check: ensure a usable Python executable is discoverable by uv
-if PY_FOUND=$(uv python find 2>/dev/null); then
-  ok "uv can find Python (${PY_FOUND})"
-else
-  err "uv cannot find a Python interpreter. Please re-run this installer or install Python via uv manually."
-  exit 1
-fi
 
 

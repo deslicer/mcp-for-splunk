@@ -59,7 +59,6 @@ class CliArgs:
     test: bool
     detailed: bool
     setup: bool
-    no_prompt: bool
 
 
 def parse_args(argv: list[str] | None = None) -> CliArgs:
@@ -130,15 +129,6 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         help="Force Splunk credential setup prompt (even if .env is configured)",
         dest="setup"
     )
-    parser.add_argument(
-        "--no-prompt",
-        action="store_true",
-        help=(
-            "Run non-interactively: never prompt. Use existing .env or seed from env.example, "
-            "and choose defaults automatically."
-        ),
-        dest="no_prompt",
-    )
 
     ns = parser.parse_args(argv)
     return CliArgs(
@@ -153,7 +143,6 @@ def parse_args(argv: list[str] | None = None) -> CliArgs:
         test=ns.test,
         detailed=ns.detailed,
         setup=ns.setup,
-        no_prompt=ns.no_prompt,
     )
 
 
@@ -486,7 +475,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
     return True
 
 
-def setup_local_env(force_setup: bool = False, no_prompt: bool = False) -> int:
+def setup_local_env(force_setup: bool = False) -> int:
     print_local("Setting up local development environment...")
 
     if not install_uv_if_missing():
@@ -514,14 +503,9 @@ def setup_local_env(force_setup: bool = False, no_prompt: bool = False) -> int:
         if example.exists():
             env_path.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
             print_warning("Created .env file from env.example.")
+            print_status("Prompting for Splunk configuration to customize...")
         else:
             print_warning("env.example not found. Proceeding without .env.")
-
-    # Non-interactive mode: never prompt; just load what exists/was seeded
-    if no_prompt:
-        load_env_file(env_path)
-        print_success("Local environment setup complete (no-prompt mode).")
-        return 0
 
     # Check if prompting is needed
     if not force_setup and was_existing:
@@ -1097,7 +1081,7 @@ def stop_local_processes() -> int:
     return 0
 
 
-def run_docker_setup(run_test: bool = False, no_prompt: bool = False) -> int:
+def run_docker_setup(run_test: bool = False) -> int:
     print_status("Using Docker deployment mode...")
 
     # Ensure compose available
@@ -1307,7 +1291,7 @@ def main(argv: list[str] | None = None) -> int:
             print_error("Please start Docker or install Docker first.")
             return 1
         print_status("Forcing Docker deployment as requested...")
-        return run_docker_setup(run_test=args.test, no_prompt=args.no_prompt)
+        return run_docker_setup(run_test=args.test)
 
     if args.force_local:
         if not uv_available:
@@ -1315,7 +1299,7 @@ def main(argv: list[str] | None = None) -> int:
             print_error("Please install uv first: curl -LsSf https://astral.sh/uv/install.sh | sh")
             return 1
         print_status("Forcing local deployment as requested...")
-        code = setup_local_env(force_setup=args.setup, no_prompt=args.no_prompt)
+        code = setup_local_env(force_setup=args.setup)
         if code != 0:
             return code
         return run_local_server(detached=args.detached, skip_inspector=args.no_inspector, run_test=args.test, detailed=args.detailed)
@@ -1324,9 +1308,9 @@ def main(argv: list[str] | None = None) -> int:
     if docker_available and uv_available:
         selected = interactive_choice()
         if selected == "docker":
-            return run_docker_setup(run_test=args.test, no_prompt=args.no_prompt)
+            return run_docker_setup(run_test=args.test)
         else:
-            code = setup_local_env(force_setup=args.setup, no_prompt=args.no_prompt)
+            code = setup_local_env(force_setup=args.setup)
             if code != 0:
                 return code
             # If not explicitly detached by flag, ask interactively
@@ -1338,11 +1322,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if docker_available:
         print_status("Only Docker is available. Using Docker deployment...")
-        return run_docker_setup(run_test=args.test, no_prompt=args.no_prompt)
+        return run_docker_setup(run_test=args.test)
 
     if uv_available:
         print_status("Only local development is available. Setting up local mode...")
-        code = setup_local_env(force_setup=args.setup, no_prompt=args.no_prompt)
+        code = setup_local_env(force_setup=args.setup)
         if code != 0:
             return code
         # If not explicitly detached by flag, ask interactively
