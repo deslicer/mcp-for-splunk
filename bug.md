@@ -231,10 +231,35 @@ mcp.run(transport="http", host="0.0.0.0", port=8001)
 
 However, since you need the `HeaderCaptureMiddleware` for extracting Splunk headers, the custom uvicorn setup is necessary.
 
+## Additional Issue: Missing job_search.py File
+
+### Problem
+
+After reverting changes, the `src/tools/search/job_search.py` file was accidentally deleted, causing all tools to fail loading. The server would start but no tools would be available except those defined directly in `server.py`.
+
+### Root Cause
+
+During the `git reset --hard HEAD` command, the `job_search.py` file was deleted but not restored from the repository. This caused an import error when the discovery system tried to load tools from `src.tools.search`.
+
+### Fix
+
+Restored the missing file from the main branch:
+```bash
+git checkout main -- src/tools/search/job_search.py
+```
+
+### Symptoms
+
+- MCP server starts successfully
+- Only tools defined in `server.py` (like `user_agent_info`) are available
+- No tools from `src/tools/` directories are loaded
+- No error messages in logs about tool loading failures
+
 ## Next Steps
 
 1. Restart the MCP server to apply changes
 2. Test with a client that sends Splunk headers
 3. Monitor logs to verify headers are being captured and applied
-4. If issues persist, check that `X-Session-ID` header is being sent for proper session tracking
+4. Verify all tools are loaded correctly (should see ~40+ tools)
+5. If issues persist, check that `X-Session-ID` header is being sent for proper session tracking
 5. Verify the client is connecting to the correct endpoint: `http://localhost:8001/mcp`
