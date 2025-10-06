@@ -140,6 +140,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
         try:
             # Convert headers to dict (case-insensitive)
             headers = dict(request.headers)
+            logger.debug(f"Captured headers: {list(headers.keys())}")
 
             # Set session correlation id as early as possible for all downstream logs
             session_key = headers.get("X-Session-ID") or headers.get("x-session-id") or "-"
@@ -406,13 +407,20 @@ class ClientConfigMiddleware(Middleware):
 
         # Log context information for debugging
         session_id_val = getattr(context, "session_id", None)
-        logger.info("ClientConfigMiddleware: processing %s (session_id=%s)", context.method, session_id_val)
+        logger.info(
+            "ClientConfigMiddleware: processing %s (session_id=%s)", context.method, session_id_val
+        )
+
         # Set session correlation id for downstream logs (including splunklib binding)
         # Prefer explicit session id; otherwise try X-Session-ID header; else '-'
         headers = {}
         try:
             headers = http_headers_context.get({})
-        except Exception:
+            logger.debug(
+                "ClientConfigMiddleware: http_headers_context contains %d headers", len(headers)
+            )
+        except Exception as e:
+            logger.debug("ClientConfigMiddleware: failed to get http_headers_context: %s", e)
             headers = {}
         derived_session = session_id_val or headers.get("x-session-id") or "-"
         token = current_session_id.set(derived_session)
@@ -452,26 +460,47 @@ class ClientConfigMiddleware(Middleware):
 
             # If we didn't extract config from headers, check per-session cache only (no global fallback)
             if not client_config and session_key:
-                client_config = self.client_config_cache.get(session_key) or HEADER_CLIENT_CONFIG_CACHE.get(
+                client_config = self.client_config_cache.get(
                     session_key
-                )
+                ) or HEADER_CLIENT_CONFIG_CACHE.get(session_key)
                 if client_config:
-                    logger.info("ClientConfigMiddleware: using cached client_config for session %s", session_key)
+                    logger.info(
+                        "ClientConfigMiddleware: using cached client_config for session %s",
+                        session_key,
+                    )
 
             # Write per-request config and session into context state for tools
             try:
-                if client_config and hasattr(context, "fastmcp_context") and context.fastmcp_context:
+                if (
+                    client_config
+                    and hasattr(context, "fastmcp_context")
+                    and context.fastmcp_context
+                ):
                     effective_session = session_key or derived_session
                     context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
                         context.fastmcp_context.set_state("session_id", effective_session)
                     logger.info(
-                        "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s)",
+                        "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
                         effective_session,
+                        {
+                            k: v if k not in ["splunk_password"] else "***"
+                            for k, v in client_config.items()
+                        },
+                    )
+                elif client_config:
+                    logger.warning(
+                        "ClientConfigMiddleware: client_config extracted but context.fastmcp_context not available (has_attr=%s, is_none=%s)",
+                        hasattr(context, "fastmcp_context"),
+                        context.fastmcp_context is None
+                        if hasattr(context, "fastmcp_context")
+                        else "N/A",
                     )
             except Exception as e:
-                logger.warning(f"ClientConfigMiddleware: failed to set context state: {e}")
+                logger.warning(
+                    f"ClientConfigMiddleware: failed to set context state: {e}", exc_info=True
+                )
 
         except Exception as e:
             logger.error(f"Error extracting client config from headers: {e}")
@@ -484,13 +513,21 @@ class ClientConfigMiddleware(Middleware):
             if isinstance(getattr(context, "method", None), str):
                 if context.method in ("session/terminate", "session/end", "session/close"):
                     headers = headers if isinstance(headers, dict) else {}
-                    session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+                    session_key = getattr(context, "session_id", None) or headers.get(
+                        "x-session-id"
+                    )
                     if session_key and session_key in self.client_config_cache:
                         self.client_config_cache.pop(session_key, None)
-                        logger.info("ClientConfigMiddleware: cleared cached client_config for session %s", session_key)
+                        logger.info(
+                            "ClientConfigMiddleware: cleared cached client_config for session %s",
+                            session_key,
+                        )
                     if session_key and session_key in HEADER_CLIENT_CONFIG_CACHE:
                         HEADER_CLIENT_CONFIG_CACHE.pop(session_key, None)
-                        logger.info("ClientConfigMiddleware: cleared global cached client_config for session %s", session_key)
+                        logger.info(
+                            "ClientConfigMiddleware: cleared global cached client_config for session %s",
+                            session_key,
+                        )
         except Exception:
             pass
 
@@ -571,9 +608,6 @@ def personalized_greeting(name: str) -> str:
     return f"Hello, {name}! Welcome to the MCP Server for Splunk."
 
 
-
-
-
 @mcp.tool
 async def user_agent_info(ctx: Context) -> dict:
     """Return request headers and context details for debugging.
@@ -637,10 +671,10 @@ async def main():
     # Ensure components are loaded at server startup for health endpoints
     await ensure_components_loaded(mcp)
 
-    # Build the MCP Starlette app and mount it under /mcp in a root Starlette app
-    # Use internal path "/" to avoid double-prefixing when mounting at /mcp
+    # Build the MCP Starlette app with the /mcp path
+    # FastMCP will handle the path internally when using http_app()
     mcp_app = mcp.http_app(
-        path="/",
+        path="/mcp",
         transport="http",
     )
 
@@ -648,10 +682,13 @@ async def main():
     # IMPORTANT: pass the FastMCP app lifespan so Streamable HTTP session manager initializes
     root_app = Starlette(lifespan=mcp_app.lifespan)
     root_app.add_middleware(HeaderCaptureMiddleware)
-    root_app.mount("/mcp", mcp_app)
+
+    # Mount the entire MCP app at root since it already includes /mcp in its path
+    root_app.mount("/", mcp_app)
     # Use uvicorn to run the server
     try:
         import uvicorn
+
         # Serve the root Starlette app so the MCP app is available under "/mcp"
         # and the HeaderCaptureMiddleware is applied to incoming HTTP requests
         config = uvicorn.Config(
