@@ -162,8 +162,10 @@ async def test_connection_with_headers():
 
         async with MCPServerProcess(port=8005):
             # Create HTTP client with custom headers
+            # Add Accept header for MCP protocol requirements
+            headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
-                headers=splunk_config, timeout=30.0, follow_redirects=True
+                headers=headers, timeout=30.0, follow_redirects=True
             ) as http_client:
                 # Initialize MCP session
                 url = "http://localhost:8005/mcp"
@@ -250,8 +252,10 @@ async def test_tool_execution_with_headers():
         import httpx
 
         async with MCPServerProcess(port=8005):
+            # Add Accept header for MCP protocol requirements
+            headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
-                headers=splunk_config, timeout=30.0, follow_redirects=True
+                headers=headers, timeout=30.0, follow_redirects=True
             ) as http_client:
                 url = "http://localhost:8005/mcp"
 
@@ -345,8 +349,10 @@ async def test_list_indexes_with_headers():
         import httpx
 
         async with MCPServerProcess(port=8005):
+            # Add Accept header for MCP protocol requirements
+            headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
-                headers=splunk_config, timeout=30.0, follow_redirects=True
+                headers=headers, timeout=30.0, follow_redirects=True
             ) as http_client:
                 url = "http://localhost:8005/mcp"
 
@@ -448,13 +454,13 @@ async def test_multiple_sessions():
         async with MCPServerProcess(port=8005):
             print_info("Creating two concurrent sessions...")
 
+            # Add Accept header for MCP protocol requirements
+            headers1 = {**session1_config, "Accept": "application/json, text/event-stream"}
+            headers2 = {**session2_config, "Accept": "application/json, text/event-stream"}
+
             async with (
-                httpx.AsyncClient(
-                    headers=session1_config, timeout=30.0, follow_redirects=True
-                ) as client1,
-                httpx.AsyncClient(
-                    headers=session2_config, timeout=30.0, follow_redirects=True
-                ) as client2,
+                httpx.AsyncClient(headers=headers1, timeout=30.0, follow_redirects=True) as client1,
+                httpx.AsyncClient(headers=headers2, timeout=30.0, follow_redirects=True) as client2,
             ):
                 url = "http://localhost:8005/mcp"
 

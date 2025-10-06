@@ -127,15 +127,18 @@ Total: 5/5 tests passed
 
 The MCP server accepts these Splunk configuration headers:
 
-| Header | Description | Example |
-|--------|-------------|---------|
-| `X-Splunk-Host` | Splunk server hostname/IP | `localhost`, `splunk.example.com` |
-| `X-Splunk-Port` | Splunk management port | `8089` |
-| `X-Splunk-Username` | Splunk username | `admin` |
-| `X-Splunk-Password` | Splunk password | `Chang3d!` |
-| `X-Splunk-Scheme` | Connection scheme | `https`, `http` |
-| `X-Splunk-Verify-SSL` | SSL verification | `true`, `false` |
-| `X-Session-ID` | Client session identifier | `session-123` |
+| Header | Description | Example | Required |
+|--------|-------------|---------|----------|
+| `Accept` | Content types accepted by client | `application/json, text/event-stream` | **Yes** |
+| `X-Splunk-Host` | Splunk server hostname/IP | `localhost`, `splunk.example.com` | No |
+| `X-Splunk-Port` | Splunk management port | `8089` | No |
+| `X-Splunk-Username` | Splunk username | `admin` | No |
+| `X-Splunk-Password` | Splunk password | `Chang3d!` | No |
+| `X-Splunk-Scheme` | Connection scheme | `https`, `http` | No |
+| `X-Splunk-Verify-SSL` | SSL verification | `true`, `false` | No |
+| `X-Session-ID` | Client session identifier | `session-123` | No |
+
+**Note:** The `Accept` header is required by the MCP protocol and must include both `application/json` and `text/event-stream` content types.
 
 ## Architecture
 
@@ -154,6 +157,13 @@ The test script validates this flow:
 
 ```bash
 pip install httpx
+```
+
+**Test fails with "406 Not Acceptable" error:**
+
+The MCP server requires clients to accept both `application/json` and `text/event-stream` content types. Ensure your client includes:
+```
+Accept: application/json, text/event-stream
 ```
 
 **Test fails with connection errors:**
@@ -205,6 +215,7 @@ import asyncio
 
 async def test_with_headers():
     headers = {
+        "Accept": "application/json, text/event-stream",  # Required by MCP protocol
         "X-Splunk-Host": "localhost",
         "X-Splunk-Port": "8089",
         "X-Splunk-Username": "admin",
