@@ -381,8 +381,9 @@ async def ensure_components_loaded(server: FastMCP) -> None:
         server._splunk_context = SplunkContext(service=None, is_connected=False, client_config=None)
 
 
-# Initialize FastMCP server with lifespan context
-mcp = FastMCP(name="MCP Server for Splunk", lifespan=splunk_lifespan)
+# Initialize FastMCP server without lifespan (components loaded at startup instead)
+# Note: lifespan causes issues in HTTP mode as it runs for each SSE connection
+mcp = FastMCP(name="MCP Server for Splunk")
 
 # Import and setup health routes
 setup_health_routes(mcp)
