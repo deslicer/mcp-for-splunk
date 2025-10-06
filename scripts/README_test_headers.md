@@ -9,11 +9,13 @@ Tests the MCP server's ability to accept Splunk connection parameters via HTTP h
 ## Quick Start
 
 **Prerequisites:**
+
 ```bash
 pip install httpx fastmcp
 ```
 
 **Set Splunk credentials** (or defaults will be used):
+
 ```bash
 export SPLUNK_HOST=localhost
 export SPLUNK_PORT=8089
@@ -23,6 +25,7 @@ export SPLUNK_VERIFY_SSL=false
 ```
 
 **Run tests:**
+
 ```bash
 python scripts/test_mcp_with_headers.py
 ```
@@ -30,6 +33,7 @@ python scripts/test_mcp_with_headers.py
 ## What Gets Tested
 
 ### Test 1: Basic Connection (Environment Variables)
+
 - Starts MCP server on port 8005
 - Connects using FastMCP client
 - Lists available tools
@@ -37,6 +41,7 @@ python scripts/test_mcp_with_headers.py
 - **Validates:** Server starts correctly and basic tools work
 
 ### Test 2: Connection with Splunk Headers
+
 - Sends Splunk configuration via HTTP headers:
   - `X-Splunk-Host`
   - `X-Splunk-Port`
@@ -50,18 +55,21 @@ python scripts/test_mcp_with_headers.py
 - **Validates:** Headers are accepted and processed
 
 ### Test 3: Tool Execution with Headers
+
 - Executes `get_splunk_health` tool using header credentials
 - Verifies tool receives correct Splunk configuration
 - Checks connection source in response
 - **Validates:** Tools use header-provided credentials
 
 ### Test 4: List Indexes with Headers
+
 - Executes `list_indexes` tool
 - Verifies Splunk connection works with headers
 - Lists available indexes
 - **Validates:** Complex tools work with header auth
 
 ### Test 5: Multiple Concurrent Sessions
+
 - Creates two simultaneous sessions with different session IDs
 - Executes tools from both sessions
 - Verifies session isolation
@@ -143,22 +151,26 @@ The test script validates this flow:
 ## Troubleshooting
 
 **Test fails with "httpx library not available":**
+
 ```bash
 pip install httpx
 ```
 
 **Test fails with connection errors:**
+
 - Verify Splunk is running and accessible
 - Check credentials are correct
 - Ensure port 8005 is available
 - Review logs at `logs/mcp_splunk_server.log`
 
 **Test fails with "No tools found":**
+
 - Check that `src/tools/` directory exists
 - Verify all tool files are present
 - Review server startup logs
 
 **Multiple sessions test fails:**
+
 - Ensure session IDs are unique
 - Check that middleware is properly configured
 - Verify context state is being maintained
@@ -166,11 +178,12 @@ pip install httpx
 ## Integration with Clients
 
 **Claude Desktop:**
+
 ```json
 {
   "mcpServers": {
     "splunk": {
-      "url": "http://localhost:8001/mcp/",
+      "url": "http://localhost:8001/mcp",
       "headers": {
         "X-Splunk-Host": "splunk.example.com",
         "X-Splunk-Port": "8089",
@@ -185,6 +198,7 @@ pip install httpx
 ```
 
 **Python Client:**
+
 ```python
 import httpx
 import asyncio
@@ -202,7 +216,7 @@ async def test_with_headers():
     
     async with httpx.AsyncClient(headers=headers) as client:
         response = await client.post(
-            "http://localhost:8001/mcp/",
+            "http://localhost:8001/mcp",
             json={
                 "jsonrpc": "2.0",
                 "id": 1,
@@ -228,6 +242,7 @@ asyncio.run(test_with_headers())
 ## Contributing
 
 When adding new tests:
+
 1. Follow the existing test pattern
 2. Use descriptive test names
 3. Include proper error handling
