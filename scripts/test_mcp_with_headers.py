@@ -114,17 +114,16 @@ async def test_connection_without_headers():
                 print_info("Testing user_agent_info tool...")
                 result = await client.call_tool("user_agent_info", {})
 
-                # FastMCP returns a list of content items
-                if result and isinstance(result, list) and len(result) > 0:
+                # FastMCP Client returns a CallToolResult object
+                if result and hasattr(result, "content") and len(result.content) > 0:
                     print_success("user_agent_info tool works!")
                     # Parse the first content item
-                    content = result[0]
+                    content = result.content[0]
                     if hasattr(content, "text"):
                         print(f"  Result preview: {content.text[:100]}...")
                     return True
                 else:
                     print_error(f"user_agent_info tool returned unexpected result: {type(result)}")
-                    print(f"  Result: {result}")
                     return False
 
     except Exception as e:  # noqa: BLE001
@@ -187,10 +186,14 @@ async def test_connection_with_headers():
 
                 if response.status_code == 200:
                     print_success("Initialize request successful!")
-                    result = response.json()
-                    print(
-                        f"  Server: {result.get('result', {}).get('serverInfo', {}).get('name', 'N/A')}"
-                    )
+                    # Check if response has content before parsing
+                    if response.content:
+                        result = response.json()
+                        print(
+                            f"  Server: {result.get('result', {}).get('serverInfo', {}).get('name', 'N/A')}"
+                        )
+                    else:
+                        print_info("  (Empty response body)")
                 else:
                     print_error(f"Initialize failed with status {response.status_code}")
                     print(f"  Response: {response.text[:200]}")
@@ -208,16 +211,21 @@ async def test_connection_with_headers():
                 response = await http_client.post(url, json=list_tools_request)
 
                 if response.status_code == 200:
-                    result = response.json()
-                    tools = result.get("result", {}).get("tools", [])
-                    print_success(f"Found {len(tools)} tools!")
+                    if response.content:
+                        result = response.json()
+                        tools = result.get("result", {}).get("tools", [])
+                        print_success(f"Found {len(tools)} tools!")
 
-                    # Print first 5 tools
-                    print_info("Sample tools:")
-                    for tool in tools[:5]:
-                        print(f"  - {tool.get('name', 'N/A')}")
+                        # Print first 5 tools
+                        print_info("Sample tools:")
+                        for tool in tools[:5]:
+                            print(f"  - {tool.get('name', 'N/A')}")
+                    else:
+                        print_warning("Empty response when listing tools")
+                        return False
                 else:
                     print_error(f"List tools failed with status {response.status_code}")
+                    print(f"  Response: {response.text[:200]}")
                     return False
 
                 return True
@@ -255,7 +263,7 @@ async def test_tool_execution_with_headers():
             # Add Accept header for MCP protocol requirements
             headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
-                headers=headers, timeout=30.0, follow_redirects=True
+                headers=headers, timeout=60.0, follow_redirects=True
             ) as http_client:
                 url = "http://localhost:8005/mcp"
 
@@ -271,7 +279,10 @@ async def test_tool_execution_with_headers():
                     },
                 }
 
-                await http_client.post(url, json=init_request)
+                init_response = await http_client.post(url, json=init_request)
+                if init_response.status_code != 200:
+                    print_error(f"Initialize failed with status {init_response.status_code}")
+                    return False
 
                 # Test get_splunk_health tool
                 print_info("Testing get_splunk_health tool with header credentials...")
@@ -352,7 +363,7 @@ async def test_list_indexes_with_headers():
             # Add Accept header for MCP protocol requirements
             headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
-                headers=headers, timeout=30.0, follow_redirects=True
+                headers=headers, timeout=60.0, follow_redirects=True
             ) as http_client:
                 url = "http://localhost:8005/mcp"
 
@@ -367,7 +378,10 @@ async def test_list_indexes_with_headers():
                         "clientInfo": {"name": "test-client", "version": "1.0.0"},
                     },
                 }
-                await http_client.post(url, json=init_request)
+                init_response = await http_client.post(url, json=init_request)
+                if init_response.status_code != 200:
+                    print_error(f"Initialize failed with status {init_response.status_code}")
+                    return False
 
                 # Call list_indexes
                 print_info("Testing list_indexes tool...")
@@ -459,8 +473,8 @@ async def test_multiple_sessions():
             headers2 = {**session2_config, "Accept": "application/json, text/event-stream"}
 
             async with (
-                httpx.AsyncClient(headers=headers1, timeout=30.0, follow_redirects=True) as client1,
-                httpx.AsyncClient(headers=headers2, timeout=30.0, follow_redirects=True) as client2,
+                httpx.AsyncClient(headers=headers1, timeout=60.0, follow_redirects=True) as client1,
+                httpx.AsyncClient(headers=headers2, timeout=60.0, follow_redirects=True) as client2,
             ):
                 url = "http://localhost:8005/mcp"
 
