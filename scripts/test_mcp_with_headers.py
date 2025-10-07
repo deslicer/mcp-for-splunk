@@ -62,13 +62,13 @@ def print_warning(text: str):
 class MCPServerProcess:
     """Context manager for MCP server process."""
 
-    def __init__(self, port: int = 8005):
+    def __init__(self, port: int = 8003):
         self.port = port
         self.process = None
 
     async def __aenter__(self):
         """Start the MCP server."""
-        cmd = [sys.executable, "src/server.py", "--transport", "http", "--port", str(self.port)]
+        cmd = ["uv", "run", "mcp-server", "--local", "-d"]
         print_info(f"Starting MCP server on port {self.port}...")
 
         self.process = subprocess.Popen(
@@ -104,8 +104,8 @@ async def test_connection_without_headers():
     try:
         from fastmcp import Client
 
-        async with MCPServerProcess(port=8005):
-            async with Client(transport="http://localhost:8005/mcp") as client:
+        async with MCPServerProcess(port=8003):
+            async with Client(transport="http://localhost:8003/mcp") as client:
                 # List available tools
                 tools = await client.list_tools()
                 print_success(f"Connected successfully! Found {len(tools)} tools")
@@ -159,7 +159,7 @@ async def test_connection_with_headers():
     try:
         import httpx
 
-        async with MCPServerProcess(port=8005):
+        async with MCPServerProcess(port=8003):
             # Create HTTP client with custom headers
             # Add Accept header for MCP protocol requirements
             headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
@@ -167,7 +167,7 @@ async def test_connection_with_headers():
                 headers=headers, timeout=30.0, follow_redirects=True
             ) as http_client:
                 # Initialize MCP session
-                url = "http://localhost:8005/mcp"
+                url = "http://localhost:8003/mcp"
 
                 # Send initialize request
                 init_request = {
@@ -259,13 +259,13 @@ async def test_tool_execution_with_headers():
     try:
         import httpx
 
-        async with MCPServerProcess(port=8005):
+        async with MCPServerProcess(port=8003):
             # Add Accept header for MCP protocol requirements
             headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
                 headers=headers, timeout=60.0, follow_redirects=True
             ) as http_client:
-                url = "http://localhost:8005/mcp"
+                url = "http://localhost:8003/mcp"
 
                 # Initialize session
                 init_request = {
@@ -359,13 +359,13 @@ async def test_list_indexes_with_headers():
     try:
         import httpx
 
-        async with MCPServerProcess(port=8005):
+        async with MCPServerProcess(port=8003):
             # Add Accept header for MCP protocol requirements
             headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
             async with httpx.AsyncClient(
                 headers=headers, timeout=60.0, follow_redirects=True
             ) as http_client:
-                url = "http://localhost:8005/mcp"
+                url = "http://localhost:8003/mcp"
 
                 # Initialize
                 init_request = {
@@ -465,7 +465,7 @@ async def test_multiple_sessions():
     try:
         import httpx
 
-        async with MCPServerProcess(port=8005):
+        async with MCPServerProcess(port=8003):
             print_info("Creating two concurrent sessions...")
 
             # Add Accept header for MCP protocol requirements
@@ -476,7 +476,7 @@ async def test_multiple_sessions():
                 httpx.AsyncClient(headers=headers1, timeout=60.0, follow_redirects=True) as client1,
                 httpx.AsyncClient(headers=headers2, timeout=60.0, follow_redirects=True) as client2,
             ):
-                url = "http://localhost:8005/mcp"
+                url = "http://localhost:8003/mcp"
 
                 # Initialize both sessions
                 init_request = {
@@ -556,7 +556,7 @@ def print_usage_instructions():
 ✅ Session isolation
 
 {Colors.BOLD}Expected Behavior:{Colors.ENDC}
-- Server starts on port 8005
+- Server starts on port 8003 using 'uv run mcp-server --local -d'
 - Headers are captured by HeaderCaptureMiddleware
 - Splunk credentials are extracted from X-Splunk-* headers
 - Tools use header-provided credentials instead of env vars
@@ -566,7 +566,8 @@ def print_usage_instructions():
 - Check logs/mcp_splunk_server.log for detailed server logs
 - Ensure Splunk is accessible at the configured host/port
 - Verify credentials are correct
-- Check that port 8005 is available
+- Check that port 8003 is available
+- Ensure 'uv' is installed and mcp-server is configured
 """)
 
 
