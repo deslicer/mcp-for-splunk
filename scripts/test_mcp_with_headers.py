@@ -220,6 +220,13 @@ async def test_connection_with_headers():
                     print(f"  Response: {response.text[:200]}")
                     return False
 
+                # Send initialized notification to complete the handshake
+                initialized_notification = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                }
+                await http_client.post(url, json=initialized_notification)
+
                 # List tools
                 list_tools_request = {
                     "jsonrpc": "2.0",
@@ -310,6 +317,13 @@ async def test_tool_execution_with_headers():
                     print_error(f"Initialize failed with status {init_response.status_code}")
                     return False
 
+                # Send initialized notification to complete the handshake
+                initialized_notification = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                }
+                await http_client.post(url, json=initialized_notification)
+
                 # Test get_splunk_health tool
                 print_info("Testing get_splunk_health tool with header credentials...")
 
@@ -326,7 +340,7 @@ async def test_tool_execution_with_headers():
                     if not response.content or len(response.content) == 0:
                         print_warning("Empty response from tool call")
                         return False
-                    
+
                     try:
                         result = response.json()
                     except json.JSONDecodeError:
@@ -418,6 +432,13 @@ async def test_list_indexes_with_headers():
                     print_error(f"Initialize failed with status {init_response.status_code}")
                     return False
 
+                # Send initialized notification to complete the handshake
+                initialized_notification = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                }
+                await http_client.post(url, json=initialized_notification)
+
                 # Call list_indexes
                 print_info("Testing list_indexes tool...")
 
@@ -434,7 +455,7 @@ async def test_list_indexes_with_headers():
                     if not response.content or len(response.content) == 0:
                         print_warning("Empty response from tool call")
                         return False
-                    
+
                     try:
                         result = response.json()
                     except json.JSONDecodeError:
@@ -540,6 +561,14 @@ async def test_multiple_sessions():
 
                 if response1.status_code == 200 and response2.status_code == 200:
                     print_success("Both sessions initialized successfully!")
+
+                    # Send initialized notification for both sessions
+                    initialized_notification = {
+                        "jsonrpc": "2.0",
+                        "method": "notifications/initialized",
+                    }
+                    await client1.post(url, json=initialized_notification)
+                    await client2.post(url, json=initialized_notification)
 
                     # Test tool call from both sessions
                     tool_request = {
