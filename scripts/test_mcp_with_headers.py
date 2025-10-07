@@ -7,12 +7,12 @@ parameters via HTTP headers instead of environment variables, allowing
 different clients to connect to different Splunk instances.
 
 Uses FastMCP Client with StreamableHttpTransport for proper session management.
+Assumes MCP server is already running.
 """
 
 import asyncio
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -61,61 +61,7 @@ def print_warning(text: str):
     print(f"{Colors.WARNING}⚠️  {text}{Colors.ENDC}")
 
 
-class MCPServerProcess:
-    """Context manager for MCP server process."""
-
-    def __init__(self, port: int = 8003):
-        self.port = port
-        self.process = None
-
-    async def __aenter__(self):
-        """Start the MCP server."""
-        cmd = ["uv", "run", "mcp-server", "--local", "-d"]
-        print_info(f"Starting MCP server on port {self.port}...")
-
-        self.process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            cwd=project_root,
-            env={**os.environ, "MCP_SERVER_PORT": str(self.port)},
-        )
-
-        # Wait for server to start
-        await asyncio.sleep(8)
-        print_success(f"MCP server started on http://localhost:{self.port}/mcp")
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Stop the MCP server."""
-        print_info("Stopping MCP server...")
-
-        # Use uv run mcp-server --stop to gracefully stop the server
-        stop_cmd = ["uv", "run", "mcp-server", "--stop"]
-        stop_process = subprocess.Popen(
-            stop_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            cwd=project_root,
-        )
-
-        try:
-            stop_process.wait(timeout=5)
-            print_success("MCP server stopped")
-        except subprocess.TimeoutExpired:
-            print_warning("Stop command timed out, forcing termination...")
-            if self.process:
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self.process.kill()
-            print_success("MCP server stopped (forced)")
-
-
-async def run_all_tests():
+async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
     """Run all tests using FastMCP Client with StreamableHttpTransport."""
     print_header("MCP Server for Splunk - HTTP Header Authentication Tests")
 
@@ -152,154 +98,150 @@ async def run_all_tests():
     results = []
 
     try:
-        async with MCPServerProcess(port=8003):
-            # Create StreamableHttpTransport with custom headers
-            print_info("Creating FastMCP Client with StreamableHttpTransport...")
-            transport = StreamableHttpTransport(
-                url="http://localhost:8003/mcp",
-                headers=headers
-            )
+        # Create StreamableHttpTransport with custom headers
+        print_info(f"Connecting to MCP server at {server_url}...")
+        transport = StreamableHttpTransport(url=server_url, headers=headers)
 
-            # Connect to MCP server - single connection for all tests
-            async with Client(transport) as client:
-                print_success("Connected to MCP server!\n")
+        # Connect to MCP server - single connection for all tests
+        async with Client(transport) as client:
+            print_success("Connected to MCP server!\n")
 
-                # Test 1: List available tools
-                print_header("Test 1: List Available Tools")
-                try:
-                    tools = await client.list_tools()
-                    print_success(f"Found {len(tools)} tools")
-                    print_info("Sample tools:")
-                    for tool in tools[:5]:
-                        print(f"  - {tool.name}")
-                    results.append(("List Tools", True))
-                except Exception as e:
-                    print_error(f"Failed: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    results.append(("List Tools", False))
+            # Test 1: List available tools
+            print_header("Test 1: List Available Tools")
+            try:
+                tools = await client.list_tools()
+                print_success(f"Found {len(tools)} tools")
+                print_info("Sample tools:")
+                for tool in tools[:5]:
+                    print(f"  - {tool.name}")
+                results.append(("List Tools", True))
+            except Exception as e:  # noqa: BLE001
+                print_error(f"Failed: {e}")
+                import traceback
 
-                # Test 2: Call user_agent_info (simple tool)
-                print_header("Test 2: Call user_agent_info (Simple Tool)")
-                try:
-                    result = await client.call_tool("user_agent_info", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        print_success("user_agent_info executed successfully")
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            session = (
-                                data.get("context", {})
-                                .get("state", {})
-                                .get("session_id", "N/A")
-                            )
-                            print_info(f"Session ID: {session}")
-                        results.append(("user_agent_info", True))
-                    else:
-                        print_error("Unexpected result format")
-                        results.append(("user_agent_info", False))
-                except Exception as e:
-                    print_error(f"Failed: {e}")
-                    import traceback
-                    traceback.print_exc()
+                traceback.print_exc()
+                results.append(("List Tools", False))
+
+            # Test 2: Call user_agent_info (simple tool)
+            print_header("Test 2: Call user_agent_info (Simple Tool)")
+            try:
+                result = await client.call_tool("user_agent_info", {})
+                if result and hasattr(result, "content") and len(result.content) > 0:
+                    print_success("user_agent_info executed successfully")
+                    content = result.content[0]
+                    if hasattr(content, "text"):
+                        data = json.loads(content.text)
+                        session = (
+                            data.get("context", {}).get("state", {}).get("session_id", "N/A")
+                        )
+                        print_info(f"Session ID: {session}")
+                    results.append(("user_agent_info", True))
+                else:
+                    print_error("Unexpected result format")
                     results.append(("user_agent_info", False))
+            except Exception as e:  # noqa: BLE001
+                print_error(f"Failed: {e}")
+                import traceback
 
-                # Test 3: Call get_splunk_health (requires Splunk connection)
-                print_header("Test 3: Call get_splunk_health (Splunk Tool)")
-                try:
-                    result = await client.call_tool("get_splunk_health", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            print_success("get_splunk_health executed successfully")
-                            print_info(f"Status: {data.get('status', 'N/A')}")
-                            print_info(f"Version: {data.get('version', 'N/A')}")
-                            print_info(
-                                f"Connection Source: {data.get('connection_source', 'N/A')}"
-                            )
-                            results.append(("get_splunk_health", True))
-                        else:
-                            print_error("Unexpected content format")
-                            results.append(("get_splunk_health", False))
+                traceback.print_exc()
+                results.append(("user_agent_info", False))
+
+            # Test 3: Call get_splunk_health (requires Splunk connection)
+            print_header("Test 3: Call get_splunk_health (Splunk Tool)")
+            try:
+                result = await client.call_tool("get_splunk_health", {})
+                if result and hasattr(result, "content") and len(result.content) > 0:
+                    content = result.content[0]
+                    if hasattr(content, "text"):
+                        data = json.loads(content.text)
+                        print_success("get_splunk_health executed successfully")
+                        print_info(f"Status: {data.get('status', 'N/A')}")
+                        print_info(f"Version: {data.get('version', 'N/A')}")
+                        print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
+                        results.append(("get_splunk_health", True))
                     else:
-                        print_error("Unexpected result format")
+                        print_error("Unexpected content format")
                         results.append(("get_splunk_health", False))
-                except Exception as e:
-                    print_error(f"Failed: {e}")
-                    import traceback
-                    traceback.print_exc()
+                else:
+                    print_error("Unexpected result format")
                     results.append(("get_splunk_health", False))
+            except Exception as e:  # noqa: BLE001
+                print_error(f"Failed: {e}")
+                import traceback
 
-                # Test 4: Call list_indexes (class-based tool, requires session)
-                print_header("Test 4: Call list_indexes (Class-Based Tool)")
-                try:
-                    result = await client.call_tool("list_indexes", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            indexes = data.get("indexes", [])
-                            print_success("list_indexes executed successfully")
-                            print_info(f"Found {len(indexes)} indexes")
-                            if indexes:
-                                print_info(f"Sample: {', '.join(indexes[:5])}")
-                            results.append(("list_indexes", True))
-                        else:
-                            print_error("Unexpected content format")
-                            results.append(("list_indexes", False))
+                traceback.print_exc()
+                results.append(("get_splunk_health", False))
+
+            # Test 4: Call list_indexes (class-based tool, requires session)
+            print_header("Test 4: Call list_indexes (Class-Based Tool)")
+            try:
+                result = await client.call_tool("list_indexes", {})
+                if result and hasattr(result, "content") and len(result.content) > 0:
+                    content = result.content[0]
+                    if hasattr(content, "text"):
+                        data = json.loads(content.text)
+                        indexes = data.get("indexes", [])
+                        print_success("list_indexes executed successfully")
+                        print_info(f"Found {len(indexes)} indexes")
+                        if indexes:
+                            print_info(f"Sample: {', '.join(indexes[:5])}")
+                        results.append(("list_indexes", True))
                     else:
-                        print_error("Unexpected result format")
+                        print_error("Unexpected content format")
                         results.append(("list_indexes", False))
-                except Exception as e:
-                    print_error(f"Failed: {e}")
-                    import traceback
-                    traceback.print_exc()
+                else:
+                    print_error("Unexpected result format")
                     results.append(("list_indexes", False))
+            except Exception as e:  # noqa: BLE001
+                print_error(f"Failed: {e}")
+                import traceback
 
-                # Test 5: Verify session continuity and header config
-                print_header("Test 5: Verify Session Continuity & Header Config")
-                try:
-                    # Call user_agent_info again to verify same session
-                    result = await client.call_tool("user_agent_info", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            state = data.get("context", {}).get("state", {})
-                            session = state.get("session_id", "N/A")
-                            client_config = state.get("client_config", {})
+                traceback.print_exc()
+                results.append(("list_indexes", False))
 
-                            print_success("Session continuity verified")
-                            print_info(f"Session ID: {session}")
-                            if client_config:
-                                print_info(
-                                    f"Client config present: {list(client_config.keys())}"
-                                )
-                                print_info(
-                                    f"Splunk Host: {client_config.get('splunk_host', 'N/A')}"
-                                )
-                                results.append(("Session Continuity", True))
-                            else:
-                                print_warning(
-                                    "No client config in session state (may be using server defaults)"
-                                )
-                                results.append(("Session Continuity", False))
+            # Test 5: Verify session continuity and header config
+            print_header("Test 5: Verify Session Continuity & Header Config")
+            try:
+                # Call user_agent_info again to verify same session
+                result = await client.call_tool("user_agent_info", {})
+                if result and hasattr(result, "content") and len(result.content) > 0:
+                    content = result.content[0]
+                    if hasattr(content, "text"):
+                        data = json.loads(content.text)
+                        state = data.get("context", {}).get("state", {})
+                        session = state.get("session_id", "N/A")
+                        client_config = state.get("client_config", {})
+
+                        print_success("Session continuity verified")
+                        print_info(f"Session ID: {session}")
+                        if client_config:
+                            print_info(f"Client config present: {list(client_config.keys())}")
+                            print_info(
+                                f"Splunk Host: {client_config.get('splunk_host', 'N/A')}"
+                            )
+                            results.append(("Session Continuity", True))
                         else:
-                            print_error("Unexpected content format")
+                            print_warning(
+                                "No client config in session state (may be using server defaults)"
+                            )
                             results.append(("Session Continuity", False))
                     else:
-                        print_error("Unexpected result format")
+                        print_error("Unexpected content format")
                         results.append(("Session Continuity", False))
-                except Exception as e:
-                    print_error(f"Failed: {e}")
-                    import traceback
-                    traceback.print_exc()
+                else:
+                    print_error("Unexpected result format")
                     results.append(("Session Continuity", False))
+            except Exception as e:  # noqa: BLE001
+                print_error(f"Failed: {e}")
+                import traceback
 
-    except Exception as e:
+                traceback.print_exc()
+                results.append(("Session Continuity", False))
+
+    except Exception as e:  # noqa: BLE001
         print_error(f"Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
 
     return results
@@ -311,10 +253,13 @@ def print_usage_instructions():
 
     print(f"""
 {Colors.BOLD}Prerequisites:{Colors.ENDC}
-1. Install required dependencies:
+1. Start the MCP server:
+   uv run mcp-server --local -d
+
+2. Install required dependencies:
    pip install fastmcp
 
-2. Set Splunk environment variables (or they'll use defaults):
+3. Set Splunk environment variables (or they'll use defaults):
    export SPLUNK_HOST=localhost
    export SPLUNK_PORT=8089
    export SPLUNK_USERNAME=admin
@@ -333,7 +278,7 @@ def print_usage_instructions():
 ✅ FastMCP Client with StreamableHttpTransport
 
 {Colors.BOLD}Expected Behavior:{Colors.ENDC}
-- Server starts once on port 8003
+- Connects to MCP server at http://localhost:8003/mcp
 - FastMCP Client with StreamableHttpTransport handles session management
 - Same session ID (test-session-unified) throughout
 - Headers captured by HeaderCaptureMiddleware
@@ -347,11 +292,11 @@ def print_usage_instructions():
 - Works with class-based tools like list_indexes
 
 {Colors.BOLD}Troubleshooting:{Colors.ENDC}
+- Ensure MCP server is running: uv run mcp-server --local -d
 - Check logs/mcp_splunk_server.log for detailed server logs
 - Ensure Splunk is accessible at the configured host/port
 - Verify credentials are correct
 - Check that port 8003 is available
-- Ensure 'uv' is installed and mcp-server is configured
 
 {Colors.BOLD}Reference:{Colors.ENDC}
 - FastMCP Transports: https://gofastmcp.com/clients/transports#remote-transports
@@ -371,7 +316,7 @@ async def main():
     print_header("Checking Prerequisites")
 
     try:
-        from fastmcp import Client  # noqa: F401
+        from fastmcp import Client  # noqa: F401, used in run_all_tests
         from fastmcp.client.transports import StreamableHttpTransport  # noqa: F401
 
         print_success("fastmcp library available")
@@ -386,6 +331,9 @@ async def main():
         print_success(f"SPLUNK_HOST set to: {os.getenv('SPLUNK_HOST')}")
     else:
         print_warning("SPLUNK_HOST not set, using default: localhost")
+
+    print_warning("⚠️  Ensure MCP server is running: uv run mcp-server --local -d")
+    print()
 
     # Run all tests
     results = await run_all_tests()
