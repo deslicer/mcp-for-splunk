@@ -131,9 +131,7 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                     content = result.content[0]
                     if hasattr(content, "text"):
                         data = json.loads(content.text)
-                        session = (
-                            data.get("context", {}).get("state", {}).get("session_id", "N/A")
-                        )
+                        session = data.get("context", {}).get("state", {}).get("session_id", "N/A")
                         print_info(f"Session ID: {session}")
                     results.append(("user_agent_info", True))
                 else:
@@ -154,11 +152,23 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                     content = result.content[0]
                     if hasattr(content, "text"):
                         data = json.loads(content.text)
-                        print_success("get_splunk_health executed successfully")
-                        print_info(f"Status: {data.get('status', 'N/A')}")
-                        print_info(f"Version: {data.get('version', 'N/A')}")
-                        print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
-                        results.append(("get_splunk_health", True))
+                        status = data.get("status", "N/A")
+                        
+                        if status == "connected":
+                            print_success("✅ Splunk connection successful!")
+                            print_info(f"Status: {status}")
+                            print_info(f"Version: {data.get('version', 'N/A')}")
+                            print_info(f"Server Name: {data.get('server_name', 'N/A')}")
+                            print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
+                            results.append(("get_splunk_health", True))
+                        else:
+                            print_warning("⚠️  Splunk connection failed (tool executed but connection error)")
+                            print_info(f"Status: {status}")
+                            print_info(f"Error: {data.get('error', 'Unknown error')}")
+                            print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
+                            print_info("Note: Check Splunk Docker container is running and accessible")
+                            # Mark as failed since connection didn't work
+                            results.append(("get_splunk_health", False))
                     else:
                         print_error("Unexpected content format")
                         results.append(("get_splunk_health", False))
@@ -216,9 +226,7 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                         print_info(f"Session ID: {session}")
                         if client_config:
                             print_info(f"Client config present: {list(client_config.keys())}")
-                            print_info(
-                                f"Splunk Host: {client_config.get('splunk_host', 'N/A')}"
-                            )
+                            print_info(f"Splunk Host: {client_config.get('splunk_host', 'N/A')}")
                             results.append(("Session Continuity", True))
                         else:
                             print_warning(
