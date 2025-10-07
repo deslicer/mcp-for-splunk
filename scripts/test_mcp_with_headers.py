@@ -87,14 +87,30 @@ class MCPServerProcess:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Stop the MCP server."""
-        if self.process:
-            print_info("Stopping MCP server...")
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
+        print_info("Stopping MCP server...")
+        
+        # Use uv run mcp-server --stop to gracefully stop the server
+        stop_cmd = ["uv", "run", "mcp-server", "--stop"]
+        stop_process = subprocess.Popen(
+            stop_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=project_root,
+        )
+        
+        try:
+            stop_process.wait(timeout=5)
             print_success("MCP server stopped")
+        except subprocess.TimeoutExpired:
+            print_warning("Stop command timed out, forcing termination...")
+            if self.process:
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+            print_success("MCP server stopped (forced)")
 
 
 async def test_connection_without_headers():
