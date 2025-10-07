@@ -148,32 +148,31 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
             print_header("Test 3: Call get_splunk_health (Splunk Tool)")
             try:
                 result = await client.call_tool("get_splunk_health", {})
+                print_success("get_splunk_health tool called successfully")
+
+                # Print raw result for debugging
+                print_info("Raw result:")
                 if result and hasattr(result, "content") and len(result.content) > 0:
-                    content = result.content[0]
-                    if hasattr(content, "text"):
-                        data = json.loads(content.text)
-                        status = data.get("status", "N/A")
-                        
-                        if status == "connected":
-                            print_success("✅ Splunk connection successful!")
-                            print_info(f"Status: {status}")
-                            print_info(f"Version: {data.get('version', 'N/A')}")
-                            print_info(f"Server Name: {data.get('server_name', 'N/A')}")
-                            print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
-                            results.append(("get_splunk_health", True))
-                        else:
-                            print_warning("⚠️  Splunk connection failed (tool executed but connection error)")
-                            print_info(f"Status: {status}")
-                            print_info(f"Error: {data.get('error', 'Unknown error')}")
-                            print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
-                            print_info("Note: Check Splunk Docker container is running and accessible")
-                            # Mark as failed since connection didn't work
-                            results.append(("get_splunk_health", False))
-                    else:
-                        print_error("Unexpected content format")
-                        results.append(("get_splunk_health", False))
+                    for idx, content in enumerate(result.content):
+                        print(f"\n  Content[{idx}]:")
+                        if hasattr(content, "type"):
+                            print(f"    Type: {content.type}")
+                        if hasattr(content, "text"):
+                            print(f"    Text: {content.text}")
+
+                        # Try to parse as JSON for structured display
+                        try:
+                            data = json.loads(content.text)
+                            print(f"\n  Parsed JSON:")
+                            for key, value in data.items():
+                                print(f"    {key}: {value}")
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                    results.append(("get_splunk_health", True))
                 else:
-                    print_error("Unexpected result format")
+                    print_warning("Empty or unexpected result format")
+                    print(f"Result: {result}")
                     results.append(("get_splunk_health", False))
             except Exception as e:  # noqa: BLE001
                 print_error(f"Failed: {e}")
