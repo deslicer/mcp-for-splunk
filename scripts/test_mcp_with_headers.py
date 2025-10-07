@@ -88,7 +88,7 @@ class MCPServerProcess:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Stop the MCP server."""
         print_info("Stopping MCP server...")
-        
+
         # Use uv run mcp-server --stop to gracefully stop the server
         stop_cmd = ["uv", "run", "mcp-server", "--stop"]
         stop_process = subprocess.Popen(
@@ -98,7 +98,7 @@ class MCPServerProcess:
             text=True,
             cwd=project_root,
         )
-        
+
         try:
             stop_process.wait(timeout=5)
             print_success("MCP server stopped")
@@ -203,13 +203,18 @@ async def test_connection_with_headers():
                 if response.status_code == 200:
                     print_success("Initialize request successful!")
                     # Check if response has content before parsing
-                    if response.content:
-                        result = response.json()
-                        print(
-                            f"  Server: {result.get('result', {}).get('serverInfo', {}).get('name', 'N/A')}"
-                        )
+                    if response.content and len(response.content) > 0:
+                        try:
+                            # Try to parse as JSON (for regular HTTP responses)
+                            result = response.json()
+                            print(
+                                f"  Server: {result.get('result', {}).get('serverInfo', {}).get('name', 'N/A')}"
+                            )
+                        except json.JSONDecodeError:
+                            # Response might be SSE format or empty
+                            print_info("  (SSE response - connection established)")
                     else:
-                        print_info("  (Empty response body)")
+                        print_info("  (Empty response body - SSE mode)")
                 else:
                     print_error(f"Initialize failed with status {response.status_code}")
                     print(f"  Response: {response.text[:200]}")
@@ -227,15 +232,20 @@ async def test_connection_with_headers():
                 response = await http_client.post(url, json=list_tools_request)
 
                 if response.status_code == 200:
-                    if response.content:
-                        result = response.json()
-                        tools = result.get("result", {}).get("tools", [])
-                        print_success(f"Found {len(tools)} tools!")
+                    if response.content and len(response.content) > 0:
+                        try:
+                            result = response.json()
+                            tools = result.get("result", {}).get("tools", [])
+                            print_success(f"Found {len(tools)} tools!")
 
-                        # Print first 5 tools
-                        print_info("Sample tools:")
-                        for tool in tools[:5]:
-                            print(f"  - {tool.get('name', 'N/A')}")
+                            # Print first 5 tools
+                            print_info("Sample tools:")
+                            for tool in tools[:5]:
+                                print(f"  - {tool.get('name', 'N/A')}")
+                        except json.JSONDecodeError:
+                            print_warning("Response is not JSON (likely SSE format)")
+                            print_info(f"  Response preview: {response.text[:200]}")
+                            return False
                     else:
                         print_warning("Empty response when listing tools")
                         return False
@@ -313,7 +323,16 @@ async def test_tool_execution_with_headers():
                 response = await http_client.post(url, json=tool_call_request)
 
                 if response.status_code == 200:
-                    result = response.json()
+                    if not response.content or len(response.content) == 0:
+                        print_warning("Empty response from tool call")
+                        return False
+                    
+                    try:
+                        result = response.json()
+                    except json.JSONDecodeError:
+                        print_error("Response is not JSON (likely SSE format)")
+                        print_info(f"  Response preview: {response.text[:200]}")
+                        return False
 
                     if "error" in result:
                         print_error(f"Tool execution error: {result['error']}")
@@ -412,7 +431,16 @@ async def test_list_indexes_with_headers():
                 response = await http_client.post(url, json=tool_call_request)
 
                 if response.status_code == 200:
-                    result = response.json()
+                    if not response.content or len(response.content) == 0:
+                        print_warning("Empty response from tool call")
+                        return False
+                    
+                    try:
+                        result = response.json()
+                    except json.JSONDecodeError:
+                        print_error("Response is not JSON (likely SSE format)")
+                        print_info(f"  Response preview: {response.text[:200]}")
+                        return False
 
                     if "error" in result:
                         print_error(f"Tool execution error: {result['error']}")
@@ -440,6 +468,7 @@ async def test_list_indexes_with_headers():
                         return False
                 else:
                     print_error(f"Tool call failed with status {response.status_code}")
+                    print(f"  Response preview: {response.text[:200]}")
                     return False
 
     except ImportError:
