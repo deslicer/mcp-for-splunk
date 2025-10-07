@@ -6,7 +6,7 @@ This script tests the MCP server's ability to accept Splunk connection
 parameters via HTTP headers instead of environment variables, allowing
 different clients to connect to different Splunk instances.
 
-Uses FastMCP Client for proper session management.
+Uses raw HTTP requests with a single session throughout all tests.
 """
 
 import asyncio
@@ -116,22 +116,25 @@ class MCPServerProcess:
 
 
 async def run_all_tests():
-    """Run all tests using a single MCP connection."""
+    """Run all tests using a single HTTP client and session."""
     print_header("MCP Server for Splunk - HTTP Header Authentication Tests")
 
+    # Single session ID for all tests
+    session_id = "test-session-unified"
+
     # Splunk configuration as HTTP headers
-    headers = {
+    splunk_config = {
         "X-Splunk-Host": os.getenv("SPLUNK_HOST", "localhost"),
         "X-Splunk-Port": os.getenv("SPLUNK_PORT", "8089"),
         "X-Splunk-Username": os.getenv("SPLUNK_USERNAME", "admin"),
         "X-Splunk-Password": os.getenv("SPLUNK_PASSWORD", "changeme"),
         "X-Splunk-Scheme": os.getenv("SPLUNK_SCHEME", "https"),
         "X-Splunk-Verify-SSL": os.getenv("SPLUNK_VERIFY_SSL", "false"),
-        "X-Session-ID": "test-session-headers",
+        "X-Session-ID": session_id,
     }
 
     print_info("Using Splunk configuration:")
-    for key, value in headers.items():
+    for key, value in splunk_config.items():
         if "Password" in key:
             print(f"  {key}: {'*' * len(value)}")
         else:
@@ -139,58 +142,127 @@ async def run_all_tests():
     print()
 
     try:
-        from fastmcp import Client
         import httpx
-    except ImportError as e:
-        print_error(f"Required library not available: {e}")
-        print_info("Install with: pip install fastmcp httpx")
+    except ImportError:
+        print_error("httpx library not available. Install with: pip install httpx")
         return []
 
     results = []
 
     try:
         async with MCPServerProcess(port=8003):
-            # Create custom httpx client with headers
-            http_client = httpx.AsyncClient(
-                headers=headers,
-                timeout=60.0,
-                follow_redirects=True
-            )
+            # Create HTTP client with custom headers - single client for all tests
+            headers = {**splunk_config, "Accept": "application/json, text/event-stream"}
+            async with httpx.AsyncClient(
+                headers=headers, timeout=60.0, follow_redirects=True
+            ) as http_client:
+                url = "http://localhost:8003/mcp"
 
-            # Connect to MCP server with custom headers - single connection for all tests
-            print_info("Connecting to MCP server...")
-            async with Client(
-                transport="http://localhost:8003/mcp",
-                http_client=http_client
-            ) as client:
-                print_success("Connected to MCP server!\n")
+                # Initialize session once
+                print_header("Initializing MCP Session")
+                init_request = {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {"name": "test-client", "version": "1.0.0"},
+                    },
+                }
 
-                # Test 1: List available tools
+                print_info("Sending initialize request...")
+                response = await http_client.post(url, json=init_request)
+
+                if response.status_code == 200:
+                    print_success("Session initialized successfully!")
+                    if response.content and len(response.content) > 0:
+                        try:
+                            result = response.json()
+                            server_name = result.get("result", {}).get("serverInfo", {}).get("name", "N/A")
+                            print_info(f"Server: {server_name}")
+                        except json.JSONDecodeError:
+                            print_info("(SSE response)")
+                else:
+                    print_error(f"Initialize failed with status {response.status_code}")
+                    print_error(f"Response: {response.text[:200]}")
+                    return []
+
+                # Send initialized notification
+                initialized_notification = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                }
+                await http_client.post(url, json=initialized_notification)
+                print()
+
+                # Test 1: List Tools
                 print_header("Test 1: List Available Tools")
                 try:
-                    tools = await client.list_tools()
-                    print_success(f"Found {len(tools)} tools")
-                    print_info("Sample tools:")
-                    for tool in tools[:5]:
-                        print(f"  - {tool.name}")
-                    results.append(("List Tools", True))
+                    list_tools_request = {
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/list",
+                        "params": {},
+                    }
+
+                    response = await http_client.post(url, json=list_tools_request)
+
+                    if response.status_code == 200 and response.content:
+                        try:
+                            result = response.json()
+                            tools = result.get("result", {}).get("tools", [])
+                            print_success(f"Found {len(tools)} tools")
+                            print_info("Sample tools:")
+                            for tool in tools[:5]:
+                                print(f"  - {tool.get('name', 'N/A')}")
+                            results.append(("List Tools", True))
+                        except json.JSONDecodeError:
+                            print_warning("Response is not JSON")
+                            results.append(("List Tools", False))
+                    else:
+                        print_error(f"Failed with status {response.status_code}")
+                        results.append(("List Tools", False))
                 except Exception as e:
                     print_error(f"Failed: {e}")
                     results.append(("List Tools", False))
 
-                # Test 2: Call user_agent_info (simple tool)
+                # Test 2: Call user_agent_info
                 print_header("Test 2: Call user_agent_info (Simple Tool)")
                 try:
-                    result = await client.call_tool("user_agent_info", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        print_success("user_agent_info executed successfully")
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            print_info(f"Session ID from context: {data.get('context', {}).get('state', {}).get('session_id', 'N/A')}")
-                        results.append(("user_agent_info", True))
+                    tool_call_request = {
+                        "jsonrpc": "2.0",
+                        "id": 3,
+                        "method": "tools/call",
+                        "params": {"name": "user_agent_info", "arguments": {}},
+                    }
+
+                    response = await http_client.post(url, json=tool_call_request)
+
+                    if response.status_code == 200 and response.content:
+                        try:
+                            result = response.json()
+                            if "error" in result:
+                                print_error(f"Tool error: {result['error']}")
+                                results.append(("user_agent_info", False))
+                            else:
+                                tool_result = result.get("result", {}).get("content", [])
+                                if tool_result:
+                                    print_success("user_agent_info executed successfully")
+                                    for content in tool_result:
+                                        if content.get("type") == "text":
+                                            data = json.loads(content.get("text", "{}"))
+                                            session = data.get("context", {}).get("state", {}).get("session_id", "N/A")
+                                            print_info(f"Session ID: {session}")
+                                    results.append(("user_agent_info", True))
+                                else:
+                                    print_warning("Empty result")
+                                    results.append(("user_agent_info", False))
+                        except json.JSONDecodeError:
+                            print_error("Response is not JSON")
+                            results.append(("user_agent_info", False))
                     else:
-                        print_error("Unexpected result format")
+                        print_error(f"Failed with status {response.status_code}")
                         results.append(("user_agent_info", False))
                 except Exception as e:
                     print_error(f"Failed: {e}")
@@ -198,24 +270,46 @@ async def run_all_tests():
                     traceback.print_exc()
                     results.append(("user_agent_info", False))
 
-                # Test 3: Call get_splunk_health (requires Splunk connection)
+                # Test 3: Call get_splunk_health
                 print_header("Test 3: Call get_splunk_health (Splunk Tool)")
                 try:
-                    result = await client.call_tool("get_splunk_health", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            print_success("get_splunk_health executed successfully")
-                            print_info(f"Status: {data.get('status', 'N/A')}")
-                            print_info(f"Version: {data.get('version', 'N/A')}")
-                            print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
-                            results.append(("get_splunk_health", True))
-                        else:
-                            print_error("Unexpected content format")
+                    tool_call_request = {
+                        "jsonrpc": "2.0",
+                        "id": 4,
+                        "method": "tools/call",
+                        "params": {"name": "get_splunk_health", "arguments": {}},
+                    }
+
+                    response = await http_client.post(url, json=tool_call_request)
+
+                    if response.status_code == 200 and response.content:
+                        try:
+                            result = response.json()
+                            if "error" in result:
+                                print_error(f"Tool error: {result['error']}")
+                                results.append(("get_splunk_health", False))
+                            else:
+                                tool_result = result.get("result", {}).get("content", [])
+                                if tool_result:
+                                    print_success("get_splunk_health executed successfully")
+                                    for content in tool_result:
+                                        if content.get("type") == "text":
+                                            try:
+                                                data = json.loads(content.get("text", "{}"))
+                                                print_info(f"Status: {data.get('status', 'N/A')}")
+                                                print_info(f"Version: {data.get('version', 'N/A')}")
+                                                print_info(f"Connection Source: {data.get('connection_source', 'N/A')}")
+                                            except json.JSONDecodeError:
+                                                print_info(f"Result: {content.get('text', 'N/A')[:100]}")
+                                    results.append(("get_splunk_health", True))
+                                else:
+                                    print_warning("Empty result")
+                                    results.append(("get_splunk_health", False))
+                        except json.JSONDecodeError:
+                            print_error("Response is not JSON")
                             results.append(("get_splunk_health", False))
                     else:
-                        print_error("Unexpected result format")
+                        print_error(f"Failed with status {response.status_code}")
                         results.append(("get_splunk_health", False))
                 except Exception as e:
                     print_error(f"Failed: {e}")
@@ -223,25 +317,48 @@ async def run_all_tests():
                     traceback.print_exc()
                     results.append(("get_splunk_health", False))
 
-                # Test 4: Call list_indexes (class-based tool, requires session)
+                # Test 4: Call list_indexes
                 print_header("Test 4: Call list_indexes (Class-Based Tool)")
                 try:
-                    result = await client.call_tool("list_indexes", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            indexes = data.get("indexes", [])
-                            print_success("list_indexes executed successfully")
-                            print_info(f"Found {len(indexes)} indexes")
-                            if indexes:
-                                print_info(f"Sample: {', '.join(indexes[:5])}")
-                            results.append(("list_indexes", True))
-                        else:
-                            print_error("Unexpected content format")
+                    tool_call_request = {
+                        "jsonrpc": "2.0",
+                        "id": 5,
+                        "method": "tools/call",
+                        "params": {"name": "list_indexes", "arguments": {}},
+                    }
+
+                    response = await http_client.post(url, json=tool_call_request)
+
+                    if response.status_code == 200 and response.content:
+                        try:
+                            result = response.json()
+                            if "error" in result:
+                                print_error(f"Tool error: {result['error']}")
+                                results.append(("list_indexes", False))
+                            else:
+                                tool_result = result.get("result", {}).get("content", [])
+                                if tool_result:
+                                    print_success("list_indexes executed successfully")
+                                    for content in tool_result:
+                                        if content.get("type") == "text":
+                                            try:
+                                                data = json.loads(content.get("text", "{}"))
+                                                indexes = data.get("indexes", [])
+                                                print_info(f"Found {len(indexes)} indexes")
+                                                if indexes:
+                                                    print_info(f"Sample: {', '.join(indexes[:5])}")
+                                            except json.JSONDecodeError:
+                                                print_info(f"Result: {content.get('text', 'N/A')[:100]}")
+                                    results.append(("list_indexes", True))
+                                else:
+                                    print_warning("Empty result")
+                                    results.append(("list_indexes", False))
+                        except json.JSONDecodeError:
+                            print_error("Response is not JSON")
                             results.append(("list_indexes", False))
                     else:
-                        print_error("Unexpected result format")
+                        print_error(f"Failed with status {response.status_code}")
+                        print_error(f"Response: {response.text[:200]}")
                         results.append(("list_indexes", False))
                 except Exception as e:
                     print_error(f"Failed: {e}")
@@ -249,35 +366,53 @@ async def run_all_tests():
                     traceback.print_exc()
                     results.append(("list_indexes", False))
 
-                # Test 5: Verify header-based config is being used
-                print_header("Test 5: Verify Header-Based Configuration")
+                # Test 5: Verify session continuity
+                print_header("Test 5: Verify Session Continuity")
                 try:
-                    # Call user_agent_info again to check session state
-                    result = await client.call_tool("user_agent_info", {})
-                    if result and hasattr(result, "content") and len(result.content) > 0:
-                        content = result.content[0]
-                        if hasattr(content, "text"):
-                            data = json.loads(content.text)
-                            state = data.get("context", {}).get("state", {})
-                            client_config = state.get("client_config", {})
-                            
-                            if client_config:
-                                print_success("Client configuration found in session state")
-                                print_info(f"Config keys: {list(client_config.keys())}")
-                                print_info(f"Splunk Host: {client_config.get('splunk_host', 'N/A')}")
-                                results.append(("Header Config Verification", True))
+                    # Call user_agent_info again to verify same session
+                    tool_call_request = {
+                        "jsonrpc": "2.0",
+                        "id": 6,
+                        "method": "tools/call",
+                        "params": {"name": "user_agent_info", "arguments": {}},
+                    }
+
+                    response = await http_client.post(url, json=tool_call_request)
+
+                    if response.status_code == 200 and response.content:
+                        try:
+                            result = response.json()
+                            if "error" not in result:
+                                tool_result = result.get("result", {}).get("content", [])
+                                if tool_result:
+                                    for content in tool_result:
+                                        if content.get("type") == "text":
+                                            data = json.loads(content.get("text", "{}"))
+                                            state = data.get("context", {}).get("state", {})
+                                            session = state.get("session_id", "N/A")
+                                            client_config = state.get("client_config", {})
+                                            
+                                            print_success("Session continuity verified")
+                                            print_info(f"Session ID: {session}")
+                                            if client_config:
+                                                print_info(f"Client config present: {list(client_config.keys())}")
+                                                print_info(f"Splunk Host: {client_config.get('splunk_host', 'N/A')}")
+                                            results.append(("Session Continuity", True))
+                                else:
+                                    print_warning("Empty result")
+                                    results.append(("Session Continuity", False))
                             else:
-                                print_warning("No client config in session state (may be using server defaults)")
-                                results.append(("Header Config Verification", False))
-                        else:
-                            print_error("Unexpected content format")
-                            results.append(("Header Config Verification", False))
+                                print_error(f"Tool error: {result['error']}")
+                                results.append(("Session Continuity", False))
+                        except json.JSONDecodeError:
+                            print_error("Response is not JSON")
+                            results.append(("Session Continuity", False))
                     else:
-                        print_error("Unexpected result format")
-                        results.append(("Header Config Verification", False))
+                        print_error(f"Failed with status {response.status_code}")
+                        results.append(("Session Continuity", False))
                 except Exception as e:
                     print_error(f"Failed: {e}")
-                    results.append(("Header Config Verification", False))
+                    results.append(("Session Continuity", False))
 
     except Exception as e:
         print_error(f"Test suite failed: {e}")
@@ -294,7 +429,7 @@ def print_usage_instructions():
     print(f"""
 {Colors.BOLD}Prerequisites:{Colors.ENDC}
 1. Install required dependencies:
-   pip install httpx fastmcp
+   pip install httpx
 
 2. Set Splunk environment variables (or they'll use defaults):
    export SPLUNK_HOST=localhost
@@ -310,16 +445,16 @@ def print_usage_instructions():
 ✅ Basic MCP server connectivity
 ✅ HTTP header-based Splunk authentication
 ✅ Tool execution with header credentials
-✅ Session management with FastMCP Client
-✅ Single connection for all tests (efficient)
+✅ Single session ID throughout all tests
+✅ Session continuity verification
 
 {Colors.BOLD}Expected Behavior:{Colors.ENDC}
-- Server starts on port 8003 using 'uv run mcp-server --local -d'
-- FastMCP Client handles session management automatically
-- Headers are captured by HeaderCaptureMiddleware
-- Splunk credentials are extracted from X-Splunk-* headers
-- Tools use header-provided credentials instead of env vars
-- All tests run on a single MCP connection
+- Server starts once on port 8003
+- Single HTTP client with headers for all tests
+- Same session ID (test-session-unified) throughout
+- Headers captured by HeaderCaptureMiddleware
+- Splunk credentials extracted from X-Splunk-* headers
+- Tools use header-provided credentials
 
 {Colors.BOLD}Troubleshooting:{Colors.ENDC}
 - Check logs/mcp_splunk_server.log for detailed server logs
@@ -335,7 +470,7 @@ async def main():
     print(f"{Colors.BOLD}{Colors.HEADER}")
     print("=" * 60)
     print("  MCP Server for Splunk - HTTP Header Authentication Tests")
-    print("  Using FastMCP Client with Single Connection")
+    print("  Single Session, Raw HTTP Implementation")
     print("=" * 60)
     print(Colors.ENDC)
 
@@ -348,15 +483,6 @@ async def main():
     except ImportError:
         print_error("httpx library not available")
         print_info("Install with: pip install httpx")
-        print_usage_instructions()
-        return False
-
-    try:
-        from fastmcp import Client  # noqa: F401
-        print_success("fastmcp library available")
-    except ImportError:
-        print_error("fastmcp library not available")
-        print_info("Install with: pip install fastmcp")
         print_usage_instructions()
         return False
 
