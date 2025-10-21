@@ -128,6 +128,7 @@ class ToolLoader:
         # Resolve metadata for this tool (do not assume class has METADATA)
         try:
             from .registry import tool_registry
+
             metadata = tool_registry.get_metadata(tool_name)
         except Exception:
             metadata = None
@@ -137,9 +138,7 @@ class ToolLoader:
             """Wrapper that delegates to the tool's execute method"""
             try:
                 # Create tool instance
-                description = (
-                    metadata.description if metadata else (tool_class.__doc__ or "")
-                )
+                description = metadata.description if metadata else (tool_class.__doc__ or "")
                 tool_instance = tool_class(tool_name, description)
 
                 # Get the current context using FastMCP's dependency function
@@ -421,8 +420,49 @@ Try using the discovery resource: `splunk-docs://discovery`
 
             self.logger.info("✅ Admin guide handler registered successfully")
 
+            # Register configuration spec documentation handler
+            self.logger.info("Registering configuration spec documentation handler...")
+
+            @self.mcp_server.resource("splunk-spec://{config}", name="get_spec_reference_docs")
+            async def get_spec_reference_docs(config: str) -> str:
+                """Get Splunk configuration specification documentation (auto-detects version)"""
+                try:
+                    from ..resources.splunk_docs import create_spec_reference_resource
+
+                    ctx = get_context()
+
+                    resource = create_spec_reference_resource(config)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting spec docs for {config}: {e}")
+                    return f"""# Error: Configuration Specification Documentation
+
+Failed to retrieve configuration specification for `{config}`.
+
+**Error**: {str(e)}
+
+Please check:
+- Config file name spelling (e.g., alert_actions.conf)
+- Splunk instance connectivity
+- Network connectivity
+
+Common config files:
+- alert_actions.conf
+- limits.conf
+- indexes.conf
+- inputs.conf
+- outputs.conf
+- props.conf
+- transforms.conf
+
+Try using the discovery resource: `splunk-docs://discovery`
+"""
+
+            self.logger.info("✅ Configuration spec handler registered successfully")
+
             self.logger.info(
-                "Successfully registered 3 dynamic documentation handlers (troubleshooting, spl-commands, admin)"
+                "Successfully registered 4 dynamic documentation handlers (troubleshooting, spl-commands, admin, spec-reference)"
             )
 
         except Exception as e:
@@ -454,6 +494,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                         "splunk-docs://{version}/troubleshooting/{topic}",
                         "splunk-docs://{version}/spl-reference/{command}",
                         "splunk-docs://{version}/admin/{topic}",
+                        "splunk-spec://{config}",
                     ]
                 ):
                     self.logger.debug(
@@ -1037,7 +1078,7 @@ class PromptLoader:
                     return [{"type": "text", "text": f"Error: {str(e)}"}]
 
             # Dynamically set the function signature based on prompt metadata
-            if hasattr(metadata, 'arguments') and metadata.arguments:
+            if hasattr(metadata, "arguments") and metadata.arguments:
                 # Import inspect for signature manipulation
                 import inspect
 
@@ -1060,7 +1101,7 @@ class PromptLoader:
                         param = inspect.Parameter(
                             name=arg["name"],
                             kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                            annotation=annotation
+                            annotation=annotation,
                         )
                     else:
                         # Optional parameter with default
@@ -1076,7 +1117,7 @@ class PromptLoader:
                             name=arg["name"],
                             kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                             default=default_value,
-                            annotation=annotation
+                            annotation=annotation,
                         )
 
                     params.append(param)

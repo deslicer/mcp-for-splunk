@@ -885,6 +885,7 @@ name = "mcp-server-for-splunk"
 version = "0.2.1"
 source = { editable = "." }
 dependencies = [
+    { name = "beautifulsoup4" },
     { name = "fastmcp" },
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
@@ -904,10 +905,6 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
-]
-docs = [
-    { name = "beautifulsoup4" },
-    { name = "httpx" },
 ]
 test = [
     { name = "pytest" },
@@ -929,11 +926,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "beautifulsoup4", marker = "extra == 'docs'", specifier = ">=4.12.0" },
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "fastmcp", specifier = ">=2.11.3" },
     { name = "httpx", specifier = ">=0.27.0" },
-    { name = "httpx", marker = "extra == 'docs'", specifier = ">=0.24.0" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.8.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "openai", specifier = ">=1.0.0" },

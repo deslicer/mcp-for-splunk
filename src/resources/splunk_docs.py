@@ -75,11 +75,12 @@ class SplunkDocsResource(BaseResource):
     # SPLUNK_DOCS_BASE = "https://docs.splunk.com"
     SPLUNK_HELP_BASE = "https://help.splunk.com"
     VERSION_MAPPING = {
+        "10.0.0": "10.0",
         "9.4.0": "9.4",
         "9.3.0": "9.3",
         "9.2.1": "9.2",
         "9.1.0": "9.1",
-        "latest": "9.4",  # Current latest
+        "latest": "10.0",  # Current latest
     }
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "text/markdown"):
@@ -549,6 +550,180 @@ For related administration topics, see the complete [Admin Guide](splunk-docs://
         return await _doc_cache.get_or_fetch(self.version, "admin", self.topic, fetch_admin_docs)
 
 
+class SplunkSpecReferenceResource(SplunkDocsResource):
+    """Splunk configuration specification file reference documentation."""
+
+    METADATA = ResourceMetadata(
+        uri="splunk-spec://{config}",
+        name="splunk_spec_reference",
+        description="Splunk configuration specification reference (auto-detects version)",
+        mime_type="text/markdown",
+        category="reference",
+        tags=["spec", "configuration", "reference", "admin"],
+    )
+
+    def __init__(self, config: str):
+        self.config = config
+        # Version will be detected dynamically in get_content()
+        self._cached_version = None
+
+        uri = f"splunk-spec://{config}"
+        # Normalize config name for display
+        display_config = self._normalize_config_name(config)
+        super().__init__(
+            uri=uri,
+            name=f"spec_{config.replace('.', '_')}",
+            description=f"Splunk configuration spec for {display_config} (auto-detected version)",
+        )
+
+    def _parse_version_components(self, version: str) -> tuple[str, str]:
+        """Parse version into minor (X.Y) and full (X.Y.Z) components.
+
+        Args:
+            version: Version string like "10.0", "9.4.0", "latest", "auto"
+
+        Returns:
+            Tuple of (minor, full) version strings
+        """
+        # Handle auto-detection
+        if version == "auto":
+            version = "latest"
+
+        # Normalize using existing method to get minor version
+        minor = self.normalize_version(version)
+
+        # Now construct full version
+        # If input was already X.Y.Z, try to preserve it
+        parts = version.split(".")
+        if len(parts) >= 3:
+            # Has patch version already
+            full = f"{parts[0]}.{parts[1]}.{parts[2]}"
+        elif len(parts) == 2:
+            # Only has major.minor, add .0 for patch
+            full = f"{parts[0]}.{parts[1]}.0"
+        else:
+            # Single component or "latest" - use minor + .0
+            full = f"{minor}.0"
+
+        return minor, full
+
+    def _normalize_config_name(self, config: str) -> str:
+        """Normalize configuration file name to ensure .conf extension.
+
+        Args:
+            config: Config file name (with or without .conf)
+
+        Returns:
+            Config name with .conf extension
+        """
+        # Always use .conf (not .conf.spec)
+        if config.endswith(".conf.spec"):
+            # Strip .spec suffix if present
+            return config[:-5]  # Remove ".spec"
+        elif config.endswith(".conf"):
+            return config
+        else:
+            return f"{config}.conf"
+
+    async def get_content(self, ctx: Context) -> str:
+        """Get configuration specification documentation for specific file."""
+
+        # Detect version once before caching
+        version = await self.get_splunk_version(ctx)
+        logger.info(f"Auto-detected Splunk version: {version}")
+
+        async def fetch_spec_docs():
+            # Version already detected above
+            minor, full = self._parse_version_components(version)
+            config = self._normalize_config_name(self.config)
+
+            # Primary URL pattern (most common)
+            primary_url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/admin-manual/{minor}/configuration-file-reference/{full}-configuration-file-reference/{config}"
+
+            # Fallback URL pattern (alternative IA structure)
+            fallback_url = f"{self.SPLUNK_HELP_BASE}/en/data-management/splunk-enterprise-admin-manual/{minor}/configuration-file-reference/{full}-configuration-file-reference/{config}"
+
+            # Try primary URL first
+            content = await self.fetch_doc_content(primary_url)
+            used_url = primary_url
+
+            # If primary fails with 404, try fallback
+            if content.startswith("# Documentation Not Found"):
+                logger.debug("Primary URL failed for %s, trying fallback: %s", config, fallback_url)
+                fallback_content = await self.fetch_doc_content(fallback_url)
+
+                # Use fallback if it succeeds
+                if not fallback_content.startswith("# Documentation Not Found"):
+                    content = fallback_content
+                    used_url = fallback_url
+                else:
+                    # Both failed - provide helpful error
+                    return f"""# Configuration Spec Not Found
+
+The requested Splunk configuration specification was not found.
+
+**Config File**: {config}
+**Version**: {version} (minor: {minor}, full: {full})
+**Time**: {datetime.now().isoformat()}
+
+**Attempted URLs**:
+1. Primary: {primary_url}
+2. Fallback: {fallback_url}
+
+This may indicate:
+- The configuration file name is incorrect or has a typo
+- This Splunk version doesn't document this configuration file
+- The documentation structure has changed
+
+**Common configuration files**:
+- alert_actions.conf
+- limits.conf
+- indexes.conf
+- inputs.conf
+- outputs.conf
+- props.conf
+- transforms.conf
+- server.conf
+- web.conf
+- authentication.conf
+
+Please verify the configuration file name and version, or check the [Splunk Documentation](https://help.splunk.com) directly.
+"""
+
+            # Wrap successful content with metadata
+            result = f"""# Splunk Configuration Spec: {config}
+
+**Version**: Splunk {version}
+**Category**: Configuration File Reference
+**Source URL**: {used_url}
+
+{content}
+
+## Configuration Context
+
+This documentation describes the configuration specification for `{config}`. Configuration files in Splunk Enterprise:
+
+- Control behavior and features of the Splunk platform
+- Use INI-style stanza format with key-value pairs
+- Follow precedence rules (system → local → app → user)
+- Can be validated using `btool check`
+
+### Related Resources
+
+- [Configuration File Precedence](splunk-docs://{version}/admin/configuration-file-precedence)
+- [List of Configuration Files](splunk-docs://{version}/admin/list-of-configuration-files)
+- [Admin Guide](splunk-docs://{version}/admin)
+
+---
+**Generated**: {datetime.now().isoformat()}
+"""
+            return result
+
+        return await _doc_cache.get_or_fetch(
+            version, "spec-reference", self.config, fetch_spec_docs
+        )
+
+
 class DocumentationDiscoveryResource(SplunkDocsResource):
     """Resource for discovering available Splunk documentation."""
 
@@ -700,12 +875,47 @@ Access administration documentation:
                 content += "\n"
             content += f"- [`{topic}`](splunk-docs://{detected_version}/admin/{topic})  "
 
+        # Common configuration files for spec reference
+        common_config_files = [
+            "alert_actions.conf",
+            "limits.conf",
+            "indexes.conf",
+            "inputs.conf",
+            "outputs.conf",
+            "props.conf",
+            "transforms.conf",
+            "server.conf",
+            "web.conf",
+            "authentication.conf",
+            "authorize.conf",
+            "savedsearches.conf",
+        ]
+
+        content += """
+
+### 🧩 Configuration Spec Reference
+Access configuration file specifications:
+
+**Pattern**: `splunk-spec://{config}`
+
+**💡 Pro Tip**: Version is automatically detected from your connected Splunk instance!
+
+**Common Configuration Files**:
+"""
+
+        # Add config files in columns
+        for i, config in enumerate(common_config_files):
+            if i % 3 == 0:
+                content += "\n"
+            content += f"- [`{config}`](splunk-spec://{config})  "
+
         content += f"""
 
 ## Version Support
 
-**Supported Versions**: 9.1.0, 9.2.1, 9.3.0, 9.4.0, latest
-**Default Version**: latest (currently 9.4.0)
+**Supported Versions**: 9.1.0, 9.2.1, 9.3.0, 9.4.0, 10.0.0, latest
+**Default Version**: latest (currently 10.0.0)
+**Auto-Detection**: Version automatically detected from your connected Splunk instance
 
 ### Examples
 
@@ -718,7 +928,14 @@ splunk-docs://9.4/troubleshooting/metrics-log
 splunk-docs://latest/spl-reference/stats
 splunk-docs://9.3.0/admin/indexes
 
-# Auto-detect version (uses detected: {detected_version})
+# Configuration spec references (version auto-detected)
+splunk-spec://alert_actions.conf
+splunk-spec://limits.conf
+splunk-spec://inputs.conf
+splunk-spec://props.conf
+splunk-spec://transforms.conf
+
+# Auto-detect version for other resources (uses detected: {detected_version})
 splunk-docs://auto/troubleshooting/platform-instrumentation
 ```
 
@@ -736,6 +953,12 @@ splunk-docs://auto/troubleshooting/platform-instrumentation
 - [🏗️ Index Management](splunk-docs://{detected_version}/admin/indexes) - Index configuration
 - [🔐 Authentication](splunk-docs://{detected_version}/admin/authentication) - Security setup
 - [📡 Distributed Search](splunk-docs://{detected_version}/admin/distributed-search) - Multi-instance setup
+
+### Configuration References
+- [🔧 Alert Actions Spec](splunk-spec://{detected_version}/alert_actions.conf) - Alert configuration
+- [⚡ Limits Spec](splunk-spec://{detected_version}/limits.conf) - Performance tuning
+- [📊 Indexes Spec](splunk-spec://{detected_version}/indexes.conf) - Index configuration
+- [📥 Inputs Spec](splunk-spec://{detected_version}/inputs.conf) - Data input configuration
 
 ---
 
@@ -762,9 +985,12 @@ def register_all_resources():
         resource_registry.register(TroubleshootingResource, TroubleshootingResource.METADATA)
         resource_registry.register(SPLCommandResource, SPLCommandResource.METADATA)
         resource_registry.register(AdminGuideResource, AdminGuideResource.METADATA)
+        resource_registry.register(
+            SplunkSpecReferenceResource, SplunkSpecReferenceResource.METADATA
+        )
 
         logger.info(
-            "Successfully registered 6 Splunk documentation resources (3 static, 3 dynamic templates)"
+            "Successfully registered 7 Splunk documentation resources (3 static, 4 dynamic templates)"
         )
 
     except Exception as e:
@@ -784,6 +1010,18 @@ def create_admin_guide_resource(version: str, topic: str) -> AdminGuideResource:
 def create_troubleshooting_resource(version: str, topic: str) -> TroubleshootingResource:
     """Factory function to create troubleshooting documentation resources."""
     return TroubleshootingResource(version, topic)
+
+
+def create_spec_reference_resource(config: str) -> SplunkSpecReferenceResource:
+    """Factory function to create configuration spec reference resources.
+
+    Args:
+        config: Configuration file name (e.g., "alert_actions.conf", "limits.conf")
+
+    Returns:
+        SplunkSpecReferenceResource instance (version auto-detected from Splunk instance)
+    """
+    return SplunkSpecReferenceResource(config)
 
 
 # Auto-register resources when module is imported

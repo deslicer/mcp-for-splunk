@@ -182,6 +182,9 @@ class ListDashboards(BaseTool):
                 # Build Splunk Web URL
                 web_url = f"{web_base}/en-US/app/{dashboard_app}/{dashboard_name}"
 
+                # Safely handle perms which could be None
+                perms = acl.get("perms") or {}
+
                 dashboard = {
                     "name": dashboard_name,
                     "label": content.get("label", dashboard_name),
@@ -193,8 +196,8 @@ class ListDashboards(BaseTool):
                     "updated": content.get("updated", ""),
                     "version": content.get("version", ""),
                     "permissions": {
-                        "read": acl.get("perms", {}).get("read", []),
-                        "write": acl.get("perms", {}).get("write", []),
+                        "read": perms.get("read", []),
+                        "write": perms.get("write", []),
                     },
                     "web_url": web_url,
                     "id": entry.get("id", ""),
