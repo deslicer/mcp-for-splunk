@@ -185,7 +185,8 @@ class BaseTool(ABC):
         Returns:
             Tuple of (is_available, service, error_message)
         """
-        splunk_ctx = ctx.request_context.lifespan_context
+        # Get splunk context from available sources
+        splunk_ctx = self._get_splunk_context(ctx)
 
         # First, prefer per-request client configuration (HTTP headers / client env)
         try:
@@ -197,9 +198,12 @@ class BaseTool(ABC):
                 and hasattr(ctx.request_context.request.state, "client_config")
             ):
                 client_config = ctx.request_context.request.state.client_config
-            # Or from lifespan context (set by middleware/cache or client env)
-            elif hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:
-                client_config = splunk_ctx.client_config
+            # Or from context client_config (handle both dict and object)
+            elif splunk_ctx:
+                if hasattr(splunk_ctx, "client_config"):
+                    client_config = splunk_ctx.client_config
+                elif isinstance(splunk_ctx, dict) and "client_config" in splunk_ctx:
+                    client_config = splunk_ctx["client_config"]
 
             if client_config:
                 try:
@@ -217,14 +221,54 @@ class BaseTool(ABC):
             pass
 
         # Fallback: use server default service established at startup
-        if not splunk_ctx.is_connected or not splunk_ctx.service:
+        # Handle both SplunkContext objects and dict formats
+        is_connected = False
+        service = None
+
+        if splunk_ctx:
+            if hasattr(splunk_ctx, "is_connected") and hasattr(splunk_ctx, "service"):
+                # SplunkContext object
+                is_connected = splunk_ctx.is_connected
+                service = splunk_ctx.service
+            elif isinstance(splunk_ctx, dict):
+                # Dict format
+                is_connected = splunk_ctx.get("is_connected", False)
+                service = splunk_ctx.get("service", None)
+
+        if not is_connected or not service:
             return (
                 False,
                 None,
                 "Splunk service is not available. MCP server is running in degraded mode.",
             )
 
-        return True, splunk_ctx.service, ""
+        return True, service, ""
+
+    def _get_splunk_context(self, ctx: Context):
+        """
+        Get Splunk context from available sources with proper fallback handling.
+
+        Returns:
+            SplunkContext object, dict, or None
+        """
+        try:
+            # Try lifespan context first (traditional path)
+            if hasattr(ctx.request_context, "lifespan_context"):
+                return ctx.request_context.lifespan_context
+        except Exception:
+            pass
+
+        try:
+            # Fallback: try to get from server instance (module initialization path)
+            from fastmcp.server.dependencies import get_server
+
+            server = get_server()
+            if hasattr(server, "_splunk_context"):
+                return server._splunk_context
+        except Exception:
+            pass
+
+        return None
 
     def format_error_response(self, error: str, **kwargs) -> dict[str, Any]:
         """Format a consistent error response"""

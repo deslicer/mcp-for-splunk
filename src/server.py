@@ -388,6 +388,56 @@ mcp = FastMCP(name="MCP Server for Splunk")
 # Import and setup health routes
 setup_health_routes(mcp)
 
+# Ensure components are loaded when module is imported for fastmcp cli compatibility
+# Load components synchronously during module initialization
+try:
+    if not hasattr(mcp, "_component_loading_results"):
+        logger.info("Loading MCP components during module initialization...")
+
+        # Load components synchronously (non-async version)
+        # Create minimal context for component loading
+        client_config = extract_client_config_from_env()
+
+        # Import the safe version that doesn't raise exceptions
+        from src.client.splunk_client import get_splunk_service_safe
+
+        service = get_splunk_service_safe(client_config)
+        is_connected = service is not None
+
+        if service:
+            config_source = "client environment" if client_config else "server environment"
+            logger.info(
+                f"Splunk connection established for module initialization using {config_source}"
+            )
+        else:
+            logger.warning(
+                "Splunk connection failed during module initialization - components will still load"
+            )
+
+        # Create context for component loading
+        context = SplunkContext(
+            service=service, is_connected=is_connected, client_config=client_config
+        )
+
+        # Load components synchronously
+        from src.core.loader import ComponentLoader
+
+        component_loader = ComponentLoader(mcp)
+        results = component_loader.load_all_components()
+
+        # Store results for health endpoints
+        mcp._component_loading_results = results
+        mcp._splunk_context = context
+
+        logger.info(f"✅ Components loaded during module initialization: {results}")
+
+except Exception as e:
+    logger.warning(f"Could not load components during module initialization: {e}")
+    logger.warning("Components will be loaded during server startup instead")
+    # Set default values so server can still start
+    mcp._component_loading_results = {"tools": 0, "resources": 0, "prompts": 0}
+    mcp._splunk_context = SplunkContext(service=None, is_connected=False, client_config=None)
+
 
 # Middleware to extract client configuration from HTTP headers
 class ClientConfigMiddleware(Middleware):
