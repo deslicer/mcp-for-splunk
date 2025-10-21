@@ -8,9 +8,11 @@ This module contains the core tools maintained by the project team.
 # Import all core tools to make them discoverable  # noqa: F401,F403
 from .admin import *  # noqa: F401,F403
 from .alerts import *  # noqa: F401,F403
+from .dashboards import *  # noqa: F401,F403
 from .docs import *  # noqa: F401,F403
 from .health import *  # noqa: F401,F403
 from .kvstore import *  # noqa: F401,F403
+from .lookups import *  # noqa: F401,F403
 from .metadata import *  # noqa: F401,F403
 from .search import *  # noqa: F401,F403
 from .workflows import *  # noqa: F401,F403
@@ -43,6 +45,12 @@ __all__ = [
     "ListKvstoreCollections",
     "GetKvstoreData",
     "CreateKvstoreCollection",
+    # Lookup tools
+    "ListLookupFiles",
+    "ListLookupDefinitions",
+    # Dashboard tools
+    "ListDashboards",
+    "GetDashboardDefinition",
     # Documentation tools (embedded resources for agentic frameworks)
     "ListAvailableTopics",
     "ListTroubleshootingTopics",
