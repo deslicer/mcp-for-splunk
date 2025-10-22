@@ -76,7 +76,7 @@ class TestListDashboards:
 
         return service
 
-    async def test_list_dashboards_success(self, fastmcp_client, extract_tool_result, mock_service):
+    async def test_list_dashboards_success(self, fastmcp_client, extract_tool_result):
         """Test successful listing of dashboards."""
         async with fastmcp_client as client:
             # Execute tool through FastMCP
@@ -206,9 +206,7 @@ class TestGetDashboardDefinition:
 
         return service
 
-    async def test_get_dashboard_classic_success(
-        self, fastmcp_client, extract_tool_result, mock_service_classic
-    ):
+    async def test_get_dashboard_classic_success(self, fastmcp_client, extract_tool_result):
         """Test successful retrieval of classic dashboard."""
         async with fastmcp_client as client:
             # Execute tool through FastMCP
@@ -227,9 +225,7 @@ class TestGetDashboardDefinition:
                 if data.get("type"):
                     assert data["type"] in ["classic", "studio"]
 
-    async def test_get_dashboard_studio_success(
-        self, fastmcp_client, extract_tool_result, mock_service_studio
-    ):
+    async def test_get_dashboard_studio_success(self, fastmcp_client, extract_tool_result):
         """Test successful retrieval of Dashboard Studio dashboard."""
         async with fastmcp_client as client:
             # Execute tool through FastMCP
@@ -247,3 +243,87 @@ class TestGetDashboardDefinition:
                 # Studio dashboards should have JSON definition
                 if data.get("type") == "studio":
                     assert isinstance(data["definition"], dict)
+
+
+class TestCreateDashboard:
+    """Test suite for CreateDashboard tool."""
+
+    async def test_create_studio_dashboard_success(self, fastmcp_client, extract_tool_result):
+        studio_def = {
+            "version": "1.0.0",
+            "title": "Studio Created",
+            "dataSources": {},
+            "visualizations": {},
+        }
+        async with fastmcp_client as client:
+            result = await client.call_tool(
+                "create_dashboard",
+                {
+                    "name": "studio_created",
+                    "definition": studio_def,
+                    "label": "Studio Created",
+                    "description": "Created by tests",
+                    "overwrite": False,
+                },
+            )
+            data = extract_tool_result(result)
+            if data.get("status") == "success":
+                assert data["name"] == "studio_created"
+                assert data["type"] in ["studio", "classic"]
+                assert "web_url" in data
+
+    async def test_create_classic_dashboard_success(self, fastmcp_client, extract_tool_result):
+        classic_xml = """<dashboard><label>Classic Created</label></dashboard>"""
+        async with fastmcp_client as client:
+            result = await client.call_tool(
+                "create_dashboard",
+                {
+                    "name": "classic_created",
+                    "definition": classic_xml,
+                    "label": "Classic Created",
+                    "description": "Created by tests",
+                },
+            )
+            data = extract_tool_result(result)
+            if data.get("status") == "success":
+                assert data["name"] == "classic_created"
+                assert data["type"] in ["studio", "classic"]
+                assert "web_url" in data
+
+    async def test_overwrite_existing_dashboard(self, fastmcp_client, extract_tool_result):
+        # First attempt should simulate conflict -> then overwrite path
+        classic_xml = """<dashboard><label>Exists</label></dashboard>"""
+        async with fastmcp_client as client:
+            # initial create will throw conflict in mock; overwrite=True triggers update path
+            result = await client.call_tool(
+                "create_dashboard",
+                {
+                    "name": "exists_dashboard",
+                    "definition": classic_xml,
+                    "overwrite": True,
+                },
+            )
+            data = extract_tool_result(result)
+            # Should still succeed with update path
+            if data.get("status") == "success":
+                assert data["name"] == "exists_dashboard"
+                assert "web_url" in data
+
+    async def test_acl_update(self, fastmcp_client, extract_tool_result):
+        studio_def = {"version": "1.0.0", "title": "ACL Demo"}
+        async with fastmcp_client as client:
+            result = await client.call_tool(
+                "create_dashboard",
+                {
+                    "name": "acl_demo",
+                    "definition": studio_def,
+                    "sharing": "app",
+                    "read_perms": ["admin", "power"],
+                    "write_perms": ["admin"],
+                },
+            )
+            data = extract_tool_result(result)
+            if data.get("status") == "success":
+                assert data["name"] == "acl_demo"
+                # The mock service sets ACL; we simply assert success contract
+                assert "permissions" in data

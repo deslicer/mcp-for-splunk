@@ -50,6 +50,7 @@ Practical guides for common tasks and scenarios.
 | **[Testing](guides/TESTING.md)** | Testing and validation | 15 min | Developers |
 | **[Tests Quick Start](tests.md)** | Fast path to a green run | 2 min | Developers |
 | **[Lookups & Dashboards](guides/lookups_and_dashboards.md)** | Working with lookups and dashboards | 15 min | All users |
+| **[Create Dashboards Tool](guides/create_dashboard_tool.md)** | Use MCP tool to create dashboards | 10 min | Developers |
 | **[Migration](guides/migration_guide.md)** | Upgrading and migration | 20 min | Existing users |
 
 ### 🏗️ Architecture

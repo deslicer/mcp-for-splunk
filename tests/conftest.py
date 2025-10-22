@@ -107,6 +107,114 @@ class MockSplunkService:
         # Mock configuration files with stanzas
         self._setup_mock_configurations()
 
+        # In-memory dashboards store
+        self._dashboards: dict[str, dict] = {}
+
+    def post(self, endpoint: str, **kwargs):
+        """Mock POST handler for Splunk REST endpoints used by dashboard tools."""
+        # Basic response mock
+        mock_response = Mock()
+
+        # Create dashboard
+        if endpoint.endswith("/data/ui/views") and "name" in kwargs:
+            name = kwargs.get("name")
+            # Simulate conflict for overwrite path testing
+            if name == "exists_dashboard":
+                raise RuntimeError("409 Conflict: Dashboard already exists")
+
+            label = kwargs.get("label") or name
+            description = kwargs.get("description") or ""
+            eai_data = kwargs.get("eai:data") or ""
+            owner = "nobody"
+            app = "search"
+
+            entry = {
+                "name": name,
+                "id": f"https://localhost:8089/servicesNS/{owner}/{app}/data/ui/views/{name}",
+                "content": {
+                    "label": label,
+                    "description": description,
+                    "eai:data": eai_data,
+                    "version": "1.0",
+                },
+                "acl": {
+                    "app": app,
+                    "owner": owner,
+                    "sharing": "global",
+                    "perms": {"read": ["*"], "write": ["admin"]},
+                },
+            }
+
+            self._dashboards[name] = entry
+            payload = {"entry": [entry]}
+            mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
+            return mock_response
+
+        # Update dashboard (overwrite)
+        if "/data/ui/views/" in endpoint and not endpoint.endswith("/acl"):
+            # Endpoint like /servicesNS/owner/app/data/ui/views/{name}
+            name = endpoint.split("/data/ui/views/")[-1]
+            existing = self._dashboards.get(name)
+
+            label = kwargs.get("label") or (existing or {}).get("content", {}).get("label", name)
+            description = kwargs.get("description") or (existing or {}).get("content", {}).get(
+                "description", ""
+            )
+            eai_data = kwargs.get("eai:data") or (existing or {}).get("content", {}).get(
+                "eai:data", ""
+            )
+
+            if existing:
+                existing["content"]["label"] = label
+                existing["content"]["description"] = description
+                existing["content"]["eai:data"] = eai_data
+                entry = existing
+            else:
+                entry = {
+                    "name": name,
+                    "id": endpoint.replace("http://", "https://"),
+                    "content": {
+                        "label": label,
+                        "description": description,
+                        "eai:data": eai_data,
+                        "version": "1.0",
+                    },
+                    "acl": {
+                        "app": "search",
+                        "owner": "nobody",
+                        "sharing": "global",
+                        "perms": {"read": ["*"], "write": ["admin"]},
+                    },
+                }
+                self._dashboards[name] = entry
+
+            payload = {"entry": [entry]}
+            mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
+            return mock_response
+
+        # ACL update
+        if endpoint.endswith("/acl"):
+            # Extract dashboard name
+            parts = endpoint.split("/data/ui/views/")[-1].split("/")
+            name = parts[0]
+            entry = self._dashboards.get(name)
+            if entry:
+                sharing = kwargs.get("sharing")
+                read_perms = kwargs.get("perms.read")
+                write_perms = kwargs.get("perms.write")
+                if sharing:
+                    entry["acl"]["sharing"] = sharing
+                if read_perms:
+                    entry["acl"]["perms"]["read"] = read_perms.split(",")
+                if write_perms:
+                    entry["acl"]["perms"]["write"] = write_perms.split(",")
+            mock_response.body.read.return_value = json.dumps({"success": True}).encode("utf-8")
+            return mock_response
+
+        # Default empty response
+        mock_response.body.read.return_value = json.dumps({}).encode("utf-8")
+        return mock_response
+
     def _setup_mock_configurations(self):
         """Set up mock configuration files with stanzas"""
         # Mock configuration stanzas for different conf files
