@@ -133,9 +133,6 @@ class CreateDashboard(BaseTool):
             web_scheme = "https"
             web_base = f"{web_scheme}://{splunk_host}:{web_port}"
 
-            # Base endpoints
-            base_endpoint = f"/servicesNS/{owner}/{app}/data/ui/views"
-
             # Create first; on conflict and overwrite=True, update existing
             created = False
             response_data: dict[str, Any] | None = None
