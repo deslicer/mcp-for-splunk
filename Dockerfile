@@ -34,6 +34,7 @@ RUN uv sync --frozen --no-dev && uv add watchdog reloader
 # Copy source code
 COPY src/ ./src/
 COPY contrib/ ./contrib/
+COPY docs/ ./docs/
 
 # Create logs directory
 RUN mkdir -p /app/src/logs

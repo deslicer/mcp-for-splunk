@@ -50,8 +50,9 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
-# Documentation
-docs/
+# Documentation (exclude only specific development-only docs)
+# We need docs/ in the Docker image for embedded resources
+# docs/
 
 # Docker
 Dockerfile*

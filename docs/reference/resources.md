@@ -124,11 +124,32 @@ def get_config_v1():
 
 This server auto-registers several Splunk-focused resources from `src/resources/`. Common URIs include:
 
+### Splunk Documentation Resources
+
 - `splunk-docs://cheat-sheet` — SPL cheat sheet (markdown)
 - `splunk-docs://discovery` — discover available documentation resources
 - `splunk-docs://{version}/spl-reference/{command}` — SPL command docs
 - `splunk-docs://{version}/admin/{topic}` — Admin guides
 - `splunk-docs://{version}/troubleshooting/{topic}` — Troubleshooting docs
+- `splunk-spec://{config}` — Configuration file specifications (auto-detects version)
+
+### Splunk Common Information Model (CIM) Resources
+
+- `splunk-cim://discovery` — Browse all 26 CIM data models with use case guidance
+- `splunk-cim://{model}` — Specific data model documentation (defaults to latest version)
+- `splunk-cim://{version}/{model}` — Version-specific data model documentation
+
+**Available CIM data models**: authentication, network-traffic, intrusion-detection, malware, endpoint, web, email, data-access, dlp, vulnerabilities, change, databases, performance, jvm, alerts, ticket-management, updates, inventory, certificates, event-signatures, interprocess-messaging, network-sessions, network-resolution, splunk-audit, and legacy models (application-state, change-analysis).
+
+Each CIM resource includes:
+
+- Complete field specifications (required, recommended, optional)
+- Configuration examples (eventtypes.conf, tags.conf, props.conf, transforms.conf)
+- Field mapping guidance
+- Testing and validation queries
+
+### Splunk Configuration and Health Resources
+
 - `splunk://config/{config_file}` — Splunk config (e.g., `indexes.conf`, `props.conf`)
 - `splunk://health/status` — Health summary (JSON)
 - `splunk://apps/installed` — Installed apps with capability analysis (JSON)
@@ -154,6 +175,18 @@ async with Client(server) as client:
     # Read a specific config
     cfg = await client.read_resource("splunk://config/indexes.conf")
     print(cfg[0].text)
+    
+    # Discover available CIM data models
+    cim_discovery = await client.read_resource("splunk-cim://discovery")
+    print(cim_discovery[0].text)
+    
+    # Get authentication data model documentation
+    auth_model = await client.read_resource("splunk-cim://authentication")
+    print(auth_model[0].text)
+    
+    # Get network-traffic data model for specific version
+    network_model = await client.read_resource("splunk-cim://6.0/network-traffic")
+    print(network_model[0].text)
 ```
 
 ### Client-scoped isolation and credentials
@@ -189,5 +222,3 @@ Resources can return text, JSON, or binary content. Set `mime_type` appropriatel
 
 - FastMCP resources overview and code examples: `https://gofastmcp.com/servers/resources`
 - FastMCP client usage for resources: `https://gofastmcp.com/clients/client`
-
-

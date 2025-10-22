@@ -461,8 +461,48 @@ Try using the discovery resource: `splunk-docs://discovery`
 
             self.logger.info("✅ Configuration spec handler registered successfully")
 
+            # Register CIM data model documentation handler
+            self.logger.info("Registering CIM data model documentation handler...")
+
+            @self.mcp_server.resource("splunk-cim://{version}/{model}", name="get_cim_data_model")
+            async def get_cim_data_model(version: str, model: str) -> str:
+                """Get Splunk CIM data model documentation for specific version and model"""
+                try:
+                    from ..resources.splunk_cim import create_cim_data_model_resource
+
+                    ctx = get_context()
+
+                    resource = create_cim_data_model_resource(version, model)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting CIM docs for {model}: {e}")
+                    return f"""# Error: CIM Data Model Documentation
+
+Failed to retrieve CIM data model documentation for `{model}` (version {version}).
+
+**Error**: {str(e)}
+
+Please check:
+- Data model name spelling
+- Version availability
+- Network connectivity
+
+Available models:
+- authentication, network-traffic, intrusion-detection
+- malware, endpoint, web, email, data-access, dlp
+- vulnerabilities, change, databases, performance, jvm
+- alerts, ticket-management, updates, inventory
+- certificates, event-signatures, interprocess-messaging
+- network-sessions, network-resolution, splunk-audit
+
+Try using the discovery resource: `splunk-cim://discovery`
+"""
+
+            self.logger.info("✅ CIM data model handler registered successfully")
+
             self.logger.info(
-                "Successfully registered 4 dynamic documentation handlers (troubleshooting, spl-commands, admin, spec-reference)"
+                "Successfully registered 5 dynamic documentation handlers (troubleshooting, spl-commands, admin, spec-reference, cim)"
             )
 
         except Exception as e:
@@ -495,6 +535,7 @@ Try using the discovery resource: `splunk-docs://discovery`
                         "splunk-docs://{version}/spl-reference/{command}",
                         "splunk-docs://{version}/admin/{topic}",
                         "splunk-spec://{config}",
+                        "splunk-cim://{version}/{model}",
                     ]
                 ):
                     self.logger.debug(

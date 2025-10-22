@@ -25,6 +25,7 @@ def register_all_resources():
     try:
         # Register embedded resources
         from .embedded import register_embedded_resources
+
         register_embedded_resources()
         logger.debug("Registered embedded resources")
     except ImportError as e:
@@ -33,10 +34,29 @@ def register_all_resources():
     try:
         # Register embedded Splunk documentation
         from .embedded_splunk_docs import register_embedded_splunk_docs
+
         register_embedded_splunk_docs()
         logger.debug("Registered embedded Splunk documentation")
     except ImportError as e:
         logger.warning(f"Could not import embedded Splunk documentation: {e}")
+
+    try:
+        # Register Dashboard Studio documentation resources
+        from .dashboard_studio_docs import register_dashboard_studio_resources
+
+        register_dashboard_studio_resources()
+        logger.debug("Registered Dashboard Studio documentation resources")
+    except ImportError as e:
+        logger.warning(f"Could not import Dashboard Studio documentation: {e}")
+
+    try:
+        # Register CIM (Common Information Model) resources
+        from .splunk_cim import register_all_cim_resources
+
+        register_all_cim_resources()
+        logger.debug("Registered CIM resources")
+    except ImportError as e:
+        logger.warning(f"Could not import CIM resources: {e}")
 
     try:
         # Register core Splunk configuration resources
