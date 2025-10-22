@@ -13,6 +13,16 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
+from src.resources.dashboard_studio_docs import (
+    DASHBOARD_STUDIO_TOPICS,
+    DashboardStudioDiscoveryResource,
+    DashboardStudioDocsResource,
+)
+from src.resources.splunk_cim import (
+    CIMDataModelResource,
+    CIMDiscoveryResource,
+    SplunkCIMResource,
+)
 from src.resources.splunk_docs import (
     AdminGuideResource,
     DocumentationDiscoveryResource,
@@ -20,16 +30,6 @@ from src.resources.splunk_docs import (
     SplunkCheatSheetResource,
     SplunkSpecReferenceResource,
     TroubleshootingResource,
-)
-from src.resources.splunk_cim import (
-    CIMDataModelResource,
-    CIMDiscoveryResource,
-    SplunkCIMResource,
-)
-from src.resources.dashboard_studio_docs import (
-    DASHBOARD_STUDIO_TOPICS,
-    DashboardStudioDiscoveryResource,
-    DashboardStudioDocsResource,
 )
 
 logger = logging.getLogger(__name__)
@@ -1583,7 +1583,7 @@ These resources provide embedded content that's always available offline:
 
 """
 
-            content += f"""## External Documentation Resources
+            content += """## External Documentation Resources
 
 These resources provide links and summaries of official Splunk documentation:
 
