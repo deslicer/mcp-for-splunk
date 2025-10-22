@@ -129,8 +129,11 @@ class CreateDashboard(BaseTool):
 
             # Web URL for response (use Splunk Web port 8000, not management port)
             splunk_host = service.host
-            web_port = 8000  # Splunk Web UI port (management API is on service.port which is 8089)
-            web_scheme = "https"
+            web_scheme = service.scheme
+            web_port = (
+                443 if service.scheme == "https" else 8000
+            )  # Splunk Web UI port (management API is on service.port which is 8089)
+
             web_base = f"{web_scheme}://{splunk_host}:{web_port}"
 
             # Create first; on conflict and overwrite=True, update existing

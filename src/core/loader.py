@@ -501,8 +501,51 @@ Try using the discovery resource: `splunk-cim://discovery`
 
             self.logger.info("✅ CIM data model handler registered successfully")
 
+            # Register Dashboard Studio documentation handler
+            self.logger.info("Registering Dashboard Studio documentation handler...")
+
+            @self.mcp_server.resource(
+                "dashboard-studio://{topic}", name="get_dashboard_studio_docs"
+            )
+            async def get_dashboard_studio_docs(topic: str) -> str:
+                """Get Dashboard Studio documentation for specific topic"""
+                try:
+                    from ..resources.dashboard_studio_docs import create_dashboard_studio_resource
+
+                    ctx = get_context()
+
+                    resource = create_dashboard_studio_resource(topic)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(f"Error getting Dashboard Studio docs for {topic}: {e}")
+                    return f"""# Error: Dashboard Studio Documentation
+
+Failed to retrieve Dashboard Studio documentation for `{topic}`.
+
+**Error**: {str(e)}
+
+Please check:
+- Topic name spelling
+- File availability (for local topics like 'cheatsheet')
+
+Available topics:
+- cheatsheet (local reference with examples)
+- definition (dashboard definition structure)
+- visualizations (adding and formatting visualizations)
+- configuration (visualization configuration options)
+- datasources (ds.search, ds.savedSearch, ds.chain)
+- framework (Dashboard Framework introduction)
+
+**Usage**: `dashboard-studio://{{topic}}`
+
+**Example**: `dashboard-studio://cheatsheet`
+"""
+
+            self.logger.info("✅ Dashboard Studio handler registered successfully")
+
             self.logger.info(
-                "Successfully registered 5 dynamic documentation handlers (troubleshooting, spl-commands, admin, spec-reference, cim)"
+                "Successfully registered 6 dynamic documentation handlers (troubleshooting, spl-commands, admin, spec-reference, cim, dashboard-studio)"
             )
 
         except Exception as e:
