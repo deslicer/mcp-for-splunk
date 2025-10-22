@@ -402,7 +402,7 @@ These resources provide links and summaries of official Splunk documentation:
 ### 1. Building a New Dashboard
 **Step-by-step workflow:**
 1. **Get reference**: `dashboard-studio://cheatsheet` - Structure and examples
-2. **Review schema**: `dashboard-studio://definition` - Definition schema details  
+2. **Review schema**: `dashboard-studio://definition` - Definition schema details
 3. **Configure viz**: `dashboard-studio://configuration` - Visualization options
 4. **Build definition**: Create your JSON dashboard definition
 5. **Create dashboard**: Call `create_dashboard` tool with your definition

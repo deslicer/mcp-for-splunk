@@ -20,11 +20,9 @@ from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
 
 from .processors.html_processor import SplunkDocsProcessor
+from .splunk_docs import _doc_cache
 
 logger = logging.getLogger(__name__)
-
-# Reuse the global documentation cache
-from .splunk_docs import _doc_cache
 
 
 class SplunkCIMResource(BaseResource):
@@ -926,7 +924,7 @@ Consult the detailed field tables in the documentation content above for specifi
         examples = {
             "authentication": """# Example field mappings for authentication data
 FIELDALIAS-user = username AS user
-FIELDALIAS-src = client_ip AS src  
+FIELDALIAS-src = client_ip AS src
 FIELDALIAS-dest = server_ip AS dest
 EVAL-action = if(status="success", "success", "failure")
 EVAL-app = coalesce(application, service_name, "unknown")""",
