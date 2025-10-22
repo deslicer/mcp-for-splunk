@@ -72,6 +72,7 @@ Complete reference documentation for tools, resources, and APIs.
 |-----------|-------------|----------|
 | **[Tools Reference](reference/tools.md)** | Tool documentation | Developers |
 | **[Resources Reference](reference/resources.md)** | Resource documentation | Developers |
+| **[Dashboard Studio Cheatsheet](reference/dashboard_studio_cheatsheet.md)** | Dashboard Studio authoring reference | Developers |
 
 ### 🤝 Community
 
