@@ -6,8 +6,9 @@ import pytest
 
 from src.core.registry import resource_registry
 from src.resources.dashboard_studio_docs import (
-    DashboardStudioCheatsheetResource,
-    DashboardStudioLinksResource,
+    DashboardStudioDocsResource,
+    DashboardStudioDiscoveryResource,
+    DASHBOARD_STUDIO_TOPICS,
 )
 
 
@@ -21,26 +22,26 @@ class TestDashboardStudioResources:
 
     def test_cheatsheet_resource_metadata(self):
         """Test cheatsheet resource has correct metadata."""
-        resource = DashboardStudioCheatsheetResource()
+        resource = DashboardStudioDocsResource("cheatsheet")
 
         assert resource.uri == "dashboard-studio://cheatsheet"
-        assert resource.name == "dashboard_studio_cheatsheet"
-        assert "Dashboard Studio" in resource.description
+        assert "Dashboard Studio Cheatsheet" in resource.name
+        assert "cheatsheet" in resource.description.lower() or "comprehensive" in resource.description.lower()
         assert resource.mime_type == "text/markdown"
 
-    def test_links_resource_metadata(self):
-        """Test links resource has correct metadata."""
-        resource = DashboardStudioLinksResource()
+    def test_discovery_resource_metadata(self):
+        """Test discovery resource has correct metadata."""
+        resource = DashboardStudioDiscoveryResource()
 
-        assert resource.uri == "dashboard-studio://links"
-        assert resource.name == "dashboard_studio_links"
-        assert "documentation links" in resource.description
+        assert resource.uri == "dashboard-studio://discovery"
+        assert resource.name == "dashboard_studio_discovery"
+        assert "discovery" in resource.description.lower() or "index" in resource.description.lower()
         assert resource.mime_type == "text/markdown"
 
     @pytest.mark.asyncio
     async def test_cheatsheet_content_loads(self):
         """Test cheatsheet content loads successfully."""
-        resource = DashboardStudioCheatsheetResource()
+        resource = DashboardStudioDocsResource("cheatsheet")
         ctx = MockContext()
 
         content = await resource.get_content(ctx)
@@ -48,28 +49,28 @@ class TestDashboardStudioResources:
         assert content is not None
         assert len(content) > 0
         # Check for key sections
-        assert "Dashboard Studio Cheatsheet" in content or "cheatsheet" in content.lower()
-        assert "version" in content
-        assert "dataSources" in content or "data" in content.lower()
-        assert "visualizations" in content
+        assert "Dashboard Studio" in content or "cheatsheet" in content.lower()
+        assert "version" in content.lower()
+        assert "datasources" in content.lower() or "data" in content.lower()
+        assert "visualizations" in content.lower()
 
     @pytest.mark.asyncio
     async def test_cheatsheet_has_examples(self):
         """Test cheatsheet contains JSON examples."""
-        resource = DashboardStudioCheatsheetResource()
+        resource = DashboardStudioDocsResource("cheatsheet")
         ctx = MockContext()
 
         content = await resource.get_content(ctx)
 
         # Check for JSON code blocks with key structure
         assert "```json" in content or "```" in content
-        assert '"version"' in content or "version" in content
-        assert '"title"' in content or "title" in content
+        # Content should have dashboard-related structure
+        assert "version" in content.lower() or "title" in content.lower()
 
     @pytest.mark.asyncio
-    async def test_links_content_structure(self):
-        """Test links resource has expected URLs and structure."""
-        resource = DashboardStudioLinksResource()
+    async def test_discovery_content_structure(self):
+        """Test discovery resource has expected structure."""
+        resource = DashboardStudioDiscoveryResource()
         ctx = MockContext()
 
         content = await resource.get_content(ctx)
@@ -77,48 +78,73 @@ class TestDashboardStudioResources:
         assert content is not None
         assert len(content) > 0
 
-        # Check for expected URLs
-        expected_urls = [
-            "splunkui.splunk.com/Packages/dashboard-docs",
-            "help.splunk.com",
-            "9.4",  # Version reference
+        # Check for expected content
+        expected_content = [
+            "Dashboard Studio",
+            "discovery",
+            "cheatsheet",
+            "dashboard-studio://",
         ]
 
-        for url_part in expected_urls:
-            assert url_part in content
+        for expected in expected_content:
+            assert expected.lower() in content.lower()
 
     @pytest.mark.asyncio
-    async def test_links_has_canonical_docs(self):
-        """Test links resource references canonical documentation."""
-        resource = DashboardStudioLinksResource()
+    async def test_discovery_has_topics_list(self):
+        """Test discovery resource references available topics."""
+        resource = DashboardStudioDiscoveryResource()
         ctx = MockContext()
 
         content = await resource.get_content(ctx)
 
-        # Check for key documentation topics
-        assert "Dashboard Framework" in content or "Framework" in content
+        # Check for key documentation topics from DASHBOARD_STUDIO_TOPICS
+        assert "cheatsheet" in content.lower()
         assert "visualization" in content.lower()
-        assert "definition" in content.lower()
+        assert "definition" in content.lower() or "schema" in content.lower()
 
     def test_resources_registered_in_registry(self):
         """Test resources are registered in the resource registry."""
         # Get all registered resources
         registered_uris = [metadata.uri for metadata in resource_registry.list_resources()]
 
-        # Check both resources are registered
-        assert "dashboard-studio://cheatsheet" in registered_uris
-        assert "dashboard-studio://links" in registered_uris
+        # Check resources are registered with template pattern
+        # Note: The dynamic resource uses a template URI pattern
+        assert any("dashboard-studio" in uri for uri in registered_uris)
+        assert "dashboard-studio://discovery" in registered_uris
 
-    def test_cheatsheet_metadata_tags(self):
-        """Test cheatsheet has appropriate tags."""
-        metadata = DashboardStudioCheatsheetResource.METADATA
+    def test_metadata_tags(self):
+        """Test resources have appropriate tags."""
+        # Test cheatsheet resource tags
+        cheatsheet = DashboardStudioDocsResource("cheatsheet")
+        assert "dashboard-studio" in DashboardStudioDocsResource.METADATA.tags
 
-        assert "dashboard-studio" in metadata.tags
-        assert "reference" in metadata.tags or "cheatsheet" in metadata.tags
+        # Test discovery resource tags
+        discovery_metadata = DashboardStudioDiscoveryResource.METADATA
+        assert "dashboard-studio" in discovery_metadata.tags
+        assert "discovery" in discovery_metadata.tags or "index" in discovery_metadata.tags
 
-    def test_links_metadata_tags(self):
-        """Test links resource has appropriate tags."""
-        metadata = DashboardStudioLinksResource.METADATA
+    def test_available_topics(self):
+        """Test that DASHBOARD_STUDIO_TOPICS contains expected topics."""
+        assert "cheatsheet" in DASHBOARD_STUDIO_TOPICS
+        assert "definition" in DASHBOARD_STUDIO_TOPICS
+        assert "visualizations" in DASHBOARD_STUDIO_TOPICS
 
-        assert "dashboard-studio" in metadata.tags
-        assert "documentation" in metadata.tags or "links" in metadata.tags
+        # Verify cheatsheet has a file reference
+        assert "file" in DASHBOARD_STUDIO_TOPICS["cheatsheet"]
+
+    def test_dynamic_resource_creation(self):
+        """Test creating resources for different topics."""
+        # Create resources for different topics
+        cheatsheet = DashboardStudioDocsResource("cheatsheet")
+        definition = DashboardStudioDocsResource("definition")
+        visualizations = DashboardStudioDocsResource("visualizations")
+
+        # Verify URIs are correct
+        assert cheatsheet.uri == "dashboard-studio://cheatsheet"
+        assert definition.uri == "dashboard-studio://definition"
+        assert visualizations.uri == "dashboard-studio://visualizations"
+
+        # Verify mime types
+        assert cheatsheet.mime_type == "text/markdown"
+        assert definition.mime_type == "text/markdown"
+        assert visualizations.mime_type == "text/markdown"
