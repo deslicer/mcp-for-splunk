@@ -109,7 +109,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
 # MCP Inspector
 .inspector_pid
 # MCP Server
@@ -132,12 +131,11 @@ logs/
 *.log
 src/logs/*.log
 lic/*.lic
-/.cursor/
 
+/.cursor/commands/
 # Local data storage
 .data/
 data/
 
 # Local env backups
 .env_bak
-
