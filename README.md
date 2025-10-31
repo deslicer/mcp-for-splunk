@@ -191,6 +191,7 @@ result = await workflow_runner.execute(
 | **[📖 Contrib Guide](contrib/README.md)** | **Complete contribution framework** | **Contributors** | **15 min** |
 | **[Architecture](docs/architecture/)** | Technical deep-dive | Architects | Reference |
 | **[Tests Quick Start](docs/tests.md)** | First success test steps | Developers | 2 min |
+| **[Plugins](docs/guides/plugins.md)** | Extend with entry-point plugins (separate package) | Integrators | 5 min |
 
 <a name="available-tools--capabilities"></a>
 

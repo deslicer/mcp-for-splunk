@@ -5,9 +5,10 @@ This replaces the curl-based "First Success Test" with a cleaner FastMCP client 
 """
 
 import asyncio
-import os
 import json
+import os
 import sys
+
 from dotenv import load_dotenv
 
 try:

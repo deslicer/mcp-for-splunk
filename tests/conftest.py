@@ -431,7 +431,7 @@ class MockSplunkService:
 
             # Make the conf object iterable to return stanzas
             # Generate iterator from _stanzas_dict on-demand to avoid sync issues
-            def make_iter():
+            def make_iter(mock_conf=mock_conf):
                 # Generate mock stanza objects from dict to avoid recursion
                 stanzas_dict = getattr(mock_conf, "_stanzas_dict", {})
                 return iter([Mock(name=n, content=c) for n, c in stanzas_dict.items()])
@@ -454,7 +454,7 @@ class MockSplunkService:
                 mock_conf._stanzas_dict = stanzas  # type: ignore[attr-defined]
 
                 # Create iterator function that generates from dict on-demand
-                def make_iter():
+                def make_iter(mock_conf=mock_conf):
                     stanzas_dict = getattr(mock_conf, "_stanzas_dict", {})
                     return iter([Mock(name=n, content=c) for n, c in stanzas_dict.items()])
 

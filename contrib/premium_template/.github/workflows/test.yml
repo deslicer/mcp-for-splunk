@@ -1,0 +1,30 @@
+name: Premium Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: pip install uv
+      - name: Install deps
+        run: |
+          uv pip install --system pytest
+          uv pip install --system -e .
+      - name: Run tests (plugins disabled)
+        env:
+          MCP_DISABLE_PLUGINS: "true"
+        run: pytest -q
+      - name: Run tests (plugins enabled)
+        env:
+          PREMIUM_API_KEY: test-key
+        run: pytest -q
+

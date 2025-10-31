@@ -89,7 +89,7 @@ async def test_with_fastmcp_client():
 
                         data = json.loads(content.text)
                         indexes = data.get("indexes", [])
-                        print(f"✅ list_indexes executed successfully!")
+                        print("✅ list_indexes executed successfully!")
                         print(f"   Found {len(indexes)} indexes")
                         if indexes:
                             print(f"   Sample: {', '.join(indexes[:5])}\n")
