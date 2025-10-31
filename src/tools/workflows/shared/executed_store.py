@@ -50,8 +50,10 @@ def _get_session_id(ctx: Context) -> str:
             if sid:
                 logger.debug("Resolved session_id from ctx.session.session_id: %s", sid)
                 return str(sid)
-        if hasattr(ctx, "request_context") and hasattr(ctx.request_context, "request") and hasattr(
-            ctx.request_context.request, "headers"
+        if (
+            hasattr(ctx, "request_context")
+            and hasattr(ctx.request_context, "request")
+            and hasattr(ctx.request_context.request, "headers")
         ):
             headers = ctx.request_context.request.headers
             sid = headers.get("x-session-id") or headers.get("authorization", "")
@@ -265,5 +267,3 @@ _executed_store = ExecutedWorkflowStore()
 
 def get_executed_store() -> ExecutedWorkflowStore:
     return _executed_store
-
-

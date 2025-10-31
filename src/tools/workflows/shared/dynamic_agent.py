@@ -1168,7 +1168,9 @@ Use proper JSON formatting for the string parameters to ensure they can be parse
                 status = "healthy"
                 findings = [f"User has roles: {', '.join(user_roles)}"]
                 recommendations = []
-                await ctx.info(f"✅ User has {len(user_roles)} role(s): {', '.join(user_roles[:3])}")
+                await ctx.info(
+                    f"✅ User has {len(user_roles)} role(s): {', '.join(user_roles[:3])}"
+                )
 
             return DiagnosticResult(
                 step=self.task_definition.task_id,

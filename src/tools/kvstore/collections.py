@@ -65,7 +65,11 @@ class ListKvstoreCollections(BaseTool):
                     content = collection.content or {}
                     fields_dict = content.get("fields")
                     if not fields_dict:
-                        fp = {k.split(".", 1)[1]: v for k, v in content.items() if isinstance(k, str) and k.startswith("field.")}
+                        fp = {
+                            k.split(".", 1)[1]: v
+                            for k, v in content.items()
+                            if isinstance(k, str) and k.startswith("field.")
+                        }
                         fields_dict = fp if fp else {}
                     collections.append(
                         {
@@ -204,16 +208,28 @@ class CreateKvstoreCollection(BaseTool):
                         new_collection = service.kvstore.create(collection, **collection_config)
                     except (TypeError, KeyError):
                         # Retry using keyword name
-                        new_collection = service.kvstore.create(name=collection, **collection_config)
+                        new_collection = service.kvstore.create(
+                            name=collection, **collection_config
+                        )
                     except HTTPError as e:
                         # Retry with 'fields' dict if REST-style params were not accepted
                         if field_params and e.status == 400:
-                            fallback_config = {k: v for k, v in collection_config.items() if not k.startswith("field.")}
-                            fallback_config["fields"] = {k.split(".", 1)[1]: v for k, v in field_params.items()}
+                            fallback_config = {
+                                k: v
+                                for k, v in collection_config.items()
+                                if not k.startswith("field.")
+                            }
+                            fallback_config["fields"] = {
+                                k.split(".", 1)[1]: v for k, v in field_params.items()
+                            }
                             try:
-                                new_collection = service.kvstore.create(collection, **fallback_config)
+                                new_collection = service.kvstore.create(
+                                    collection, **fallback_config
+                                )
                             except (TypeError, KeyError):
-                                new_collection = service.kvstore.create(name=collection, **fallback_config)
+                                new_collection = service.kvstore.create(
+                                    name=collection, **fallback_config
+                                )
                         elif e.status == 409:
                             # Already exists - treat as idempotent success by returning existing collection
                             new_collection = service.kvstore[collection]
@@ -235,7 +251,11 @@ class CreateKvstoreCollection(BaseTool):
                     try:
                         transforms = service.confs["transforms"]
                         lookup_name = collection
-                        fields_list = ", ".join(["_key"] + list(normalized_fields.keys())) if normalized_fields else "_key"
+                        fields_list = (
+                            ", ".join(["_key"] + list(normalized_fields.keys()))
+                            if normalized_fields
+                            else "_key"
+                        )
                         if lookup_name not in transforms:
                             transforms.create(
                                 lookup_name,

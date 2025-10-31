@@ -291,3 +291,255 @@ class GetConfigurations(BaseTool):
             self.logger.exception("Failed to get configurations")
             await ctx.error(f"Failed to get configurations: {str(e)}")
             return self.format_error_response(str(e))
+
+
+class CreateConfig(BaseTool):
+    """
+    Create or update Splunk configuration stanzas at app level.
+    """
+
+    METADATA = ToolMetadata(
+        name="create_config",
+        description=(
+            "Creates or updates a stanza in a Splunk .conf file at the app level. "
+            "Uses REST first, with SDK fallback. Defaults to the current session owner and app 'search' when not provided. "
+            "Will only overwrite existing keys when overwrite=true; otherwise, only new keys are added.\n\n"
+            "Args:\n"
+            "    conf_file (str): Configuration file name without .conf (e.g., 'props', 'transforms').\n"
+            "    stanza (str): Stanza name to create/update.\n"
+            "    settings (dict): Key/value settings to apply in the stanza.\n"
+            "    app (str, optional): App namespace for the config (defaults to 'search' if not provided).\n"
+            "    owner (str, optional): Owner namespace (defaults to current session user if available).\n"
+            "    overwrite (bool, optional): Overwrite existing keys if True; otherwise skip them."
+        ),
+        category="admin",
+        tags=["configuration", "settings", "administration", "create"],
+        requires_connection=True,
+    )
+
+    async def execute(
+        self,
+        ctx: Context,
+        conf_file: str,
+        stanza: str,
+        settings: dict[str, Any],
+        app: str = "",
+        owner: str = "",
+        overwrite: bool = False,
+    ) -> dict[str, Any]:
+        log_tool_execution(
+            "create_config",
+            conf_file=conf_file,
+            stanza=stanza,
+            app=app,
+            owner=owner,
+            overwrite=overwrite,
+        )
+
+        is_available, service, error_msg = self.check_splunk_available(ctx)
+        if not is_available or service is None:
+            return self.format_error_response(error_msg)
+
+        # Normalize inputs
+        normalized_conf = (conf_file or "").strip()
+        if normalized_conf.endswith(".conf"):
+            normalized_conf = normalized_conf[: -len(".conf")]
+        normalized_stanza = (stanza or "").strip()
+        if not normalized_conf:
+            return self.format_error_response("conf_file is required")
+        if not normalized_stanza:
+            return self.format_error_response("stanza is required")
+        provided_settings = settings or {}
+
+        # Determine default namespace per spec: owner from session, app 'search'
+        default_owner = getattr(service, "username", None) or None
+        ns_owner = owner or default_owner
+        ns_app = app or "search"
+
+        # Helper: parse REST JSON
+        def _parse_stanza_json(json_bytes: bytes) -> dict[str, Any]:
+            try:
+                import json
+
+                data = json.loads(json_bytes.decode("utf-8"))
+                entries = data.get("entry", []) if isinstance(data, dict) else []
+                if entries:
+                    entry = entries[0]
+                    return {
+                        "name": entry.get("name"),
+                        "content": entry.get("content", {}) or {},
+                        "acl": entry.get("acl", {}) or {},
+                    }
+            except Exception:
+                pass
+            return {}
+
+        # Try REST first
+        try:
+            # 1) Check if stanza exists
+            stanza_ep = f"/services/configs/conf-{normalized_conf}/{normalized_stanza}"
+            resp = service.get(  # type: ignore[attr-defined]
+                stanza_ep, owner=ns_owner, app=ns_app, output_mode="json"
+            )
+            existing_entry = _parse_stanza_json(resp.body.read())
+
+            if existing_entry and existing_entry.get("name") == normalized_stanza:
+                # Update path
+                existing_settings = existing_entry.get("content", {}) or {}
+
+                # Compute diffs based on overwrite flag
+                to_add_or_update: dict[str, Any] = {}
+                added_keys: list[str] = []
+                changed_keys: list[str] = []
+                for key, value in provided_settings.items():
+                    if key not in existing_settings:
+                        to_add_or_update[key] = value
+                        added_keys.append(key)
+                    else:
+                        if overwrite and existing_settings.get(key) != value:
+                            to_add_or_update[key] = value
+                            changed_keys.append(key)
+
+                if not to_add_or_update:
+                    await ctx.info(
+                        f"No changes needed for {normalized_conf}[{normalized_stanza}] (overwrite={overwrite})"
+                    )
+                    return self.format_success_response(
+                        {
+                            "action": "skipped",
+                            "file": normalized_conf,
+                            "stanza": normalized_stanza,
+                            "added_keys": [],
+                            "changed_keys": [],
+                        }
+                    )
+
+                # 2) Update existing stanza via REST
+                update_ep = f"/servicesNS/{ns_owner or 'nobody'}/{ns_app}/configs/conf-{normalized_conf}/{normalized_stanza}"
+                service.post(update_ep, **to_add_or_update)  # type: ignore[attr-defined]
+                await ctx.info(
+                    f"Updated {normalized_conf}[{normalized_stanza}] keys: {sorted(list(to_add_or_update.keys()))}"
+                )
+                return self.format_success_response(
+                    {
+                        "action": "updated",
+                        "file": normalized_conf,
+                        "stanza": normalized_stanza,
+                        "added_keys": added_keys,
+                        "changed_keys": changed_keys,
+                    }
+                )
+            else:
+                # Create path
+                create_ep = (
+                    f"/servicesNS/{ns_owner or 'nobody'}/{ns_app}/configs/conf-{normalized_conf}"
+                )
+                payload = {"name": normalized_stanza}
+                payload.update(provided_settings)
+                service.post(create_ep, **payload)  # type: ignore[attr-defined]
+                await ctx.info(
+                    f"Created stanza {normalized_stanza} in {normalized_conf} with {len(provided_settings)} keys"
+                )
+                return self.format_success_response(
+                    {
+                        "action": "created",
+                        "file": normalized_conf,
+                        "stanza": normalized_stanza,
+                        "added_keys": sorted(list(provided_settings.keys())),
+                        "changed_keys": [],
+                    }
+                )
+        except Exception:
+            # If GET failed (e.g., 404), try REST create first
+            try:
+                create_ep = (
+                    f"/servicesNS/{ns_owner or 'nobody'}/{ns_app}/configs/conf-{normalized_conf}"
+                )
+                payload = {"name": normalized_stanza}
+                payload.update(provided_settings)
+                service.post(create_ep, **payload)  # type: ignore[attr-defined]
+                await ctx.info(
+                    f"Created stanza {normalized_stanza} in {normalized_conf} with {len(provided_settings)} keys"
+                )
+                return self.format_success_response(
+                    {
+                        "action": "created",
+                        "file": normalized_conf,
+                        "stanza": normalized_stanza,
+                        "added_keys": sorted(list(provided_settings.keys())),
+                        "changed_keys": [],
+                    }
+                )
+            except Exception:
+                # Fallback to SDK operations
+                try:
+                    confs = service.confs[normalized_conf]
+                    # Try to read existing stanza
+                    try:
+                        stanza_obj = confs[normalized_stanza]
+                        existing = dict(getattr(stanza_obj, "content", {}) or {})
+                        to_apply: dict[str, Any] = {}
+                        added_keys: list[str] = []
+                        changed_keys: list[str] = []
+                        for k, v in provided_settings.items():
+                            if k not in existing:
+                                to_apply[k] = v
+                                added_keys.append(k)
+                            else:
+                                if overwrite and existing.get(k) != v:
+                                    to_apply[k] = v
+                                    changed_keys.append(k)
+                        if not to_apply:
+                            return self.format_success_response(
+                                {
+                                    "action": "skipped",
+                                    "file": normalized_conf,
+                                    "stanza": normalized_stanza,
+                                    "added_keys": [],
+                                    "changed_keys": [],
+                                }
+                            )
+                        # Attempt SDK update API if available
+                        if hasattr(stanza_obj, "update"):
+                            stanza_obj.update(**to_apply)  # type: ignore[call-arg]
+                            if hasattr(stanza_obj, "refresh"):
+                                stanza_obj.refresh()  # type: ignore[attr-defined]
+                        else:
+                            # Best-effort: use REST-like post via service if available
+                            if hasattr(service, "post"):
+                                update_ep = (
+                                    f"/servicesNS/{ns_owner or 'nobody'}/{ns_app}/configs/conf-{normalized_conf}/"
+                                    f"{normalized_stanza}"
+                                )
+                                service.post(update_ep, **to_apply)  # type: ignore[attr-defined]
+                        return self.format_success_response(
+                            {
+                                "action": "updated",
+                                "file": normalized_conf,
+                                "stanza": normalized_stanza,
+                                "added_keys": added_keys,
+                                "changed_keys": changed_keys,
+                            }
+                        )
+                    except Exception:
+                        # Stanza does not exist, create
+                        if hasattr(confs, "create"):
+                            confs.create(normalized_stanza, **provided_settings)  # type: ignore[call-arg]
+                        elif hasattr(service, "post"):
+                            create_ep = f"/servicesNS/{ns_owner or 'nobody'}/{ns_app}/configs/conf-{normalized_conf}"
+                            payload = {"name": normalized_stanza}
+                            payload.update(provided_settings)
+                            service.post(create_ep, **payload)  # type: ignore[attr-defined]
+                        return self.format_success_response(
+                            {
+                                "action": "created",
+                                "file": normalized_conf,
+                                "stanza": normalized_stanza,
+                                "added_keys": sorted(list(provided_settings.keys())),
+                                "changed_keys": [],
+                            }
+                        )
+                except Exception as sdk_err:
+                    self.logger.exception("Failed to create/update config via SDK fallback")
+                    await ctx.error(f"Failed to create/update configuration: {str(sdk_err)}")
+                    return self.format_error_response(str(sdk_err))

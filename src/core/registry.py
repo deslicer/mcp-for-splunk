@@ -132,7 +132,9 @@ class ResourceRegistry:
 
         logger.info(f"Registered resource: {uri} (category: {metadata.category})")
 
-    def register_instance(self, resource_instance: BaseResource, metadata: ResourceMetadata) -> None:
+    def register_instance(
+        self, resource_instance: BaseResource, metadata: ResourceMetadata
+    ) -> None:
         """
         Register a specific resource instance with metadata.
 

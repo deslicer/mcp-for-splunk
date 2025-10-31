@@ -204,7 +204,7 @@ class TestJobSearchErrorHandling:
         # This simulates a case where there's no messages field
         mock_job.content = {
             "isFailed": "1",
-            "isDone": "1"
+            "isDone": "1",
             # No messages field
         }
 

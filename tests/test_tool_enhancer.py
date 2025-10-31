@@ -189,7 +189,10 @@ class TestToolDescriptionEnhancer:
         }
 
         enhanced_desc = await enhancer_tool._generate_enhanced_description(
-            None, "test_tool", enhancer_tool.METADATA, analysis  # ctx not needed
+            None,
+            "test_tool",
+            enhancer_tool.METADATA,
+            analysis,  # ctx not needed
         )
 
         # Verify enhanced description structure

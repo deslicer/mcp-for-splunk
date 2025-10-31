@@ -41,7 +41,7 @@ class MCPOverviewPrompt(BasePrompt):
                 "<instructions>\n"
                 "- Be explicit and concise.\n"
                 "- Prefer parallel execution for independent steps.\n"
-                "- Say \"I don't know\" when context is insufficient.\n"
+                '- Say "I don\'t know" when context is insufficient.\n'
                 "</instructions>\n"
                 "<output_format>Return Markdown with: Key features (bulleted), How it works (short), Next steps.</output_format>\n"
             )
@@ -80,7 +80,7 @@ class WorkflowCreationPrompt(BasePrompt):
                 "description": "Complexity level: simple, advanced",
                 "required": False,
                 "type": "string",
-            }
+            },
         ],
     )
 
@@ -149,7 +149,7 @@ class ToolUsagePrompt(BasePrompt):
                 "description": "Specific usage scenario",
                 "required": False,
                 "type": "string",
-            }
+            },
         ],
     )
 
@@ -159,7 +159,7 @@ class ToolUsagePrompt(BasePrompt):
         # Anthropic-aligned parameters and output format with XML sections
         content = f"""
 <role>You are a precise MCP tool usage guide generator.</role>
-<context>Tool: {tool_name}. Scenario: {scenario or 'general'}.</context>
+<context>Tool: {tool_name}. Scenario: {scenario or "general"}.</context>
 <instructions>
 - Output must include parameters, example calls, and expected outputs.
 - Be concise and avoid placeholders; prefer realistic values.
@@ -180,4 +180,3 @@ result = await {tool_name}.execute(ctx, workflow_id="example")
 """
 
         return {"role": "assistant", "content": [{"type": "text", "text": content}]}
-

@@ -28,7 +28,7 @@ class SplunkCheatSheetEmbeddedResource(EmbeddedResource):
             mime_type="text/markdown",
             embedded_content=self._get_cheat_sheet_content(),
             cache_ttl=86400,  # 24 hours
-            validate_content=True
+            validate_content=True,
         )
 
     def _get_cheat_sheet_content(self) -> str:
@@ -312,7 +312,7 @@ class SPLReferenceEmbeddedResource(EmbeddedResource):
             mime_type="text/markdown",
             embedded_content=self._get_spl_reference_content(),
             cache_ttl=86400,  # 24 hours
-            validate_content=True
+            validate_content=True,
         )
 
     def _get_spl_reference_content(self) -> str:
@@ -709,7 +709,7 @@ class SplunkTroubleshootingEmbeddedResource(EmbeddedResource):
             mime_type="text/markdown",
             embedded_content=self._get_troubleshooting_content(),
             cache_ttl=86400,  # 24 hours
-            validate_content=True
+            validate_content=True,
         )
 
     def _get_troubleshooting_content(self) -> str:
@@ -1045,7 +1045,7 @@ class SplunkAdminGuideEmbeddedResource(EmbeddedResource):
             mime_type="text/markdown",
             embedded_content=self._get_admin_guide_content(),
             cache_ttl=86400,  # 24 hours
-            validate_content=True
+            validate_content=True,
         )
 
     def _get_admin_guide_content(self) -> str:
@@ -1301,10 +1301,12 @@ def list_embedded_splunk_docs() -> list[dict[str, str]]:
     """List all available embedded Splunk documentation."""
     docs = []
     for name, resource in embedded_splunk_docs_registry.items():
-        docs.append({
-            "name": name,
-            "uri": resource.uri,
-            "title": resource.name,
-            "description": resource.description
-        })
+        docs.append(
+            {
+                "name": name,
+                "uri": resource.uri,
+                "title": resource.name,
+                "description": resource.description,
+            }
+        )
     return docs

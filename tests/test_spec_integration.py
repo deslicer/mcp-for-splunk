@@ -2,8 +2,8 @@
 Quick integration test to verify SplunkSpecReferenceResource registration.
 """
 
-from src.resources.splunk_docs import create_spec_reference_resource
 from src.core.registry import resource_registry
+from src.resources.splunk_docs import create_spec_reference_resource
 
 
 def main():
@@ -84,10 +84,10 @@ def main():
     primary_url = f"{resource.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/admin-manual/{minor}/configuration-file-reference/{full}-configuration-file-reference/{config}"
 
     if primary_url == expected_primary:
-        print(f"   ✓ Primary URL constructed correctly")
+        print("   ✓ Primary URL constructed correctly")
         print(f"     {primary_url}")
     else:
-        print(f"   ✗ URL mismatch")
+        print("   ✗ URL mismatch")
         print(f"     Expected: {expected_primary}")
         print(f"     Got:      {primary_url}")
         return False

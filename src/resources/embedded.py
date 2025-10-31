@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ContentValidationResult:
     """Result of content validation."""
+
     is_valid: bool
     errors: list[str]
     warnings: list[str]
@@ -52,11 +53,7 @@ class ContentValidator:
         except json.JSONDecodeError as e:
             errors.append(f"Invalid JSON: {e}")
 
-        return ContentValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ContentValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
     @staticmethod
     def validate_markdown(content: str) -> ContentValidationResult:
@@ -69,14 +66,10 @@ class ContentValidator:
             errors.append("Empty content")
 
         # Check for common markdown issues
-        if content.count('#') > 10:
+        if content.count("#") > 10:
             warnings.append("Many headers detected - consider structure")
 
-        return ContentValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ContentValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
     @staticmethod
     def validate_text(content: str) -> ContentValidationResult:
@@ -90,11 +83,7 @@ class ContentValidator:
         if len(content) > 1000000:  # 1MB
             warnings.append("Large content detected")
 
-        return ContentValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ContentValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
 
 class EmbeddedResource(BaseResource):
@@ -119,7 +108,7 @@ class EmbeddedResource(BaseResource):
         embedded_content: str | bytes | None = None,
         cache_ttl: int = 300,
         validate_content: bool = True,
-        etag_enabled: bool = True
+        etag_enabled: bool = True,
     ):
         super().__init__(uri, name, description, mime_type)
         self.embedded_content = embedded_content
@@ -161,7 +150,9 @@ class EmbeddedResource(BaseResource):
             if self.validate_content:
                 validation_result = self._validate_content(content)
                 if not validation_result.is_valid:
-                    logger.warning(f"Content validation failed for {self.uri}: {validation_result.errors}")
+                    logger.warning(
+                        f"Content validation failed for {self.uri}: {validation_result.errors}"
+                    )
                     # Return structured error so callers can safely parse
                     # Include original content snapshot to aid debugging/tests
                     error_response = self._create_error_response(
@@ -170,7 +161,9 @@ class EmbeddedResource(BaseResource):
                     self._update_registry_stats(start_time, error=True)
                     return error_response
                 if validation_result.warnings:
-                    logger.info(f"Content validation warnings for {self.uri}: {validation_result.warnings}")
+                    logger.info(
+                        f"Content validation warnings for {self.uri}: {validation_result.warnings}"
+                    )
 
             # Cache the result
             self._cache_content(content)
@@ -198,7 +191,8 @@ class EmbeddedResource(BaseResource):
         avg_before = stats.get("average_response_time", 0.0)
         avg_after = (
             (avg_before * access_count_before + duration) / (access_count_before + 1)
-            if access_count_before >= 0 else duration
+            if access_count_before >= 0
+            else duration
         )
         stats["access_count"] = access_count_before + 1
         stats["last_accessed"] = datetime.now()
@@ -213,14 +207,16 @@ class EmbeddedResource(BaseResource):
             return self.embedded_content
         elif isinstance(self.embedded_content, bytes):
             # Binary content - encode as base64 and return as JSON
-            encoded = base64.b64encode(self.embedded_content).decode('utf-8')
-            return json.dumps({
-                "type": "binary",
-                "mime_type": self.mime_type,
-                "data": encoded,
-                "size": len(self.embedded_content),
-                "etag": self._generate_etag() if self.etag_enabled else None
-            })
+            encoded = base64.b64encode(self.embedded_content).decode("utf-8")
+            return json.dumps(
+                {
+                    "type": "binary",
+                    "mime_type": self.mime_type,
+                    "data": encoded,
+                    "size": len(self.embedded_content),
+                    "etag": self._generate_etag() if self.etag_enabled else None,
+                }
+            )
         else:
             raise ValueError(f"Unsupported embedded content type: {type(self.embedded_content)}")
 
@@ -243,7 +239,7 @@ class EmbeddedResource(BaseResource):
 
     def _generate_content_hash(self, content: str) -> str:
         """Generate content hash for ETag."""
-        return hashlib.md5(content.encode('utf-8')).hexdigest()
+        return hashlib.md5(content.encode("utf-8")).hexdigest()
 
     def _generate_etag(self) -> str | None:
         """Generate ETag for the resource."""
@@ -259,7 +255,9 @@ class EmbeddedResource(BaseResource):
                 if isinstance(self.embedded_content, bytes):
                     content_hash = hashlib.md5(self.embedded_content).hexdigest()
                 else:
-                    content_hash = hashlib.md5(str(self.embedded_content).encode('utf-8')).hexdigest()
+                    content_hash = hashlib.md5(
+                        str(self.embedded_content).encode("utf-8")
+                    ).hexdigest()
                 self._content_hash = content_hash
                 return f'"{content_hash}"'
             except Exception:
@@ -278,12 +276,14 @@ class EmbeddedResource(BaseResource):
 
     def _create_error_response(self, error_message: str) -> str:
         """Create error response in consistent format."""
-        return json.dumps({
-            "error": error_message,
-            "uri": self.uri,
-            "type": "error",
-            "timestamp": datetime.now().isoformat()
-        })
+        return json.dumps(
+            {
+                "error": error_message,
+                "uri": self.uri,
+                "type": "error",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
     def get_metadata(self) -> ResourceMetadata:
         """Get enhanced metadata for this resource."""
@@ -293,7 +293,7 @@ class EmbeddedResource(BaseResource):
             description=self.description,
             mime_type=self.mime_type,
             category="embedded",
-            tags=["embedded", "content", "cached" if self.cache_ttl > 0 else "dynamic"]
+            tags=["embedded", "content", "cached" if self.cache_ttl > 0 else "dynamic"],
         )
 
 
@@ -313,7 +313,7 @@ class FileEmbeddedResource(EmbeddedResource):
         file_path: str,
         mime_type: str | None = None,
         encoding: str = "utf-8",
-        watch_file: bool = False
+        watch_file: bool = False,
     ):
         # Auto-detect MIME type if not provided
         if mime_type is None:
@@ -345,9 +345,9 @@ class FileEmbeddedResource(EmbeddedResource):
 
             # Read file content
             is_text_like = (
-                self.mime_type.startswith('text/') or
-                self.mime_type == 'application/json' or
-                self.mime_type.endswith('+json')
+                self.mime_type.startswith("text/")
+                or self.mime_type == "application/json"
+                or self.mime_type.endswith("+json")
             )
 
             if is_text_like:
@@ -359,16 +359,18 @@ class FileEmbeddedResource(EmbeddedResource):
             else:
                 # Binary file
                 binary_content = self.file_path.read_bytes()
-                encoded = base64.b64encode(binary_content).decode('utf-8')
+                encoded = base64.b64encode(binary_content).decode("utf-8")
                 self._file_mtime = self.file_path.stat().st_mtime
-                result = json.dumps({
-                    "type": "binary",
-                    "mime_type": self.mime_type,
-                    "data": encoded,
-                    "size": len(binary_content),
-                    "filename": self.file_path.name,
-                    "etag": self._generate_etag() if self.etag_enabled else None
-                })
+                result = json.dumps(
+                    {
+                        "type": "binary",
+                        "mime_type": self.mime_type,
+                        "data": encoded,
+                        "size": len(binary_content),
+                        "filename": self.file_path.name,
+                        "etag": self._generate_etag() if self.etag_enabled else None,
+                    }
+                )
                 self._update_registry_stats(start_time, error=False)
                 return result
 
@@ -403,7 +405,7 @@ class TemplateEmbeddedResource(EmbeddedResource):
         name: str,
         description: str,
         mime_type: str = "text/plain",
-        parameter_validators: dict[str, Callable] | None = None
+        parameter_validators: dict[str, Callable] | None = None,
     ):
         super().__init__(uri_template, name, description, mime_type)
         self.uri_template = uri_template
@@ -427,7 +429,9 @@ class TemplateEmbeddedResource(EmbeddedResource):
             # Validate parameters
             validation_errors = self._validate_parameters(params)
             if validation_errors:
-                return self._create_error_response(f"Parameter validation failed: {validation_errors}")
+                return self._create_error_response(
+                    f"Parameter validation failed: {validation_errors}"
+                )
 
             # Generate content based on parameters
             content = await self._generate_content_from_params(ctx, params)
@@ -443,14 +447,14 @@ class TemplateEmbeddedResource(EmbeddedResource):
         params = {}
 
         # Enhanced parameter extraction
-        if '{' in self.uri_template and '}' in self.uri_template:
+        if "{" in self.uri_template and "}" in self.uri_template:
             # Extract parameter names from template
-            param_names = re.findall(r'\{([^}]+)\}', self.uri_template)
+            param_names = re.findall(r"\{([^}]+)\}", self.uri_template)
 
             # Create regex pattern for matching
             pattern = self.uri_template
             for param_name in param_names:
-                pattern = pattern.replace(f'{{{param_name}}}', f'(?P<{param_name}>[^/]+)')
+                pattern = pattern.replace(f"{{{param_name}}}", f"(?P<{param_name}>[^/]+)")
 
             # Match URI against pattern
             match = re.match(pattern, uri)
@@ -493,7 +497,7 @@ class SplunkEmbeddedResource(EmbeddedResource):
         description: str,
         mime_type: str = "application/json",
         connection_timeout: int = 30,
-        retry_attempts: int = 3
+        retry_attempts: int = 3,
     ):
         super().__init__(uri, name, description, mime_type)
         self.client_manager = get_client_manager()
@@ -514,7 +518,9 @@ class SplunkEmbeddedResource(EmbeddedResource):
                     return self._create_error_response("No Splunk configuration available")
 
                 # Get client connection
-                identity, service = await self.client_manager.get_client_connection(ctx, client_config)
+                identity, service = await self.client_manager.get_client_connection(
+                    ctx, client_config
+                )
 
                 # Generate Splunk-specific content
                 content = await self._generate_splunk_content(ctx, identity, service)
@@ -526,10 +532,12 @@ class SplunkEmbeddedResource(EmbeddedResource):
                 logger.warning(f"Splunk connection attempt {attempt + 1} failed: {e}")
                 if attempt < self.retry_attempts - 1:
                     # Wait before retry (exponential backoff)
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(2**attempt)
 
         logger.error(f"All Splunk connection attempts failed for {self.uri}")
-        return self._create_error_response(f"Splunk error after {self.retry_attempts} attempts: {str(last_error)}")
+        return self._create_error_response(
+            f"Splunk error after {self.retry_attempts} attempts: {str(last_error)}"
+        )
 
     @abstractmethod
     async def _generate_splunk_content(self, ctx: Context, identity, service) -> str:
@@ -552,7 +560,7 @@ class ResourceTemplate:
         description: str,
         mime_type: str = "text/plain",
         parameter_types: dict[str, type] | None = None,
-        parameter_defaults: dict[str, Any] | None = None
+        parameter_defaults: dict[str, Any] | None = None,
     ):
         self.uri_template = uri_template
         self.name = name
@@ -594,7 +602,7 @@ class ResourceTemplate:
             description=self.description,
             mime_type=self.mime_type,
             category="template",
-            tags=["template", "dynamic", "parameterized"]
+            tags=["template", "dynamic", "parameterized"],
         )
 
     def validate_parameters(self, **params) -> list[str]:
@@ -606,7 +614,9 @@ class ResourceTemplate:
             if param in self.parameter_types:
                 expected_type = self.parameter_types[param]
                 if not isinstance(value, expected_type):
-                    errors.append(f"Parameter '{param}' type validation failed: expected {expected_type.__name__}")
+                    errors.append(
+                        f"Parameter '{param}' type validation failed: expected {expected_type.__name__}"
+                    )
 
         return errors
 
@@ -633,7 +643,7 @@ class EmbeddedResourceRegistry:
             "access_count": 0,
             "last_accessed": None,
             "average_response_time": 0.0,
-            "error_count": 0
+            "error_count": 0,
         }
         # Attach back-reference so the resource can update stats on access
         try:
@@ -681,7 +691,9 @@ class EmbeddedResourceRegistry:
         total_resources = len(self._resources)
         total_templates = len(self._templates)
         # Count how many resources were accessed at least once
-        total_accesses = sum(1 for stats in self._access_stats.values() if stats.get("access_count", 0) > 0)
+        total_accesses = sum(
+            1 for stats in self._access_stats.values() if stats.get("access_count", 0) > 0
+        )
         total_errors = sum(stats["error_count"] for stats in self._access_stats.values())
 
         return {
@@ -689,7 +701,7 @@ class EmbeddedResourceRegistry:
             "total_templates": total_templates,
             "total_accesses": total_accesses,
             "total_errors": total_errors,
-            "resource_stats": self._access_stats
+            "resource_stats": self._access_stats,
         }
 
     def create_from_template(self, template_uri: str, **params) -> EmbeddedResource | None:
@@ -712,7 +724,7 @@ class EmbeddedResourceRegistry:
                 uri=expanded_uri,
                 name=f"{template.name} ({expanded_uri})",
                 description=template.description,
-                mime_type=template.mime_type
+                mime_type=template.mime_type,
             )
         except Exception as e:
             logger.error(f"Error creating resource from template: {e}")
@@ -724,7 +736,7 @@ class EmbeddedResourceRegistry:
         current_time = time.time()
 
         for resource in self._resources.values():
-            if hasattr(resource, '_cache_timestamp') and resource._cache_timestamp > 0:
+            if hasattr(resource, "_cache_timestamp") and resource._cache_timestamp > 0:
                 if current_time - resource._cache_timestamp > resource.cache_ttl:
                     resource._cached_content = None
                     resource._cache_timestamp = 0
@@ -772,7 +784,7 @@ def _register_file_resources():
             "file_path": "README.md",
             "mime_type": "text/markdown",
             "encoding": "utf-8",
-            "watch_file": True
+            "watch_file": True,
         },
         {
             "uri": "embedded://docs/CHANGELOG.md",
@@ -781,8 +793,8 @@ def _register_file_resources():
             "file_path": "CHANGELOG.md",
             "mime_type": "text/markdown",
             "encoding": "utf-8",
-            "watch_file": True
-        }
+            "watch_file": True,
+        },
         # {
         #     "uri": "embedded://config/settings.json",
         #     "name": "Application Settings",
@@ -803,7 +815,7 @@ def _register_file_resources():
                 file_path=resource_config["file_path"],
                 mime_type=resource_config.get("mime_type"),
                 encoding=resource_config.get("encoding", "utf-8"),
-                watch_file=resource_config.get("watch_file", False)
+                watch_file=resource_config.get("watch_file", False),
             )
             embedded_resource_registry.register_embedded_resource(resource)
 
@@ -828,14 +840,14 @@ def _register_template_resources():
             description="Template for accessing documentation files with type validation",
             mime_type="text/markdown",
             parameter_types={"doc_type": str, "filename": str},
-            parameter_defaults={"doc_type": "general"}
+            parameter_defaults={"doc_type": "general"},
         ),
         ResourceTemplate(
             uri_template="embedded://config/{config_type}",
             name="Configuration Template",
             description="Template for accessing configuration files",
             mime_type="text/plain",
-            parameter_types={"config_type": str}
+            parameter_types={"config_type": str},
         ),
         ResourceTemplate(
             uri_template="embedded://data/{dataset}/{format}",
@@ -843,8 +855,8 @@ def _register_template_resources():
             description="Template for accessing datasets in different formats",
             mime_type="application/json",
             parameter_types={"dataset": str, "format": str},
-            parameter_defaults={"format": "json"}
-        )
+            parameter_defaults={"format": "json"},
+        ),
     ]
 
     for template in templates:
@@ -872,5 +884,3 @@ def _register_with_main_registry():
 
     except Exception as e:
         logger.error(f"Error registering with main registry: {e}")
-
-

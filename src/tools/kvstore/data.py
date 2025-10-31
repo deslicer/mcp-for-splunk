@@ -23,7 +23,7 @@ class GetKvstoreData(BaseTool):
             "Args:\n"
             "    collection (str): Collection name\n"
             "    app (str, optional): App where the collection resides (defaults to current/app context)\n"
-            "    query (object, optional): MongoDB-style filter object (e.g., {\"status\": \"active\"})\n\n"
+            '    query (object, optional): MongoDB-style filter object (e.g., {"status": "active"})\n\n'
             "Outputs: 'documents' array and 'count'.\n"
             "Security: access and results are constrained by the authenticated user's permissions."
         ),

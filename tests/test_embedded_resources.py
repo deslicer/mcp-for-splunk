@@ -125,7 +125,7 @@ class TestEmbeddedResource:
             name="Test Resource",
             description="A test resource",
             mime_type="text/plain",
-            embedded_content="Test content"
+            embedded_content="Test content",
         )
 
         assert resource.uri == "embedded://test/resource"
@@ -144,7 +144,7 @@ class TestEmbeddedResource:
             name="Binary Resource",
             description="A binary resource",
             mime_type="application/octet-stream",
-            embedded_content=binary_data
+            embedded_content=binary_data,
         )
 
         assert resource.embedded_content == binary_data
@@ -157,7 +157,7 @@ class TestEmbeddedResource:
             description="A cached resource",
             cache_ttl=600,
             validate_content=False,
-            etag_enabled=False
+            etag_enabled=False,
         )
 
         assert resource.cache_ttl == 600
@@ -171,7 +171,7 @@ class TestEmbeddedResource:
             uri="embedded://test/text",
             name="Text Resource",
             description="A text resource",
-            embedded_content="Hello, World!"
+            embedded_content="Hello, World!",
         )
 
         content = await resource.get_content(mock_context)
@@ -186,7 +186,7 @@ class TestEmbeddedResource:
             name="Binary Resource",
             description="A binary resource",
             embedded_content=binary_data,
-            mime_type="application/octet-stream"
+            mime_type="application/octet-stream",
         )
 
         content = await resource.get_content(mock_context)
@@ -200,14 +200,13 @@ class TestEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_with_dynamic_generation(self, mock_context):
         """Test getting content from resource that generates content dynamically."""
+
         class DynamicResource(EmbeddedResource):
             async def _generate_dynamic_content(self, ctx):
                 return "Dynamic content generated"
 
         resource = DynamicResource(
-            uri="embedded://test/dynamic",
-            name="Dynamic Resource",
-            description="A dynamic resource"
+            uri="embedded://test/dynamic", name="Dynamic Resource", description="A dynamic resource"
         )
 
         content = await resource.get_content(mock_context)
@@ -222,7 +221,7 @@ class TestEmbeddedResource:
             description="An invalid resource",
             embedded_content='{"invalid": json',  # Invalid JSON
             mime_type="application/json",
-            validate_content=True
+            validate_content=True,
         )
 
         content = await resource.get_content(mock_context)
@@ -235,7 +234,7 @@ class TestEmbeddedResource:
             uri="embedded://test/etag",
             name="ETag Resource",
             description="A resource with ETag",
-            embedded_content="Test content"
+            embedded_content="Test content",
         )
 
         etag = resource._generate_etag()
@@ -250,7 +249,7 @@ class TestEmbeddedResource:
             name="No ETag Resource",
             description="A resource without ETag",
             embedded_content="Test content",
-            etag_enabled=False
+            etag_enabled=False,
         )
 
         etag = resource._generate_etag()
@@ -262,7 +261,7 @@ class TestEmbeddedResource:
             uri="embedded://test/cache",
             name="Cache Resource",
             description="A cached resource",
-            cache_ttl=300
+            cache_ttl=300,
         )
 
         # Initially no cache
@@ -281,7 +280,7 @@ class TestEmbeddedResource:
         resource = EmbeddedResource(
             uri="embedded://test/error",
             name="Error Resource",
-            description="A resource for testing errors"
+            description="A resource for testing errors",
         )
 
         error_response = resource._create_error_response("Test error")
@@ -298,7 +297,7 @@ class TestEmbeddedResource:
             uri="embedded://test/metadata",
             name="Metadata Resource",
             description="A resource for testing metadata",
-            cache_ttl=600
+            cache_ttl=600,
         )
 
         metadata = resource.get_metadata()
@@ -318,7 +317,7 @@ class TestFileEmbeddedResource:
     @pytest.fixture
     def temp_file(self):
         """Create a temporary file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("Test file content")
             temp_path = f.name
 
@@ -330,7 +329,7 @@ class TestFileEmbeddedResource:
     @pytest.fixture
     def temp_json_file(self):
         """Create a temporary JSON file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             json.dump({"key": "value", "number": 42}, f)
             temp_path = f.name
 
@@ -352,7 +351,7 @@ class TestFileEmbeddedResource:
             name="File Resource",
             description="A file resource",
             file_path=temp_file,
-            mime_type="text/plain"
+            mime_type="text/plain",
         )
 
         assert resource.file_path == Path(temp_file)
@@ -366,7 +365,7 @@ class TestFileEmbeddedResource:
             uri="embedded://file/test",
             name="File Resource",
             description="A file resource",
-            file_path=temp_file
+            file_path=temp_file,
         )
 
         # Should auto-detect text/plain for .txt file
@@ -378,7 +377,7 @@ class TestFileEmbeddedResource:
             uri="embedded://file/test",
             name="File Resource",
             description="A file resource",
-            file_path=temp_json_file
+            file_path=temp_json_file,
         )
 
         # Should auto-detect application/json for .json file
@@ -391,7 +390,7 @@ class TestFileEmbeddedResource:
             uri="embedded://file/test",
             name="File Resource",
             description="A file resource",
-            file_path=temp_file
+            file_path=temp_file,
         )
 
         content = await resource.get_content(mock_context)
@@ -404,7 +403,7 @@ class TestFileEmbeddedResource:
             uri="embedded://file/test",
             name="File Resource",
             description="A file resource",
-            file_path=temp_json_file
+            file_path=temp_json_file,
         )
 
         content = await resource.get_content(mock_context)
@@ -418,7 +417,7 @@ class TestFileEmbeddedResource:
             uri="embedded://file/missing",
             name="Missing File Resource",
             description="A missing file resource",
-            file_path="/nonexistent/file.txt"
+            file_path="/nonexistent/file.txt",
         )
 
         content = await resource.get_content(mock_context)
@@ -435,7 +434,7 @@ class TestFileEmbeddedResource:
             name="Watched File Resource",
             description="A watched file resource",
             file_path=temp_file,
-            watch_file=True
+            watch_file=True,
         )
 
         # First access
@@ -443,7 +442,7 @@ class TestFileEmbeddedResource:
         assert content1 == "Test file content"
 
         # Simulate file change by updating the file
-        with open(temp_file, 'w') as f:
+        with open(temp_file, "w") as f:
             f.write("Updated content")
 
         # Second access should detect change
@@ -454,7 +453,7 @@ class TestFileEmbeddedResource:
     async def test_get_content_with_different_encoding(self, temp_file, mock_context):
         """Test file reading with different encoding."""
         # Create file with specific encoding
-        with open(temp_file, 'w', encoding='utf-8') as f:
+        with open(temp_file, "w", encoding="utf-8") as f:
             f.write("Content with special chars: éñü")
 
         resource = FileEmbeddedResource(
@@ -462,7 +461,7 @@ class TestFileEmbeddedResource:
             name="Encoded File Resource",
             description="A file resource with encoding",
             file_path=temp_file,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         content = await resource.get_content(mock_context)
@@ -480,6 +479,7 @@ class TestTemplateEmbeddedResource:
 
     def test_template_resource_creation(self):
         """Test template resource creation."""
+
         class TestTemplateResource(TemplateEmbeddedResource):
             async def _generate_content_from_params(self, ctx, params):
                 return "Generated content"
@@ -488,7 +488,7 @@ class TestTemplateEmbeddedResource:
             uri_template="embedded://template/{param}",
             name="Template Resource",
             description="A template resource",
-            mime_type="text/plain"
+            mime_type="text/plain",
         )
 
         assert resource.uri_template == "embedded://template/{param}"
@@ -496,6 +496,7 @@ class TestTemplateEmbeddedResource:
 
     def test_template_resource_with_validators(self):
         """Test template resource with parameter validators."""
+
         def validate_param(value):
             if not value.isalpha():
                 raise ValueError("Parameter must be alphabetic")
@@ -508,13 +509,14 @@ class TestTemplateEmbeddedResource:
             uri_template="embedded://template/{param}",
             name="Template Resource",
             description="A template resource",
-            parameter_validators={"param": validate_param}
+            parameter_validators={"param": validate_param},
         )
 
         assert "param" in resource.parameter_validators
 
     def test_extract_uri_parameters(self):
         """Test URI parameter extraction."""
+
         class TestTemplateResource(TemplateEmbeddedResource):
             async def _generate_content_from_params(self, ctx, params):
                 return "Generated content"
@@ -522,7 +524,7 @@ class TestTemplateEmbeddedResource:
         resource = TestTemplateResource(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         uri = "embedded://docs/api/README.md"
@@ -533,6 +535,7 @@ class TestTemplateEmbeddedResource:
 
     def test_extract_uri_parameters_no_match(self):
         """Test URI parameter extraction with no match."""
+
         class TestTemplateResource(TemplateEmbeddedResource):
             async def _generate_content_from_params(self, ctx, params):
                 return "Generated content"
@@ -540,7 +543,7 @@ class TestTemplateEmbeddedResource:
         resource = TestTemplateResource(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         uri = "embedded://other/path"
@@ -550,6 +553,7 @@ class TestTemplateEmbeddedResource:
 
     def test_validate_parameters(self):
         """Test parameter validation."""
+
         def validate_param(value):
             if not value.isalpha():
                 raise ValueError("Parameter must be alphabetic")
@@ -562,7 +566,7 @@ class TestTemplateEmbeddedResource:
             uri_template="embedded://template/{param}",
             name="Template Resource",
             description="A template resource",
-            parameter_validators={"param": validate_param}
+            parameter_validators={"param": validate_param},
         )
 
         # Valid parameter
@@ -579,6 +583,7 @@ class TestTemplateEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_with_parameters(self, mock_context):
         """Test getting content with URI parameters."""
+
         class TestTemplateResource(TemplateEmbeddedResource):
             async def _generate_content_from_params(self, ctx, params):
                 return f"Generated content for {params.get('category', 'unknown')}"
@@ -586,7 +591,7 @@ class TestTemplateEmbeddedResource:
         resource = TestTemplateResource(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         content = await resource.get_content(mock_context, uri="embedded://docs/api/README.md")
@@ -595,6 +600,7 @@ class TestTemplateEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_with_validation_error(self, mock_context):
         """Test getting content with parameter validation error."""
+
         def validate_param(value):
             if not value.isalpha():
                 raise ValueError("Parameter must be alphabetic")
@@ -607,7 +613,7 @@ class TestTemplateEmbeddedResource:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            parameter_validators={"category": validate_param}
+            parameter_validators={"category": validate_param},
         )
 
         content = await resource.get_content(mock_context, uri="embedded://docs/123/README.md")
@@ -625,7 +631,7 @@ class TestResourceTemplate:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            mime_type="text/markdown"
+            mime_type="text/markdown",
         )
 
         assert template.uri_template == "embedded://docs/{category}/{filename}"
@@ -639,11 +645,11 @@ class TestResourceTemplate:
             name="Data Template",
             description="A data template",
             parameter_types={"id": int, "format": str},
-            parameter_defaults={"format": "json"}
+            parameter_defaults={"format": "json"},
         )
 
-        assert template.parameter_types["id"] == int
-        assert template.parameter_types["format"] == str
+        assert template.parameter_types["id"] is int
+        assert template.parameter_types["format"] is str
         assert template.parameter_defaults["format"] == "json"
 
     def test_template_expand(self):
@@ -651,7 +657,7 @@ class TestResourceTemplate:
         template = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         expanded = template.expand(category="api", filename="README.md")
@@ -663,7 +669,7 @@ class TestResourceTemplate:
             uri_template="embedded://data/{id}/{format}",
             name="Data Template",
             description="A data template",
-            parameter_types={"id": int, "format": str}
+            parameter_types={"id": int, "format": str},
         )
 
         expanded = template.expand(id="123", format="json")
@@ -675,7 +681,7 @@ class TestResourceTemplate:
             uri_template="embedded://data/{id}/{format}",
             name="Data Template",
             description="A data template",
-            parameter_defaults={"format": "json"}
+            parameter_defaults={"format": "json"},
         )
 
         expanded = template.expand(id="123")
@@ -686,7 +692,7 @@ class TestResourceTemplate:
         template = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         with pytest.raises(ValueError, match="Missing required parameter"):
@@ -698,7 +704,7 @@ class TestResourceTemplate:
             uri_template="embedded://data/{id}/{format}",
             name="Data Template",
             description="A data template",
-            parameter_types={"id": int}
+            parameter_types={"id": int},
         )
 
         with pytest.raises(ValueError, match="type conversion failed"):
@@ -711,7 +717,7 @@ class TestResourceTemplate:
             name="Documentation Template",
             description="A documentation template",
             parameter_types={"category": str, "filename": str},
-            parameter_defaults={"category": "general"}
+            parameter_defaults={"category": "general"},
         )
 
         # Valid parameters
@@ -733,7 +739,7 @@ class TestResourceTemplate:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            mime_type="text/markdown"
+            mime_type="text/markdown",
         )
 
         metadata = template.get_metadata()
@@ -769,7 +775,7 @@ class TestEmbeddedResourceRegistry:
             uri="embedded://test/resource",
             name="Test Resource",
             description="A test resource",
-            embedded_content="Test content"
+            embedded_content="Test content",
         )
 
         registry.register_embedded_resource(resource)
@@ -785,7 +791,7 @@ class TestEmbeddedResourceRegistry:
         template = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         registry.register_template(template)
@@ -801,7 +807,7 @@ class TestEmbeddedResourceRegistry:
             uri="embedded://test/resource",
             name="Test Resource",
             description="A test resource",
-            embedded_content="Test content"
+            embedded_content="Test content",
         )
 
         registry.register_embedded_resource(resource)
@@ -828,7 +834,7 @@ class TestEmbeddedResourceRegistry:
         template = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         registry.register_template(template)
@@ -851,14 +857,14 @@ class TestEmbeddedResourceRegistry:
             uri="embedded://test/resource1",
             name="Test Resource 1",
             description="A test resource",
-            embedded_content="Test content 1"
+            embedded_content="Test content 1",
         )
 
         resource2 = EmbeddedResource(
             uri="embedded://test/resource2",
             name="Test Resource 2",
             description="Another test resource",
-            embedded_content="Test content 2"
+            embedded_content="Test content 2",
         )
 
         registry.register_embedded_resource(resource1)
@@ -878,13 +884,13 @@ class TestEmbeddedResourceRegistry:
         template1 = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         template2 = ResourceTemplate(
             uri_template="embedded://data/{id}/{format}",
             name="Data Template",
-            description="A data template"
+            description="A data template",
         )
 
         registry.register_template(template1)
@@ -901,13 +907,13 @@ class TestEmbeddedResourceRegistry:
             uri="embedded://test/resource",
             name="Test Resource",
             description="A test resource",
-            embedded_content="Test content"
+            embedded_content="Test content",
         )
 
         template = ResourceTemplate(
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
-            description="A documentation template"
+            description="A documentation template",
         )
 
         registry.register_embedded_resource(resource)
@@ -931,15 +937,13 @@ class TestEmbeddedResourceRegistry:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            parameter_types={"category": str, "filename": str}
+            parameter_types={"category": str, "filename": str},
         )
 
         registry.register_template(template)
 
         resource = registry.create_from_template(
-            "embedded://docs/{category}/{filename}",
-            category="api",
-            filename="README.md"
+            "embedded://docs/{category}/{filename}", category="api", filename="README.md"
         )
 
         assert resource is not None
@@ -954,7 +958,7 @@ class TestEmbeddedResourceRegistry:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            parameter_types={"category": int}  # Expects int but gets string
+            parameter_types={"category": int},  # Expects int but gets string
         )
 
         registry.register_template(template)
@@ -962,7 +966,7 @@ class TestEmbeddedResourceRegistry:
         resource = registry.create_from_template(
             "embedded://docs/{category}/{filename}",
             category="api",  # String instead of int
-            filename="README.md"
+            filename="README.md",
         )
 
         assert resource is None
@@ -972,9 +976,7 @@ class TestEmbeddedResourceRegistry:
         registry = EmbeddedResourceRegistry()
 
         resource = registry.create_from_template(
-            "embedded://docs/{category}/{filename}",
-            category="api",
-            filename="README.md"
+            "embedded://docs/{category}/{filename}", category="api", filename="README.md"
         )
 
         assert resource is None
@@ -987,7 +989,7 @@ class TestEmbeddedResourceRegistry:
             uri="embedded://test/cached",
             name="Cached Resource",
             description="A cached resource",
-            cache_ttl=1  # Very short TTL for testing
+            cache_ttl=1,  # Very short TTL for testing
         )
 
         registry.register_embedded_resource(resource)
@@ -998,6 +1000,7 @@ class TestEmbeddedResourceRegistry:
 
         # Wait for cache to expire
         import time
+
         time.sleep(1.1)
 
         # Clean up expired cache
@@ -1017,6 +1020,7 @@ class TestSplunkEmbeddedResource:
 
     def test_splunk_resource_creation(self):
         """Test Splunk resource creation."""
+
         class TestSplunkResource(SplunkEmbeddedResource):
             async def _generate_splunk_content(self, ctx, identity, service):
                 return "splunk content"
@@ -1026,7 +1030,7 @@ class TestSplunkEmbeddedResource:
             name="Splunk Data Resource",
             description="A Splunk data resource",
             connection_timeout=30,
-            retry_attempts=3
+            retry_attempts=3,
         )
 
         assert resource.connection_timeout == 30
@@ -1035,14 +1039,16 @@ class TestSplunkEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_with_splunk_integration(self, mock_context):
         """Test getting content with Splunk integration."""
+
         class TestSplunkResource(SplunkEmbeddedResource):
             async def _generate_splunk_content(self, ctx, identity, service):
                 return json.dumps({"data": "splunk content", "client_id": identity.client_id})
 
         # Mock the client manager and config extractor
-        with patch('src.resources.embedded.get_client_manager') as mock_get_manager, \
-             patch('src.resources.embedded.EnhancedConfigExtractor') as mock_extractor:
-
+        with (
+            patch("src.resources.embedded.get_client_manager") as mock_get_manager,
+            patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor,
+        ):
             # Mock client manager
             mock_manager = Mock()
             mock_manager.get_client_connection = AsyncMock()
@@ -1050,10 +1056,9 @@ class TestSplunkEmbeddedResource:
 
             # Mock config extractor
             mock_extractor_instance = Mock()
-            mock_extractor_instance.extract_client_config = AsyncMock(return_value={
-                "splunk_host": "localhost",
-                "splunk_username": "admin"
-            })
+            mock_extractor_instance.extract_client_config = AsyncMock(
+                return_value={"splunk_host": "localhost", "splunk_username": "admin"}
+            )
             mock_extractor.return_value = mock_extractor_instance
 
             # Mock identity and service
@@ -1065,7 +1070,7 @@ class TestSplunkEmbeddedResource:
             resource = TestSplunkResource(
                 uri="embedded://splunk/test",
                 name="Test Splunk Resource",
-                description="A test Splunk resource"
+                description="A test Splunk resource",
             )
 
             content = await resource.get_content(mock_context)
@@ -1077,11 +1082,12 @@ class TestSplunkEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_no_splunk_config(self, mock_context):
         """Test getting content without Splunk configuration."""
+
         class TestSplunkResource(SplunkEmbeddedResource):
             async def _generate_splunk_content(self, ctx, identity, service):
                 return "splunk content"
 
-        with patch('src.resources.embedded.EnhancedConfigExtractor') as mock_extractor:
+        with patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor:
             mock_extractor_instance = Mock()
             mock_extractor_instance.extract_client_config = AsyncMock(return_value=None)
             mock_extractor.return_value = mock_extractor_instance
@@ -1089,7 +1095,7 @@ class TestSplunkEmbeddedResource:
             resource = TestSplunkResource(
                 uri="embedded://splunk/test",
                 name="Test Splunk Resource",
-                description="A test Splunk resource"
+                description="A test Splunk resource",
             )
 
             content = await resource.get_content(mock_context)
@@ -1100,13 +1106,15 @@ class TestSplunkEmbeddedResource:
     @pytest.mark.asyncio
     async def test_get_content_with_retry_logic(self, mock_context):
         """Test getting content with retry logic."""
+
         class TestSplunkResource(SplunkEmbeddedResource):
             async def _generate_splunk_content(self, ctx, identity, service):
                 return "splunk content"
 
-        with patch('src.resources.embedded.get_client_manager') as mock_get_manager, \
-             patch('src.resources.embedded.EnhancedConfigExtractor') as mock_extractor:
-
+        with (
+            patch("src.resources.embedded.get_client_manager") as mock_get_manager,
+            patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor,
+        ):
             # Mock client manager that fails on first attempt
             mock_manager = Mock()
             mock_manager.get_client_connection = AsyncMock()
@@ -1114,9 +1122,9 @@ class TestSplunkEmbeddedResource:
 
             # Mock config extractor
             mock_extractor_instance = Mock()
-            mock_extractor_instance.extract_client_config = AsyncMock(return_value={
-                "splunk_host": "localhost"
-            })
+            mock_extractor_instance.extract_client_config = AsyncMock(
+                return_value={"splunk_host": "localhost"}
+            )
             mock_extractor.return_value = mock_extractor_instance
 
             # Mock identity and service
@@ -1126,14 +1134,14 @@ class TestSplunkEmbeddedResource:
             # First call fails, second succeeds
             mock_manager.get_client_connection.side_effect = [
                 Exception("Connection failed"),
-                (mock_identity, mock_service)
+                (mock_identity, mock_service),
             ]
 
             resource = TestSplunkResource(
                 uri="embedded://splunk/test",
                 name="Test Splunk Resource",
                 description="A test Splunk resource",
-                retry_attempts=2
+                retry_attempts=2,
             )
 
             content = await resource.get_content(mock_context)
@@ -1164,7 +1172,7 @@ class TestEmbeddedResourcesIntegration:
             uri="embedded://test/lifecycle",
             name="Lifecycle Resource",
             description="A resource for testing lifecycle",
-            embedded_content="Lifecycle content"
+            embedded_content="Lifecycle content",
         )
 
         registry.register_embedded_resource(resource)
@@ -1192,16 +1200,14 @@ class TestEmbeddedResourcesIntegration:
             uri_template="embedded://docs/{category}/{filename}",
             name="Documentation Template",
             description="A documentation template",
-            parameter_types={"category": str, "filename": str}
+            parameter_types={"category": str, "filename": str},
         )
 
         registry.register_template(template)
 
         # Create resource from template
         resource = registry.create_from_template(
-            "embedded://docs/{category}/{filename}",
-            category="api",
-            filename="README.md"
+            "embedded://docs/{category}/{filename}", category="api", filename="README.md"
         )
 
         assert resource is not None
@@ -1223,7 +1229,7 @@ class TestEmbeddedResourcesIntegration:
     async def test_file_resource_with_watching(self, mock_context):
         """Test file resource with file watching."""
         # Create temporary file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("Initial content")
             temp_path = f.name
 
@@ -1236,7 +1242,7 @@ class TestEmbeddedResourcesIntegration:
                 name="Watched File Resource",
                 description="A watched file resource",
                 file_path=temp_path,
-                watch_file=True
+                watch_file=True,
             )
 
             registry.register_embedded_resource(resource)
@@ -1246,7 +1252,7 @@ class TestEmbeddedResourcesIntegration:
             assert content1 == "Initial content"
 
             # Update file
-            with open(temp_path, 'w') as f:
+            with open(temp_path, "w") as f:
                 f.write("Updated content")
 
             # Get updated content
@@ -1269,7 +1275,7 @@ class TestEmbeddedResourcesIntegration:
             description="A resource with invalid JSON",
             embedded_content='{"invalid": json',  # Invalid JSON
             mime_type="application/json",
-            validate_content=True
+            validate_content=True,
         )
 
         registry.register_embedded_resource(resource1)
@@ -1279,7 +1285,7 @@ class TestEmbeddedResourcesIntegration:
             uri="embedded://file/missing",
             name="Missing File Resource",
             description="A resource for a missing file",
-            file_path="/nonexistent/file.txt"
+            file_path="/nonexistent/file.txt",
         )
 
         registry.register_embedded_resource(resource2)

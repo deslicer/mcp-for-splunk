@@ -9,6 +9,8 @@ from unittest.mock import Mock
 
 import pytest
 
+from src.tools.dashboards.create_dashboard import CreateDashboard
+
 
 class TestListDashboards:
     """Test suite for ListDashboards tool."""
@@ -289,6 +291,80 @@ class TestCreateDashboard:
                 assert data["name"] == "classic_created"
                 assert data["type"] in ["studio", "classic"]
                 assert "web_url" in data
+
+    @pytest.mark.asyncio
+    async def test_studio_wrapper_from_dict_direct(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        # Execute directly with mock context to inspect mock service state
+        result = await tool.execute(
+            mock_context,
+            name="studio_wrapped_dict",
+            definition={
+                "title": "Studio Created",
+                "dataSources": {},
+                "visualizations": {},
+                "layout": {"type": "absolute", "structure": []},
+            },
+            dashboard_type="studio",
+            label="Studio Created",
+            description="Created by tests",
+        )
+        assert result.get("status") == "success"
+        # Inspect stored eai:data from mock service
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_wrapped_dict"]["content"]["eai:data"]
+        assert '<dashboard version="2"' in stored
+        assert "<definition><![CDATA[" in stored
+        assert '"title":"Studio Created"' in stored
+        # Detected type should be studio
+        assert result.get("type") == "studio"
+
+    @pytest.mark.asyncio
+    async def test_studio_wrapper_from_json_string_auto(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        studio_json = json.dumps(
+            {
+                "title": "Auto Studio",
+                "dataSources": {},
+                "visualizations": {},
+                "layout": {"type": "absolute", "structure": []},
+            }
+        )
+        result = await tool.execute(
+            mock_context,
+            name="studio_wrapped_auto",
+            definition=studio_json,
+            # dashboard_type omitted -> auto-detect
+        )
+        assert result.get("status") == "success"
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_wrapped_auto"]["content"]["eai:data"]
+        assert '<dashboard version="2"' in stored
+        assert "<definition><![CDATA[" in stored
+        assert '"title":"Auto Studio"' in stored
+        assert result.get("type") == "studio"
+
+    @pytest.mark.asyncio
+    async def test_studio_prewrapped_pass_through(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        prewrapped = (
+            '<dashboard version="2" theme="light">\n'
+            "  <label>Prewrapped</label>\n"
+            '  <definition><![CDATA[{"title":"Already Wrapped"}]]></definition>\n'
+            "</dashboard>"
+        )
+        result = await tool.execute(
+            mock_context,
+            name="studio_prewrapped",
+            definition=prewrapped,
+            dashboard_type="studio",
+        )
+        assert result.get("status") == "success"
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_prewrapped"]["content"]["eai:data"]
+        # Should be unchanged (no double-wrap)
+        assert stored == prewrapped
+        assert result.get("type") == "studio"
 
     async def test_overwrite_existing_dashboard(self, fastmcp_client, extract_tool_result):
         # First attempt should simulate conflict -> then overwrite path

@@ -361,8 +361,8 @@ Always structure your analysis comprehensively and provide practical, implementa
 **Diagnostic Context:**
 - Time Range: {diagnostic_context.earliest_time} to {diagnostic_context.latest_time}
 - Complexity Level: {diagnostic_context.complexity_level}
-- Focus Index: {diagnostic_context.focus_index or 'All indexes'}
-- Focus Host: {diagnostic_context.focus_host or 'All hosts'}
+- Focus Index: {diagnostic_context.focus_index or "All indexes"}
+- Focus Host: {diagnostic_context.focus_host or "All hosts"}
 """
 
         if diagnostic_context.problem_description:

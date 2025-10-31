@@ -347,7 +347,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
                 # Expose trace_id to downstream tasks via FastMCP context state if available
                 try:
                     if hasattr(ctx, "set_state"):
-                        trace_id_val = getattr(_trace, "id", None) or getattr(_trace, "trace_id", None)
+                        trace_id_val = getattr(_trace, "id", None) or getattr(
+                            _trace, "trace_id", None
+                        )
                         ctx.set_state("openai_trace_id", trace_id_val)
                         logger.info("Workflow trace_id resolved: %s", trace_id_val)
                 except Exception:
@@ -367,7 +369,9 @@ you need to run, or for building automated troubleshooting pipelines.""",
                 )
                 # Attach top-level trace metadata
                 try:
-                    trace_base = os.getenv("OPENAI_TRACES_BASE_URL", "https://platform.openai.com/logs/trace")
+                    trace_base = os.getenv(
+                        "OPENAI_TRACES_BASE_URL", "https://platform.openai.com/logs/trace"
+                    )
                     trace_id = getattr(_trace, "id", None) or getattr(_trace, "trace_id", None)
                     result.setdefault("tracing_info", {})
                     result["tracing_info"]["trace_id"] = trace_id

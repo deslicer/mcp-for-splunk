@@ -2,8 +2,9 @@
 Tests for Splunk configuration spec reference resource.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from src.resources.splunk_docs import (
     SplunkSpecReferenceResource,

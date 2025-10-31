@@ -82,9 +82,7 @@ class GetMetadata(BaseTool):
         if not is_available:
             return self.format_error_response(error_msg)
 
-        self.logger.info(
-            "Retrieving metadata values for index '%s' field '%s'", index, field
-        )
+        self.logger.info("Retrieving metadata values for index '%s' field '%s'", index, field)
         await ctx.info(f"Retrieving {field} values for index '{index}'")
 
         try:
@@ -138,5 +136,3 @@ class GetMetadata(BaseTool):
             self.logger.error("Failed to retrieve metadata values: %s", str(e))
             await ctx.error(f"Failed to retrieve metadata values: {str(e)}")
             return self.format_error_response(str(e))
-
-

@@ -5,7 +5,6 @@ This test suite follows the FastMCP testing best practices by using the Client
 with the server instance for in-memory testing, avoiding external server processes.
 """
 
-
 import pytest
 from fastmcp.exceptions import ToolError
 

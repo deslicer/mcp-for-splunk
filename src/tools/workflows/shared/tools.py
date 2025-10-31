@@ -135,7 +135,9 @@ class SplunkToolRegistry:
             # Look up the MCP tool instance and metadata
             tool = mcp_tool_registry.get_tool(mcp_name)
             if not tool:
-                logger.warning(f"Requested agent tool '{requested_name}' not found as MCP tool '{mcp_name}'")
+                logger.warning(
+                    f"Requested agent tool '{requested_name}' not found as MCP tool '{mcp_name}'"
+                )
                 return None
 
             metadata = mcp_tool_registry.get_metadata(mcp_name)
@@ -200,7 +202,9 @@ class SplunkToolRegistry:
                 return None
 
         except Exception as e:
-            logger.error(f"Failed to create dynamic agent tool for '{requested_name}': {e}", exc_info=True)
+            logger.error(
+                f"Failed to create dynamic agent tool for '{requested_name}': {e}", exc_info=True
+            )
             return None
 
     async def call_tool(self, tool_name: str, args: dict[str, Any] = None) -> dict[str, Any]:
@@ -363,7 +367,9 @@ def create_splunk_tools(splunk_tool_registry: SplunkToolRegistry) -> list[Callab
 
                     # Report completion with detailed stats
                     if hasattr(ctx, "info"):
-                        await ctx.info(f"✅ Search job {job_id} completed in {search_duration:.1f}s")
+                        await ctx.info(
+                            f"✅ Search job {job_id} completed in {search_duration:.1f}s"
+                        )
                         await ctx.info(
                             f"📊 Results: {result_count} events, scanned {scan_count:,} events, matched {event_count:,} events"
                         )

@@ -799,7 +799,8 @@ class TestErrorHandling:
         """Test tool behavior with invalid parameters."""
         # Test with invalid search query parameters
         result = await client.call_tool(
-            "run_oneshot_search", {"query": "", "earliest_time": "invalid_time"}  # Empty query
+            "run_oneshot_search",
+            {"query": "", "earliest_time": "invalid_time"},  # Empty query
         )
 
         # Should handle gracefully and return error information
@@ -975,13 +976,13 @@ class TestIntegrationWorkflows:
         self, client, comprehensive_mock_splunk_service
     ):
         """Test a complete health assessment workflow."""
-        with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
-        ) as mock_get_service, patch(
-            "src.tools.admin.apps.ListApps.get_splunk_service"
-        ) as mock_apps_service, patch(
-            "src.tools.metadata.indexes.ListIndexes.get_splunk_service"
-        ) as mock_indexes_service:
+        with (
+            patch("src.tools.health.status.GetSplunkHealth.get_splunk_service") as mock_get_service,
+            patch("src.tools.admin.apps.ListApps.get_splunk_service") as mock_apps_service,
+            patch(
+                "src.tools.metadata.indexes.ListIndexes.get_splunk_service"
+            ) as mock_indexes_service,
+        ):
             # Mock as async methods
             mock_get_service.return_value = AsyncMock(
                 return_value=comprehensive_mock_splunk_service
@@ -1035,9 +1036,7 @@ class TestIntegrationWorkflows:
     async def test_troubleshooting_workflow_with_resources(self, client):
         """Test workflow with resource access using existing prompts."""
         # 1. Get MCP overview prompt with parameters
-        prompt_result = await client.get_prompt(
-            "mcp_overview", {"detail_level": "advanced"}
-        )
+        prompt_result = await client.get_prompt("mcp_overview", {"detail_level": "advanced"})
 
         # Extract prompt content properly
         if hasattr(prompt_result, "messages") and prompt_result.messages:

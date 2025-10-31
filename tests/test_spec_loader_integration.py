@@ -1,8 +1,8 @@
 """Test that SplunkSpecReferenceResource is properly loaded through the MCP loader."""
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-from mcp.server import Server
 from fastmcp import FastMCP
 
 
@@ -60,10 +60,10 @@ def test_spec_reference_handler_registration():
 
 def test_spec_reference_in_skip_list():
     """Test that spec reference URI is in the skip list."""
-    from src.core.loader import ResourceLoader
-
     # This is a code inspection test - verify the skip list exists
     import inspect
+
+    from src.core.loader import ResourceLoader
 
     source = inspect.getsource(ResourceLoader._load_single_resource)
 

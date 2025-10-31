@@ -13,6 +13,7 @@ The `create_dashboard` tool enables AI agents and automation to create dashboard
 - Optionally overwrites existing dashboards
 - Sets sharing permissions and access control lists (ACLs)
 - Updates labels and descriptions after creation
+- For Dashboard Studio, automatically wraps JSON in the required XML wrapper with CDATA
 
 **REST Endpoint:**
 
@@ -128,6 +129,31 @@ result = await create_dashboard.execute(
     dashboard_type="studio",
     app="myapp"
 )
+### Studio XML Wrapper Behavior
+
+When `dashboard_type="studio"` or auto-detected as Studio, you can provide either:
+
+- A Python dict (Studio JSON). The tool wraps it into the required XML including a `<definition><![CDATA[ ... ]]></definition>` block.
+- A JSON string. The tool wraps it the same way.
+- A pre-wrapped XML string that already contains `<definition>` or `<dashboard version="2">`. The tool detects this and will not double‑wrap.
+
+Wrapper template used (theme default is light):
+
+```xml
+<dashboard version="2" theme="light">
+  <label>${LABEL}</label>
+  <description>${DESCRIPTION}</description>
+  <definition><![CDATA[
+${STUDIO_JSON}
+  ]]></definition>
+</dashboard>
+```
+
+Notes:
+
+- The tool protects against embedded `]]>` in JSON by splitting the CDATA safely.
+- Label/description are also posted via a follow‑up metadata call for compatibility; wrapper includes them when provided.
+
 ```
 
 ### Overwrite Existing Dashboard

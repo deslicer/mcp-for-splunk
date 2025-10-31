@@ -4,6 +4,7 @@ Create a dashboard (Simple XML or Dashboard Studio) via Splunk REST API.
 
 import json
 from typing import Any
+from xml.sax.saxutils import escape as xml_escape
 
 from fastmcp import Context
 
@@ -42,6 +43,58 @@ class CreateDashboard(BaseTool):
         tags=["dashboards", "visualization", "ui", "create", "xml", "json"],
         requires_connection=True,
     )
+
+    def _ensure_studio_xml_wrapper(
+        self,
+        definition: Any,
+        label: str | None,
+        description: str | None,
+    ) -> str:
+        """
+        Ensure the provided Studio definition is wrapped in the required XML
+        structure with a CDATA <definition> block. If the definition already
+        includes a <definition> or a <dashboard> wrapper, return it unchanged.
+
+        - Accepts dict (Studio JSON) or str (JSON string or pre-wrapped XML)
+        - Compacts JSON for CDATA
+        - Handles embedded ']]>' by splitting CDATA safely
+        - Includes optional <label> and <description>
+        """
+
+        # Pass-through if already wrapped (avoid double wrap)
+        if isinstance(definition, str):
+            if "<definition>" in definition or "<dashboard" in definition:
+                return definition
+
+        # Normalize to a compact JSON string
+        studio_json_str: str
+        if isinstance(definition, dict):
+            studio_json_str = json.dumps(definition, separators=(",", ":"))
+        elif isinstance(definition, str):
+            try:
+                parsed = json.loads(definition)
+                studio_json_str = json.dumps(parsed, separators=(",", ":"))
+            except Exception:  # noqa: BLE001 - be permissive, use raw string
+                studio_json_str = definition.strip()
+        else:
+            raise TypeError("Studio definition must be dict or str")
+
+        # Protect CDATA from accidental termination inside JSON
+        cdata_safe_json = studio_json_str.replace("]]>", "]]]]><![CDATA[>")
+
+        # Build XML wrapper
+        xml_parts: list[str] = []
+        xml_parts.append('<dashboard version="2" theme="light">')
+        if label:
+            xml_parts.append(f"  <label>{xml_escape(label)}</label>")
+        if description:
+            xml_parts.append(f"  <description>{xml_escape(description)}</description>")
+        xml_parts.append("  <definition><![CDATA[")
+        xml_parts.append(cdata_safe_json)
+        xml_parts.append("  ]]></definition>")
+        xml_parts.append("</dashboard>")
+
+        return "\n".join(xml_parts)
 
     async def execute(
         self,
@@ -89,7 +142,7 @@ class CreateDashboard(BaseTool):
             if resolved_type == "auto":
                 if isinstance(definition, dict):
                     resolved_type = "studio"
-                    eai_data = json.dumps(definition)
+                    eai_data = self._ensure_studio_xml_wrapper(definition, label, description)
                 elif isinstance(definition, str):
                     # Heuristics: Studio hybrid (<definition>) or pure JSON
                     if "<definition>" in definition:
@@ -99,7 +152,9 @@ class CreateDashboard(BaseTool):
                         try:
                             json.loads(definition)
                             resolved_type = "studio"
-                            eai_data = definition
+                            eai_data = self._ensure_studio_xml_wrapper(
+                                definition, label, description
+                            )
                         except (json.JSONDecodeError, TypeError):
                             resolved_type = "classic"
                             eai_data = definition
@@ -108,10 +163,13 @@ class CreateDashboard(BaseTool):
                         "Invalid 'definition' type. Expect dict or str"
                     )
             elif resolved_type == "studio":
-                if isinstance(definition, dict):
-                    eai_data = json.dumps(definition)
-                elif isinstance(definition, str):
-                    eai_data = definition
+                if isinstance(definition, dict) or isinstance(definition, str):
+                    try:
+                        eai_data = self._ensure_studio_xml_wrapper(definition, label, description)
+                    except Exception as wrap_err:  # pylint: disable=broad-except
+                        return self.format_error_response(
+                            f"Invalid Studio definition: {str(wrap_err)}"
+                        )
                 else:
                     return self.format_error_response(
                         "Studio dashboards require JSON (dict) or JSON string"
@@ -128,10 +186,11 @@ class CreateDashboard(BaseTool):
             )
 
             # Web URL for response (use Splunk Web port 8000, not management port)
-            splunk_host = service.host
-            web_scheme = service.scheme
+            # Use safe defaults for mocks that may not define host/scheme
+            splunk_host = getattr(service, "host", "localhost")
+            web_scheme = getattr(service, "scheme", "https")
             web_port = (
-                443 if service.scheme == "https" else 8000
+                443 if web_scheme == "https" else 8000
             )  # Splunk Web UI port (management API is on service.port which is 8089)
 
             web_base = f"{web_scheme}://{splunk_host}:{web_port}"

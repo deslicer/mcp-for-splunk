@@ -342,7 +342,7 @@ You are performing data analysis based on the initial assessment results.
 await dynamic_troubleshoot_agent.execute(
     ctx=context,
     problem_description="Describe your specific issue here",
-    workflow_type="{workflow['workflow_id']}",
+    workflow_type="{workflow["workflow_id"]}",
     earliest_time="-24h",
     latest_time="now",
     focus_index="main"  # or your specific index

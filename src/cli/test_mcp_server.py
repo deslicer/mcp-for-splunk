@@ -86,7 +86,9 @@ async def test_server_connection(url: str = "", detailed: bool = False):
                     result = await client.call_tool(health_tool.name, {})
                     # Normalize structured output
                     status_info = None
-                    if hasattr(result, "structured_content") and isinstance(result.structured_content, dict):
+                    if hasattr(result, "structured_content") and isinstance(
+                        result.structured_content, dict
+                    ):
                         status_info = result.structured_content
                     elif hasattr(result, "data") and isinstance(result.data, dict):
                         status_info = result.data
@@ -108,7 +110,9 @@ async def test_server_connection(url: str = "", detailed: bool = False):
                     print("-- Splunk Health --")
                     if isinstance(status_info, dict):
                         status = (status_info.get("status") or "unknown").lower()
-                        server_name = status_info.get("server_name") or status_info.get("server") or "unknown"
+                        server_name = (
+                            status_info.get("server_name") or status_info.get("server") or "unknown"
+                        )
                         version = status_info.get("version") or "unknown"
                         source = status_info.get("connection_source") or ""
 
@@ -123,7 +127,9 @@ async def test_server_connection(url: str = "", detailed: bool = False):
                             print()
                             print("Troubleshooting:")
                             print("1) Verify Splunk settings in .env:")
-                            print("   SPLUNK_HOST, SPLUNK_PORT, SPLUNK_USERNAME, SPLUNK_PASSWORD, SPLUNK_SCHEME, SPLUNK_VERIFY_SSL")
+                            print(
+                                "   SPLUNK_HOST, SPLUNK_PORT, SPLUNK_USERNAME, SPLUNK_PASSWORD, SPLUNK_SCHEME, SPLUNK_VERIFY_SSL"
+                            )
                             print("2) Restart MCP Server:")
                             print("   mcp-server --stop")
                             print("   mcp-server --local")
@@ -132,7 +138,11 @@ async def test_server_connection(url: str = "", detailed: bool = False):
 
                     if detailed:
                         print("\nRaw health result (truncated):")
-                        preview = json.dumps(status_info, indent=2)[:800] if isinstance(status_info, dict) else str(status_info)[:800]
+                        preview = (
+                            json.dumps(status_info, indent=2)[:800]
+                            if isinstance(status_info, dict)
+                            else str(status_info)[:800]
+                        )
                         print(preview)
                 except (RuntimeError, ValueError, TypeError) as e:
                     print(f"🔧 Splunk Health: error calling '{health_tool.name}': {e}")
@@ -154,9 +164,15 @@ async def test_server_connection(url: str = "", detailed: bool = False):
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(prog="test-mcp-server", description="Quick MCP server verification")
-    parser.add_argument("--url", help="Override server URL (e.g., http://localhost:8003/mcp/)", default="")
-    parser.add_argument("--detailed", action="store_true", help="Show detailed tool/resource and health output")
+    parser = argparse.ArgumentParser(
+        prog="test-mcp-server", description="Quick MCP server verification"
+    )
+    parser.add_argument(
+        "--url", help="Override server URL (e.g., http://localhost:8003/mcp/)", default=""
+    )
+    parser.add_argument(
+        "--detailed", action="store_true", help="Show detailed tool/resource and health output"
+    )
     args = parser.parse_args()
 
     asyncio.run(test_server_connection(args.url, args.detailed))
@@ -164,5 +180,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

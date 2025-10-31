@@ -10,11 +10,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp import Context
+
+from src.tools.workflows.get_executed_workflows import GetExecutedWorkflowsTool
 from src.tools.workflows.shared.context import DiagnosticResult
 
 # Test the workflow runner tool
 from src.tools.workflows.workflow_runner import WorkflowRunnerTool
-from src.tools.workflows.get_executed_workflows import GetExecutedWorkflowsTool
 
 
 class TestWorkflowRunnerTool:
@@ -46,28 +47,26 @@ class TestWorkflowRunnerTool:
     @pytest.fixture
     def mock_openai_agents(self):
         """Mock OpenAI agents SDK."""
-        with patch("src.tools.workflows.workflow_runner.OPENAI_AGENTS_AVAILABLE", True), patch(
-            "src.tools.workflows.workflow_runner.Agent"
-        ), patch("src.tools.workflows.workflow_runner.Runner"), patch(
-            "src.tools.workflows.workflow_runner.trace"
-        ), patch(
-            "src.tools.workflows.workflow_runner.custom_span"
+        with (
+            patch("src.tools.workflows.workflow_runner.OPENAI_AGENTS_AVAILABLE", True),
+            patch("src.tools.workflows.workflow_runner.Agent"),
+            patch("src.tools.workflows.workflow_runner.Runner"),
+            patch("src.tools.workflows.workflow_runner.trace"),
+            patch("src.tools.workflows.workflow_runner.custom_span"),
         ):
             yield
 
     @pytest.fixture
     def mock_workflow_infrastructure(self):
         """Mock the workflow execution infrastructure."""
-        with patch(
-            "src.tools.workflows.workflow_runner.SplunkToolRegistry"
-        ) as mock_registry, patch(
-            "src.tools.workflows.workflow_runner.WorkflowManager"
-        ) as mock_manager, patch(
-            "src.tools.workflows.workflow_runner.ParallelWorkflowExecutor"
-        ) as mock_executor, patch(
-            "src.tools.workflows.workflow_runner.create_summarization_tool"
-        ) as mock_summarization, patch(
-            "src.tools.workflows.shared.tools.create_splunk_tools"
+        with (
+            patch("src.tools.workflows.workflow_runner.SplunkToolRegistry") as mock_registry,
+            patch("src.tools.workflows.workflow_runner.WorkflowManager") as mock_manager,
+            patch("src.tools.workflows.workflow_runner.ParallelWorkflowExecutor") as mock_executor,
+            patch(
+                "src.tools.workflows.workflow_runner.create_summarization_tool"
+            ) as mock_summarization,
+            patch("src.tools.workflows.shared.tools.create_splunk_tools"),
         ):
             # Mock workflow definition
             mock_workflow = MagicMock()
@@ -358,12 +357,13 @@ class TestWorkflowRunnerTool:
     async def test_dynamic_tool_resolution_aliases(self):
         """Test that dynamic agent tool creation resolves aliases like 'me'."""
         # Patch OpenAI agents availability and Agent class used in parallel executor
-        with patch(
-            "src.tools.workflows.shared.parallel_executor.OPENAI_AGENTS_AVAILABLE", True
-        ), patch("src.tools.workflows.shared.parallel_executor.Agent") as mock_agent:
+        with (
+            patch("src.tools.workflows.shared.parallel_executor.OPENAI_AGENTS_AVAILABLE", True),
+            patch("src.tools.workflows.shared.parallel_executor.Agent") as mock_agent,
+        ):
             from src.tools.workflows.shared.parallel_executor import ParallelWorkflowExecutor
-            from src.tools.workflows.shared.workflow_manager import TaskDefinition
             from src.tools.workflows.shared.tools import SplunkToolRegistry
+            from src.tools.workflows.shared.workflow_manager import TaskDefinition
 
             # Prepare a mock tool registry with dynamic factory
             mock_registry = MagicMock(spec=SplunkToolRegistry)
@@ -392,7 +392,7 @@ class TestWorkflowRunnerTool:
             )
 
             # Invoke agent creation (internal helper)
-            agent = executor._create_agent_from_task(task)
+            executor._create_agent_from_task(task)
 
             # Ensure Agent was constructed
             assert mock_agent.called

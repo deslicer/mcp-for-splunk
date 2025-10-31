@@ -111,5 +111,3 @@ class GetExecutedWorkflowsTool(BaseTool):
                 for rec in items
             ],
         }
-
-
