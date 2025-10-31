@@ -758,6 +758,37 @@ async def user_agent_info(ctx: Context) -> dict:
     }
 
 
+def get_mcp() -> FastMCP:
+    """Return the configured FastMCP instance for embedding/wrapping."""
+    return mcp
+
+
+def create_root_app(server: FastMCP) -> Starlette:
+    """Create the Starlette root app hosting the MCP HTTP app and middleware.
+
+    - Builds the MCP app with path "/mcp"
+    - Applies `HeaderCaptureMiddleware` at the root level
+    - Loads plugins once with both `mcp` and `root_app` available
+    - Mounts the MCP app at "/"
+    """
+    # Build the MCP Starlette app with the /mcp path
+    mcp_app = server.http_app(path="/mcp", transport="http")
+
+    # Parent Starlette application that applies middleware to the initial HTTP handshake
+    root_app = Starlette(lifespan=mcp_app.lifespan)
+    root_app.add_middleware(HeaderCaptureMiddleware)
+
+    # Allow plugins to attach HTTP middleware/routes once the Starlette app exists
+    try:
+        load_plugins(server, root_app)
+    except Exception as _e:
+        logger.warning("Plugin load (HTTP stage) failed: %s", _e)
+
+    # Mount the entire MCP app at root since it already includes /mcp in its path
+    root_app.mount("/", mcp_app)
+    return root_app
+
+
 async def main():
     """Main function for running the MCP server"""
     # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
@@ -769,26 +800,8 @@ async def main():
     # Ensure components are loaded at server startup for health endpoints
     await ensure_components_loaded(mcp)
 
-    # Build the MCP Starlette app with the /mcp path
-    # FastMCP will handle the path internally when using http_app()
-    mcp_app = mcp.http_app(
-        path="/mcp",
-        transport="http",
-    )
-
-    # Parent Starlette application that applies middleware to the initial HTTP handshake
-    # IMPORTANT: pass the FastMCP app lifespan so Streamable HTTP session manager initializes
-    root_app = Starlette(lifespan=mcp_app.lifespan)
-    root_app.add_middleware(HeaderCaptureMiddleware)
-
-    # Allow plugins to attach HTTP middleware/routes once the Starlette app exists
-    try:
-        load_plugins(mcp, root_app)
-    except Exception as _e:
-        logger.warning("Plugin load (HTTP stage) failed: %s", _e)
-
-    # Mount the entire MCP app at root since it already includes /mcp in its path
-    root_app.mount("/", mcp_app)
+    # Build the application via factory
+    root_app = create_root_app(mcp)
     # Use uvicorn to run the server
     try:
         import uvicorn
