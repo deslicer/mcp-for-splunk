@@ -130,7 +130,7 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
         except Exception:
             eps = []
 
-        for ep in eps or []:
+        for ep in eps:
             try:
                 setup = ep.load()
                 setup(mcp=mcp, root_app=root_app)
@@ -432,11 +432,8 @@ mcp = FastMCP(name="MCP Server for Splunk")
 # Import and setup health routes
 setup_health_routes(mcp)
 
-# Load plugins that only require the MCP server (e.g., middleware, tools, resources, prompts)
-try:
-    load_plugins(mcp)
-except Exception as _e:
-    logger.warning("Plugin load (MCP stage) failed: %s", _e)
+# NOTE: Plugins are loaded once after the Starlette app is created so plugins can
+# register both MCP-level and HTTP-level integrations in a single call.
 
 # Ensure components are loaded when module is imported for fastmcp cli compatibility
 # Load components synchronously during module initialization
