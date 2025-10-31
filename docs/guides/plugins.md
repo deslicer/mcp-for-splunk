@@ -31,15 +31,17 @@ auth = "auth_plugin.plugins:setup"
 ```python
 # src/auth_plugin/plugins.py
 import os
+import secrets
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from fastmcp.server.middleware import Middleware
 
 
 def _authorized(headers: dict) -> bool:
-    expected = os.getenv("PLUGIN_API_KEY")
-    provided = headers.get("x-api-key")
-    return bool(expected) and provided == expected
+    expected = os.getenv("PLUGIN_API_KEY") or ""
+    provided = headers.get("x-api-key") or ""
+    # Use constant-time comparison to avoid timing attacks
+    return bool(expected) and secrets.compare_digest(provided, expected)
 
 class AuthHTTPMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -59,6 +61,8 @@ def setup(mcp, root_app=None):
     if root_app is not None:
         root_app.add_middleware(AuthHTTPMiddleware)
 ```
+
+> Security: Use `secrets.compare_digest` for API key checks to prevent timing attacks.
 
 ## Local run
 
