@@ -6,9 +6,9 @@ import pytest
 
 from src.core.registry import resource_registry
 from src.resources.dashboard_studio_docs import (
-    DashboardStudioDocsResource,
-    DashboardStudioDiscoveryResource,
     DASHBOARD_STUDIO_TOPICS,
+    DashboardStudioDiscoveryResource,
+    DashboardStudioDocsResource,
 )
 
 
@@ -26,7 +26,10 @@ class TestDashboardStudioResources:
 
         assert resource.uri == "dashboard-studio://cheatsheet"
         assert "Dashboard Studio Cheatsheet" in resource.name
-        assert "cheatsheet" in resource.description.lower() or "comprehensive" in resource.description.lower()
+        assert (
+            "cheatsheet" in resource.description.lower()
+            or "comprehensive" in resource.description.lower()
+        )
         assert resource.mime_type == "text/markdown"
 
     def test_discovery_resource_metadata(self):
@@ -35,7 +38,9 @@ class TestDashboardStudioResources:
 
         assert resource.uri == "dashboard-studio://discovery"
         assert resource.name == "dashboard_studio_discovery"
-        assert "discovery" in resource.description.lower() or "index" in resource.description.lower()
+        assert (
+            "discovery" in resource.description.lower() or "index" in resource.description.lower()
+        )
         assert resource.mime_type == "text/markdown"
 
     @pytest.mark.asyncio
@@ -115,7 +120,6 @@ class TestDashboardStudioResources:
     def test_metadata_tags(self):
         """Test resources have appropriate tags."""
         # Test cheatsheet resource tags
-        cheatsheet = DashboardStudioDocsResource("cheatsheet")
         assert "dashboard-studio" in DashboardStudioDocsResource.METADATA.tags
 
         # Test discovery resource tags

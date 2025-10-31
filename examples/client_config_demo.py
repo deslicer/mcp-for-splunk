@@ -11,8 +11,8 @@ import asyncio
 import os
 import sys
 
-from src.tools.health.status import GetSplunkHealth
 from src.core.shared_context import http_headers_context
+from src.tools.health.status import GetSplunkHealth
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))

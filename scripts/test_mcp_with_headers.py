@@ -163,7 +163,7 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                         # Try to parse as JSON for structured display
                         try:
                             data = json.loads(content.text)
-                            print(f"\n  Parsed JSON:")
+                            print("\n  Parsed JSON:")
                             for key, value in data.items():
                                 print(f"    {key}: {value}")
                         except (json.JSONDecodeError, AttributeError):

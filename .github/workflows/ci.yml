@@ -9,6 +9,8 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      MCP_DISABLE_PLUGINS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v5

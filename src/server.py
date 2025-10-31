@@ -16,6 +16,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
+from importlib.metadata import entry_points
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.dependencies import get_context, get_http_headers, get_http_request
@@ -99,6 +100,49 @@ def _record_factory(*args, **kwargs):
 
 
 logging.setLogRecordFactory(_record_factory)
+
+
+# ------------------------------
+# Plugin loading (entry points)
+# ------------------------------
+# Group name can be overridden for testing/advanced scenarios
+PLUGIN_GROUP = os.getenv("MCP_PLUGIN_GROUP", "mcp_splunk.plugins")
+
+
+def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
+    """Load premium/third-party plugins via Python entry points.
+
+    Each plugin must expose a callable `setup(mcp, root_app=None)`.
+    Set MCP_DISABLE_PLUGINS=true to skip loading.
+    """
+    try:
+        if os.getenv("MCP_DISABLE_PLUGINS", "false").lower() == "true":
+            logger.info("Plugin loading disabled by MCP_DISABLE_PLUGINS")
+            return 0
+    except Exception:
+        pass
+
+    loaded = 0
+    try:
+        # Prefer modern .select API; if unavailable, no plugins
+        try:
+            eps = entry_points().select(group=PLUGIN_GROUP)  # type: ignore[attr-defined]
+        except Exception:
+            eps = []
+
+        for ep in eps:
+            try:
+                setup = ep.load()
+                setup(mcp=mcp, root_app=root_app)
+                loaded += 1
+                logger.info("Loaded plugin: %s", getattr(ep, "name", str(ep)))
+            except Exception as e:
+                logger.warning("Plugin %s failed during setup: %s", getattr(ep, "name", str(ep)), e)
+    except Exception as e:
+        logger.warning("Plugin discovery failed: %s", e)
+
+    logger.info("Plugins loaded: %d", loaded)
+    return loaded
 
 
 def _cache_summary(include_values: bool = True) -> dict:
@@ -387,6 +431,9 @@ mcp = FastMCP(name="MCP Server for Splunk")
 
 # Import and setup health routes
 setup_health_routes(mcp)
+
+# NOTE: Plugins are loaded once after the Starlette app is created so plugins can
+# register both MCP-level and HTTP-level integrations in a single call.
 
 # Ensure components are loaded when module is imported for fastmcp cli compatibility
 # Load components synchronously during module initialization
@@ -711,6 +758,37 @@ async def user_agent_info(ctx: Context) -> dict:
     }
 
 
+def get_mcp() -> FastMCP:
+    """Return the configured FastMCP instance for embedding/wrapping."""
+    return mcp
+
+
+def create_root_app(server: FastMCP) -> Starlette:
+    """Create the Starlette root app hosting the MCP HTTP app and middleware.
+
+    - Builds the MCP app with path "/mcp"
+    - Applies `HeaderCaptureMiddleware` at the root level
+    - Loads plugins once with both `mcp` and `root_app` available
+    - Mounts the MCP app at "/"
+    """
+    # Build the MCP Starlette app with the /mcp path
+    mcp_app = server.http_app(path="/mcp", transport="http")
+
+    # Parent Starlette application that applies middleware to the initial HTTP handshake
+    root_app = Starlette(lifespan=mcp_app.lifespan)
+    root_app.add_middleware(HeaderCaptureMiddleware)
+
+    # Allow plugins to attach HTTP middleware/routes once the Starlette app exists
+    try:
+        load_plugins(server, root_app)
+    except Exception as _e:
+        logger.warning("Plugin load (HTTP stage) failed: %s", _e)
+
+    # Mount the entire MCP app at root since it already includes /mcp in its path
+    root_app.mount("/", mcp_app)
+    return root_app
+
+
 async def main():
     """Main function for running the MCP server"""
     # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
@@ -722,20 +800,8 @@ async def main():
     # Ensure components are loaded at server startup for health endpoints
     await ensure_components_loaded(mcp)
 
-    # Build the MCP Starlette app with the /mcp path
-    # FastMCP will handle the path internally when using http_app()
-    mcp_app = mcp.http_app(
-        path="/mcp",
-        transport="http",
-    )
-
-    # Parent Starlette application that applies middleware to the initial HTTP handshake
-    # IMPORTANT: pass the FastMCP app lifespan so Streamable HTTP session manager initializes
-    root_app = Starlette(lifespan=mcp_app.lifespan)
-    root_app.add_middleware(HeaderCaptureMiddleware)
-
-    # Mount the entire MCP app at root since it already includes /mcp in its path
-    root_app.mount("/", mcp_app)
+    # Build the application via factory
+    root_app = create_root_app(mcp)
     # Use uvicorn to run the server
     try:
         import uvicorn

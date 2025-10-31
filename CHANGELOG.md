@@ -2,13 +2,11 @@
 
 ## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.2.1) (2025-08-20)
 
-
 ### Bug Fixes
 
 * **readme:** correct logo image attribute for proper rendering ([#18](https://github.com/deslicer/mcp-for-splunk/issues/18)) ([d1c2e6b](https://github.com/deslicer/mcp-for-splunk/commit/d1c2e6bf66446657a09efbed2e919f13fb7f8d91))
 
 ## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.3.0) (2025-08-20)
-
 
 ### Features
 
@@ -81,7 +79,6 @@
 * update troubleshooting workflows and agent descriptions ([cee425f](https://github.com/deslicer/mcp-for-splunk/commit/cee425f0e018d5e4f40df288849c7138f0161a0f))
 * upgrade Splunk SDK to v2.1.0 and improve code quality ([943e67b](https://github.com/deslicer/mcp-for-splunk/commit/943e67bfef47860a06e9ac6714a9059fba5fd971))
 
-
 ### Bug Fixes
 
 * add comprehensive debugging and troubleshooting handler registration ([1c21b85](https://github.com/deslicer/mcp-for-splunk/commit/1c21b85324eb514e791d7ec0afad8364f90b10b7))
@@ -144,7 +141,6 @@
 * Update test fixtures to use proper FastMCP patterns ([ff0b505](https://github.com/deslicer/mcp-for-splunk/commit/ff0b505f1d685c9415efb46b01cda0605123770d))
 * update test to use existing mcp_overview prompt instead of non-existent troubleshoot_inputs ([e31d859](https://github.com/deslicer/mcp-for-splunk/commit/e31d85997d19ac7251a9e264fb5f54f2d9b5aedf))
 
-
 ### Documentation
 
 * add comprehensive resources section to README ([f172b69](https://github.com/deslicer/mcp-for-splunk/commit/f172b69f1d64587e319021b46c30b8ef1449fba1))
@@ -173,7 +169,6 @@
 
 ## [0.2.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.1.0...v0.2.0) (2025-08-20)
 
-
 ### Features
 
 * add advanced multi-agent troubleshooting prompt with research-based patterns ([b5993ea](https://github.com/deslicer/mcp-for-splunk/commit/b5993ea17adf768f5bf699a097726343f803d29e))
@@ -236,7 +231,6 @@
 * update troubleshooting workflows and agent descriptions ([cee425f](https://github.com/deslicer/mcp-for-splunk/commit/cee425f0e018d5e4f40df288849c7138f0161a0f))
 * upgrade Splunk SDK to v2.1.0 and improve code quality ([943e67b](https://github.com/deslicer/mcp-for-splunk/commit/943e67bfef47860a06e9ac6714a9059fba5fd971))
 
-
 ### Bug Fixes
 
 * add comprehensive debugging and troubleshooting handler registration ([1c21b85](https://github.com/deslicer/mcp-for-splunk/commit/1c21b85324eb514e791d7ec0afad8364f90b10b7))
@@ -292,7 +286,6 @@
 * Update Splunk documentation URLs to use help.splunk.com ([7a62c54](https://github.com/deslicer/mcp-for-splunk/commit/7a62c54b6e5eccb476b0390e020cdabb72537d60))
 * Update test fixtures to use proper FastMCP patterns ([ff0b505](https://github.com/deslicer/mcp-for-splunk/commit/ff0b505f1d685c9415efb46b01cda0605123770d))
 * update test to use existing mcp_overview prompt instead of non-existent troubleshoot_inputs ([e31d859](https://github.com/deslicer/mcp-for-splunk/commit/e31d85997d19ac7251a9e264fb5f54f2d9b5aedf))
-
 
 ### Documentation
 
@@ -318,7 +311,6 @@
 
 ## 0.1.0 (2025-08-20)
 
-
 ### Features
 
 * add advanced multi-agent troubleshooting prompt with research-based patterns ([b5993ea](https://github.com/deslicer/mcp-for-splunk/commit/b5993ea17adf768f5bf699a097726343f803d29e))
@@ -381,7 +373,6 @@
 * update troubleshooting workflows and agent descriptions ([cee425f](https://github.com/deslicer/mcp-for-splunk/commit/cee425f0e018d5e4f40df288849c7138f0161a0f))
 * upgrade Splunk SDK to v2.1.0 and improve code quality ([943e67b](https://github.com/deslicer/mcp-for-splunk/commit/943e67bfef47860a06e9ac6714a9059fba5fd971))
 
-
 ### Bug Fixes
 
 * add comprehensive debugging and troubleshooting handler registration ([1c21b85](https://github.com/deslicer/mcp-for-splunk/commit/1c21b85324eb514e791d7ec0afad8364f90b10b7))
@@ -437,7 +428,6 @@
 * Update Splunk documentation URLs to use help.splunk.com ([7a62c54](https://github.com/deslicer/mcp-for-splunk/commit/7a62c54b6e5eccb476b0390e020cdabb72537d60))
 * Update test fixtures to use proper FastMCP patterns ([ff0b505](https://github.com/deslicer/mcp-for-splunk/commit/ff0b505f1d685c9415efb46b01cda0605123770d))
 * update test to use existing mcp_overview prompt instead of non-existent troubleshoot_inputs ([e31d859](https://github.com/deslicer/mcp-for-splunk/commit/e31d85997d19ac7251a9e264fb5f54f2d9b5aedf))
-
 
 ### Documentation
 

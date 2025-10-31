@@ -8,6 +8,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      MCP_DISABLE_PLUGINS: "true"
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
