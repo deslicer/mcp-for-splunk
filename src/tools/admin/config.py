@@ -363,13 +363,17 @@ class CreateConfig(BaseTool):
 
                 data = json.loads(json_bytes.decode("utf-8"))
                 entries = data.get("entry", []) if isinstance(data, dict) else []
-                if entries:
-                    entry = entries[0]
-                    return {
-                        "name": entry.get("name"),
-                        "content": entry.get("content", {}) or {},
-                        "acl": entry.get("acl", {}) or {},
-                    }
+                # Search through all entries to find the matching stanza name
+                # (entries may be returned in any order)
+                for entry in entries:
+                    entry_name = entry.get("name")
+                    if entry_name == normalized_stanza:
+                        return {
+                            "name": entry_name,
+                            "content": entry.get("content", {}) or {},
+                            "acl": entry.get("acl", {}) or {},
+                        }
+                # If no matching entry found, return empty dict
             except Exception:
                 pass
             return {}

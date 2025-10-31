@@ -51,21 +51,21 @@ class TestCreateConfigTool:
         tool = CreateConfig("create_config", "test")
         ctx = AsyncMock(spec=Context)
 
-        # Precreate stanza
+        # Precreate stanza - use a stanza that doesn't exist in initial mock configs
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
         await tool.execute(
             ctx,
             conf_file="transforms",
-            stanza="dnslookup",
-            settings={"external_cmd": "dnslookup.py"},
+            stanza="test_lookup",  # Use different stanza name to avoid initial mock config
+            settings={"external_cmd": "test_lookup.py"},
         )
 
         # Attempt to add an existing key with a different value without overwrite
         result = await tool.execute(
             ctx,
             conf_file="transforms",
-            stanza="dnslookup",
-            settings={"external_cmd": "dnslookup_v2.py", "fields_list": "clientip"},
+            stanza="test_lookup",  # Use same stanza name
+            settings={"external_cmd": "test_lookup_v2.py", "fields_list": "clientip"},
             overwrite=False,
         )
 
@@ -80,12 +80,12 @@ class TestCreateConfigTool:
         tool = CreateConfig("create_config", "test")
         ctx = AsyncMock(spec=Context)
 
-        # Create stanza with an initial value
+        # Create stanza with an initial value - use a stanza that doesn't exist in initial mock configs
         tool.check_splunk_available = MagicMock(return_value=(True, mock_splunk_service, ""))
         await tool.execute(
             ctx,
             conf_file="web",
-            stanza="settings",
+            stanza="test_settings",  # Use different stanza name to avoid initial mock config
             settings={"httpport": "8000"},
         )
 
@@ -93,7 +93,7 @@ class TestCreateConfigTool:
         result = await tool.execute(
             ctx,
             conf_file="web",
-            stanza="settings",
+            stanza="test_settings",  # Use same stanza name
             settings={"httpport": "8001", "mgmtHostPort": "127.0.0.1:8089"},
             overwrite=True,
         )
