@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "mcp-server-for-splunk-v*.*.*" # in case release-please prefixes tags
+  release:
+    types: [published]
+  workflow_dispatch:
 
 jobs:
   build-publish:
