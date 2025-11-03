@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.1...v0.3.0) (2025-11-03)
+
+
+### Features
+
+* Add create_dashboard tool for programmatic dashboard creation ([#53](https://github.com/deslicer/mcp-for-splunk/issues/53)) ([fbd11d4](https://github.com/deslicer/mcp-for-splunk/commit/fbd11d436e92ad2a91c649572e4ed1ff84db563c))
+* Add Lookup and Dashboard Management Tools with Studio Detection ([#51](https://github.com/deslicer/mcp-for-splunk/issues/51)) ([2205c47](https://github.com/deslicer/mcp-for-splunk/commit/2205c4740c46ad25a437640fc30ecfa65972b339))
+* Add Splunk Configuration Spec Reference Resources ([#52](https://github.com/deslicer/mcp-for-splunk/issues/52)) ([8a2b57d](https://github.com/deslicer/mcp-for-splunk/commit/8a2b57d8dc20c530d9ef180a681d1829df6d219d))
+* **docs:** Add CIM, Dashboard Studio, and Config Spec documentation tools ([#55](https://github.com/deslicer/mcp-for-splunk/issues/55)) ([6eafbe4](https://github.com/deslicer/mcp-for-splunk/commit/6eafbe41b292b8ef36b71a77f984cb6fc5d70081))
+* Ensure Studio dashboards wrap JSON in XML &lt;definition&gt; CDATA + tests/docs ([#56](https://github.com/deslicer/mcp-for-splunk/issues/56)) ([a8cd171](https://github.com/deslicer/mcp-for-splunk/commit/a8cd1712233d94ac842a7e16e563079e7fa567ac))
+* **server:** add entry-point plugin loader and generic plugins guide ([#58](https://github.com/deslicer/mcp-for-splunk/issues/58)) ([5b33709](https://github.com/deslicer/mcp-for-splunk/commit/5b33709a7f2d2db831cd35f2cc131074aaedc097))
+* **workflows:** dynamic MCP tool mapping for workflow tasks + alias support ([#27](https://github.com/deslicer/mcp-for-splunk/issues/27)) ([126d64d](https://github.com/deslicer/mcp-for-splunk/commit/126d64dbbdbc96d28f28fd4efe8bee137dc06f20))
+
+
+### Bug Fixes
+
+* Header Configuration, Session Management, and MCP Testing ([#50](https://github.com/deslicer/mcp-for-splunk/issues/50)) ([9afc2bf](https://github.com/deslicer/mcp-for-splunk/commit/9afc2bf0c4d25e0fefe5b168a252019c14b12636))
+* resolve FastMCP **kwargs compatibility issues ([#35](https://github.com/deslicer/mcp-for-splunk/issues/35)) ([06479db](https://github.com/deslicer/mcp-for-splunk/commit/06479db09eec79ba5b2ca07e865d74151162656d))
+* Traefik/Inspector connectivity and MCP bind address in dev compose ([#37](https://github.com/deslicer/mcp-for-splunk/issues/37)) ([cccf01a](https://github.com/deslicer/mcp-for-splunk/commit/cccf01a2492a9eca2bed9830c002091813e42b7c))
+* workflow prompts, lint, tests ([#38](https://github.com/deslicer/mcp-for-splunk/issues/38)) ([d1bb949](https://github.com/deslicer/mcp-for-splunk/commit/d1bb949a28f5e3c2c012fa5e1d822e60bc608cc9))
+
+
+### Documentation
+
+* switch clone URLs to HTTPS and update cd to mcp-for-splunk ([#31](https://github.com/deslicer/mcp-for-splunk/issues/31)) ([5266150](https://github.com/deslicer/mcp-for-splunk/commit/526615030247b306a8302ce72485049a3c6c080a))
+* **workflows:** Add missing_data_troubleshooting workflow README ([#33](https://github.com/deslicer/mcp-for-splunk/issues/33)) ([3e31285](https://github.com/deslicer/mcp-for-splunk/commit/3e31285e00f10c48aca6b650d3e936252095eaaa))
+
 ## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.0...v0.2.1) (2025-08-20)
 
 ### Bug Fixes
