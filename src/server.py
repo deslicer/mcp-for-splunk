@@ -470,7 +470,12 @@ else:
                 if kwargs_str:
                     try:
                         kwargs = json.loads(kwargs_str)
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as _json_err:
+                        logger.warning(
+                            "Invalid MCP_AUTH_PROVIDER_KWARGS JSON (length=%s): %s",
+                            len(kwargs_str),
+                            _json_err,
+                        )
                         kwargs = {}
                 if callable(target):
                     try:
