@@ -520,7 +520,12 @@ else:
                         )
                         try:
                             auth_verifier = target()
-                        except Exception:
+                        except Exception as fallback_err:
+                            logger.debug(
+                                "Dynamic auth provider '%s' fallback bare call failed: %s",
+                                provider_spec,
+                                fallback_err,
+                            )
                             auth_verifier = None
                 else:
                     auth_verifier = target
