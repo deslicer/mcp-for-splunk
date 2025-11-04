@@ -427,7 +427,53 @@ async def ensure_components_loaded(server: FastMCP) -> None:
 
 # Initialize FastMCP server without lifespan (components loaded at startup instead)
 # Note: lifespan causes issues in HTTP mode as it runs for each SSE connection
-mcp = FastMCP(name="MCP Server for Splunk")
+# Optionally load auth verifier dynamically (module:attr) or via Supabase API fallback
+auth_verifier = None
+try:
+    # Disable entirely
+    if (os.getenv("MCP_AUTH_DISABLED") or "false").strip().lower() == "true":
+        logger.info("Auth disabled via MCP_AUTH_DISABLED=true")
+    else:
+        # Highest priority: dynamic provider path from env
+        provider_spec = (os.getenv("MCP_AUTH_PROVIDER") or "").strip()
+        if provider_spec:
+            try:
+                import importlib, json  # type: ignore
+
+                module_name, attr_name = None, None
+                if ":" in provider_spec:
+                    module_name, attr_name = provider_spec.split(":", 1)
+                else:
+                    parts = provider_spec.rsplit(".", 1)
+                    if len(parts) == 2:
+                        module_name, attr_name = parts[0], parts[1]
+                if module_name and attr_name:
+                    mod = importlib.import_module(module_name)
+                    target = getattr(mod, attr_name)
+                    kwargs_str = (os.getenv("MCP_AUTH_PROVIDER_KWARGS") or "").strip()
+                    kwargs = {}
+                    if kwargs_str:
+                        try:
+                            kwargs = json.loads(kwargs_str)
+                        except Exception:
+                            kwargs = {}
+                    if callable(target):
+                        try:
+                            auth_verifier = target(**kwargs) if kwargs else target()
+                        except TypeError:
+                            auth_verifier = target()
+                    else:
+                        auth_verifier = target
+                    if auth_verifier:
+                        logger.info("Using dynamic auth provider: %s", provider_spec)
+                else:
+                    logger.warning("Invalid MCP_AUTH_PROVIDER format: %s", provider_spec)
+            except Exception as _e:
+                logger.warning("Failed to import dynamic auth provider '%s': %s", provider_spec, _e)
+except Exception:
+    pass
+
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
 
 # Import and setup health routes
 setup_health_routes(mcp)
