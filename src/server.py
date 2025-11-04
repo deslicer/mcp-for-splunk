@@ -438,7 +438,8 @@ else:
     if provider_spec:
         try:
             import importlib
-            import json  # type: ignore
+            import json
+            import inspect
 
             module_name, attr_name = None, None
             if ":" in provider_spec:
@@ -458,10 +459,21 @@ else:
                     except json.JSONDecodeError:
                         kwargs = {}
                 if callable(target):
-                    try:
-                        auth_verifier = target(**kwargs) if kwargs else target()
-                    except TypeError:
-                        auth_verifier = target()
+                    call_kwargs = {}
+                    if kwargs:
+                        try:
+                            sig = inspect.signature(target)
+                            params = sig.parameters
+                            accepts_var_kw = any(
+                                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+                            )
+                            if accepts_var_kw:
+                                call_kwargs = kwargs
+                            else:
+                                call_kwargs = {k: v for k, v in kwargs.items() if k in params}
+                        except (ValueError, TypeError):
+                            call_kwargs = {}
+                    auth_verifier = target(**call_kwargs) if call_kwargs else target()
                 else:
                     auth_verifier = target
                 if auth_verifier:
