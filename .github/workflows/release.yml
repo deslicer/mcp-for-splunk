@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
-      - "mcp-server-for-splunk-v*.*.*" # in case release-please prefixes tags
+      - "mcp-for-splunk-v*.*.*" # also support component-prefixed tags
   release:
     types: [published]
   workflow_dispatch:
@@ -35,9 +35,12 @@ jobs:
           skip-existing: true
 
       - name: Create GitHub Release
+        if: ${{ github.ref_type == 'tag' || github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || github.event.release.tag_name }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || github.event.release.tag_name }}
           files: |
             dist/*.whl
             dist/*.tar.gz
