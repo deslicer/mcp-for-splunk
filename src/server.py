@@ -65,6 +65,19 @@ _UVICORN_LEVEL_MAP = {
 UVICORN_LOG_LEVEL = _UVICORN_LEVEL_MAP.get(LOG_LEVEL, "info")
 logger = logging.getLogger(__name__)
 
+# Suppress noisy Pydantic JSON schema warnings for non-serializable defaults
+try:
+    import warnings as _warnings
+    from pydantic.json_schema import PydanticJsonSchemaWarning
+
+    _warnings.filterwarnings(
+        "ignore",
+        category=PydanticJsonSchemaWarning,
+        message="Default value .* is not JSON serializable; excluding default from JSON schema",
+    )
+except Exception:
+    pass
+
 # Global cache to persist client config per session across Streamable HTTP requests
 # Keyed by a caller-provided "X-Session-ID" header value
 HEADER_CLIENT_CONFIG_CACHE: dict[str, dict] = {}
@@ -438,8 +451,8 @@ else:
     if provider_spec:
         try:
             import importlib
-            import json
             import inspect
+            import json
 
             module_name, attr_name = None, None
             if ":" in provider_spec:
