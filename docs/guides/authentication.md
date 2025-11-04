@@ -1,6 +1,6 @@
 # Authentication for MCP Server for Splunk
 
-Make your deployment secure by enabling request authentication without forking this repo. Configure an auth provider via environment variables (dynamic import), or use the built‑in Supabase API provider for development and hosted projects.
+ Make your deployment secure by enabling request authentication without forking this repo. Configure an auth provider via environment variables (dynamic import), or use a Supabase API provider from an external package for development and hosted projects.
 
 ## 🚀 Quick Start (2 minutes)
 
