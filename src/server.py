@@ -471,12 +471,14 @@ else:
                     try:
                         kwargs = json.loads(kwargs_str)
                     except json.JSONDecodeError as _json_err:
-                        logger.warning(
+                        logger.error(
                             "Invalid MCP_AUTH_PROVIDER_KWARGS JSON (length=%s): %s",
                             len(kwargs_str),
                             _json_err,
                         )
-                        kwargs = {}
+                        raise SystemExit(
+                            "Invalid MCP_AUTH_PROVIDER_KWARGS JSON. Fix the JSON or unset MCP_AUTH_PROVIDER_KWARGS."
+                        ) from _json_err
                 if callable(target):
                     try:
                         sig = inspect.signature(target)
