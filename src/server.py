@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 # Suppress noisy Pydantic JSON schema warnings for non-serializable defaults
 try:
     import warnings as _warnings
+
     from pydantic.json_schema import PydanticJsonSchemaWarning
 
     _warnings.filterwarnings(
@@ -472,29 +473,69 @@ else:
                     except json.JSONDecodeError:
                         kwargs = {}
                 if callable(target):
-                    call_kwargs = {}
-                    if kwargs:
-                        try:
-                            sig = inspect.signature(target)
-                            params = sig.parameters
-                            accepts_var_kw = any(
-                                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+                    try:
+                        sig = inspect.signature(target)
+                        params = sig.parameters
+                        required = [
+                            p
+                            for p in params.values()
+                            if p.default is inspect._empty
+                            and p.kind
+                            in (
+                                inspect.Parameter.POSITIONAL_ONLY,
+                                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                                inspect.Parameter.KEYWORD_ONLY,
                             )
+                        ]
+                        accepts_var_kw = any(
+                            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+                        )
+                        if kwargs:
                             if accepts_var_kw:
                                 call_kwargs = kwargs
                             else:
                                 call_kwargs = {k: v for k, v in kwargs.items() if k in params}
-                        except (ValueError, TypeError):
-                            call_kwargs = {}
-                    auth_verifier = target(**call_kwargs) if call_kwargs else target()
+                            auth_verifier = target(**call_kwargs)
+                        else:
+                            if required:
+                                logger.warning(
+                                    "Dynamic auth provider '%s' requires arguments but none provided; set MCP_AUTH_PROVIDER_KWARGS",
+                                    provider_spec,
+                                )
+                                auth_verifier = None
+                            else:
+                                auth_verifier = target()
+                    except (ValueError, TypeError) as _sig_err:
+                        logger.warning(
+                            "Dynamic auth provider '%s' signature inspection/call issue: %s",
+                            provider_spec,
+                            _sig_err,
+                        )
+                        try:
+                            auth_verifier = target()
+                        except Exception:
+                            auth_verifier = None
                 else:
                     auth_verifier = target
                 if auth_verifier:
                     logger.info("Using dynamic auth provider: %s", provider_spec)
             else:
-                logger.warning("Invalid MCP_AUTH_PROVIDER format: %s", provider_spec)
+                logger.error("Invalid MCP_AUTH_PROVIDER format: %s", provider_spec)
+                raise SystemExit(
+                    "MCP_AUTH_PROVIDER is set but invalid. Set MCP_AUTH_DISABLED=true to bypass."
+                )
         except Exception as _e:
-            logger.warning("Failed to import dynamic auth provider '%s': %s", provider_spec, _e)
+            logger.error("Failed to import dynamic auth provider '%s': %s", provider_spec, _e)
+            raise SystemExit(
+                "MCP_AUTH_PROVIDER is set but failed to load. Set MCP_AUTH_DISABLED=true to bypass."
+            ) from _e
+
+        # If a provider was specified but did not yield a verifier, fail fast for security
+        if auth_verifier is None:
+            logger.error("MCP_AUTH_PROVIDER is set but no auth provider instance was created.")
+            raise SystemExit(
+                "Auth provider missing. Set MCP_AUTH_DISABLED=true to explicitly disable auth."
+            )
 
 mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
 
