@@ -438,7 +438,8 @@ try:
         provider_spec = (os.getenv("MCP_AUTH_PROVIDER") or "").strip()
         if provider_spec:
             try:
-                import importlib, json  # type: ignore
+                import importlib
+                import json  # type: ignore
 
                 module_name, attr_name = None, None
                 if ":" in provider_spec:
