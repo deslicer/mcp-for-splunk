@@ -455,7 +455,7 @@ else:
                 if kwargs_str:
                     try:
                         kwargs = json.loads(kwargs_str)
-                    except Exception:
+                    except json.JSONDecodeError:
                         kwargs = {}
                 if callable(target):
                     try:
