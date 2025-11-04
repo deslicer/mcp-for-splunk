@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
-      - "mcp-server-for-splunk-v*.*.*" # in case release-please prefixes tags
+      - "mcp-for-splunk-v*.*.*" # in case release-please prefixes tags with component name
   release:
     types: [published]
   workflow_dispatch:
