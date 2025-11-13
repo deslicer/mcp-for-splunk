@@ -222,39 +222,39 @@ services:
         - path: ./Dockerfile
           action: rebuild
 
-  # # Splunk Enterprise (Development Mode - only starts when SPLUNK_HOST=so1)
-  # so1:
-  #   networks:
-  #     splunk-network:
-  #       aliases:
-  #         - so1
-  #   image: ${SPLUNK_IMAGE:-splunk/splunk:latest}
-  #   platform: linux/amd64
-  #   hostname: so1
-  #   container_name: so1
-  #   restart: unless-stopped
-  #   environment:
-  #     - SPLUNK_START_ARGS=--accept-license
-  #     - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
-  #     - SPLUNK_HEC_TOKEN=26898dec-83d1-49f1-b06e-90eabff7f543
-  #     - SPLUNK_PASSWORD=Chang3d!
-  #   ports:
-  #     - "9000:8000" # Splunk Web UI
-  #     - "8088:8088" # HEC
-  #     - "8089:8089" # Management port
-  #   # Optional: Provide your own Splunk license by mounting a local file
-  #   # volumes:
-  #   #   - ./lic/splunk.lic:/tmp/license/splunk.lic:ro
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD",
-  #         "curl",
-  #         "-s",
-  #         "-k",
-  #         "https://localhost:8089/services/server/info",
-  #       ]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 120s
+  # Splunk Enterprise (Development Mode - only starts when SPLUNK_HOST=so1)
+  so1:
+    networks:
+      splunk-network:
+        aliases:
+          - so1
+    image: ${SPLUNK_IMAGE:-splunk/splunk:latest}
+    platform: linux/amd64
+    hostname: so1
+    container_name: so1
+    restart: unless-stopped
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_HEC_TOKEN=26898dec-83d1-49f1-b06e-90eabff7f543
+      - SPLUNK_PASSWORD=Chang3d!
+    ports:
+      - "9000:8000" # Splunk Web UI
+      - "8088:8088" # HEC
+      - "8089:8089" # Management port
+    # Optional: Provide your own Splunk license by mounting a local file
+    # volumes:
+    #   - ./lic/splunk.lic:/tmp/license/splunk.lic:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-s",
+          "-k",
+          "https://localhost:8089/services/server/info",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
