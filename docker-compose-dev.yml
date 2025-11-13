@@ -237,7 +237,7 @@ services:
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
       - SPLUNK_HEC_TOKEN=26898dec-83d1-49f1-b06e-90eabff7f543
-      - SPLUNK_PASSWORD=Chang3d!
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
     ports:
       - "9000:8000" # Splunk Web UI
       - "8088:8088" # HEC
