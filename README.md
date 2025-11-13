@@ -7,7 +7,7 @@
 
 # MCP Server for Splunk
 
-[![FastMCP](https://img.shields.io/badge/FastMCP-2.3.4+-blue)](https://gofastmcp.com/)
+[![FastMCP](https://img.shields.io/badge/FastMCP-2.13.0.2%2B-blue)](https://gofastmcp.com/)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple)](https://modelcontextprotocol.io/)
@@ -88,6 +88,13 @@ cp env.example .env
 # Edit .env with your Splunk credentials
 # - Use your existing Splunk instance (local, cloud, or Splunk Cloud)
 # - OR use the included Docker Splunk (requires Docker)
+
+# Optional HTTP transport defaults (local runs)
+# - Stateless HTTP avoids sticky-session requirements
+# - JSON responses improve compatibility with some clients
+# These are already the defaults for local runs via `mcp-server --local`
+echo "MCP_STATELESS_HTTP=true" >> .env
+echo "MCP_JSON_RESPONSE=true" >> .env
 ```
 
 <a name="one-command-setup"></a>
@@ -123,6 +130,7 @@ cd mcp-for-splunk
 ./scripts/smart-install.sh
 
 # Start the MCP Server (project script)
+# Local runs default to HTTP stateless mode + JSON response
 uv run mcp-server --local --detached
 
 # Verify the server
@@ -135,6 +143,9 @@ uv run mcp-server --test --detailed
 >
 > - **Docker** (Option 1): Full stack with Splunk, Traefik, MCP Inspector - recommended if Docker is installed
 > - **Local** (Option 2): Lightweight FastMCP server only - for users without Docker
+
+> Stopping services:
+> - `uv run mcp-server --stop` stops only this project's compose services (dev/prod/splunk). It does not stop the Docker engine.
 
 > Note on Splunk licensing: When using the `so1` Splunk container, you must supply your own Splunk Enterprise license if required. The compose files include a commented example mount:
 > `# - ./lic/splunk.lic:/tmp/license/splunk.lic:ro`. Create a `lic/` directory and mount your license file, or add the license via the Splunk Web UI after startup.
@@ -376,6 +387,12 @@ uv run validate-tools
 - **Startup Time**: ~10 seconds
 - **Resource Usage**: Minimal (single Python process)
 - **Best For**: Development, testing, stdio-based AI clients
+- **HTTP Defaults**: Local runs enable `MCP_STATELESS_HTTP=true` and `MCP_JSON_RESPONSE=true` by default for compatibility with Official MCP clients (no sticky sessions; JSON over SSE).
+  - Endpoint: `http://localhost:8003/mcp/`
+  - Required client headers:
+    - `Accept: application/json, text/event-stream`
+    - `MCP-Session-ID: <uuid>` (preferred; `X-Session-ID` optional)
+    - `X-Splunk-*` headers (host, port, username, password, scheme, verify-ssl) or set via `.env`
 
 <a name="production-docker"></a>
 
@@ -384,6 +401,7 @@ uv run validate-tools
 - **Features**: Load balancing, health checks, monitoring
 - **Includes**: Traefik, MCP Inspector, optional Splunk
 - **Best For**: Multi-client access, web-based AI agents
+- **Session Routing**: Traefik is configured with sticky sessions for streamable HTTP; alternatively, enable stateless HTTP for development scenarios.
 
 <a name="enterprise-kubernetes"></a>
 

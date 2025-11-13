@@ -770,8 +770,15 @@ def run_local_server(
     print_local(f"Command: {' '.join(cmd)}")
 
     # Start server
+    # Ensure local defaults for HTTP stateless mode and JSON responses for compatibility
+    child_env = os.environ.copy()
+    child_env.setdefault("MCP_STATELESS_HTTP", "true")
+    child_env.setdefault("MCP_JSON_RESPONSE", "true")
+    print_local(
+        f"Setting env for local run: MCP_STATELESS_HTTP={child_env.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={child_env.get('MCP_JSON_RESPONSE')}"
+    )
     with log_file.open("w", encoding="utf-8") as lf:
-        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True)
+        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env)
 
     # Always write PID file for monitoring/testing
     pid_file = Path(".mcp_local_server.pid")
@@ -915,38 +922,75 @@ def run_local_server(
 
 
 def stop_docker_services() -> int:
-    print_status("Stopping Docker services...")
+    print_status("Stopping Docker services for this project (compose files only)...")
     available, base_cmd = check_compose_available()
     if not available:
         print_warning("docker-compose or docker compose not found; skipping Docker stop.")
         return 0
 
-    # Check if any compose-managed containers are running
-    ps_quiet = base_cmd + ["ps", "-q"]
-    try:
-        out = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-        running_ids = [line for line in out.stdout.strip().splitlines() if line.strip()]
-    except FileNotFoundError:
-        running_ids = []
+    # Limit scope strictly to known compose files in this repo
+    compose_files = [
+        "docker-compose-dev.yml",
+        "docker-compose.yml",
+        "docker-compose-splunk.yml",
+    ]
 
-    if not running_ids:
-        print_status("No Docker MCP services appear to be running (compose ps is empty).")
-        return 0
+    any_found = False
+    overall_rc = 0
 
-    print_status(f"Stopping Docker services (found {len(running_ids)} running container(s))...")
-    down_cmd = base_cmd + ["down"]
-    rc = run_cmd(down_cmd)
-    if rc == 0:
-        # Verify after stopping
-        out2 = subprocess.run(ps_quiet, capture_output=True, text=True, check=False)
-        remaining = [line for line in out2.stdout.strip().splitlines() if line.strip()]
-        if remaining:
-            print_warning(f"Some Docker containers may still be running: {len(remaining)}")
+    service_map: dict[str, list[str]] = {
+        "docker-compose-dev.yml": ["traefik", "mcp-inspector", "mcp-server-dev"],
+        "docker-compose.yml": ["traefik", "mcp-inspector", "mcp-server", "so1"],
+        "docker-compose-splunk.yml": ["so1"],
+    }
+
+    for cf in compose_files:
+        if not Path(cf).exists():
+            continue
+        any_found = True
+        # Discover running services for this compose file only
+        ps_services_cmd = base_cmd + ["-f", cf, "ps", "--services", "--filter", "status=running"]
+        try:
+            out = subprocess.run(ps_services_cmd, capture_output=True, text=True, check=False)
+            running_services = [line for line in out.stdout.strip().splitlines() if line.strip()]
+        except FileNotFoundError:
+            running_services = []
+
+        if not running_services:
+            print_status(f"No running containers for {cf}. Skipping 'down'.")
+            continue
+
+        # Restrict to known/expected services for this project, intersection with running
+        expected = set(service_map.get(cf, []))
+        targets = [s for s in running_services if s in expected]
+        if not targets:
+            print_status(
+                f"{cf}: Running services not recognized as project services: {running_services or '[]'}"
+            )
+            continue
+
+        print_status(f"Stopping services in {cf}: {', '.join(targets)}")
+        rc = run_cmd(base_cmd + ["-f", cf, "stop", *targets])
+        if rc != 0:
+            print_error(f"Failed to stop one or more services for {cf}.")
+            overall_rc = rc
+            continue
+
+        # Verify after stopping targets
+        out2 = subprocess.run(ps_services_cmd, capture_output=True, text=True, check=False)
+        remaining_services = [line for line in out2.stdout.strip().splitlines() if line.strip()]
+        remaining_expected = [s for s in remaining_services if s in expected]
+        if remaining_expected:
+            print_warning(
+                f"{cf}: Some project services still running: {', '.join(remaining_expected)}"
+            )
         else:
-            print_success("Docker services stopped.")
-    else:
-        print_error("Failed to stop some Docker services.")
-    return rc
+            print_success(f"{cf}: Project services stopped.")
+
+    if not any_found:
+        print_status("No compose files found to stop (nothing to do).")
+
+    return overall_rc
 
 
 def stop_local_processes() -> int:

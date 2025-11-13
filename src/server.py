@@ -117,6 +117,40 @@ logging.setLogRecordFactory(_record_factory)
 
 
 # ------------------------------
+# Session Header Normalization
+# ------------------------------
+def _normalize_session_id(value: str | None) -> str | None:
+    """
+    Normalize session header values that may be duplicated as 'id, id'.
+    Returns the first non-empty token stripped, or None if not available.
+    """
+    if not value:
+        return None
+    # Some clients send 'uuid, uuid' in MCP-Session-ID; take the first
+    if "," in value:
+        for tok in value.split(","):
+            tok = tok.strip()
+            if tok:
+                return tok
+        return None
+    v = value.strip()
+    return v if v else None
+
+
+def _extract_session_id_from_headers(headers: dict) -> str | None:
+    """
+    Derive a session id from known header names, normalized to a single token.
+    Priority: MCP-Session-ID (any case) then X-Session-ID (any case).
+    """
+    mcp_sid = headers.get("MCP-Session-ID") or headers.get("mcp-session-id")
+    sid = _normalize_session_id(mcp_sid)
+    if sid:
+        return sid
+    x_sid = headers.get("X-Session-ID") or headers.get("x-session-id")
+    return _normalize_session_id(x_sid)
+
+
+# ------------------------------
 # Plugin loading (entry points)
 # ------------------------------
 # Group name can be overridden for testing/advanced scenarios
@@ -201,7 +235,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
             logger.debug(f"Captured headers: {list(headers.keys())}")
 
             # Set session correlation id as early as possible for all downstream logs
-            session_key = headers.get("X-Session-ID") or headers.get("x-session-id") or "-"
+            session_key = _extract_session_id_from_headers(headers) or "-"
             token = current_session_id.set(session_key)
 
             logger.info("HeaderCaptureMiddleware: Processing request to %s", request.url.path)
@@ -229,7 +263,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                     )
 
                     # Persist per-session for subsequent Streamable HTTP requests
-                    session_key = headers.get("X-Session-ID") or headers.get("x-session-id")
+                    session_key = _extract_session_id_from_headers(headers)
                     # Always cache under provided session id if available
                     if session_key:
                         HEADER_CLIENT_CONFIG_CACHE[session_key] = client_config
@@ -549,7 +583,14 @@ else:
                 "Auth provider missing. Set MCP_AUTH_DISABLED=true to explicitly disable auth."
             )
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
+# In HTTP mode behind a load balancer (e.g., Traefik) without guaranteed session
+# stickiness, FastMCP's session-bound Streamable HTTP can return 400s when
+# subsequent requests for a session are routed to different backend instances.
+# Allow an opt-in stateless HTTP mode for development to relax session coupling.
+STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
+JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
+
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, stateless_http=STATELESS_HTTP)
 
 # Import and setup health routes
 setup_health_routes(mcp)
@@ -642,7 +683,7 @@ class ClientConfigMiddleware(Middleware):
         except Exception as e:
             logger.debug("ClientConfigMiddleware: failed to get http_headers_context: %s", e)
             headers = {}
-        derived_session = session_id_val or headers.get("x-session-id") or "-"
+        derived_session = session_id_val or _extract_session_id_from_headers(headers) or "-"
         token = current_session_id.set(derived_session)
 
         client_config = None
@@ -652,7 +693,9 @@ class ClientConfigMiddleware(Middleware):
             headers = http_headers_context.get({})
 
             # Derive a stable per-session cache key
-            session_key = getattr(context, "session_id", None) or headers.get("x-session-id")
+            session_key = getattr(context, "session_id", None) or _extract_session_id_from_headers(
+                headers
+            )
 
             if headers:
                 logger.info(
@@ -733,9 +776,9 @@ class ClientConfigMiddleware(Middleware):
             if isinstance(getattr(context, "method", None), str):
                 if context.method in ("session/terminate", "session/end", "session/close"):
                     headers = headers if isinstance(headers, dict) else {}
-                    session_key = getattr(context, "session_id", None) or headers.get(
-                        "x-session-id"
-                    )
+                    session_key = getattr(
+                        context, "session_id", None
+                    ) or _extract_session_id_from_headers(headers)
                     if session_key and session_key in self.client_config_cache:
                         self.client_config_cache.pop(session_key, None)
                         logger.info(
@@ -894,7 +937,13 @@ def create_root_app(server: FastMCP) -> Starlette:
     - Mounts the MCP app at "/"
     """
     # Build the MCP Starlette app with the /mcp path
-    mcp_app = server.http_app(path="/mcp", transport="http")
+    # In FastMCP 2.13, stateless_http/json_response should be set at the transport/app level
+    mcp_app = server.http_app(
+        path="/mcp",
+        transport="http",
+        stateless_http=STATELESS_HTTP,
+        json_response=JSON_RESPONSE,
+    )
 
     # Parent Starlette application that applies middleware to the initial HTTP handshake
     root_app = Starlette(lifespan=mcp_app.lifespan)
@@ -911,11 +960,13 @@ def create_root_app(server: FastMCP) -> Starlette:
     return root_app
 
 
-async def main():
+async def main(host: str | None = None, port: int | None = None):
     """Main function for running the MCP server"""
-    # Get the port from environment variable, default to 8001 (to avoid conflict with Splunk Web UI on 8000)
-    port = int(os.environ.get("MCP_SERVER_PORT", 8001))
-    host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+    # Resolve host/port with precedence: CLI args > env > defaults
+    env_port = int(os.environ.get("MCP_SERVER_PORT", 8001))
+    env_host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+    port = port or env_port
+    host = host or env_host
 
     logger.info(f"Starting modular MCP server on {host}:{port}")
 
@@ -980,7 +1031,7 @@ if __name__ == "__main__":
             # mcp.run(transport="http", host=args.host, port=args.port, path="/mcp/")
 
             # Option 2: Use custom uvicorn setup for advanced middleware (current approach)
-            asyncio.run(main())
+            asyncio.run(main(host=args.host, port=args.port))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:

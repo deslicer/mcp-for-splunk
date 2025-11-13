@@ -338,3 +338,112 @@ class TestBackwardCompatibility:
             # Test specific resource access
             health_resource = await client.read_resource("health://status")
             assert len(health_resource) > 0
+
+
+# HTTP header/session propagation tests for Streamable HTTP transport
+@pytest.mark.integration
+class TestHttpSessionHeaders:
+    """Verify both X-Session-ID and MCP-Session-ID are honored over HTTP."""
+
+    @pytest.mark.asyncio
+    async def test_session_header_x_session_id(self):
+        import json
+
+        import httpx
+
+        from src.server import create_root_app, get_mcp
+
+        mcp = get_mcp()
+        app = create_root_app(mcp)
+
+        headers = {
+            "accept": "application/json, text/event-stream",
+            "content-type": "application/json",
+            "X-Session-ID": "test-x-session-123",
+            "X-Splunk-Host": "example",
+            "X-Splunk-Port": "8089",
+            "X-Splunk-Username": "admin",
+            "X-Splunk-Password": "pass",
+            "X-Splunk-Scheme": "https",
+            "X-Splunk-Verify-SSL": "false",
+        }
+
+        body = {
+            "jsonrpc": "2.0",
+            "id": "1",
+            "method": "tools/call",
+            "params": {"name": "user_agent_info", "arguments": {}},
+        }
+
+        # Ensure app lifespan is started for FastMCP's session manager
+        try:
+            from asgi_lifespan import LifespanManager  # type: ignore
+
+            async with LifespanManager(app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                    resp = await client.post("/mcp", headers=headers, content=json.dumps(body))
+                    assert resp.status_code in (200, 303)
+        except ImportError:
+            import inspect
+
+            params = list(getattr(inspect.signature(httpx.ASGITransport), "parameters", {}).keys())
+            if "lifespan" in params:
+                transport = httpx.ASGITransport(app=app, lifespan="on")  # type: ignore[arg-type]
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                    resp = await client.post("/mcp", headers=headers, content=json.dumps(body))
+                    assert resp.status_code in (200, 303)
+            else:
+                pytest.skip("ASGI lifespan not available; install asgi_lifespan for this test.")
+            # When 303 (See Other), FastMCP is streaming; follow-up GET may be needed.
+            # For our purposes, 200 indicates JSON-response mode (e.g., tests).
+
+    @pytest.mark.asyncio
+    async def test_session_header_mcp_session_id(self):
+        import json
+
+        import httpx
+
+        from src.server import create_root_app, get_mcp
+
+        mcp = get_mcp()
+        app = create_root_app(mcp)
+
+        headers = {
+            "accept": "application/json, text/event-stream",
+            "content-type": "application/json",
+            "MCP-Session-ID": "test-mcp-session-456",
+            "X-Splunk-Host": "example",
+            "X-Splunk-Port": "8089",
+            "X-Splunk-Username": "admin",
+            "X-Splunk-Password": "pass",
+            "X-Splunk-Scheme": "https",
+            "X-Splunk-Verify-SSL": "false",
+        }
+
+        body = {
+            "jsonrpc": "2.0",
+            "id": "1",
+            "method": "tools/call",
+            "params": {"name": "user_agent_info", "arguments": {}},
+        }
+
+        try:
+            from asgi_lifespan import LifespanManager  # type: ignore
+
+            async with LifespanManager(app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                    resp = await client.post("/mcp", headers=headers, content=json.dumps(body))
+                    assert resp.status_code in (200, 303)
+        except ImportError:
+            import inspect
+
+            params = list(getattr(inspect.signature(httpx.ASGITransport), "parameters", {}).keys())
+            if "lifespan" in params:
+                transport = httpx.ASGITransport(app=app, lifespan="on")  # type: ignore[arg-type]
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                    resp = await client.post("/mcp", headers=headers, content=json.dumps(body))
+                    assert resp.status_code in (200, 303)
+            else:
+                pytest.skip("ASGI lifespan not available; install asgi_lifespan for this test.")
