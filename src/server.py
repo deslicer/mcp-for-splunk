@@ -28,7 +28,6 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
-from src.core.phoenix_instrumentation import initialize_phoenix_tracing
 from src.core.shared_context import http_headers_context
 from src.routes import setup_health_routes
 
@@ -55,7 +54,6 @@ logging.basicConfig(
     ],
 )
 
-
 # Map Python logging level to uvicorn's expected string level
 _UVICORN_LEVEL_MAP = {
     logging.DEBUG: "debug",
@@ -66,13 +64,6 @@ _UVICORN_LEVEL_MAP = {
 }
 UVICORN_LOG_LEVEL = _UVICORN_LEVEL_MAP.get(LOG_LEVEL, "info")
 logger = logging.getLogger(__name__)
-
-# Initialize Phoenix tracing if enabled
-try:
-    if initialize_phoenix_tracing():
-        logger.info("Phoenix observability enabled")
-except Exception:
-    pass
 
 # Suppress noisy Pydantic JSON schema warnings for non-serializable defaults
 try:
