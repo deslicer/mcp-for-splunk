@@ -9,6 +9,13 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+try:
+    from src.core.security import sanitize_search_query as _secure_sanitize
+    from src.core.security import validate_search_query as _secure_validate
+    _SECURITY_AVAILABLE = True
+except ImportError:
+    _SECURITY_AVAILABLE = False
+
 
 def validate_splunk_connection(ctx: Any) -> tuple[bool, Any, str]:
     """
@@ -76,14 +83,33 @@ def sanitize_search_query(query: str) -> str:
 
     Returns:
         Sanitized search query with 'search' command added if needed
-    """
-    query = query.strip()
 
-    # Add 'search' command if not present and query doesn't start with a pipe
+    Raises:
+        QuerySecurityError: If the query contains security violations
+    """
+    if _SECURITY_AVAILABLE:
+        return _secure_sanitize(query)
+
+    query = query.strip()
     if not query.lower().startswith(("search ", "| ")):
         query = f"search {query}"
-
     return query
+
+
+def validate_search_query(query: str, strict: bool = True) -> tuple[bool, list]:
+    """
+    Validate a Splunk search query for security issues.
+
+    Args:
+        query: The SPL query to validate
+        strict: If True, raise exception on violation; if False, return violations
+
+    Returns:
+        Tuple of (is_valid, violations_list)
+    """
+    if _SECURITY_AVAILABLE:
+        return _secure_validate(query, strict=strict)
+    return True, []
 
 
 def validate_time_range(earliest_time: str, latest_time: str) -> tuple[bool, str]:
@@ -97,11 +123,9 @@ def validate_time_range(earliest_time: str, latest_time: str) -> tuple[bool, str
     Returns:
         Tuple of (is_valid, error_message)
     """
-    # Basic validation - could be expanded with more sophisticated checks
     if not earliest_time or not latest_time:
         return False, "Both earliest_time and latest_time must be provided"
 
-    # Check for obviously invalid formats
     invalid_chars = ["<", ">", ";", "&", "|", "`"]
     for char in invalid_chars:
         if char in earliest_time or char in latest_time:
@@ -141,20 +165,15 @@ def filter_customer_indexes(indexes):
     Returns:
         List of customer-defined indexes only
     """
-    # Handle both iterables and individual index objects
     customer_indexes = []
 
     try:
         for idx in indexes:
-            # Handle both index objects with .name attribute and string names
             index_name = idx.name if hasattr(idx, "name") else str(idx)
-
-            # Skip any index that starts with underscore (Splunk internal convention)
             if not index_name.startswith("_"):
                 customer_indexes.append(idx)
     except (AttributeError, TypeError) as e:
         logger.warning(f"Error filtering indexes: {e}")
-        # If filtering fails, return original collection as fallback
         return list(indexes) if indexes else []
 
     return customer_indexes

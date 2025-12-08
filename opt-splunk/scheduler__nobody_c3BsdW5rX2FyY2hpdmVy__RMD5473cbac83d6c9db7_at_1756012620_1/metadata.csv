@@ -1,0 +1,2 @@
+access,owner,app,ttl
+"read : [ *, splunk-system-user ], write : [ admin, power, splunk-system-user ]","splunk-system-user","splunk_archiver",7200
