@@ -91,7 +91,7 @@ def parse_bandit_json(filepath: str) -> list[Finding]:
                 remediation=f"Review code at {result.get('filename')}:{result.get('line_number')}",
             ))
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # File missing or malformed - tool may not have run
     return findings
 
 
@@ -124,7 +124,7 @@ def parse_semgrep_sarif(filepath: str) -> list[Finding]:
                     remediation=rule.get("help", {}).get("text", ""),
                 ))
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # File missing or malformed - tool may not have run
     return findings
 
 
@@ -165,7 +165,7 @@ def parse_trivy_sarif(filepath: str) -> list[Finding]:
                     remediation=rule.get("help", {}).get("text", ""),
                 ))
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # File missing or malformed - tool may not have run
     return findings
 
 
@@ -203,7 +203,7 @@ def parse_safety_json(filepath: str) -> list[Finding]:
                 remediation=f"Upgrade {vuln.get('package_name')} to latest",
             ))
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # File missing or malformed - tool may not have run
     return findings
 
 
@@ -226,7 +226,7 @@ def parse_gitleaks_json(filepath: str) -> list[Finding]:
                 remediation="Rotate the exposed secret immediately",
             ))
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # File missing or malformed - tool may not have run
     return findings
 
 
