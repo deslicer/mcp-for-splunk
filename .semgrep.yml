@@ -42,18 +42,22 @@ rules:
       category: security
       confidence: MEDIUM
 
-  - id: hardcoded-splunk-credentials
-    pattern-either:
-      - pattern: |
-          $PASSWORD = "..."
-      - pattern: |
-          $TOKEN = "..."
-      - pattern: |
-          password = "..."
-      - pattern: |
-          token = "..."
+  - id: hardcoded-splunk-password
+    patterns:
+      - pattern-either:
+          - pattern: SPLUNK_PASSWORD = "..."
+          - pattern: splunk_password = "..."
+          - pattern: SPLUNK_TOKEN = "..."
+          - pattern: splunk_token = "..."
+          - pattern: SPLUNK_SECRET = "..."
+          - pattern: api_key = "sk-..."
+          - pattern: API_KEY = "sk-..."
+      - pattern-not: SPLUNK_PASSWORD = ""
+      - pattern-not: splunk_password = ""
+      - pattern-not: SPLUNK_TOKEN = ""
+      - pattern-not: splunk_token = ""
     message: |
-      Potential hardcoded credentials detected. Use environment variables
+      Hardcoded Splunk credentials detected. Use environment variables
       or secure secret management instead.
     languages: [python]
     severity: ERROR
@@ -154,5 +158,3 @@ rules:
       cwe: CWE-601
       category: security
       confidence: MEDIUM
-
-

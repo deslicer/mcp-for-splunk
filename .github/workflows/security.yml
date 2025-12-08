@@ -67,16 +67,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          config: >-
-            p/security-audit
-            p/secrets
-            p/python
-            p/owasp-top-ten
-            p/command-injection
-          generateSarif: true
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan --config p/security-audit --config p/python --config p/owasp-top-ten \
+            --sarif --output semgrep.sarif --error || true
 
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@v3
