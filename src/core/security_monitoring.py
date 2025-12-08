@@ -361,9 +361,9 @@ class SecurityMonitor:
         recent_events = [e for e in self.security_events if e.timestamp > cutoff_time]
 
         # Count by threat type and level
-        by_type = defaultdict(int)
-        by_level = defaultdict(int)
-        by_user = defaultdict(int)
+        by_type: defaultdict[str, int] = defaultdict(int)
+        by_level: defaultdict[str, int] = defaultdict(int)
+        by_user: defaultdict[str, int] = defaultdict(int)
 
         for event in recent_events:
             by_type[event.threat_type.value] += 1
