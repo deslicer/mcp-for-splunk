@@ -16,20 +16,20 @@ We release security updates for the following versions:
 
 #### CVE-2025-20381 (SVD-2025-1210) - Subsearch Injection
 
-**Status**: ✅ MITIGATED (as of v0.4.0)
+**Status**: ✅ NOT AFFECTED
 
-**Description**: Subsearch injection vulnerability allowing bypass of SPL command allowlists through embedded subsearches in square brackets `[]`.
+**Description**: This vulnerability affects Splunk's official MCP Server which implements an MCP-layer command allowlist that can be bypassed via subsearches.
 
-**Impact**: MEDIUM (CVSS 5.4)
-- Unauthorized access to internal Splunk indexes (`_audit`, `_internal`)
-- Potential data exfiltration through subsearch patterns
-- Privilege escalation through audit log access
+**Why We're Not Affected**: Our architecture differs fundamentally:
+- We do NOT implement an MCP-layer command allowlist
+- All SPL queries execute with the authenticated user's Splunk RBAC permissions
+- Subsearches and index access are controlled by Splunk's native authorization
+- Users can only access data their Splunk credentials permit
 
-**Mitigation**:
-- Implemented comprehensive SPL query validation in `src/core/security.py`
-- Subsearches are now blocked by default
-- Added command allowlisting and forbidden command detection
-- Protected index access controls implemented
+**Defense-in-Depth Measures**:
+- Implemented SPL query validation in `src/core/security.py`
+- Blocked dangerous commands that could modify data or execute external code (`collect`, `outputlookup`, `delete`, `sendemail`, `script`, `run`)
+- Query complexity limits to prevent DoS
 - Comprehensive security testing suite added
 
 **Upgrade Path**:
@@ -136,27 +136,37 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 ### Query Validation (v0.4.0+)
 
-**Subsearch Protection**
+**Dangerous Command Blocking**
 ```python
-from src.core.security import sanitize_search_query
+from src.core.security import validate_query, QuerySecurityError
 
-# This will raise QuerySecurityException
-malicious = "index=main [ search index=_audit ]"
-sanitize_search_query(malicious)  # Blocked!
+# Data modification commands are blocked
+try:
+    validate_query("index=main | outputlookup mydata.csv")
+except QuerySecurityError:
+    print("Blocked - outputlookup can modify data")
 
-# This is safe and allowed
-safe = "index=main error | stats count"
-sanitize_search_query(safe)  # OK
+# External execution commands are blocked
+try:
+    validate_query("| script python my_script.py")
+except QuerySecurityError:
+    print("Blocked - script can execute external code")
+
+# Normal queries are allowed (access controlled by Splunk RBAC)
+validate_query("index=main error | stats count")  # OK
+validate_query("index=main [ search index=_audit ]")  # OK - user RBAC applies
 ```
 
-**Command Allowlisting**
-- Only approved SPL commands are allowed
-- Dangerous commands (`collect`, `outputlookup`, `script`) are blocked
-- Custom allowlists can be configured
+**Forbidden Commands**
+The following commands are blocked at the MCP layer as defense-in-depth:
+- `collect`, `outputlookup`, `outputcsv` - Data modification
+- `delete` - Data deletion
+- `sendemail` - External communication
+- `script`, `run` - External code execution
 
-**Protected Index Access**
-- Internal indexes (`_audit`, `_internal`, etc.) are protected
-- Direct access requires explicit configuration
+**Index Access**
+- Index access is controlled by Splunk RBAC, not the MCP layer
+- Users can only query indexes their Splunk credentials permit
 
 ### Authentication & Authorization
 

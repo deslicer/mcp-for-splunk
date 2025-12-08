@@ -31,3 +31,6 @@ eec6d6dc260ec720c48f8d4b9f3ebae5db785252:src/splunk_client.py:generic-credential
 a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:115
 a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:249
 a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credential:248
+
+# Meta: gitleaksignore file itself triggers on fingerprint text (commit 88d1fff)
+88d1fffb6e9e2ee1032940106947d6ca792e3c36:.gitleaksignore:generic-credential:25
