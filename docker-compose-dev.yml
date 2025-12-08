@@ -112,7 +112,7 @@ services:
       - SPLUNK_HOST=${SPLUNK_HOST:-so1}
       - SPLUNK_PORT=${SPLUNK_PORT:-8089}
       - SPLUNK_USERNAME=${SPLUNK_USERNAME:-admin}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}  # gitleaks:allow (dev default)
       - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
 
       # MCP Server settings - container uses port 8001 internally, Traefik uses MCP_SERVER_PORT

@@ -1,0 +1,3 @@
+# Gitleaks ignore file
+# Use inline comments (# gitleaks:allow) for specific false positives
+# Only add fingerprints here for historical commits that can't be modified

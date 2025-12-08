@@ -28,7 +28,7 @@ class TestPasswordMaskingInResponses:
         mcp = get_mcp()
         app = create_root_app(mcp)
 
-        test_password = "my_super_secret_password_12345"
+        test_password = "my_super_secret_password_12345"  # gitleaks:allow (test data)
         headers = {
             "accept": "application/json, text/event-stream",
             "content-type": "application/json",
@@ -75,7 +75,7 @@ class TestPasswordMaskingInResponses:
         mcp = get_mcp()
         app = create_root_app(mcp)
 
-        test_password = "error_test_password_67890"
+        test_password = "error_test_password_67890"  # gitleaks:allow (test data)
         headers = {
             "accept": "application/json",
             "content-type": "application/json",
@@ -171,7 +171,7 @@ class TestSessionCredentialIsolation:
             "X-Session-ID": "isolated-session-001",
             "X-Splunk-Host": "host1.example.com",
             "X-Splunk-Username": "user1",
-            "X-Splunk-Password": "password1_secret",
+            "X-Splunk-Password": "password1_secret",  # gitleaks:allow (test data)
         }
 
         # Session 2 credentials (different)
@@ -181,7 +181,7 @@ class TestSessionCredentialIsolation:
             "X-Session-ID": "isolated-session-002",
             "X-Splunk-Host": "host2.example.com",
             "X-Splunk-Username": "user2",
-            "X-Splunk-Password": "password2_secret",
+            "X-Splunk-Password": "password2_secret",  # gitleaks:allow (test data)
         }
 
         body = {
@@ -236,7 +236,7 @@ class TestSessionTerminationCleanup:
             "X-Session-ID": session_id,
             "X-Splunk-Host": "terminate-host.example.com",
             "X-Splunk-Username": "terminate_user",
-            "X-Splunk-Password": "terminate_password_secret",
+            "X-Splunk-Password": "terminate_password_secret",  # gitleaks:allow (test data)
         }
 
         # First make a request to cache credentials
@@ -285,9 +285,9 @@ class TestCredentialMaskingInLogs:
         test_session = "log-test-session"
         HEADER_CLIENT_CONFIG_CACHE[test_session] = {
             "splunk_host": "test.example.com",
-            "splunk_password": "super_secret_password",
+            "splunk_password": "super_secret_password",  # gitleaks:allow (test data)
             "splunk_username": "testuser",
-            "authorization": "Bearer secret_token",
+            "authorization": "Bearer secret_token",  # gitleaks:allow (test data)
         }
 
         try:
@@ -323,8 +323,8 @@ class TestEnvironmentVariableCredentials:
 
         # Set up test environment variables
         test_env = {
-            "SPLUNK_PASSWORD": "env_secret_password_123",
-            "SPLUNK_TOKEN": "env_secret_token_456",
+            "SPLUNK_PASSWORD": "env_secret_password_123",  # gitleaks:allow (test data)
+            "SPLUNK_TOKEN": "env_secret_token_456",  # gitleaks:allow (test data)
             "SPLUNK_HOST": "localhost",
             "SPLUNK_PORT": "8089",
             "SPLUNK_USERNAME": "admin",
