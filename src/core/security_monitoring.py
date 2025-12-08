@@ -381,15 +381,19 @@ class SecurityMonitor:
             "top_users": sorted(by_user.items(), key=lambda x: x[1], reverse=True)[:10],
         }
 
-    def export_events_json(self, filepath: str, hours: int = 24):
-        """Export security events to JSON file."""
+    def export_events_json(self, filepath: str, hours: int = 24) -> bool:
+        """Export security events to JSON file. Returns True on success."""
         cutoff_time = datetime.now() - timedelta(hours=hours)
         recent_events = [e for e in self.security_events if e.timestamp > cutoff_time]
 
-        with open(filepath, "w") as f:
-            json.dump([e.to_dict() for e in recent_events], f, indent=2)
-
-        logger.info(f"Exported {len(recent_events)} security events to {filepath}")
+        try:
+            with open(filepath, "w") as f:
+                json.dump([e.to_dict() for e in recent_events], f, indent=2)
+            logger.info(f"Exported {len(recent_events)} security events to {filepath}")
+            return True
+        except OSError as e:
+            logger.error(f"Failed to export security events to {filepath}: {e}")
+            return False
 
 
 # Global security monitor instance
