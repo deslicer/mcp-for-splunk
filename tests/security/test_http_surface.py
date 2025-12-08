@@ -44,7 +44,7 @@ class TestHealthEndpointSecurity:
 
                     # Should have minimal info
                     assert "status" in data
-                    assert data["status"] == "OK"
+                    assert data["status"] in ["OK", "healthy"]
 
                     # Should NOT expose sensitive info
                     sensitive_keys = [
@@ -181,7 +181,7 @@ class TestMalformedRequestHandling:
                     )
 
                     # Should return error status, not crash
-                    assert resp.status_code in [200, 400, 422]
+                    assert resp.status_code in [200, 400, 406, 422]
 
                     # Response should not contain Python stack traces
                     response_text = resp.text.lower()

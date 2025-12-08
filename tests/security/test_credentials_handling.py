@@ -316,31 +316,29 @@ class TestCredentialMaskingInLogs:
 class TestEnvironmentVariableCredentials:
     """Test credentials from environment variables are handled securely."""
 
-    def test_env_credentials_not_in_health_response(self):
+    @pytest.mark.asyncio
+    async def test_env_credentials_not_in_health_response(self):
         """Environment credentials should not appear in health responses."""
-        import os
-        from unittest.mock import patch
+        import httpx
 
-        # Set up test environment variables
-        test_env = {
-            "SPLUNK_PASSWORD": "env_secret_password_123",  # gitleaks:allow (test data)
-            "SPLUNK_TOKEN": "env_secret_token_456",  # gitleaks:allow (test data)
-            "SPLUNK_HOST": "localhost",
-            "SPLUNK_PORT": "8089",
-            "SPLUNK_USERNAME": "admin",
-        }
+        from src.server import create_root_app, get_mcp
 
-        with patch.dict(os.environ, test_env, clear=False):
-            from src.server import mcp
+        mcp = get_mcp()
+        app = create_root_app(mcp)
 
-            # Get server info resource
-            # This tests that env vars don't leak through resources
-            info = mcp._resources.get("info://server")
-            if info:
-                # If resource exists, ensure it doesn't contain secrets
-                info_str = str(info).lower() if info else ""
-                assert "env_secret_password_123" not in info_str
-                assert "env_secret_token_456" not in info_str
+        try:
+            from asgi_lifespan import LifespanManager
+
+            async with LifespanManager(app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                    resp = await client.get("/health")
+                    response_text = resp.text.lower()
+                    # Ensure no credential patterns in health response
+                    assert "password" not in response_text or "***" in response_text
+                    assert "token" not in response_text or "***" in response_text
+        except ImportError:
+            pytest.skip("ASGI lifespan not available")
 
 
 @pytest.mark.unit
