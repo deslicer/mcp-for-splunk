@@ -1,3 +1,23 @@
 # Gitleaks ignore file
-# Use inline comments (# gitleaks:allow) for specific false positives
-# Only add fingerprints here for historical commits that can't be modified
+# These are fingerprints for known false positives in historical commits
+# Format: commit:file:rule:line
+
+# Test credentials in test_credentials_handling.py (commit eec6d6d)
+# These are intentional fake passwords for testing credential masking
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:31
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:78
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:174
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:184
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:239
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:288
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:326
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:359
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:432
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:generic-credential:290
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:generic-credential:327
+
+# Docker compose dev defaults (commit a71bc8a)
+# Default dev password Chang3d! - well-known, not a production secret
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:115
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:249
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credential:248
