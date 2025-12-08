@@ -12,19 +12,13 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 10
-    reviewers:
-      - "security-team"
-    assignees:
-      - "security-team"
     labels:
       - "dependencies"
       - "security"
     commit-message:
       prefix: "deps"
       include: "scope"
-    # Security updates take priority
     versioning-strategy: increase
-    # Group minor and patch updates together
     groups:
       development-dependencies:
         patterns:
