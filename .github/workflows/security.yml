@@ -87,43 +87,6 @@ jobs:
           sarif_file: semgrep.sarif
           category: semgrep
 
-  # Dependency vulnerability scanning with Safety
-  safety-scan:
-    name: Safety Dependency Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Export dependencies
-        run: |
-          uv export --no-dev --format requirements-txt > requirements-check.txt
-
-      - name: Install Safety
-        run: pip install safety
-
-      - name: Run Safety check
-        run: |
-          safety check --file=requirements-check.txt --json --output safety-results.json || true
-          safety check --file=requirements-check.txt --output safety-results.txt || true
-
-      - name: Upload Safety results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: safety-results
-          path: |
-            safety-results.json
-            safety-results.txt
-
   # Dependency scanning with Trivy
   trivy-scan:
     name: Trivy Vulnerability Scan
@@ -181,24 +144,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE || '' }}
 
-  # Secret scanning with TruffleHog
-  trufflehog-scan:
-    name: TruffleHog Secret Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@v3.82.13
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --json --only-verified
-
   # CodeQL advanced security analysis
   codeql-analysis:
     name: CodeQL Analysis
@@ -222,10 +167,11 @@ jobs:
         with:
           category: "/language:python"
 
-  # OSINT dependency license check
+  # OSINT dependency license check (runs monthly, not on every PR)
   license-check:
     name: License Compliance Check
     runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -256,7 +202,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [bandit-scan, semgrep-scan, safety-scan, trivy-scan, gitleaks-scan, trufflehog-scan, codeql-analysis]
+    needs: [bandit-scan, semgrep-scan, trivy-scan, gitleaks-scan, codeql-analysis]
     if: always()
     steps:
       - name: Checkout code
@@ -273,10 +219,8 @@ jobs:
           echo "" >> security-summary.md
           echo "- Bandit (Python SAST): ${{ needs.bandit-scan.result }}" >> security-summary.md
           echo "- Semgrep (Multi-language SAST): ${{ needs.semgrep-scan.result }}" >> security-summary.md
-          echo "- Safety (Python dependencies): ${{ needs.safety-scan.result }}" >> security-summary.md
           echo "- Trivy (Vulnerability scanner): ${{ needs.trivy-scan.result }}" >> security-summary.md
           echo "- Gitleaks (Secret detection): ${{ needs.gitleaks-scan.result }}" >> security-summary.md
-          echo "- TruffleHog (Secret detection): ${{ needs.trufflehog-scan.result }}" >> security-summary.md
           echo "- CodeQL (Advanced analysis): ${{ needs.codeql-analysis.result }}" >> security-summary.md
 
       - name: Comment PR with summary
