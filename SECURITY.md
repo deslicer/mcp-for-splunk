@@ -49,7 +49,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### Reporting Process
 
 1. **DO NOT** open a public GitHub issue
-2. **DO** send a detailed report to: [security@[your-project].com] or use GitHub Security Advisories
+2. **DO** send a detailed report to: [security@deslicer.com] or use GitHub Security Advisories
 3. **Include** in your report:
    - Description of the vulnerability
    - Steps to reproduce
@@ -286,40 +286,12 @@ pytest tests/security/ -v
 5. **Communication**: Notify users, publish advisory
 6. **Post-Mortem**: Document lessons learned
 
-## Security Roadmap
-
-### Q1 2025
-- [x] CVE-2025-20381 mitigation
-- [x] Comprehensive security testing
-- [x] Automated security scanning
-
-### Q2 2025
-- [ ] OAuth 2.0 / OIDC support
-- [ ] RBAC implementation
-- [ ] Rate limiting
-- [ ] Security dashboard
-
-### Q3 2025
-- [ ] Penetration testing
-- [ ] Security audit by third party
-- [ ] SOC 2 Type II certification prep
-
-### Q4 2025
-- [ ] Bug bounty program
-- [ ] Advanced threat detection
-- [ ] Security metrics dashboard
 
 ## Contact
 
-- **Security Issues**: [security@[your-project].com]
+- **Security Issues**: [security@deslicer.com]
 - **General Questions**: [GitHub Discussions](../../discussions)
 - **Bug Reports**: [GitHub Issues](../../issues) (non-security only)
-
-## Acknowledgments
-
-We thank the following security researchers for responsibly disclosing vulnerabilities:
-
-- *[Your name could be here - report responsibly!]*
 
 ## References
 
@@ -332,4 +304,3 @@ We thank the following security researchers for responsibly disclosing vulnerabi
 
 **Last Updated**: December 5, 2025
 **Version**: 1.0
-**Next Review**: March 2025
