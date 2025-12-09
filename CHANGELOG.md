@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.3.1...v0.4.0) (2025-12-09)
+
+
+### Features
+
+* Add security scanning and query validation ([#68](https://github.com/deslicer/mcp-for-splunk/issues/68)) ([26cca05](https://github.com/deslicer/mcp-for-splunk/commit/26cca0590d9e6ddde999babb01af6fb2f608d8e9))
+
 ## [0.3.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.2.1...v0.3.0) (2025-11-03)
 
 
