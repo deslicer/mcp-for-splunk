@@ -27,6 +27,9 @@ dependencies = [
 "wsproto>=1.2.0",
 "openai>=1.0.0",
 "openai-agents>=0.1.0",
+"arize-phoenix>=5.0.0",
+"openinference-instrumentation-mcp>=0.1.0",
+"opentelemetry-exporter-otlp-proto-http>=1.27.0",
 ]
 license = { file = "LICENSE" }
 urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
@@ -48,7 +51,13 @@ dev = [
 test = [
 "pytest>=7.0.0",
 "pytest-asyncio>=0.21.0",
-"pytest-cov>=4.0.0"
+"pytest-cov>=4.0.0",
+"asgi-lifespan>=2.1.0"
+]
+security = [
+"bandit>=1.7.0",
+"safety>=2.3.0",
+"semgrep>=1.0.0"
 ]
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)
@@ -79,6 +88,9 @@ dev-dependencies = [
 "mypy>=1.0.0",
 "pre-commit>=3.7.0",
 "watchdog>=6.0.0",
+"asgi-lifespan>=2.1.0",
+"bandit>=1.7.0",
+"safety>=2.3.0",
 ]
 
 [tool.pytest.ini_options]
@@ -99,7 +111,8 @@ asyncio_default_fixture_loop_scope = "function"
 markers = [
 "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 "integration: marks tests as integration tests",
-"unit: marks tests as unit tests"
+"unit: marks tests as unit tests",
+"security: marks tests as security/pentest tests"
 ]
 required_plugins = [
 "pytest-asyncio"

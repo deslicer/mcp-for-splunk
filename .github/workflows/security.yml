@@ -1,0 +1,279 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  # Python security scanning with Bandit
+  bandit-scan:
+    name: Bandit SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install Bandit
+        run: |
+          pip install bandit[toml]
+
+      - name: Run Bandit scan
+        run: |
+          bandit -r src/ -f json -o bandit-results.json || true
+          bandit -r src/ -f txt -o bandit-results.txt || true
+
+      - name: Upload Bandit results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: bandit-results
+          path: |
+            bandit-results.json
+            bandit-results.txt
+
+      - name: Bandit SARIF report
+        run: |
+          pip install bandit[sarif]
+          bandit -r src/ -f sarif -o bandit-results.sarif || true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: bandit-results.sarif
+          category: bandit
+
+  # Semgrep SAST scanning
+  semgrep-scan:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan --config p/security-audit --config p/python --config p/owasp-top-ten \
+            --sarif --output semgrep.sarif --error || true
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # Dependency scanning with Trivy
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Run Trivy Python dependencies scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          output: 'trivy-python.txt'
+          scanners: 'vuln'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy Python results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: trivy-python-results
+          path: trivy-python.txt
+
+  # Secrets scanning with Gitleaks
+  gitleaks-scan:
+    name: Gitleaks Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Full history for better detection
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE || '' }}
+
+  # CodeQL advanced security analysis
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:python"
+
+  # OSINT dependency license check (runs monthly, not on every PR)
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install license checker
+        run: pip install pip-licenses
+
+      - name: Check licenses
+        run: |
+          pip install -e .
+          pip-licenses --format=json --output-file=licenses.json
+          pip-licenses --format=markdown --output-file=licenses.md
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v5
+        with:
+          name: license-report
+          path: |
+            licenses.json
+            licenses.md
+
+  # Aggregate security results
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [bandit-scan, semgrep-scan, trivy-scan, gitleaks-scan, codeql-analysis]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+
+      - name: Create security summary
+        run: |
+          echo "# Security Scan Summary" > security-summary.md
+          echo "" >> security-summary.md
+          echo "## Scan Results" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "- Bandit (Python SAST): ${{ needs.bandit-scan.result }}" >> security-summary.md
+          echo "- Semgrep (Multi-language SAST): ${{ needs.semgrep-scan.result }}" >> security-summary.md
+          echo "- Trivy (Vulnerability scanner): ${{ needs.trivy-scan.result }}" >> security-summary.md
+          echo "- Gitleaks (Secret detection): ${{ needs.gitleaks-scan.result }}" >> security-summary.md
+          echo "- CodeQL (Advanced analysis): ${{ needs.codeql-analysis.result }}" >> security-summary.md
+
+      - name: Comment PR with summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('security-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v5
+        with:
+          name: security-summary
+          path: security-summary.md
+
+  # Security test suite
+  security-tests:
+    name: Security Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      MCP_DISABLE_PLUGINS: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Python 3.10 via uv
+        run: uv python install 3.10
+
+      - name: Sync dependencies (dev)
+        run: uv sync --dev
+
+      - name: Run security tests
+        run: |
+          uv run pytest tests/security/ -v --tb=short
+
+      - name: Run security validation tests
+        run: |
+          uv run python -c "
+          from src.core.security import get_security_config
+          import json
+          config = get_security_config()
+          print('Security Configuration:')
+          print(json.dumps(config, indent=2))
+          "
+
+

@@ -1,0 +1,160 @@
+# Semgrep configuration for SAST scanning
+# https://semgrep.dev/docs/
+
+rules:
+  - id: splunk-subsearch-injection
+    pattern-either:
+      - pattern: |
+          $QUERY = "... [ search ... ] ..."
+      - pattern: |
+          $QUERY = "... [search ...] ..."
+      - pattern: |
+          $QUERY = f"... [ search {$VAR} ] ..."
+    message: |
+      Potential subsearch injection vulnerability detected (CVE-2025-20381).
+      Subsearches in square brackets can bypass security controls.
+      Use sanitize_search_query() from src.core.security module.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cve: CVE-2025-20381
+      cwe: CWE-863
+      category: security
+      confidence: HIGH
+
+  - id: unsafe-splunk-query-construction
+    patterns:
+      - pattern-either:
+          - pattern: |
+              service.jobs.oneshot($QUERY, ...)
+          - pattern: |
+              service.jobs.create($QUERY, ...)
+          - pattern: |
+              saved_search.dispatch($QUERY, ...)
+      - pattern-not: |
+          $QUERY = sanitize_search_query(...)
+    message: |
+      Unsafe Splunk query construction detected. Always validate queries
+      using sanitize_search_query() before execution to prevent injection attacks.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: security
+      confidence: MEDIUM
+
+  - id: hardcoded-splunk-password
+    patterns:
+      - pattern-either:
+          - pattern: SPLUNK_PASSWORD = "..."
+          - pattern: splunk_password = "..."
+          - pattern: SPLUNK_TOKEN = "..."
+          - pattern: splunk_token = "..."
+          - pattern: SPLUNK_SECRET = "..."
+          - pattern: api_key = "sk-..."
+          - pattern: API_KEY = "sk-..."
+      - pattern-not: SPLUNK_PASSWORD = ""
+      - pattern-not: splunk_password = ""
+      - pattern-not: SPLUNK_TOKEN = ""
+      - pattern-not: splunk_token = ""
+    message: |
+      Hardcoded Splunk credentials detected. Use environment variables
+      or secure secret management instead.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: CWE-798
+      category: security
+      confidence: HIGH
+
+  - id: sql-injection-risk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              execute(f"... {$VAR} ...")
+          - pattern: |
+              execute("... %s ..." % $VAR)
+          - pattern: |
+              execute("... " + $VAR + " ...")
+      - pattern-not: |
+          execute(..., params=...)
+    message: |
+      Potential SQL injection vulnerability. Use parameterized queries.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: CWE-89
+      category: security
+      confidence: HIGH
+
+  - id: insecure-ssl-verification
+    pattern-either:
+      - pattern: |
+          verify=False
+      - pattern: |
+          verify = False
+      - pattern: |
+          SSL_VERIFY = False
+    message: |
+      SSL certificate verification is disabled. This is insecure in production.
+      Only disable for local development.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: CWE-295
+      category: security
+      confidence: HIGH
+
+  - id: dangerous-eval-usage
+    pattern-either:
+      - pattern: eval($ARG)
+      - pattern: exec($ARG)
+    message: |
+      Dangerous use of eval() or exec(). This can lead to code injection.
+      Avoid dynamic code execution.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: CWE-95
+      category: security
+      confidence: HIGH
+
+  - id: unsafe-yaml-load
+    pattern: yaml.load($ARG, ...)
+    message: |
+      Unsafe YAML loading detected. Use yaml.safe_load() instead to prevent
+      arbitrary code execution.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: CWE-502
+      category: security
+      confidence: HIGH
+
+  - id: weak-cryptographic-hash
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: |
+      Weak cryptographic hash function (MD5/SHA1). Use SHA-256 or stronger.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: CWE-327
+      category: security
+      confidence: MEDIUM
+
+  - id: unvalidated-redirect
+    patterns:
+      - pattern-either:
+          - pattern: redirect($URL)
+          - pattern: Response.redirect($URL)
+      - pattern-not: redirect("/...")
+      - pattern-not: redirect(url_for(...))
+    message: |
+      Potential open redirect vulnerability. Validate redirect URLs.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: CWE-601
+      category: security
+      confidence: MEDIUM

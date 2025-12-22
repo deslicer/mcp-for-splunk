@@ -1,0 +1,36 @@
+# Gitleaks ignore file
+# These are fingerprints for known false positives in historical commits
+# Format: commit:file:rule:line
+
+# Test credentials in test_credentials_handling.py (commit eec6d6d)
+# These are intentional fake passwords for testing credential masking
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:31
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:39
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:78
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:85
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:174
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:184
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:239
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:288
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:326
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:359
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:splunk-password:432
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:generic-credential:290
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_credentials_handling.py:generic-credential:327
+
+# Test credentials in test_http_surface.py (commit eec6d6d)
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_http_surface.py:splunk-password:369
+
+# splunk_client.py password parameter (commits 64ac233 and eec6d6d)
+# This is the password= parameter in splunklib.client.connect() - not a hardcoded secret
+64ac233bfd533af5bd907ec9af136e10d1703f28:src/splunk_client.py:generic-credential:36
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:src/splunk_client.py:generic-credential:46
+
+# Docker compose dev defaults (commit a71bc8a)
+# Default dev password Chang3d! - well-known, not a production secret
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:115
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:splunk-password:249
+a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credential:248
+
+# Meta: gitleaksignore file itself triggers on fingerprint text (commit 88d1fff)
+88d1fffb6e9e2ee1032940106947d6ca792e3c36:.gitleaksignore:generic-credential:25
