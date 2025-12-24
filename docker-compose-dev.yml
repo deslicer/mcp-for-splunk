@@ -38,7 +38,7 @@ services:
       - "80:80" # HTTP
       - "${MCP_SERVER_PORT:-8003}:${MCP_SERVER_PORT:-8003}" # MCP Server port (Traefik entrypoint)
       - "3002:3002" # MCP Inspector port (Traefik entrypoint)
-      - "8080:8080" # Traefik dashboard
+      - "8070:8080" # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -147,6 +147,15 @@ services:
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
       # Logging level for MCP server (dev)
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+      
+      # Sentry Monitoring & Observability (optional)
+      # Set SENTRY_DSN to enable Sentry error tracking and performance monitoring
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-development}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-mcp-server-splunk@0.4.0}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-1.0}
+      - SENTRY_PROFILES_SAMPLE_RATE=${SENTRY_PROFILES_SAMPLE_RATE:-0.1}
+      - SENTRY_DEBUG=${SENTRY_DEBUG:-false}
     volumes:
       # Mount local data directory for executed workflows persistence
       - ./.data:/app/.data

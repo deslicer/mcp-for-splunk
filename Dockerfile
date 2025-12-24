@@ -1,5 +1,5 @@
-# Use Python 3.11 slim image for smaller size
-FROM python:3.14-slim
+# Use Python 3.12 slim image for better wheel availability
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
@@ -10,10 +10,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV MCP_SERVER_MODE=docker
 ENV PYTHONPATH=/app
 
-# Install system dependencies and uv (via official installer)
+# Install system dependencies and uv
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    gcc \
+    libc-dev \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install uv
@@ -28,8 +32,8 @@ ENV PATH="${PATH}:/root/.cargo/bin"
 COPY pyproject.toml uv.lock README.md ./
 COPY LICENSE ./
 
-# Install Python dependencies using uv (include watchdog and reload tools for hot reload)
-RUN uv sync --frozen --no-dev && uv add watchdog reloader
+# Install Python dependencies
+RUN uv sync --frozen --no-dev && uv add watchdog "sentry-sdk[mcp,starlette,httpx,asyncio]"
 
 # Copy source code
 COPY src/ ./src/

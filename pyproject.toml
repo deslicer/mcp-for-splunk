@@ -62,6 +62,10 @@ security = [
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)
 ]
+# Optional Sentry monitoring
+sentry = [
+"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]
