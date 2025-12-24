@@ -3,7 +3,7 @@
 import logging
 import time
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,12 +27,12 @@ class SentryHTTPMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process HTTP request with Sentry tracing."""
         if not _sentry_initialized:
-            return await call_next(request)
+            return cast(Response, await call_next(request))
 
         try:
             import sentry_sdk
         except ImportError:
-            return await call_next(request)
+            return cast(Response, await call_next(request))
 
         # Extract session ID from headers
         session_id = (
@@ -103,7 +103,7 @@ class SentryHTTPMiddleware(BaseHTTPMiddleware):
                 )
 
                 # Process request
-                response = await call_next(request)
+                response = cast(Response, await call_next(request))
 
                 # Record response info
                 duration_ms = (time.perf_counter() - start_time) * 1000
@@ -444,13 +444,13 @@ class SentryMCPMiddleware(Middleware):
         except Exception as e:
             span.set_data("response.error", str(e)[:200])
 
-    def _sanitize_params(self, params: dict) -> dict:
+    def _sanitize_params(self, params: dict) -> dict[str, Any]:
         """Sanitize parameters to remove sensitive values."""
         if not isinstance(params, dict):
             return {}
 
         sensitive_keys = {"password", "token", "secret", "authorization", "api_key", "apikey"}
-        sanitized = {}
+        sanitized: dict[str, Any] = {}
 
         for key, value in params.items():
             key_lower = key.lower()
@@ -465,7 +465,7 @@ class SentryMCPMiddleware(Middleware):
 
         return sanitized
 
-    def _sanitize_result(self, result: dict, max_depth: int = 3) -> dict:
+    def _sanitize_result(self, result: Any, max_depth: int = 3) -> Any:
         """Sanitize result data for Sentry, truncating large values."""
         if not isinstance(result, dict) or max_depth <= 0:
             return (
@@ -483,7 +483,7 @@ class SentryMCPMiddleware(Middleware):
             "apikey",
             "dsn",
         }
-        sanitized = {}
+        sanitized: dict[str, Any] = {}
 
         for key, value in result.items():
             key_lower = key.lower() if isinstance(key, str) else str(key)
