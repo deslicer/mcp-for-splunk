@@ -51,7 +51,7 @@ except ImportError as e:
 
 # Sentry integration (optional - only loaded if Sentry is configured)
 try:
-    from .sentry_integration import (
+    from .sentry_integration import (  # noqa: F401
         _sentry_sdk_available,
         add_breadcrumb,
         capture_mcp_error,
