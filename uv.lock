@@ -1548,6 +1548,9 @@ security = [
     { name = "safety" },
     { name = "semgrep" },
 ]
+sentry = [
+    { name = "sentry-sdk", extra = ["httpx", "mcp", "starlette"] },
+]
 test = [
     { name = "asgi-lifespan" },
     { name = "pytest" },
@@ -1595,6 +1598,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "safety", marker = "extra == 'security'", specifier = ">=2.3.0" },
     { name = "semgrep", marker = "extra == 'security'", specifier = ">=1.0.0" },
+    { name = "sentry-sdk", extras = ["mcp", "starlette", "httpx", "asyncio"], marker = "extra == 'sentry'", specifier = ">=2.0.0" },
     { name = "splunk-sdk", specifier = ">=2.1.0" },
     { name = "uvicorn", specifier = ">=0.32.0" },
     { name = "wsproto", specifier = ">=1.2.0" },
@@ -3464,6 +3468,30 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/23/eff37582f900cf742b5fc7709dfd0e63cc2bc0faefe6ec200f150666fa7a/semgrep-1.79.0-cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311-none-macosx_10_14_x86_64.whl", hash = "sha256:4b22b5f4db17204648baf8bc58fcd74c09eb5f41bd407422193253b4de9af18e", size = 28050871 },
     { url = "https://files.pythonhosted.org/packages/d6/88/35615a4e1142755cb3d2c86d63160f63ab770c111c82de9318bba27fb888/semgrep-1.79.0-cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311-none-macosx_11_0_arm64.whl", hash = "sha256:fe5cf0ac8afdb786cbd4e6c97c418ca7adc8f4c42584a69dc7c10e15db5f7d9b", size = 33805877 },
     { url = "https://files.pythonhosted.org/packages/fd/84/3b6afc829f54b331f47d55c565096ef74a98d96d794612d2e5330062d373/semgrep-1.79.0-cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311-none-musllinux_1_0_aarch64.manylinux2014_aarch64.whl", hash = "sha256:41797931371d05c41a6e09861b3d631136b4fe644d80802b2fd48af650e5fa5a", size = 32479030 },
+]
+
+[[package]]
+name = "sentry-sdk"
+version = "2.48.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/f0/0e9dc590513d5e742d7799e2038df3a05167cba084c6ca4f3cdd75b55164/sentry_sdk-2.48.0.tar.gz", hash = "sha256:5213190977ff7fdff8a58b722fb807f8d5524a80488626ebeda1b5676c0c1473", size = 384828 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/19/8d77f9992e5cbfcaa9133c3bf63b4fbbb051248802e1e803fed5c552fbb2/sentry_sdk-2.48.0-py2.py3-none-any.whl", hash = "sha256:6b12ac256769d41825d9b7518444e57fa35b5642df4c7c5e322af4d2c8721172", size = 414555 },
+]
+
+[package.optional-dependencies]
+httpx = [
+    { name = "httpx" },
+]
+mcp = [
+    { name = "mcp" },
+]
+starlette = [
+    { name = "starlette" },
 ]
 
 [[package]]
