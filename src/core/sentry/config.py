@@ -32,7 +32,7 @@ def is_sentry_enabled() -> bool:
 
 def init_sentry() -> bool:
     """Initialize Sentry SDK. Returns True if initialized successfully."""
-    global _sentry_initialized
+    global _sentry_initialized  # noqa: PLW0603 - exported for cross-module use
 
     if _sentry_initialized:
         return True
