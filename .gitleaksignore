@@ -34,3 +34,10 @@ a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credenti
 
 # Meta: gitleaksignore file itself triggers on fingerprint text (commit 88d1fff)
 88d1fffb6e9e2ee1032940106947d6ca792e3c36:.gitleaksignore:generic-credential:25
+
+# Sentry integration ContextVar tokens (commit 141f35f) - not secrets, just variable names
+# These are Python contextvars.ContextVar.set() return values, named "token" per stdlib convention
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_integration.py:generic-credential:220
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_integration.py:generic-credential:277
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_middleware.py:generic-credential:58
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_middleware.py:generic-credential:59

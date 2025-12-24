@@ -130,8 +130,8 @@ class SentryHTTPMiddleware(BaseHTTPMiddleware):
             try:
                 mcp_session_id.reset(session_token)
                 mcp_request_id.reset(request_token)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Error resetting context: %s", e)
 
 
 class SentryMCPMiddleware(Middleware):
@@ -249,8 +249,8 @@ class SentryMCPMiddleware(Middleware):
                     return f"resources/read {uri}"
                 elif method == "prompts/get" and "name" in params:
                     return f"prompts/get {params['name']}"
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Error generating span name: %s", e)
 
         return method
 
@@ -301,8 +301,8 @@ class SentryMCPMiddleware(Middleware):
                     "type": type(params).__name__,
                 }
                 span.set_data("request.params_summary", params_summary)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Error setting params summary: %s", e)
 
             if method == "tools/call":
                 tool_name = params.get("name", "unknown")
@@ -345,8 +345,8 @@ class SentryMCPMiddleware(Middleware):
                     span.set_data("mcp.prompt.arguments", sanitized)
                     try:
                         span.set_data("request.body", json.dumps(sanitized, default=str)[:2000])
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Error setting prompt request.body: %s", e)
 
             # Capture full params as JSON for debugging
             try:
@@ -354,8 +354,8 @@ class SentryMCPMiddleware(Middleware):
                 span.set_data(
                     "request.full_params", json.dumps(sanitized_params, default=str)[:4000]
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Error setting full_params: %s", e)
 
         except Exception as e:
             logger.debug("Error setting method-specific data: %s", e)

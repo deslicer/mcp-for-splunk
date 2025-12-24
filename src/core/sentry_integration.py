@@ -167,8 +167,8 @@ def _before_send_hook(event: dict, hint: dict) -> dict | None:
             "tool_name": tool_name,
         }
 
-    except Exception:
-        pass  # Don't fail event sending if enrichment fails
+    except Exception as e:
+        logger.debug("Error enriching event: %s", e)
 
     return event
 
@@ -181,8 +181,8 @@ def _before_send_transaction_hook(event: dict, hint: dict) -> dict | None:
             if "tags" not in event:
                 event["tags"] = {}
             event["tags"]["mcp.session.id"] = session_id
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Error enriching transaction: %s", e)
 
     return event
 
@@ -206,6 +206,14 @@ def mcp_span(op: str, name: str, description: str | None = None, **attributes: A
     except Exception as e:
         logger.debug("Error creating Sentry span: %s", e)
         yield None
+
+
+def asyncio_iscoroutinefunction(func) -> bool:
+    """Check if a function is a coroutine function."""
+    import asyncio
+    import inspect
+
+    return asyncio.iscoroutinefunction(func) or inspect.iscoroutinefunction(func)
 
 
 def trace_mcp_tool(tool_name: str | None = None):
@@ -625,8 +633,8 @@ def add_breadcrumb(
             level=level,
             data=data or {},
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Error adding breadcrumb: %s", e)
 
 
 def _sanitize_kwargs(kwargs: dict) -> dict:
@@ -648,14 +656,6 @@ def _sanitize_kwargs(kwargs: dict) -> dict:
             sanitized[key] = value
 
     return sanitized
-
-
-def asyncio_iscoroutinefunction(func) -> bool:
-    """Check if a function is a coroutine function."""
-    import asyncio
-    import inspect
-
-    return asyncio.iscoroutinefunction(func) or inspect.iscoroutinefunction(func)
 
 
 # Convenience functions for common MCP operations
