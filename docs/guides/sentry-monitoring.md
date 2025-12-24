@@ -36,7 +36,7 @@ SENTRY_DSN=https://your-key@o123.ingest.sentry.io/project-id
 
 # Recommended settings
 SENTRY_ENVIRONMENT=development
-SENTRY_RELEASE=mcp-server-splunk@0.4.0
+SENTRY_RELEASE=mcp-server-splunk@0.5.0
 SENTRY_TRACES_SAMPLE_RATE=1.0
 ```
 
@@ -53,7 +53,7 @@ uv run python src/server.py
 You'll see in the logs:
 
 ```
-INFO - Sentry initialized successfully (env=development, release=mcp-server-splunk@0.4.0, traces=100.0%)
+INFO - Sentry initialized successfully (env=development, release=mcp-server-splunk@0.5.0, traces=100.0%)
 INFO - Sentry MCP middleware added for request tracing
 INFO - Sentry HTTP middleware added for request tracing
 ```
@@ -116,7 +116,7 @@ Every span includes MCP context:
 |----------|-------------|---------|
 | `SENTRY_DSN` | Sentry project DSN (required to enable) | - |
 | `SENTRY_ENVIRONMENT` | Environment name | `development` |
-| `SENTRY_RELEASE` | Release/version identifier | `mcp-server-splunk@0.4.0` |
+| `SENTRY_RELEASE` | Release/version identifier | `mcp-server-splunk@0.5.0` |
 | `SENTRY_TRACES_SAMPLE_RATE` | Traces sampling rate (0.0-1.0) | `1.0` |
 | `SENTRY_PROFILES_SAMPLE_RATE` | Profiling sampling rate (0.0-1.0) | `0.1` |
 | `SENTRY_DEBUG` | Enable debug mode | `false` |

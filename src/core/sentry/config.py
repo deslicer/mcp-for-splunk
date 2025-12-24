@@ -62,7 +62,7 @@ def init_sentry() -> bool:
             _mcp_integration_available = False
 
         environment = os.getenv("SENTRY_ENVIRONMENT", "development")
-        release = os.getenv("SENTRY_RELEASE", "mcp-server-splunk@0.4.0")
+        release = os.getenv("SENTRY_RELEASE", "mcp-server-splunk@0.5.0")
         traces_sample_rate = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0"))
         profiles_sample_rate = float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.1"))
         debug = os.getenv("SENTRY_DEBUG", "false").lower() == "true"
