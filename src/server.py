@@ -30,13 +30,13 @@ from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
 
 # Initialize Sentry monitoring (must be early in startup)
-from src.core.sentry_integration import init_sentry
+from src.core.sentry import init_sentry
 from src.core.shared_context import http_headers_context
 from src.routes import setup_health_routes
 
 _sentry_enabled = init_sentry()
 if _sentry_enabled:
-    from src.core.sentry_middleware import SentryHTTPMiddleware, SentryMCPMiddleware
+    from src.core.sentry import SentryHTTPMiddleware, SentryMCPMiddleware
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -991,7 +991,7 @@ async def sentry_test(ctx: Context, trigger_error: bool = False, test_type: str 
     try:
         import sentry_sdk
 
-        from src.core.sentry_integration import add_breadcrumb, set_mcp_context
+        from src.core.sentry import add_breadcrumb, set_mcp_context
 
         results = {
             "transaction_sent": False,

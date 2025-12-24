@@ -51,10 +51,13 @@ except ImportError as e:
 
 # Sentry integration (optional - only loaded if Sentry is configured)
 try:
-    from .sentry_integration import (  # noqa: F401
+    from .sentry import (  # noqa: F401
+        SentryHTTPMiddleware,
+        SentryMCPMiddleware,
         _sentry_sdk_available,
         add_breadcrumb,
         capture_mcp_error,
+        create_sentry_middlewares,
         init_sentry,
         is_sentry_enabled,
         mcp_span,
@@ -75,6 +78,9 @@ try:
         "set_mcp_context",
         "capture_mcp_error",
         "add_breadcrumb",
+        "SentryHTTPMiddleware",
+        "SentryMCPMiddleware",
+        "create_sentry_middlewares",
     ]
 except ImportError:
     _sentry_sdk_available = False
