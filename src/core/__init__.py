@@ -49,6 +49,43 @@ except ImportError as e:
     resource_registry = None
     prompt_registry = None
 
+# Sentry integration (optional - only loaded if Sentry is configured)
+try:
+    from .sentry import (  # noqa: F401
+        SentryHTTPMiddleware,
+        SentryMCPMiddleware,
+        _sentry_sdk_available,
+        add_breadcrumb,
+        capture_mcp_error,
+        create_sentry_middlewares,
+        init_sentry,
+        is_sentry_enabled,
+        mcp_span,
+        set_mcp_context,
+        trace_mcp_resource,
+        trace_mcp_tool,
+        trace_splunk_operation,
+    )
+
+    _sentry_exports = [
+        "_sentry_sdk_available",
+        "init_sentry",
+        "is_sentry_enabled",
+        "mcp_span",
+        "trace_mcp_tool",
+        "trace_mcp_resource",
+        "trace_splunk_operation",
+        "set_mcp_context",
+        "capture_mcp_error",
+        "add_breadcrumb",
+        "SentryHTTPMiddleware",
+        "SentryMCPMiddleware",
+        "create_sentry_middlewares",
+    ]
+except ImportError:
+    _sentry_sdk_available = False
+    _sentry_exports = ["_sentry_sdk_available"]
+
 __all__ = [
     "BaseTool",
     "BaseResource",
@@ -69,4 +106,5 @@ __all__ = [
     "prompt_registry",
     "validate_splunk_connection",
     "format_error_response",
+    *_sentry_exports,
 ]

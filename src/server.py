@@ -28,8 +28,15 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
+
+# Initialize Sentry monitoring (must be early in startup)
+from src.core.sentry import init_sentry
 from src.core.shared_context import http_headers_context
 from src.routes import setup_health_routes
+
+_sentry_enabled = init_sentry()
+if _sentry_enabled:
+    from src.core.sentry import SentryHTTPMiddleware, SentryMCPMiddleware
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -809,12 +816,95 @@ class ClientConfigMiddleware(Middleware):
 # Add the middleware to the server
 mcp.add_middleware(ClientConfigMiddleware())
 
+# Add Sentry MCP middleware if enabled
+if _sentry_enabled:
+    try:
+        mcp.add_middleware(SentryMCPMiddleware())
+        logger.info("Sentry MCP middleware added for request tracing")
+    except Exception as e:
+        logger.warning("Failed to add Sentry MCP middleware: %s", e)
+
 
 # Health check endpoint for Docker using custom route (recommended pattern)
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request) -> JSONResponse:
     """Health check endpoint for Docker and load balancers"""
     return JSONResponse({"status": "OK", "service": "MCP for Splunk"})
+
+
+# Sentry test endpoint for verifying integration
+@mcp.custom_route("/sentry-test", methods=["GET"])
+async def sentry_test_endpoint(request) -> JSONResponse:
+    """Test endpoint to verify Sentry integration is working.
+
+    Query params:
+        error=true - Trigger a test error
+    """
+    import time
+
+    if not _sentry_enabled:
+        return JSONResponse({
+            "status": "disabled",
+            "message": "Sentry is not enabled. Set SENTRY_DSN in environment.",
+            "hint": "Add SENTRY_DSN to your .env file"
+        })
+
+    try:
+        import sentry_sdk
+
+        trigger_error = request.query_params.get("error", "").lower() == "true"
+
+        # Create a test transaction with proper MCP attributes
+        with sentry_sdk.start_transaction(
+            op="http.test",
+            name="GET /sentry-test",
+            source="route",
+        ) as transaction:
+            transaction.set_tag("test.type", "http_endpoint")
+            transaction.set_tag("mcp.transport", "http")
+            transaction.set_data("test.timestamp", time.time())
+
+            # Create child spans
+            with sentry_sdk.start_span(op="test.validate", name="Validate Request"):
+                await asyncio.sleep(0.01)
+
+            with sentry_sdk.start_span(op="test.process", name="Process Test"):
+                await asyncio.sleep(0.02)
+
+                # Send a test message
+                sentry_sdk.capture_message(
+                    f"HTTP Sentry test from MCP Server at {time.strftime('%H:%M:%S')}",
+                    level="info"
+                )
+
+            if trigger_error:
+                with sentry_sdk.start_span(op="test.error", name="Trigger Error"):
+                    raise ValueError("Test error triggered via /sentry-test?error=true")
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Test transaction and message sent to Sentry!",
+            "dsn_configured": True,
+            "check": {
+                "performance": "Check Sentry Performance tab for 'GET /sentry-test' transaction",
+                "issues": "Check Sentry Issues tab for the test message",
+            },
+            "trigger_error_url": "/sentry-test?error=true"
+        })
+    except ValueError as e:
+        # Let Sentry capture this
+        import sentry_sdk
+        sentry_sdk.capture_exception(e)
+        return JSONResponse({
+            "status": "error_captured",
+            "message": str(e),
+            "note": "This error was captured by Sentry - check your Issues dashboard!"
+        }, status_code=500)
+    except Exception as e:
+        return JSONResponse({
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
 
 
 # Legacy health check resource for MCP Inspector compatibility
@@ -869,6 +959,149 @@ def hot_reload() -> dict:
 def personalized_greeting(name: str) -> str:
     """Generate a personalized greeting message"""
     return f"Hello, {name}! Welcome to the MCP Server for Splunk."
+
+
+@mcp.tool
+async def sentry_test(ctx: Context, trigger_error: bool = False, test_type: str = "full") -> dict:
+    """Test Sentry integration by sending traces, spans, and optionally errors.
+
+    This tool creates a complete transaction with nested spans to verify
+    that tracing is working correctly in your Sentry dashboard.
+
+    Args:
+        trigger_error: If True, triggers a test exception to verify error tracking.
+        test_type: Type of test to run:
+                   - "full": Complete test with transaction, spans, and message
+                   - "trace": Only create transaction and spans
+                   - "error": Only trigger an error
+                   - "message": Only send a test message
+
+    Returns:
+        Status of the test with details on what was sent
+    """
+    import time
+
+    if not _sentry_enabled:
+        return {
+            "status": "disabled",
+            "message": "Sentry is not enabled. Set SENTRY_DSN environment variable.",
+            "hint": "Add SENTRY_DSN=https://your-key@sentry.io/project-id to your .env file",
+        }
+
+    try:
+        import sentry_sdk
+
+        from src.core.sentry import add_breadcrumb, set_mcp_context
+
+        results = {
+            "transaction_sent": False,
+            "spans_created": 0,
+            "message_sent": False,
+            "error_triggered": False,
+        }
+
+        # Set MCP context for this request
+        set_mcp_context(
+            session_id="sentry-test-session",
+            request_id=f"test-{int(time.time())}",
+        )
+
+        # Add breadcrumbs to trace the flow
+        add_breadcrumb(
+            message="Sentry test initiated",
+            category="test",
+            level="info",
+            data={"test_type": test_type, "trigger_error": trigger_error}
+        )
+
+        if test_type in ("full", "trace"):
+            # Create a proper transaction with nested spans
+            with sentry_sdk.start_transaction(
+                op="mcp.tool.test",
+                name="MCP Sentry Integration Test",
+                source="task",
+            ) as transaction:
+                # Set transaction metadata
+                transaction.set_tag("mcp.tool.name", "sentry_test")
+                transaction.set_tag("test.type", test_type)
+                transaction.set_data("mcp.session.id", "sentry-test-session")
+
+                results["transaction_sent"] = True
+
+                # Create nested spans to simulate MCP operations
+                with sentry_sdk.start_span(
+                    op="mcp.tool.prepare",
+                    name="Prepare Tool Execution",
+                ) as span1:
+                    span1.set_data("step", "preparation")
+                    span1.set_data("tool_name", "sentry_test")
+                    await asyncio.sleep(0.05)  # Simulate work
+                    results["spans_created"] += 1
+
+                with sentry_sdk.start_span(
+                    op="mcp.tool.execute",
+                    name="Execute Tool Logic",
+                ) as span2:
+                    span2.set_data("step", "execution")
+
+                    # Create child spans for detailed tracing
+                    with sentry_sdk.start_span(
+                        op="splunk.api.simulate",
+                        name="Simulated Splunk Query",
+                    ) as child_span:
+                        child_span.set_data("query_type", "test")
+                        child_span.set_data("index", "main")
+                        await asyncio.sleep(0.1)  # Simulate API call
+                        results["spans_created"] += 1
+
+                    results["spans_created"] += 1
+
+                with sentry_sdk.start_span(
+                    op="mcp.tool.finalize",
+                    name="Finalize Response",
+                ) as span3:
+                    span3.set_data("step", "finalization")
+                    span3.set_data("success", True)
+                    await asyncio.sleep(0.02)
+                    results["spans_created"] += 1
+
+        if test_type in ("full", "message"):
+            # Send a test message that appears in Issues
+            sentry_sdk.capture_message(
+                f"MCP Server Test: sentry_test tool executed successfully at {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                level="info"
+            )
+            results["message_sent"] = True
+
+        if trigger_error or test_type == "error":
+            results["error_triggered"] = True
+            # This will be captured by Sentry with full MCP context
+            raise ValueError(
+                f"Test error from MCP sentry_test tool at {time.strftime('%H:%M:%S')} - "
+                "This error should appear in your Sentry Issues dashboard!"
+            )
+
+        return {
+            "status": "success",
+            "message": "Test data sent to Sentry successfully!",
+            "results": results,
+            "next_steps": [
+                "1. Open your Sentry dashboard at https://sentry.io",
+                "2. Check 'Performance' tab for the transaction 'MCP Sentry Integration Test'",
+                "3. Check 'Issues' tab for the test message",
+                "4. Use trigger_error=true to test error capture",
+            ],
+        }
+
+    except ValueError:
+        # Re-raise test errors so Sentry captures them
+        raise
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to send test data: {str(e)}",
+            "exception_type": type(e).__name__,
+        }
 
 
 @mcp.tool
@@ -948,6 +1181,14 @@ def create_root_app(server: FastMCP) -> Starlette:
     # Parent Starlette application that applies middleware to the initial HTTP handshake
     root_app = Starlette(lifespan=mcp_app.lifespan)
     root_app.add_middleware(HeaderCaptureMiddleware)
+
+    # Add Sentry HTTP middleware if enabled (must be added after HeaderCaptureMiddleware)
+    if _sentry_enabled:
+        try:
+            root_app.add_middleware(SentryHTTPMiddleware)
+            logger.info("Sentry HTTP middleware added for request tracing")
+        except Exception as e:
+            logger.warning("Failed to add Sentry HTTP middleware: %s", e)
 
     # Allow plugins to attach HTTP middleware/routes once the Starlette app exists
     try:
