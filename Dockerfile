@@ -1,5 +1,5 @@
 # Use Python 3.12 slim image for better wheel availability
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app
