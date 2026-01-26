@@ -1,0 +1,3305 @@
+manifest:
+  version: "0.1.2"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: deslicer/mcp-for-splunk
+    source: https://github.com/deslicer/mcp-for-splunk
+    branch: main
+    commit: "16832108"
+    scope: [contrib/scripts/generate_tool.py, contrib/scripts/list_tools.py, contrib/scripts/validate_tools.py, contrib/workflows/loaders.py,
+      scripts/generate_api_docs.py, scripts/security_summary.py, src/core/loader.py, src/core/registry.py, src/core/sentry/config.py,
+      src/prompts/mcp_usage.py, src/resources/splunk_docs.py, src/routes/health.py, src/server.py, src/tools/docs/splunk_docs_tools.py,
+      src/tools/health/status.py, src/tools/search/job_search.py, src/tools/search/oneshot_search.py, src/tools/workflows/list_workflows.py,
+      src/tools/workflows/shared/config.py, src/tools/workflows/shared/context.py, src/tools/workflows/shared/dynamic_agent.py,
+      src/tools/workflows/shared/parallel_executor.py, src/tools/workflows/shared/tools.py, src/tools/workflows/shared/workflow_manager.py,
+      src/tools/workflows/summarization_tool.py, src/tools/workflows/workflow_builder.py, src/tools/workflows/workflow_requirements.py,
+      src/tools/workflows/workflow_runner.py]
+  issued:
+    by: A2AS.org
+    at: '2026-01-26T16:13:59Z'
+  signatures:
+    digest: sha256:xb4AtAPTdyQXd6Pfip30cJaulNcTjNcFApMegUhZ9HE
+    key: ed25519:uaj4y4c-QkagKimZcuw-bXtyMtPnVsPpvR_P5j9n-QA
+    sig: ed25519:AFa7a8PdR8K-1p3xjWpcFST8RdvsgDdERY--LAXNQAjZd9cDOGw4ssf1xGN_yOzr4e2ihB50Yfl8BB7hkCmRCQ
+
+agents:
+  agent:
+    type: instance
+    models: [self.config.model]
+    tools: [agent_tools]
+    params:
+      function: _create_agent_from_task
+      name: task.name
+  agent.SummarizationTool.summarization_agent:
+    type: class
+    models: [self.config.model]
+    tools: [tools]
+    params:
+      class: SummarizationTool
+      name: DiagnosticSummarizationAgent
+      instructions: [You are an expert Splunk diagnostic analyst and technical writer specializing in comprehensive result
+          analysis and executive reporting., '**Your Role:**', '- Analyze diagnostic results from multiple specialized agents',
+        '- Identify patterns, correlations, and root causes across findings', '- Provide clear, actionable insights for both
+          technical teams and executives', '- Generate prioritized recommendations with realistic timelines', '**Analysis
+          Framework:**', '1. **Executive Summary**: High-level overview suitable for management', '2. **Root Cause Analysis**:
+          Technical deep-dive into underlying issues', '3. **Action Items**: Specific, prioritized tasks with owners and timelines',
+        '4. **Severity Assessment**: Risk levels and business impact', '5. **Resolution Timeline**: Realistic estimates for
+          issue resolution', '**Output Requirements:**', '- Use clear, professional language appropriate for technical and
+          non-technical audiences', '- Prioritize recommendations by impact and urgency', '- Provide specific, actionable
+          steps rather than vague suggestions', '- Include confidence levels for assessments', '- Consider resource requirements
+          and implementation complexity', '**Key Principles:**', '- Focus on business impact and user experience', '- Distinguish
+          between symptoms and root causes', '- Provide both immediate fixes and long-term improvements', '- Consider operational
+          constraints and maintenance windows', '- Emphasize preventive measures to avoid future issues', 'Always structure
+          your analysis comprehensively and provide practical, implementable recommendations.']
+  dynamic_agent:
+    type: instance
+    models: [self.config.model]
+    tools: [agent_tools]
+    params:
+      class: DynamicMicroAgent
+      name: self.name
+      function: create_dynamic_agent
+      instructions: [final_instructions]
+
+models:
+  self.config.model:
+    type: variable
+    agents: [agent, agent.SummarizationTool.summarization_agent, dynamic_agent]
+
+tools:
+  agent_tools:
+    type: variable
+    agents: [agent, dynamic_agent]
+    params:
+      dynamic: "True"
+  get_current_user_info:
+    type: decorator
+    params:
+      description: Get current user information including roles and capabilities.
+  get_splunk_health:
+    type: decorator
+    params:
+      description: Check Splunk server health and connectivity.
+  list_splunk_indexes:
+    type: decorator
+    params:
+      description: List available Splunk indexes.
+  return_summarization_result:
+    type: decorator
+    params:
+      description: |-
+        Return the comprehensive summarization analysis.
+
+        Args:
+            executive_summary: High-level summary for management
+            root_cause_analysis: Technical analysis of underlying issues
+            action_items: JSON string of prioritized action items (list)
+            priority_recommendations: JSON string of priority recommendations (list)
+            severity_assessment: Overall severity and business impact assessment
+            resolution_timeline: Realistic timeline for issue resolution
+            follow_up_actions: JSON string of follow-up actions (list)
+            technical_details: JSON string of additional technical context (dict)
+            confidence_score: Confidence level in the analysis (0.0-1.0)
+  run_oneshot_search:
+    type: decorator
+    params:
+      description: Execute a quick Splunk oneshot search.
+  run_splunk_search:
+    type: decorator
+    params:
+      description: Execute a Splunk search query.
+  tool:
+    type: wrapper
+    params:
+      wraps: run_splunk_search
+  tools:
+    type: variable
+    agents: [agent.SummarizationTool.summarization_agent]
+    params:
+      dynamic: "True"
+  wrapped:
+    type: wrapper
+    params:
+      wraps: dynamic_tool_wrapper
+
+imports:
+  _doc_cache: splunk_docs._doc_cache
+  _secure_sanitize: src.core.security.sanitize_search_query
+  _secure_validate: src.core.security.validate_search_query
+  _sentry_initialized: config._sentry_initialized
+  _sentry_sdk_available: config._sentry_sdk_available
+  _warnings: warnings
+  ABC: abc.ABC
+  abstractmethod: abc.abstractmethod
+  add_breadcrumb: src.core.sentry.add_breadcrumb
+  AdminGuideResource: src.resources.splunk_docs.AdminGuideResource
+  Agent: agents.Agent
+  AgentConfig: config.AgentConfig
+  AgentExecutionContext: dynamic_agent.AgentExecutionContext
+  Any: typing.Any
+  argparse: argparse
+  ast: ast
+  asynccontextmanager: contextlib.asynccontextmanager
+  asyncio: asyncio
+  AsyncioIntegration: sentry_sdk.integrations.asyncio.AsyncioIntegration
+  AsyncIterator: collections.abc.AsyncIterator
+  base64: base64
+  BaseHTTPMiddleware: starlette.middleware.base.BaseHTTPMiddleware
+  BasePrompt: src.core.base.BasePrompt
+  BaseResource: core.base.BaseResource
+  BaseTool: src.core.base.BaseTool
+  BeautifulSoup: bs4.BeautifulSoup
+  Callable: collections.abc.Callable
+  capture_mcp_error: context.capture_mcp_error
+  cast: typing.cast
+  CIMDataModelResource: src.resources.splunk_cim.CIMDataModelResource
+  CIMDiscoveryResource: src.resources.splunk_cim.CIMDiscoveryResource
+  client: splunklib.client
+  ComponentLoader: src.core.loader.ComponentLoader
+  Context: fastmcp.server.context.Context
+  contextmanager: contextlib.contextmanager
+  ContextVar: contextvars.ContextVar
+  create_admin_guide_resource: resources.splunk_docs.create_admin_guide_resource
+  create_cim_data_model_resource: resources.splunk_cim.create_cim_data_model_resource
+  create_dashboard_studio_resource: resources.dashboard_studio_docs.create_dashboard_studio_resource
+  create_dynamic_agent: dynamic_agent.create_dynamic_agent
+  create_sentry_middlewares: mcp_middleware.create_sentry_middlewares
+  create_spec_reference_resource: resources.splunk_docs.create_spec_reference_resource
+  create_spl_command_resource: resources.splunk_docs.create_spl_command_resource
+  create_splunk_tools: tools.create_splunk_tools
+  create_summarization_tool: summarization_tool.create_summarization_tool
+  create_troubleshooting_resource: resources.splunk_docs.create_troubleshooting_resource
+  CreateSavedSearch: saved_search_tools.CreateSavedSearch
+  custom_span: agents.custom_span
+  DASHBOARD_STUDIO_TOPICS: src.resources.dashboard_studio_docs.DASHBOARD_STUDIO_TOPICS
+  DashboardStudioDiscoveryResource: src.resources.dashboard_studio_docs.DashboardStudioDiscoveryResource
+  DashboardStudioDocsResource: src.resources.dashboard_studio_docs.DashboardStudioDocsResource
+  dataclass: dataclasses.dataclass
+  datetime: datetime.datetime
+  DeleteSavedSearch: saved_search_tools.DeleteSavedSearch
+  DiagnosticResult: context.DiagnosticResult
+  discover_prompts: core.discovery.discover_prompts
+  discover_resources: discovery.discover_resources
+  discover_tools: discovery.discover_tools
+  DiscoverSplunkDocs: splunk_docs_tools.DiscoverSplunkDocs
+  DocumentationDiscoveryResource: src.resources.splunk_docs.DocumentationDiscoveryResource
+  DynamicMicroAgent: dynamic_agent.DynamicMicroAgent
+  embedded_resource_registry: src.resources.embedded.embedded_resource_registry
+  EmbeddedResource: src.resources.embedded.EmbeddedResource
+  EnhancedConfigExtractor: core.enhanced_config_extractor.EnhancedConfigExtractor
+  entry_points: importlib.metadata.entry_points
+  Enum: enum.Enum
+  execute_missing_data_workflow: workflow_manager.execute_missing_data_workflow
+  execute_performance_workflow: workflow_manager.execute_performance_workflow
+  ExecuteSavedSearch: saved_search_tools.ExecuteSavedSearch
+  extract_client_config_from_headers: src.server.extract_client_config_from_headers
+  FastMCP: fastmcp.FastMCP
+  field: dataclasses.field
+  filter_customer_indexes: core.utils.filter_customer_indexes
+  function_tool: agents.function_tool
+  functools: functools
+  get_client_manager: core.client_identity.get_client_manager
+  get_context: fastmcp.server.dependencies.get_context
+  get_executed_store: shared.executed_store.get_executed_store
+  get_http_headers: fastmcp.server.dependencies.get_http_headers
+  get_http_request: fastmcp.server.dependencies.get_http_request
+  get_server: fastmcp.server.dependencies.get_server
+  get_splunk_service: src.client.splunk_client.get_splunk_service
+  get_splunk_service_safe: src.client.splunk_client.get_splunk_service_safe
+  get_type_hints: typing.get_type_hints
+  GetAdminGuide: splunk_docs_tools.GetAdminGuide
+  GetExecutedWorkflowsTool: get_executed_workflows.GetExecutedWorkflowsTool
+  GetSavedSearchDetails: saved_search_tools.GetSavedSearchDetails
+  GetSPLReference: splunk_docs_tools.GetSPLReference
+  GetSplunkCheatSheet: splunk_docs_tools.GetSplunkCheatSheet
+  GetSplunkDocumentation: splunk_docs_tools.GetSplunkDocumentation
+  GetSplunkHealth: src.tools.health.status.GetSplunkHealth
+  GetTroubleshootingGuide: splunk_docs_tools.GetTroubleshootingGuide
+  hashlib: hashlib
+  HTMLResponse: starlette.responses.HTMLResponse
+  http_headers_context: src.core.shared_context.http_headers_context
+  httpx: httpx
+  HttpxIntegration: sentry_sdk.integrations.httpx.HttpxIntegration
+  importlib: importlib
+  init_sentry: src.core.sentry.init_sentry
+  inspect: inspect
+  is_sentry_enabled: config.is_sentry_enabled
+  JobSearch: job_search.JobSearch
+  json: json
+  JSONResponse: starlette.responses.JSONResponse
+  JSONResultsReader: splunklib.results.JSONResultsReader
+  ListAdminTopics: splunk_docs_tools.ListAdminTopics
+  ListAvailableTopics: splunk_docs_tools.ListAvailableTopics
+  ListSavedSearches: saved_search_tools.ListSavedSearches
+  ListSPLCommands: splunk_docs_tools.ListSPLCommands
+  ListTroubleshootingTopics: splunk_docs_tools.ListTroubleshootingTopics
+  ListWorkflowsTool: list_workflows.ListWorkflowsTool
+  load_and_register_workflows: contrib.workflows.loaders.load_and_register_workflows
+  load_css: templates.load_css
+  load_dotenv: dotenv.load_dotenv
+  load_template: templates.load_template
+  log_tool_execution: src.core.utils.log_tool_execution
+  logging: logging
+  LoggingIntegration: sentry_sdk.integrations.logging.LoggingIntegration
+  mcp_request_id: config.mcp_request_id
+  mcp_session_id: config.mcp_session_id
+  mcp_span: context.mcp_span
+  mcp_tool_name: config.mcp_tool_name
+  mcp_tool_registry: src.core.registry.tool_registry
+  mcp_usage: mcp_usage
+  MCPIntegration: sentry_sdk.integrations.mcp.MCPIntegration
+  Middleware: fastmcp.server.middleware.Middleware
+  MiddlewareContext: fastmcp.server.middleware.MiddlewareContext
+  mimetypes: mimetypes
+  OneshotSearch: oneshot_search.OneshotSearch
+  OpenAI: openai.OpenAI
+  os: os
+  ParallelExecutionMetrics: parallel_executor.ParallelExecutionMetrics
+  ParallelWorkflowExecutor: parallel_executor.ParallelWorkflowExecutor
+  Path: pathlib.Path
+  pkgutil: pkgutil
+  prompt_registry: core.registry.prompt_registry
+  PromptMetadata: src.core.base.PromptMetadata
+  PydanticJsonSchemaWarning: pydantic.json_schema.PydanticJsonSchemaWarning
+  random: random
+  re: re
+  regex_module: re
+  register_all_cim_resources: splunk_cim.register_all_cim_resources
+  register_all_prompts: prompts.register_all_prompts
+  register_all_resources: resources.register_all_resources
+  register_dashboard_studio_resources: dashboard_studio_docs.register_dashboard_studio_resources
+  register_documentation_resources: splunk_docs.register_all_resources
+  register_embedded_resources: embedded.register_embedded_resources
+  register_embedded_splunk_docs: embedded_splunk_docs.register_embedded_splunk_docs
+  render_template: templates.render_template
+  Request: starlette.requests.Request
+  resource_registry: src.core.registry.resource_registry
+  ResourceMetadata: core.base.ResourceMetadata
+  Response: starlette.responses.Response
+  retry_with_exponential_backoff: retry.retry_with_exponential_backoff
+  RetryConfig: config.RetryConfig
+  Runner: agents.Runner
+  sanitize_search_query: src.core.utils.sanitize_search_query
+  sentry_sdk: sentry_sdk
+  SentryHTTPMiddleware: src.core.sentry.SentryHTTPMiddleware
+  SentryMCPMiddleware: src.core.sentry.SentryMCPMiddleware
+  set_mcp_context: src.core.sentry.set_mcp_context
+  setup_health_routes: src.routes.setup_health_routes
+  SPLCommandResource: src.resources.splunk_docs.SPLCommandResource
+  SplunkAppsResource: splunk_config.SplunkAppsResource
+  SplunkCheatSheetResource: src.resources.splunk_docs.SplunkCheatSheetResource
+  SplunkCIMResource: src.resources.splunk_cim.SplunkCIMResource
+  SplunkConfigResource: splunk_config.SplunkConfigResource
+  SplunkContext: src.core.base.SplunkContext
+  SplunkDiagnosticContext: context.SplunkDiagnosticContext
+  SplunkDocsProcessor: processors.html_processor.SplunkDocsProcessor
+  SplunkHealthResource: splunk_config.SplunkHealthResource
+  SplunkIndexesResource: splunk_config.SplunkIndexesResource
+  SplunkSavedSearchesResource: splunk_config.SplunkSavedSearchesResource
+  SplunkSearchResultsResource: splunk_config.SplunkSearchResultsResource
+  SplunkSpecReferenceResource: src.resources.splunk_docs.SplunkSpecReferenceResource
+  SplunkToolRegistry: tools.SplunkToolRegistry
+  Starlette: starlette.applications.Starlette
+  StarletteIntegration: sentry_sdk.integrations.starlette.StarletteIntegration
+  SummarizationTool: summarization_tool.SummarizationTool
+  sys: sys
+  TaskDefinition: src.tools.workflows.shared.workflow_manager.TaskDefinition
+  time: time
+  timedelta: datetime.timedelta
+  tomllib: tomli
+  tool_registry: registry.tool_registry
+  ToolMetadata: src.core.base.ToolMetadata
+  trace: agents.trace
+  trace_mcp_resource: decorators.trace_mcp_resource
+  trace_mcp_tool: decorators.trace_mcp_tool
+  trace_resource_read: decorators.trace_resource_read
+  trace_splunk_operation: decorators.trace_splunk_operation
+  trace_tool_call: decorators.trace_tool_call
+  TroubleshootingResource: src.resources.splunk_docs.TroubleshootingResource
+  TYPE_CHECKING: typing.TYPE_CHECKING
+  TypeVar: typing.TypeVar
+  Union: typing.Union
+  UpdateSavedSearch: saved_search_tools.UpdateSavedSearch
+  uuid: uuid
+  uuid4: uuid.uuid4
+  uvicorn: uvicorn
+  WorkflowBuilderTool: workflow_builder.WorkflowBuilderTool
+  WorkflowDefinition: src.tools.workflows.shared.workflow_manager.WorkflowDefinition
+  WorkflowLoader: contrib.workflows.loaders.WorkflowLoader
+  WorkflowManager: shared.workflow_manager.WorkflowManager
+  WorkflowRequirementsTool: workflow_requirements.WorkflowRequirementsTool
+  WorkflowResult: workflow_manager.WorkflowResult
+  WorkflowRunnerTool: workflow_runner.WorkflowRunnerTool
+  yaml: yaml
+
+functions:
+  __init__:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [self]
+  __post_init__:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _analyze_app_capabilities:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, app]
+    params:
+      returns: dict
+  _analyze_execute_method:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, tool_name, execute_method]
+  _analyze_tool:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, tool_class, metadata]
+  _basic_text_extraction:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, html, url]
+    params:
+      returns: str
+  _before_send_hook:
+    type: sync
+    module: src.core.sentry.config
+    args: [event, hint]
+  _before_send_transaction_hook:
+    type: sync
+    module: src.core.sentry.config
+    args: [event, hint]
+  _build_analysis_input:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [self, workflow_results, problem_description, diagnostic_context, execution_metadata]
+    params:
+      returns: str
+  _build_dependency_graph:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, tasks]
+    params:
+      returns: dict
+  _build_dynamic_instructions:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context]
+    params:
+      returns: str
+  _cache_content:
+    type: sync
+    module: src.resources.embedded
+    args: [self, content]
+    params:
+      returns: None
+  _cache_summary:
+    type: sync
+    module: src.server
+    args: [include_values]
+    params:
+      returns: dict
+  _calculate_parallel_efficiency:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, tasks, execution_phases]
+    params:
+      returns: float
+  _camel_to_snake:
+    type: sync
+    module: src.core.discovery
+    args: [name]
+    params:
+      returns: str
+  _check_forbidden_commands:
+    type: sync
+    module: src.core.security
+    args: [self, query]
+    params:
+      returns: list[SecurityViolation]
+  _check_pipeline_complexity:
+    type: sync
+    module: src.core.security
+    args: [self, query]
+    params:
+      returns: list[SecurityViolation]
+  _clean_blog_content:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, content]
+    params:
+      returns: BeautifulSoup
+  _convert_splunk_boolean:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, value, default]
+  _create_agent_from_task:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, task]
+    params:
+      returns: Agent
+  _create_agent_tools:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_apps_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message]
+    params:
+      returns: str
+  _create_dependency_summary:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, dependency_results]
+    params:
+      returns: str
+  _create_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message, uri]
+    params:
+      returns: str
+  _create_execution_phases:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, tasks, dependency_graph]
+    params:
+      returns: list[list[str]]
+  _create_fallback_result:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [self, agent_result, workflow_results, execution_metadata]
+    params:
+      returns: dict
+  _create_fallback_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, tool_name, description]
+  _create_get_health_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_get_user_info_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_health_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message]
+    params:
+      returns: str
+  _create_health_tool:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self]
+  _create_indexes_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message]
+    params:
+      returns: str
+  _create_list_indexes_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_missing_data_workflow:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self]
+    params:
+      returns: WorkflowDefinition
+  _create_oneshot_search_tool:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self]
+  _create_openai_agent:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_performance_workflow:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self]
+    params:
+      returns: WorkflowDefinition
+  _create_return_result_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_return_summary_tool:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [self]
+  _create_run_oneshot_search_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_run_splunk_search_tool:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _create_saved_searches_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message]
+    params:
+      returns: str
+  _create_search_error_response:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, error_message]
+    params:
+      returns: str
+  _create_splunk_search_tool:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self]
+  _create_summarization_agent:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [self]
+  _create_tool_wrapper:
+    type: sync
+    module: src.core.loader
+    args: [self, tool_class, tool_name]
+  _create_user_info_tool:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self]
+  _create_workflow_definition:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, workflow_data, file_path]
+    params:
+      returns: WorkflowDefinition
+  _create_workflow_interactive:
+    type: async
+    module: src.tools.workflows.workflow_builder
+    args: [self, ctx]
+    params:
+      returns: dict
+  _detect_circular_dependencies:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, tasks]
+  _detect_splunk_version:
+    type: async
+    module: src.tools.docs.splunk_docs_tools
+    args: [self, ctx]
+    params:
+      returns: str
+  _determine_overall_status:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, task_results]
+    params:
+      returns: str
+  _determine_workflow_category:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflow_id, workflow_name]
+    params:
+      returns: str
+  _discover_contrib_workflows:
+    type: async
+    module: src.tools.workflows.list_workflows
+    args: [self, ctx]
+    params:
+      returns: dict
+  _discover_core_workflows:
+    type: async
+    module: src.tools.workflows.list_workflows
+    args: [self, ctx]
+    params:
+      returns: dict
+  _discover_modules_in_package:
+    type: sync
+    module: src.core.discovery
+    args: [package_name, base_class, register_func]
+    params:
+      returns: int
+  _edit_workflow:
+    type: async
+    module: src.tools.workflows.workflow_builder
+    args: [self, ctx, workflow_data]
+    params:
+      returns: dict
+  _execute_agent_with_dependencies:
+    type: async
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, agent, task, completed_results, diagnostic_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_custom_task:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, instructions]
+    params:
+      returns: Any
+  _execute_diagnostic_task_fallback:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, instructions, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_generic_task:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, instructions, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_index_verification:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_license_verification:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_permissions_check:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_phase:
+    type: async
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, phase_tasks, completed_results, diagnostic_context, ctx]
+    params:
+      returns: dict
+  _execute_phase_with_tracing:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow, phase_tasks, diagnostic_context, completed_task_results, ctx]
+    params:
+      returns: dict
+  _execute_single_task_with_tracing:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, task_def, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_single_task_without_tracing:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, task_def, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_summarization_core:
+    type: async
+    module: src.tools.workflows.summarization_tool
+    args: [self, ctx, workflow_results, problem_description, diagnostic_context, execution_metadata]
+    params:
+      returns: dict
+  _execute_task_with_tracing:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, start_time, ctx, tracing_enabled]
+    params:
+      returns: DiagnosticResult
+  _execute_time_range_check:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_with_openai_agent:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, dynamic_instructions, ctx]
+    params:
+      returns: DiagnosticResult
+  _execute_with_tracing:
+    type: async
+    module: src.tools.workflows.workflow_runner
+    args: [self, ctx, workflow_id, problem_description, earliest_time, latest_time, focus_index, focus_host, focus_sourcetype,
+      complexity_level, enable_summarization, execution_start_time]
+    params:
+      returns: dict
+  _execute_workflow_core:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow_id, diagnostic_context, ctx, execution_metadata, start_time]
+    params:
+      returns: WorkflowResult
+  _extract_config_file_from_uri:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, uri]
+  _extract_config_from_headers:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, headers]
+  _extract_context:
+    type: sync
+    module: src.core.security
+    args: [self, text, keyword, chars]
+    params:
+      returns: str
+  _extract_from_client_certificate:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_config_file:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_context_variable_headers:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self]
+  _extract_from_environment:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_http_headers:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_json_payload:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_mcp_metadata:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_middleware_context:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_from_tool_params:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, tool_params]
+  _extract_from_websocket_session:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _extract_param_description:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, docstring, param_name]
+    params:
+      returns: str
+  _extract_session_id:
+    type: sync
+    module: src.core.client_identity
+    args: [self, ctx]
+    params:
+      returns: str
+  _extract_session_id_from_headers:
+    type: sync
+    module: src.server
+    args: [headers]
+  _extract_source_info:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, tool_name, tool_class]
+  _extract_uri_parameters:
+    type: sync
+    module: src.resources.embedded
+    args: [self, uri]
+    params:
+      returns: dict
+  _fetch_external_content:
+    type: async
+    module: src.resources.dashboard_studio_docs
+    args: [self, topic_info]
+    params:
+      returns: str
+  _finalize_workflow_result:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow_id, workflow, task_results, execution_phases, start_time]
+    params:
+      returns: WorkflowResult
+  _fix_json_schema:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, schema]
+    params:
+      returns: None
+  _format_all_topics:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+    args: [self]
+    params:
+      returns: str
+  _format_by_category:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflows, metadata]
+    params:
+      returns: dict
+  _format_default_value:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, default]
+  _format_detailed:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflows, metadata]
+    params:
+      returns: dict
+  _format_final_result:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [self, summarization_result, workflow_results, execution_metadata]
+    params:
+      returns: dict
+  _format_ids_only:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflows, metadata]
+    params:
+      returns: dict
+  _format_summary:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflows, metadata]
+    params:
+      returns: dict
+  _format_topic_list:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+    args: [self]
+    params:
+      returns: str
+  _format_type_annotation:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, annotation]
+    params:
+      returns: str
+  _generate_common_fields_list:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, model]
+    params:
+      returns: str
+  _generate_content_from_params:
+    type: async
+    module: src.resources.embedded
+    args: [self, ctx, params]
+    params:
+      returns: str
+  _generate_content_hash:
+    type: sync
+    module: src.resources.embedded
+    args: [self, content]
+    params:
+      returns: str
+  _generate_detailed_tools:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_dynamic_content:
+    type: async
+    module: src.resources.embedded
+    args: [self, ctx]
+    params:
+      returns: str
+  _generate_etag:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+  _generate_example_field_mappings:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, model]
+    params:
+      returns: str
+  _generate_footer:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_header:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_overview:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_parallel_workflow_summary:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, workflow, task_results, execution_phases, execution_metrics]
+    params:
+      returns: dict
+  _generate_parameter_schema:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, parameters]
+    params:
+      returns: dict
+  _generate_related_models:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, model]
+    params:
+      returns: str
+  _generate_schemas:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: dict
+  _generate_splunk_content:
+    type: async
+    module: src.resources.embedded
+    args: [self, ctx, identity, service]
+    params:
+      returns: str
+  _generate_tag_config:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, tags]
+    params:
+      returns: str
+  _generate_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self, template_type]
+    params:
+      returns: dict
+  _generate_toc:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_tool_detail:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, tool_name]
+    params:
+      returns: str
+  _generate_tools_by_category:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  _generate_usage_example:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, tool_name, params]
+    params:
+      returns: str
+  _generate_use_case_guidance:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, model, model_info]
+    params:
+      returns: str
+  _generate_workflow_summary:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow, task_results, execution_phases]
+    params:
+      returns: dict
+  _get_admin_guide_content:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [self]
+    params:
+      returns: str
+  _get_available_tools:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_category_description:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, category]
+    params:
+      returns: str
+  _get_category_summary:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    args: [self, workflows]
+    params:
+      returns: dict
+  _get_cheat_sheet_content:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [self]
+    params:
+      returns: str
+  _get_client_identifier:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx]
+  _get_comprehensive_apps_data:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, identity]
+    params:
+      returns: dict
+  _get_config_content:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, config_file, identity, uri]
+    params:
+      returns: str
+  _get_context_variables:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_data_quality_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_default_connection:
+    type: async
+    module: src.core.client_identity
+    args: [self, ctx, client_config]
+    params:
+      returns: tuple
+  _get_detailed_requirements:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_doc_title:
+    type: sync
+    module: src.tools.docs.splunk_docs_tools
+    args: [self, doc_uri]
+    params:
+      returns: str
+  _get_documentation_content:
+    type: async
+    module: src.tools.docs.splunk_docs_tools
+    args: [self, ctx, doc_uri, auto_detect_version]
+    params:
+      returns: str
+  _get_example_value:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, param_name, param_type]
+    params:
+      returns: str
+  _get_examples:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_health_data:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, identity]
+    params:
+      returns: dict
+  _get_indexes_data:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, identity]
+    params:
+      returns: dict
+  _get_minimal_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_parallel_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_performance_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_prompt_metadata:
+    type: sync
+    module: src.core.discovery
+    args: [prompt_class, module]
+  _get_quick_reference:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_related_topics:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+    args: [self]
+    params:
+      returns: str
+  _get_resource_metadata:
+    type: sync
+    module: src.core.discovery
+    args: [resource_class, module]
+  _get_resource_name_from_uri:
+    type: sync
+    module: src.core.loader
+    args: [self, uri]
+    params:
+      returns: str
+  _get_results:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self]
+    params:
+      returns: dict
+  _get_saved_searches_data:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, identity]
+    params:
+      returns: dict
+  _get_schema_definitions:
+    type: sync
+    module: src.tools.workflows.workflow_requirements
+    args: [self]
+    params:
+      returns: dict
+  _get_search_results:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, service, identity]
+    params:
+      returns: dict
+  _get_security_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_sequential_template:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self]
+    params:
+      returns: dict
+  _get_server_default_config:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self]
+    params:
+      returns: dict
+  _get_span_name:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, context]
+    params:
+      returns: str
+  _get_span_op:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, method]
+    params:
+      returns: str
+  _get_spl_reference_content:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [self]
+    params:
+      returns: str
+  _get_splunk_context:
+    type: sync
+    module: src.core.base
+    args: [self, ctx]
+  _get_tool_metadata:
+    type: sync
+    module: src.core.discovery
+    args: [tool_class, module]
+  _get_topic_index:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+    args: [self]
+    params:
+      returns: str
+  _get_troubleshooting_content:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [self]
+    params:
+      returns: str
+  _identify_key_apps:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, apps_data]
+    params:
+      returns: list[dict]
+  _inject_dependency_context:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, base_instructions, dependencies, completed_results, diagnostic_context]
+    params:
+      returns: str
+  _is_cache_valid:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: bool
+  _is_coroutine_function:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [func]
+    params:
+      returns: bool
+  _is_valid_config_file:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, config_file]
+    params:
+      returns: bool
+  _load_config:
+    type: sync
+    module: src.tools.workflows.workflow_runner
+    args: [self]
+  _load_file_content:
+    type: async
+    module: src.resources.dashboard_studio_docs
+    args: [self, filename]
+    params:
+      returns: str
+  _load_manual_splunk_prompts:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: None
+  _load_manual_splunk_resources:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: None
+  _load_single_prompt:
+    type: sync
+    module: src.core.loader
+    args: [self, metadata]
+    params:
+      returns: int
+  _load_single_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, metadata]
+    params:
+      returns: int
+  _log_loading_summary:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self]
+  _normalize_config:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    args: [self, config]
+    params:
+      returns: dict
+  _normalize_config_for_hash:
+    type: sync
+    module: src.core.client_identity
+    args: [self, config]
+    params:
+      returns: str
+  _normalize_config_name:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, config]
+    params:
+      returns: str
+  _normalize_session_id:
+    type: sync
+    module: src.server
+    args: [value]
+  _normalize_workflow_data:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self, workflow_data]
+    params:
+      returns: dict
+  _parse_agent_result_to_diagnostic:
+    type: sync
+    module: src.tools.workflows.shared.parallel_executor
+    args: [self, agent_result, task]
+    params:
+      returns: DiagnosticResult
+  _parse_docstring:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, docstring]
+    params:
+      returns: dict
+  _parse_version_components:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, version]
+    params:
+      returns: tuple
+  _process_embedded_content:
+    type: async
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: str
+  _process_finished_workflow:
+    type: async
+    module: src.tools.workflows.workflow_builder
+    args: [self, ctx, workflow_data]
+    params:
+      returns: dict
+  _process_module:
+    type: sync
+    module: src.core.discovery
+    args: [module, base_class, register_func]
+    params:
+      returns: int
+  _python_type_to_json_type:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, python_type]
+    params:
+      returns: str
+  _record_factory:
+    type: sync
+    module: src.server
+  _register_apps_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_builtin_workflows:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self]
+  _register_config_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_documentation_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_documentation_resources:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: None
+  _register_dynamic_documentation_handlers:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: None
+  _register_file_resources:
+    type: sync
+    module: src.resources.embedded
+  _register_generic_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_hardcoded_workflows:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self]
+  _register_health_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_indexes_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_prompt_class:
+    type: sync
+    module: src.core.discovery
+    args: [prompt_class, module]
+    params:
+      returns: None
+  _register_prompt_with_fastmcp:
+    type: sync
+    module: src.core.loader
+    args: [self, prompt_class, metadata]
+  _register_resource_class:
+    type: sync
+    module: src.core.discovery
+    args: [resource_class, module]
+    params:
+      returns: None
+  _register_saved_searches_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_search_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_splunk_embedded_resources:
+    type: sync
+    module: src.resources.embedded
+  _register_template_resource:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, pattern]
+  _register_template_resources:
+    type: sync
+    module: src.resources.embedded
+  _register_tool_class:
+    type: sync
+    module: src.core.discovery
+    args: [tool_class, module]
+    params:
+      returns: None
+  _register_with_fastmcp:
+    type: sync
+    module: src.core.loader
+    args: [self, resource_class, uri, metadata]
+  _register_with_main_registry:
+    type: sync
+    module: src.resources.embedded
+  _reload_tool_modules:
+    type: sync
+    module: src.core.loader
+    args: [self]
+  _remove_client:
+    type: sync
+    module: src.core.client_identity
+    args: [self, client_id]
+  _resolve_mcp_tool_name:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self, requested_name]
+    params:
+      returns: str
+  _safe_get_job_count:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, job, count_attr]
+    params:
+      returns: int
+  _safe_get_job_time:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, job, time_attr]
+    params:
+      returns: str
+  _safe_get_search_query:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, job]
+    params:
+      returns: str
+  _sanitize_kwargs:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [kwargs]
+    params:
+      returns: dict
+  _sanitize_params:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, params]
+    params:
+      returns: dict
+  _sanitize_result:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, result, max_depth]
+    params:
+      returns: Any
+  _set_method_specific_data:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, span, context]
+  _set_result_metadata:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+    args: [self, span, result]
+  _setup_workflow_infrastructure:
+    type: sync
+    module: src.tools.workflows.workflow_runner
+    args: [self]
+  _summarize_data_capabilities:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, apps_data]
+    params:
+      returns: dict
+  _summarize_search_capabilities:
+    type: sync
+    module: src.resources.splunk_config
+    args: [self, apps_data]
+    params:
+      returns: dict
+  _to_pascal_case:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self, snake_str]
+    params:
+      returns: str
+  _try_lifespan_connection:
+    type: async
+    module: src.core.client_identity
+    args: [self, ctx, client_id]
+    params:
+      returns: tuple
+  _update_registry_stats:
+    type: sync
+    module: src.resources.embedded
+    args: [self, start_time, error]
+    params:
+      returns: None
+  _validate_class_structure:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_client_config:
+    type: sync
+    module: src.core.client_identity
+    args: [self, config]
+  _validate_content:
+    type: sync
+    module: src.resources.embedded
+    args: [self, content]
+    params:
+      returns: ContentValidationResult
+  _validate_context:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, workflow_data]
+    params:
+      returns: tuple
+  _validate_default_config:
+    type: sync
+    module: src.core.client_identity
+    args: [self, config]
+  _validate_dependencies:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, tasks]
+    params:
+      returns: tuple
+  _validate_documentation:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_error_handling:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_execute_method:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_imports:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_metadata:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tree, content]
+  _validate_naming_conventions:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tool_file, tree]
+  _validate_parameters:
+    type: sync
+    module: src.resources.embedded
+    args: [self, params]
+    params:
+      returns: list[str]
+  _validate_task:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, task, index]
+    params:
+      returns: tuple
+  _validate_task_definition:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self]
+  _validate_test_file:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tool_file]
+  _validate_tools:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, workflow_data]
+    params:
+      returns: tuple
+  _validate_workflow_data:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self, workflow_data]
+    params:
+      returns: dict
+  _validate_workflow_file:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [self, file_path]
+    params:
+      returns: dict
+  _validate_workflow_structure:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, workflow_data, file_path]
+    params:
+      returns: dict
+  add_breadcrumb:
+    type: sync
+    module: src.core.sentry.context
+    args: [message, category, level, data]
+  analyze_tool_file:
+    type: sync
+    module: contrib.scripts.list_tools
+    args: [tool_file]
+  async_wrapper:
+    type: async
+    module: src.core.sentry.decorators
+  cache_key:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, version, category, topic]
+    params:
+      returns: str
+  calculate_delay:
+    type: sync
+    module: src.tools.workflows.shared.config
+    args: [self, attempt, suggested_delay]
+    params:
+      returns: float
+  call_tool:
+    type: async
+    module: src.tools.workflows.shared.tools
+    args: [self, tool_name, args]
+    params:
+      returns: dict
+  capture_mcp_error:
+    type: sync
+    module: src.core.sentry.context
+    args: [error, tool_name, resource_uri, extra]
+  check_failure_policy:
+    type: sync
+    module: scripts.security_summary
+    args: [result, fail_on]
+    params:
+      returns: tuple
+  check_splunk_available:
+    type: sync
+    module: src.core.base
+    args: [self, ctx]
+    params:
+      returns: tuple
+  cleanup_expired_cache:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: int
+  cleanup_idle_connections:
+    type: sync
+    module: src.core.client_identity
+    args: [self]
+  clear_resources:
+    type: sync
+    module: src.core.loader
+    args: [self]
+  collect_findings:
+    type: sync
+    module: scripts.security_summary
+    args: [artifact_dir]
+    params:
+      returns: ScanResult
+  create_admin_guide_resource:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [version, topic]
+    params:
+      returns: AdminGuideResource
+  create_agent_tool:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self, requested_name]
+  create_cim_data_model_resource:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [version, model]
+    params:
+      returns: CIMDataModelResource
+  create_client_identity:
+    type: sync
+    module: src.core.client_identity
+    args: [self, ctx, client_config]
+    params:
+      returns: ClientIdentity
+  create_dashboard_studio_resource:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+    args: [topic]
+    params:
+      returns: DashboardStudioDocsResource
+  create_dynamic_agent:
+    type: sync
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [config, tool_registry, task_definition]
+    params:
+      returns: DynamicMicroAgent
+  create_files:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [info]
+    params:
+      returns: tuple
+  create_from_template:
+    type: sync
+    module: src.resources.embedded
+    args: [self, template_uri]
+  create_list_workflows_tool:
+    type: sync
+    module: src.tools.workflows.list_workflows
+    params:
+      returns: ListWorkflowsTool
+  create_root_app:
+    type: sync
+    module: src.server
+    args: [server]
+    params:
+      returns: Starlette
+  create_sentry_middlewares:
+    type: sync
+    module: src.core.sentry.mcp_middleware
+  create_spec_reference_resource:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [config]
+    params:
+      returns: SplunkSpecReferenceResource
+  create_spl_command_resource:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [version, command]
+    params:
+      returns: SPLCommandResource
+  create_splunk_tools:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [splunk_tool_registry]
+    params:
+      returns: list[Callable]
+  create_summarization_tool:
+    type: sync
+    module: src.tools.workflows.summarization_tool
+    args: [config, tool_registry]
+    params:
+      returns: SummarizationTool
+  create_troubleshooting_resource:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [version, topic]
+    params:
+      returns: TroubleshootingResource
+  critical_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  decorator:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [func]
+    params:
+      returns: F
+  dfs:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [node]
+  discover_and_analyze_tools:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+  discover_prompts:
+    type: sync
+    module: src.core.discovery
+    args: [search_paths]
+    params:
+      returns: int
+  discover_resources:
+    type: sync
+    module: src.core.discovery
+    args: [search_paths]
+    params:
+      returns: int
+  discover_tools:
+    type: sync
+    module: src.core.discovery
+    args: [search_paths]
+    params:
+      returns: int
+  discover_workflows:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self]
+    params:
+      returns: list[Path]
+  dispatch:
+    type: async
+    module: src.server
+    args: [self, request, call_next]
+  dynamic_tool_wrapper:
+    type: async
+    module: src.tools.workflows.shared.tools
+    params:
+      returns: str
+  ensure_components_loaded:
+    type: async
+    module: src.server
+    args: [server]
+    params:
+      returns: None
+  error:
+    type: async
+    module: src.tools.workflows.list_workflows
+    args: [self, msg]
+  execute:
+    type: async
+    module: src.tools.search.job_search
+    args: [self, ctx, query, earliest_time, latest_time]
+    params:
+      returns: dict
+  execute_missing_data_workflow:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [workflow_manager, diagnostic_context, ctx]
+    params:
+      returns: WorkflowResult
+  execute_performance_workflow:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [workflow_manager, diagnostic_context, ctx]
+    params:
+      returns: WorkflowResult
+  execute_task:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [self, execution_context, ctx]
+    params:
+      returns: DiagnosticResult
+  execute_workflow:
+    type: async
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow_id, diagnostic_context, ctx, execution_metadata]
+    params:
+      returns: WorkflowResult
+  execute_workflow_func:
+    type: async
+    module: src.tools.workflows.workflow_runner
+  expand:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: str
+  extract_client_config:
+    type: async
+    module: src.core.enhanced_config_extractor
+    args: [self, ctx, tool_params]
+  extract_client_config_from_env:
+    type: sync
+    module: src.server
+  extract_client_config_from_headers:
+    type: sync
+    module: src.server
+    args: [headers]
+  extract_main_content:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, soup, url]
+    params:
+      returns: BeautifulSoup
+  extract_sections:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, content]
+    params:
+      returns: list[dict]
+  fallback_function:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    params:
+      returns: str
+  fetch_admin_docs:
+    type: async
+    module: src.resources.splunk_docs
+  fetch_cheat_sheet:
+    type: async
+    module: src.resources.splunk_docs
+  fetch_cim_content:
+    type: async
+    module: src.resources.splunk_cim
+    args: [self, url]
+    params:
+      returns: str
+  fetch_command_docs:
+    type: async
+    module: src.resources.splunk_docs
+  fetch_doc_content:
+    type: async
+    module: src.resources.splunk_docs
+    args: [self, url]
+    params:
+      returns: str
+  fetch_model_docs:
+    type: async
+    module: src.resources.splunk_cim
+  fetch_spec_docs:
+    type: async
+    module: src.resources.splunk_docs
+  fetch_troubleshooting_docs:
+    type: async
+    module: src.resources.splunk_docs
+  filter_customer_indexes:
+    type: sync
+    module: src.core.utils
+    args: [indexes]
+  find_tools:
+    type: sync
+    module: contrib.scripts.list_tools
+    args: [contrib_dir]
+    params:
+      returns: dict
+  force_reload_resources:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: int
+  format_cim_url:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, version, model_slug]
+    params:
+      returns: str
+  format_error_response:
+    type: sync
+    module: src.core.utils
+    args: [error]
+    params:
+      returns: dict
+  format_success_response:
+    type: sync
+    module: src.core.utils
+    args: [data]
+    params:
+      returns: dict
+  format_version_for_help_url:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, version]
+    params:
+      returns: str
+  from_environment:
+    type: sync
+    module: src.tools.workflows.shared.config
+    args: [cls]
+    params:
+      returns: RetryConfig
+  generate_full_documentation:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: str
+  generate_json_report:
+    type: sync
+    module: scripts.security_summary
+    args: [result]
+    params:
+      returns: str
+  generate_llm_markdown:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, sections, url]
+    params:
+      returns: str
+  generate_markdown_report:
+    type: sync
+    module: scripts.security_summary
+    args: [result, verbose]
+    params:
+      returns: str
+  generate_openapi_spec:
+    type: sync
+    module: scripts.generate_api_docs
+    args: [self]
+    params:
+      returns: dict
+  generate_splunk_search_test_file:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [info]
+    params:
+      returns: str
+  generate_splunk_search_tool_file:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [info]
+    params:
+      returns: str
+  generate_test_file:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [info]
+    params:
+      returns: str
+  generate_tool_file:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [info]
+    params:
+      returns: str
+  get_admin_guide_docs:
+    type: async
+    module: src.core.loader
+    args: [version, topic]
+    params:
+      returns: str
+  get_apps_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_available_tools:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self]
+    params:
+      returns: list[str]
+  get_cim_data_model:
+    type: async
+    module: src.core.loader
+    args: [version, model]
+    params:
+      returns: str
+  get_client_config_from_context:
+    type: sync
+    module: src.core.base
+    args: [self, ctx]
+  get_client_connection:
+    type: async
+    module: src.core.client_identity
+    args: [self, ctx, client_config]
+    params:
+      returns: tuple
+  get_client_manager:
+    type: sync
+    module: src.core.client_identity
+    params:
+      returns: ClientConnectionManager
+  get_component_counts:
+    type: sync
+    module: src.routes.health
+    args: [mcp_server]
+    params:
+      returns: tuple
+  get_config_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_config_template:
+    type: async
+    module: src.core.loader
+    args: [config_file, captured_pattern, captured_resource_class]
+    params:
+      returns: str
+  get_content:
+    type: async
+    module: src.resources.splunk_config
+    args: [self, ctx]
+    params:
+      returns: str
+  get_context:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self]
+    params:
+      returns: Context
+  get_current_user_info:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    params:
+      returns: str
+  get_dashboard_studio_docs:
+    type: async
+    module: src.core.loader
+    args: [topic]
+    params:
+      returns: str
+  get_documentation_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_embedded_splunk_doc:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    args: [uri]
+  get_enhanced_config_extractor:
+    type: sync
+    module: src.core.enhanced_config_extractor
+    params:
+      returns: EnhancedConfigExtractor
+  get_generic_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_health_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_indexes_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_loading_report:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self]
+    params:
+      returns: dict
+  get_mcp:
+    type: sync
+    module: src.server
+    params:
+      returns: FastMCP
+  get_metadata:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: ResourceMetadata
+  get_multiline_input:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [prompt, required]
+    params:
+      returns: str
+  get_or_fetch:
+    type: async
+    module: src.resources.splunk_docs
+    args: [self, version, category, topic, fetch_func]
+    params:
+      returns: str
+  get_prompt:
+    type: async
+    module: src.prompts.mcp_usage
+    args: [self, ctx]
+    params:
+      returns: dict
+  get_resource:
+    type: sync
+    module: src.resources.embedded
+    args: [self, uri]
+  get_saved_searches_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_search_resource:
+    type: async
+    module: src.core.loader
+    params:
+      returns: str
+  get_security_config:
+    type: sync
+    module: src.core.security
+    params:
+      returns: dict
+  get_spec_reference_docs:
+    type: async
+    module: src.core.loader
+    args: [config]
+    params:
+      returns: str
+  get_spl_command_docs:
+    type: async
+    module: src.core.loader
+    args: [version, command]
+    params:
+      returns: str
+  get_splunk_config:
+    type: sync
+    module: src.client.splunk_client
+    args: [client_config]
+    params:
+      returns: dict
+  get_splunk_health:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    params:
+      returns: str
+  get_splunk_service:
+    type: async
+    module: src.core.base
+    args: [self, ctx, tool_level_config]
+    params:
+      returns: client.Service
+  get_splunk_service_safe:
+    type: sync
+    module: src.client.splunk_client
+    args: [client_config]
+  get_splunk_status:
+    type: sync
+    module: src.routes.health
+    args: [mcp_server]
+    params:
+      returns: tuple
+  get_splunk_version:
+    type: async
+    module: src.resources.splunk_docs
+    args: [self, ctx]
+    params:
+      returns: str
+  get_statistics:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: dict
+  get_template:
+    type: sync
+    module: src.resources.embedded
+    args: [self, uri_template]
+  get_tool:
+    type: sync
+    module: src.core.registry
+    args: [self, name]
+  get_tool_info:
+    type: sync
+    module: contrib.scripts.generate_tool
+    params:
+      returns: dict
+  get_tools:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self]
+    params:
+      returns: list[Callable]
+  get_troubleshooting_docs:
+    type: async
+    module: src.core.loader
+    args: [version, topic]
+    params:
+      returns: str
+  get_user_input:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [prompt, required, options]
+    params:
+      returns: str
+  get_version:
+    type: sync
+    module: src.routes.health
+    params:
+      returns: str
+  get_workflow:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow_id]
+  has_circular_dependency:
+    type: sync
+    module: src.tools.workflows.workflow_builder
+    args: [task_id, visited, rec_stack]
+    params:
+      returns: bool
+  health_api:
+    type: async
+    module: src.routes.health
+    args: [request]
+    params:
+      returns: JSONResponse
+  health_check:
+    type: async
+    module: src.server
+    args: [request]
+    params:
+      returns: JSONResponse
+  health_check_resource:
+    type: sync
+    module: src.server
+    params:
+      returns: str
+  health_page:
+    type: async
+    module: src.routes.health
+    args: [request]
+    params:
+      returns: HTMLResponse
+  high_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  hot_reload:
+    type: sync
+    module: src.server
+    params:
+      returns: dict
+  info:
+    type: async
+    module: src.tools.workflows.list_workflows
+    args: [self, msg]
+  init_sentry:
+    type: sync
+    module: src.core.sentry.config
+    params:
+      returns: bool
+  interactive_browser:
+    type: sync
+    module: contrib.scripts.list_tools
+    args: [tools_by_category]
+  invalidate_version:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, version]
+  is_expired:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, timestamp]
+    params:
+      returns: bool
+  is_sentry_enabled:
+    type: sync
+    module: src.core.sentry.config
+    params:
+      returns: bool
+  list_embedded_splunk_docs:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+    params:
+      returns: list[dict]
+  list_prompts:
+    type: sync
+    module: src.core.registry
+    args: [self, category]
+    params:
+      returns: list[PromptMetadata]
+  list_resources:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: list[ResourceMetadata]
+  list_splunk_indexes:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    params:
+      returns: str
+  list_templates:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: list[ResourceTemplate]
+  list_tools:
+    type: sync
+    module: src.core.registry
+    args: [self, category]
+    params:
+      returns: list[ToolMetadata]
+  list_workflows:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self]
+    params:
+      returns: list[WorkflowDefinition]
+  load_all_components:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: dict
+  load_all_workflows:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self]
+    params:
+      returns: dict
+  load_and_register_workflows:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [workflow_manager, workflows_directory]
+    params:
+      returns: int
+  load_css:
+    type: sync
+    module: src.routes.templates
+    args: [css_name]
+    params:
+      returns: str
+  load_plugins:
+    type: sync
+    module: src.server
+    args: [mcp, root_app]
+    params:
+      returns: int
+  load_prompts:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: int
+  load_resources:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: int
+  load_template:
+    type: sync
+    module: src.routes.templates
+    args: [template_name]
+    params:
+      returns: str
+  load_tools:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: int
+  load_user_workflows:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [workflows_directory]
+    params:
+      returns: dict
+  load_workflow_file:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, file_path]
+  log_tool_execution:
+    type: sync
+    module: src.core.utils
+    args: [tool_name]
+  low_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  main:
+    type: sync
+    module: contrib.scripts.generate_tool
+  mask_sensitive:
+    type: sync
+    module: src.server
+    args: [data]
+    params:
+      returns: dict
+  mcp_span:
+    type: sync
+    module: src.core.sentry.context
+    args: [op, name, description]
+  medium_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  normalize_cim_version:
+    type: sync
+    module: src.resources.splunk_cim
+    args: [self, version]
+    params:
+      returns: str
+  normalize_version:
+    type: sync
+    module: src.resources.splunk_docs
+    args: [self, version]
+    params:
+      returns: str
+  on_request:
+    type: async
+    module: src.server
+    args: [self, context, call_next]
+  parse_bandit_json:
+    type: sync
+    module: scripts.security_summary
+    args: [filepath]
+    params:
+      returns: list[Finding]
+  parse_gitleaks_json:
+    type: sync
+    module: scripts.security_summary
+    args: [filepath]
+    params:
+      returns: list[Finding]
+  parse_safety_json:
+    type: sync
+    module: scripts.security_summary
+    args: [filepath]
+    params:
+      returns: list[Finding]
+  parse_semgrep_sarif:
+    type: sync
+    module: scripts.security_summary
+    args: [filepath]
+    params:
+      returns: list[Finding]
+  parse_trivy_sarif:
+    type: sync
+    module: scripts.security_summary
+    args: [filepath]
+    params:
+      returns: list[Finding]
+  personalized_greeting:
+    type: sync
+    module: src.server
+    args: [name]
+    params:
+      returns: str
+  print_tool_details:
+    type: sync
+    module: contrib.scripts.list_tools
+    args: [tool_path]
+  print_tools_summary:
+    type: sync
+    module: contrib.scripts.list_tools
+    args: [tools_by_category]
+  print_validation_results:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [results]
+  process_cheat_sheet_content:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, html, url]
+    params:
+      returns: str
+  process_element:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, element]
+    params:
+      returns: str
+  process_html:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, html, url]
+    params:
+      returns: str
+  prompt_wrapper:
+    type: async
+    module: src.core.loader
+    params:
+      returns: list[dict]
+  register:
+    type: sync
+    module: src.core.registry
+    args: [self, prompt_class, metadata]
+    params:
+      returns: None
+  register_all_cim_resources:
+    type: sync
+    module: src.resources.splunk_cim
+  register_all_prompts:
+    type: sync
+    module: src.prompts
+  register_all_resources:
+    type: sync
+    module: src.resources.splunk_docs
+  register_dashboard_studio_resources:
+    type: sync
+    module: src.resources.dashboard_studio_docs
+  register_embedded_resource:
+    type: sync
+    module: src.resources.embedded
+    args: [self, resource]
+    params:
+      returns: None
+  register_embedded_resources:
+    type: sync
+    module: src.resources.embedded
+  register_embedded_splunk_docs:
+    type: sync
+    module: src.resources.embedded_splunk_docs
+  register_instance:
+    type: sync
+    module: src.core.registry
+    args: [self, resource_instance, metadata]
+    params:
+      returns: None
+  register_template:
+    type: sync
+    module: src.resources.embedded
+    args: [self, template]
+    params:
+      returns: None
+  register_tool:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self, tool_func, aliases]
+  register_workflow:
+    type: sync
+    module: src.tools.workflows.shared.workflow_manager
+    args: [self, workflow]
+  register_workflows_with_manager:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [self, workflow_manager]
+    params:
+      returns: int
+  reload_all_components:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: dict
+  reload_tools:
+    type: sync
+    module: src.core.loader
+    args: [self]
+    params:
+      returns: int
+  render_template:
+    type: sync
+    module: src.routes.templates
+    args: [template_content]
+    params:
+      returns: str
+  report_progress:
+    type: async
+    module: src.tools.workflows.list_workflows
+    args: [self, progress, total]
+  return_diagnostic_result:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [status, findings, recommendations, details, severity, success_score, trace_url]
+    params:
+      returns: str
+  return_summarization_result:
+    type: tool
+    module: src.tools.workflows.summarization_tool
+    args: [executive_summary, root_cause_analysis, action_items, priority_recommendations, severity_assessment, resolution_timeline,
+      follow_up_actions, technical_details, confidence_score]
+    params:
+      returns: str
+  run_oneshot_search:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [query, earliest_time, latest_time, max_results]
+    params:
+      returns: str
+  run_splunk_search:
+    type: async
+    module: src.tools.workflows.shared.dynamic_agent
+    args: [query, earliest_time, latest_time]
+    params:
+      returns: str
+  sanitize_query:
+    type: sync
+    module: src.core.security
+    args: [self, query]
+    params:
+      returns: str
+  sanitize_search_query:
+    type: sync
+    module: src.core.utils
+    args: [query]
+    params:
+      returns: str
+  save_client_config:
+    type: async
+    module: src.core.enhanced_config_extractor
+    args: [self, client_id, config]
+    params:
+      returns: bool
+  secret_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  sentry_test:
+    type: async
+    module: src.server
+    args: [ctx, trigger_error, test_type]
+    params:
+      returns: dict
+  sentry_test_endpoint:
+    type: async
+    module: src.server
+    args: [request]
+    params:
+      returns: JSONResponse
+  server_info:
+    type: sync
+    module: src.server
+    params:
+      returns: dict
+  set_context:
+    type: sync
+    module: src.tools.workflows.shared.tools
+    args: [self, ctx]
+  set_mcp_context:
+    type: sync
+    module: src.core.sentry.context
+    args: [session_id, request_id, user_id, extra]
+  setup_health_routes:
+    type: sync
+    module: src.routes.health
+    args: [mcp]
+  splunk_lifespan:
+    type: async
+    module: src.server
+    args: [server]
+    params:
+      returns: AsyncIterator[SplunkContext]
+  sync_wrapper:
+    type: sync
+    module: src.core.sentry.decorators
+  table_to_markdown:
+    type: sync
+    module: src.resources.processors.html_processor
+    args: [self, table]
+    params:
+      returns: str
+  test_list_workflows:
+    type: async
+    module: src.tools.workflows.list_workflows
+  to_pascal_case:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [text]
+    params:
+      returns: str
+  to_snake_case:
+    type: sync
+    module: contrib.scripts.generate_tool
+    args: [text]
+    params:
+      returns: str
+  tool_wrapper:
+    type: async
+    module: src.core.loader
+  total_count:
+    type: sync
+    module: scripts.security_summary
+    args: [self]
+    params:
+      returns: int
+  trace_mcp_resource:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [resource_uri]
+  trace_mcp_tool:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [tool_name]
+  trace_resource_read:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [resource_uri]
+  trace_splunk_operation:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [operation]
+  trace_tool_call:
+    type: sync
+    module: src.core.sentry.decorators
+    args: [tool_name]
+  traces_sampler:
+    type: sync
+    module: src.core.sentry.config
+    args: [sampling_context]
+    params:
+      returns: float
+  truncate_large_response:
+    type: sync
+    module: src.core.utils
+    args: [data, max_items]
+    params:
+      returns: tuple
+  unregister:
+    type: sync
+    module: src.core.registry
+    args: [self, name]
+    params:
+      returns: bool
+  user_agent_info:
+    type: async
+    module: src.server
+    args: [ctx]
+    params:
+      returns: dict
+  validate_all_tools:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [contrib_dir]
+    params:
+      returns: dict
+  validate_json:
+    type: sync
+    module: src.resources.embedded
+    args: [content]
+    params:
+      returns: ContentValidationResult
+  validate_markdown:
+    type: sync
+    module: src.resources.embedded
+    args: [content]
+    params:
+      returns: ContentValidationResult
+  validate_parameters:
+    type: sync
+    module: src.resources.embedded
+    args: [self]
+    params:
+      returns: list[str]
+  validate_query:
+    type: sync
+    module: src.core.security
+    args: [self, query, strict]
+    params:
+      returns: tuple
+  validate_search_query:
+    type: sync
+    module: src.core.utils
+    args: [query, strict]
+    params:
+      returns: tuple
+  validate_splunk_connection:
+    type: sync
+    module: src.core.utils
+    args: [ctx]
+    params:
+      returns: tuple
+  validate_text:
+    type: sync
+    module: src.resources.embedded
+    args: [content]
+    params:
+      returns: ContentValidationResult
+  validate_time_range:
+    type: sync
+    module: src.core.utils
+    args: [earliest_time, latest_time]
+    params:
+      returns: tuple
+  validate_tool:
+    type: sync
+    module: contrib.scripts.validate_tools
+    args: [self, tool_file]
+    params:
+      returns: dict
+  validate_workflow_file:
+    type: sync
+    module: contrib.workflows.loaders
+    args: [file_path]
+    params:
+      returns: dict
+
+variables:
+  env_var:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.enhanced_config_extractor, src.server]
+  GITHUB_OUTPUT:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [scripts.security_summary]
+  MCP_AUTH_DISABLED:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_AUTH_PROVIDER:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_AUTH_PROVIDER_KWARGS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_DISABLE_PLUGINS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_HOT_RELOAD:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [src.server]
+  MCP_JSON_RESPONSE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_LOG_LEVEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_PLUGIN_GROUP:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  MCP_RELOAD_MODULES:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [src.core.loader]
+  MCP_SERVER_HOST:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [src.server]
+  MCP_SERVER_PORT:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [src.server]
+  MCP_STATELESS_HTTP:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.server]
+  OPENAI_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.workflow_runner, src.tools.workflows.shared.config]
+  OPENAI_MAX_RETRIES:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.shared.config]
+  OPENAI_MAX_TOKENS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.workflow_runner, src.tools.workflows.shared.config]
+  OPENAI_MODEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.workflow_runner, src.tools.workflows.shared.config]
+  OPENAI_RETRY_BASE_DELAY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.shared.config]
+  OPENAI_RETRY_EXPONENTIAL_BASE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.shared.config]
+  OPENAI_RETRY_JITTER:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.shared.config]
+  OPENAI_RETRY_MAX_DELAY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.shared.config]
+  OPENAI_TEMPERATURE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.workflow_runner, src.tools.workflows.shared.config]
+  OPENAI_TRACES_BASE_URL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.tools.workflows.workflow_runner]
+  SENTRY_DEBUG:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_DSN:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_ENABLE_LOGS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_ENVIRONMENT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_PROFILES_SAMPLE_RATE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_RELEASE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_SEND_PII:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SENTRY_TRACES_SAMPLE_RATE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.core.sentry.config]
+  SPLUNK_HOST:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+  SPLUNK_PASSWORD:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+  SPLUNK_PORT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+  SPLUNK_SCHEME:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+  SPLUNK_USERNAME:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+  SPLUNK_VERIFY_SSL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.client.splunk_client]
+
+files:
+  ./:
+    type: pattern
+    actions: [read]
+    params:
+      patterns: ['*.json']
+      caller: [discover_workflows]
+  .json:
+    type: literal
+    actions: [read]
+    params:
+      caller: [save_client_config]
+      path: [Path]
+  .py:
+    type: literal
+    actions: [read]
+    params:
+      caller: [create_files]
+      path: [tool_dir]
+  artifact_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  category_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [category_dir.iterdir]
+  config_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  config_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open, json.load, yaml.safe_load]
+      alias: [f]
+  css_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open]
+      alias: [f]
+  dir_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [dir_path.rglob]
+  docs/api:
+    type: literal
+    actions: [read]
+    params:
+      caller: [main]
+  error_file:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  file_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open, file_path.read_text, json.load]
+      alias: [f]
+  filepath:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  init_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  log_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.makedirs]
+  markdown_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  mcp_splunk_server.log:
+    type: literal
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      path: [log_dir]
+  openapi.json:
+    type: literal
+    actions: [read]
+    params:
+      caller: [main]
+      path: [output_dir]
+  openapi_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  output_dir:
+    type: literal
+    actions: [read, write]
+    params:
+      caller: [Path('docs/api'), output_dir.mkdir]
+  output_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  pyproject.toml:
+    type: literal
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      path: [project_root]
+  pyproject_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open, tomllib.load]
+      alias: [f]
+  src/tools/workflows/core/:
+    type: literal
+    actions: [read]
+    params:
+      caller: [discover_workflows]
+  template_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open]
+      alias: [f]
+  test_dir:
+    type: variable
+    actions: [write]
+    params:
+      caller: [test_dir.mkdir]
+  test_file:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  tool_dir:
+    type: variable
+    actions: [write]
+    params:
+      caller: [tool_dir.mkdir]
+  tool_file:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [open]
+      alias: [f]
+  tool_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  tools.md:
+    type: literal
+    actions: [read]
+    params:
+      caller: [main]
+      path: [output_dir]
+  tools_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [tools_dir.iterdir]
