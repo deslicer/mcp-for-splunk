@@ -41,6 +41,14 @@ class GetSearchJobInfo(BaseTool):
         requires_connection=True,
     )
 
+    @staticmethod
+    def _safe_int(value: Any, scale: int = 1) -> int | None:
+        """Convert a value to int, optionally scaling. Returns None on failure."""
+        try:
+            return int(float(value) * scale)
+        except (TypeError, ValueError):
+            return None
+
     async def execute(
         self,
         ctx: Context,
@@ -60,39 +68,26 @@ class GetSearchJobInfo(BaseTool):
             return self.format_error_response(error_msg, job_id=job_id)
 
         try:
-            # Fetch job by sid via Splunk SDK.
             try:
                 job = service.jobs[job_id]
             except Exception as e:
-                # splunklib can raise KeyError or HTTPError depending on failure mode.
                 message = f"Search job not found or inaccessible: {job_id} ({type(e).__name__}: {e})"
                 await ctx.error(message)
                 return self.format_error_response(message, job_id=job_id)
 
-            # Refresh to ensure we have current properties.
             try:
                 job.refresh()
             except Exception:
-                # If refresh fails, continue with best-effort content access.
-                pass
+                self.logger.debug("job.refresh() failed for %s, using stale content", job_id)
 
             stats: dict[str, Any] = dict(job.content or {})
-
             parsed = JobMessageParser.parse(stats.get("messages"))
 
-            # Job status flags are typically "0"/"1" strings.
             is_done = stats.get("isDone", "0") == "1"
             is_failed = stats.get("isFailed", "0") == "1"
             is_finalized = stats.get("isFinalized", "0") == "1"
 
-            # Prefer doneProgress (0..1) -> percent, otherwise fallback.
-            progress_percent = 0
-            try:
-                if "doneProgress" in stats:
-                    progress_percent = int(float(stats.get("doneProgress", 0)) * 100)
-            except Exception:
-                progress_percent = 0
-
+            progress_percent = self._safe_int(stats.get("doneProgress"), scale=100) or 0
             dispatch_state = stats.get("dispatchState", "") or stats.get("dispatch_state", "")
 
             counts: dict[str, int] = {}
@@ -101,11 +96,11 @@ class GetSearchJobInfo(BaseTool):
                 ("eventCount", "event_count"),
                 ("resultCount", "result_count"),
             ]:
-                if key in stats and stats.get(key) is not None:
-                    try:
-                        counts[out_key] = int(float(stats.get(key, 0)))
-                    except Exception:
-                        pass
+                val = stats.get(key)
+                if val is not None:
+                    converted = self._safe_int(val)
+                    if converted is not None:
+                        counts[out_key] = converted
 
             timing: dict[str, Any] = {}
             if stats.get("earliestTime") is not None:
