@@ -7,8 +7,7 @@ automatic discovery and loading of tools, resources, and prompts.
 
 import argparse
 import asyncio
-
-# Add import for Starlette responses at the top
+import json
 import logging
 import os
 import sys
@@ -906,8 +905,6 @@ def health_check_resource() -> str:
 @mcp.resource("info://server")
 def server_info() -> str:
     """Server information and capabilities"""
-    import json
-
     return json.dumps({
         "name": "MCP Server for Splunk",
         "version": "2.0.0",
@@ -922,8 +919,6 @@ def server_info() -> str:
 @mcp.resource("debug://reload")
 def hot_reload() -> str:
     """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
-    import json
-
     if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
         return json.dumps({"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"})
 
