@@ -9,8 +9,8 @@
 
 networks:
   splunk-network:
-    driver: bridge
-    attachable: true
+    external: true
+    name: splunk-network
 
 services:
   # Traefik reverse proxy and load balancer

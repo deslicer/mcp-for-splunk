@@ -47,20 +47,14 @@ async def test_with_fastmcp_client():
     print()
 
     try:
-        # Connect to MCP server with custom headers
-        # Note: FastMCP Client doesn't support custom headers directly
-        # We need to use httpx with custom headers
-        print("🔌 Connecting to MCP server at http://localhost:8003/mcp...")
+        from fastmcp.client.transports import StreamableHttpTransport
 
-        import httpx
+        server_url = "http://localhost:8003/mcp"
+        print(f"🔌 Connecting to MCP server at {server_url}...")
 
-        # Create custom httpx client with headers
-        http_client = httpx.AsyncClient(headers=headers, timeout=60.0, follow_redirects=True)
+        transport = StreamableHttpTransport(url=server_url, headers=headers)
 
-        async with Client(
-            transport="http://localhost:8003/mcp",
-            http_client=http_client,  # Pass custom httpx client with headers
-        ) as client:
+        async with Client(transport) as client:
             print("✅ Connected successfully!\n")
 
             # Test 1: List available tools
