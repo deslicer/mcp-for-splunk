@@ -19,7 +19,7 @@ from contextvars import ContextVar
 from importlib.metadata import entry_points
 
 from fastmcp import Context, FastMCP
-from fastmcp.server.dependencies import get_context, get_http_headers, get_http_request
+from fastmcp.server.dependencies import get_http_headers, get_http_request
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -100,23 +100,10 @@ _old_record_factory = logging.getLogRecordFactory()
 def _record_factory(*args, **kwargs):
     record = _old_record_factory(*args, **kwargs)
     if not hasattr(record, "session"):
-        # Prefer session id from MCP ctx state if available
         try:
-            ctx = get_context()
-            try:
-                sess = ctx.get_state("session_id")  # type: ignore[attr-defined]
-            except Exception:
-                sess = None
-            if isinstance(sess, str) and sess:
-                record.session = sess
-            else:
-                record.session = current_session_id.get()
+            record.session = current_session_id.get()
         except Exception:
-            # Fallback to ContextVar or '-'
-            try:
-                record.session = current_session_id.get()
-            except Exception:
-                record.session = "-"
+            record.session = "-"
     return record
 
 
@@ -597,7 +584,7 @@ else:
 STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
 JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, stateless_http=STATELESS_HTTP)
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
 
 # Import and setup health routes
 setup_health_routes(mcp)
@@ -747,9 +734,10 @@ class ClientConfigMiddleware(Middleware):
                     and context.fastmcp_context
                 ):
                     effective_session = session_key or derived_session
-                    context.fastmcp_context.set_state("client_config", client_config)
+                    current_session_id.set(effective_session)
+                    await context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
-                        context.fastmcp_context.set_state("session_id", effective_session)
+                        await context.fastmcp_context.set_state("session_id", effective_session)
                     logger.info(
                         "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
@@ -916,43 +904,44 @@ def health_check_resource() -> str:
 
 # Add more test resources for MCP Inspector testing
 @mcp.resource("info://server")
-def server_info() -> dict:
+def server_info() -> str:
     """Server information and capabilities"""
-    return {
+    import json
+
+    return json.dumps({
         "name": "MCP Server for Splunk",
         "version": "2.0.0",
         "transport": "http",
         "capabilities": ["tools", "resources", "prompts"],
         "description": "Modular MCP Server providing Splunk integration",
         "status": "running",
-    }
+    })
 
 
 # Hot reload endpoint for development
 @mcp.resource("debug://reload")
-def hot_reload() -> dict:
+def hot_reload() -> str:
     """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
+    import json
+
     if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
-        return {"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"}
+        return json.dumps({"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"})
 
     try:
-        # Get the component loader from the server context
-        # This is a simple approach - in production you'd want proper context management
         logger.info("Triggering hot reload of MCP components...")
 
-        # Create a new component loader and reload
         component_loader = ComponentLoader(mcp)
         results = component_loader.reload_all_components()
 
-        return {
+        return json.dumps({
             "status": "success",
             "message": "Components hot reloaded successfully",
             "results": results,
             "timestamp": time.time(),
-        }
+        })
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
-        return {"status": "error", "message": f"Hot reload failed: {str(e)}"}
+        return json.dumps({"status": "error", "message": f"Hot reload failed: {str(e)}"})
 
 
 @mcp.resource("test://greeting/{name}")
@@ -1126,13 +1115,13 @@ async def user_agent_info(ctx: Context) -> dict:
     # Known context state keys we may set in middleware
     state: dict[str, object] = {}
     try:
-        sess = ctx.get_state("session_id")  # type: ignore[attr-defined]
+        sess = await ctx.get_state("session_id")
         if sess:
             state["session_id"] = sess
     except Exception:
         pass
     try:
-        cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+        cfg = await ctx.get_state("client_config")
         if isinstance(cfg, dict):
             state["client_config"] = mask_sensitive(cfg)
     except Exception:
