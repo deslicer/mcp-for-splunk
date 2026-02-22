@@ -315,21 +315,6 @@ class SplunkHealthResource(BaseResource):
                 else "warning",
             }
 
-            # Add index information if available (excluding internal indexes)
-            # try:
-            #     indexes = service.indexes
-            #     # Filter out internal indexes for better performance and relevance
-            #     customer_indexes = filter_customer_indexes(indexes)
-
-            #     health_data["indexes"] = {
-            #         "count": len(customer_indexes),
-            #         "total_count_including_internal": len(indexes),
-            #         "total_size": sum(int(idx.get("totalEventCount", 0)) for idx in customer_indexes),
-            #         "available": [idx.name for idx in customer_indexes[:5]]  # First 5 customer indexes
-            #     }
-            # except Exception as e:
-            #     health_data["indexes"] = {"error": str(e)}
-
             return health_data
 
         except Exception as e:

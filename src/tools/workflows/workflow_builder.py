@@ -775,9 +775,6 @@ You are performing additional analysis as part of the workflow.
                 if var not in available_context:
                     errors.append(f"Task '{task_id}': unknown context variable '{var}'")
 
-            # Check for context variables used in instructions but not declared
-            import re
-
             used_vars = re.findall(r"\{(\w+)\}", instructions)
             for var in used_vars:
                 if var not in context_requirements and var not in default_context:

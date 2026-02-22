@@ -289,9 +289,8 @@ class ResourceLoader:
             # First, register documentation resources
             self._register_documentation_resources()
 
-            # Core Splunk config resources are now registered automatically
+            # Core Splunk config resources are registered automatically
             # through the resources __init__.py registration system
-            pass
 
         except ImportError as e:
             self.logger.warning(f"Could not import Splunk resources: {e}")
@@ -929,26 +928,38 @@ class PromptLoader:
             self.logger.error(f"Failed to load prompt {metadata.name}: {e}")
             return 0
 
+    @staticmethod
+    def _extract_prompt_text(result) -> str:
+        """Extract plain text from a prompt result dict for FastMCP 3.x compatibility."""
+        if isinstance(result, str):
+            return result
+        if isinstance(result, dict) and "content" in result:
+            content = result["content"]
+            if isinstance(content, list):
+                parts = [item.get("text", "") for item in content if isinstance(item, dict)]
+                return "\n".join(parts)
+            if isinstance(content, str):
+                return content
+        return str(result)
+
     def _register_prompt_with_fastmcp(self, prompt_class, metadata):
         """Register prompt with FastMCP using the @mcp.prompt decorator"""
         prompt_name = metadata.name
         prompt_description = metadata.description
 
         # Handle specific prompts with their unique signatures
+        _extract = self._extract_prompt_text
+
         if prompt_name == "troubleshoot_inputs":
-            # Create a wrapper function with the specific signature for this prompt
             async def prompt_wrapper(
                 earliest_time: str = "-24h",
                 latest_time: str = "now",
                 focus_index: str | None = None,
                 focus_host: str | None = None,
-            ) -> list[dict[str, Any]]:
+            ) -> str:
                 """Guided workflow for troubleshooting Splunk data input issues using metrics.log analysis"""
                 try:
-                    # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
-
-                    # Get the current context using FastMCP's dependency function
                     try:
                         ctx = get_context()
                     except Exception as e:
@@ -959,7 +970,6 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
                         ctx,
                         earliest_time=earliest_time,
@@ -967,21 +977,14 @@ class PromptLoader:
                         focus_index=focus_index,
                         focus_host=focus_host,
                     )
-
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return _extract(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return f"Error: {str(e)}"
 
         elif prompt_name == "troubleshoot_indexing_performance":
-            # Create a wrapper function with the specific signature for this prompt
             async def prompt_wrapper(
                 earliest_time: str = "-24h",
                 latest_time: str = "now",
@@ -990,13 +993,10 @@ class PromptLoader:
                 analysis_depth: str = "standard",
                 include_delay_analysis: bool = True,
                 include_platform_instrumentation: bool = True,
-            ) -> list[dict[str, Any]]:
+            ) -> str:
                 """Comprehensive workflow for identifying and triaging Splunk indexing performance issues"""
                 try:
-                    # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
-
-                    # Get the current context using FastMCP's dependency function
                     try:
                         ctx = get_context()
                     except Exception as e:
@@ -1007,7 +1007,6 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
                         ctx,
                         earliest_time=earliest_time,
@@ -1018,21 +1017,14 @@ class PromptLoader:
                         include_delay_analysis=include_delay_analysis,
                         include_platform_instrumentation=include_platform_instrumentation,
                     )
-
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return _extract(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return f"Error: {str(e)}"
 
         elif prompt_name == "troubleshoot_inputs_multi_agent":
-            # Create a wrapper function with the specific signature for this prompt
             async def prompt_wrapper(
                 earliest_time: str = "-24h",
                 latest_time: str = "now",
@@ -1042,13 +1034,10 @@ class PromptLoader:
                 include_performance_analysis: bool = True,
                 enable_cross_validation: bool = True,
                 analysis_mode: str = "diagnostic",
-            ) -> list[dict[str, Any]]:
+            ) -> str:
                 """Advanced multi-agent troubleshooting workflow for Splunk data input issues"""
                 try:
-                    # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
-
-                    # Get the current context using FastMCP's dependency function
                     try:
                         ctx = get_context()
                     except Exception as e:
@@ -1059,7 +1048,6 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
                         ctx,
                         earliest_time=earliest_time,
@@ -1071,32 +1059,22 @@ class PromptLoader:
                         enable_cross_validation=enable_cross_validation,
                         analysis_mode=analysis_mode,
                     )
-
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return _extract(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return f"Error: {str(e)}"
 
         elif prompt_name == "troubleshoot_performance":
-            # Create a wrapper function with the specific signature for this prompt
             async def prompt_wrapper(
                 earliest_time: str = "-7d",
                 latest_time: str = "now",
                 analysis_type: str = "comprehensive",
-            ) -> list[dict[str, Any]]:
+            ) -> str:
                 """Specialized prompt for Splunk performance analysis and optimization"""
                 try:
-                    # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
-
-                    # Get the current context using FastMCP's dependency function
                     try:
                         ctx = get_context()
                     except Exception as e:
@@ -1107,35 +1085,26 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method with parameters
                     result = await prompt_instance.get_prompt(
                         ctx,
                         earliest_time=earliest_time,
                         latest_time=latest_time,
                         analysis_type=analysis_type,
                     )
-
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return _extract(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return f"Error: {str(e)}"
 
         else:
             # Intelligent wrapper for prompts with parameters - dynamically generate signature from metadata
-            async def prompt_wrapper(**kwargs) -> list[dict[str, Any]]:
+            async def prompt_wrapper(**kwargs) -> str:
                 """Intelligent prompt wrapper that handles parameters dynamically"""
                 try:
-                    # Create prompt instance
                     prompt_instance = prompt_class(metadata.name, metadata.description)
 
-                    # Get the current context using FastMCP's dependency function
                     try:
                         ctx = get_context()
                     except Exception as e:
@@ -1146,20 +1115,14 @@ class PromptLoader:
                             f"Prompt {prompt_name} can only be called within an MCP request context"
                         ) from e
 
-                    # Call the prompt's get_prompt method with all provided parameters
                     result = await prompt_instance.get_prompt(ctx, **kwargs)
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return _extract(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return f"Error: {str(e)}"
 
             # Dynamically set the function signature based on prompt metadata
             if hasattr(metadata, "arguments") and metadata.arguments:
@@ -1206,22 +1169,19 @@ class PromptLoader:
 
                     params.append(param)
 
-                # Create new signature
-                new_sig = inspect.Signature(params, return_annotation=list[dict[str, Any]])
+                new_sig = inspect.Signature(params, return_annotation=str)
                 prompt_wrapper.__signature__ = new_sig
 
-                # Set type annotations
                 prompt_wrapper.__annotations__ = {}
                 for param in params:
                     if param.annotation != inspect.Parameter.empty:
                         prompt_wrapper.__annotations__[param.name] = param.annotation
-                prompt_wrapper.__annotations__["return"] = list[dict[str, Any]]
+                prompt_wrapper.__annotations__["return"] = str
 
                 self.logger.debug(f"Generated parameterized signature for {prompt_name}: {new_sig}")
             else:
-                # No parameters - use simple signature
                 prompt_wrapper.__signature__ = inspect.signature(lambda: None)
-                prompt_wrapper.__annotations__ = {"return": list[dict[str, Any]]}
+                prompt_wrapper.__annotations__ = {"return": str}
 
         # Set function metadata
         prompt_wrapper.__name__ = prompt_name

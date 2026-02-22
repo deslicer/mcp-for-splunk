@@ -167,7 +167,7 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                             for key, value in data.items():
                                 print(f"    {key}: {value}")
                         except (json.JSONDecodeError, AttributeError):
-                            pass
+                            pass  # Intentionally suppressed: JSON display is optional
 
                     results.append(("get_splunk_health", True))
                 else:

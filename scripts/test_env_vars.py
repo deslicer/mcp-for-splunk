@@ -92,12 +92,8 @@ def test_env_vars():
         print(f"  🔌 Port: {config.get('port', 'Not set')}")
         print(f"  👤 Username: {config.get('username', 'Not set')}")
 
-        # Test password (masked)
         password = config.get("password")
-        if password:
-            print(f"  🔐 Password: ***{password[-3:] if len(password) > 3 else '***'}")
-        else:
-            print("  🔐 Password: Not set")
+        print(f"  🔐 Password: {'(set)' if password else 'Not set'}")
 
         print(f"  🔒 SSL Verify: {config.get('verify', 'Not set')}")
 

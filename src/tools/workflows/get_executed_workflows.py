@@ -96,7 +96,7 @@ class GetExecutedWorkflowsTool(BaseTool):
                     getattr(store, "ttl_seconds", "unknown"),
                 )
             except Exception:
-                pass
+                pass  # Intentionally suppressed: debug logging is non-critical
         return {
             "status": "ok",
             "count": len(items),

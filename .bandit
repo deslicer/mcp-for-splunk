@@ -56,8 +56,10 @@ subprocess = [
 # Confidence levels: LOW, MEDIUM, HIGH
 # Severity levels: LOW, MEDIUM, HIGH
 
-# Skip specific tests
-skips = []
+# Skip subprocess warnings for CLI build tool (intentional Docker/process management)
+# B603: subprocess call with untrusted input - CLI tool uses hardcoded commands
+# B607: partial executable path - CLI tool uses standard system commands
+skips = ["B603", "B607"]
 
 # Test selection
 # tests = ["B201", "B301"]
