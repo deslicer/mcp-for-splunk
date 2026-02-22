@@ -231,7 +231,7 @@ def setup_health_routes(mcp: FastMCP):
                                     "serverName": info.get("serverName", "Unknown"),
                                 }
                         except Exception:
-                            pass
+                            pass  # Intentionally suppressed: Splunk info retrieval is optional for health
                     else:
                         logger.debug("Splunk context shows disconnected state")
                 else:

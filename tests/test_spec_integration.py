@@ -26,7 +26,7 @@ def main():
     # Test 2: Create resource using factory
     print("\n2. Testing factory function...")
     try:
-        resource = create_spec_reference_resource("10.0", "alert_actions.conf")
+        resource = create_spec_reference_resource("alert_actions.conf")
         print(f"   ✓ Created resource: {resource.name}")
         print(f"     URI: {resource.uri}")
         print(f"     Description: {resource.description}")
@@ -45,7 +45,7 @@ def main():
     ]
 
     for version_input, expected in test_versions:
-        resource = create_spec_reference_resource(version_input, "test.conf")
+        resource = create_spec_reference_resource("test.conf")
         minor, full = resource._parse_version_components(version_input)
         if (minor, full) == expected:
             print(f"   ✓ {version_input} -> minor={minor}, full={full}")
@@ -63,7 +63,7 @@ def main():
     ]
 
     for config_input, expected in test_configs:
-        resource = create_spec_reference_resource("10.0", config_input)
+        resource = create_spec_reference_resource(config_input)
         normalized = resource._normalize_config_name(config_input)
         if normalized == expected:
             print(f"   ✓ {config_input} -> {normalized}")
@@ -73,7 +73,7 @@ def main():
 
     # Test 5: Test URL construction
     print("\n5. Testing URL construction...")
-    resource = create_spec_reference_resource("10.0", "alert_actions.conf")
+    resource = create_spec_reference_resource("alert_actions.conf")
     minor, full = resource._parse_version_components("10.0")
     config = resource._normalize_config_name("alert_actions.conf")
 

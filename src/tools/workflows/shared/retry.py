@@ -42,7 +42,7 @@ async def retry_with_exponential_backoff(
     Raises:
         The last exception if all retries are exhausted
     """
-    last_exception = None
+    last_exception: Exception = RuntimeError("Max retries exceeded")
 
     for attempt in range(retry_config.max_retries + 1):
         try:
@@ -82,7 +82,7 @@ async def retry_with_exponential_backoff(
                                 suggested_delay = float(match.group(1))
                                 logger.info(f"API suggested delay: {suggested_delay}s")
                         except Exception:
-                            pass
+                            pass  # Intentionally suppressed: delay hint parsing is optional
 
                 elif isinstance(e, APIConnectionError | APITimeoutError):
                     is_retryable = True

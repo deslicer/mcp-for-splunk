@@ -17,6 +17,42 @@ except ImportError:
     _SECURITY_AVAILABLE = False
 
 
+def extract_client_config_from_headers(headers: dict) -> dict | None:
+    """
+    Extract Splunk configuration from HTTP headers.
+
+    Headers should be prefixed with 'X-Splunk-' for security.
+
+    Args:
+        headers: HTTP request headers
+
+    Returns:
+        Dict with Splunk configuration or None
+    """
+    client_config: dict[str, Any] = {}
+
+    header_mapping = {  # nosec B105 - config key names, not passwords
+        "X-Splunk-Host": "splunk_host",
+        "X-Splunk-Port": "splunk_port",
+        "X-Splunk-Username": "splunk_username",
+        "X-Splunk-Password": "splunk_password",
+        "X-Splunk-Scheme": "splunk_scheme",
+        "X-Splunk-Verify-SSL": "splunk_verify_ssl",
+    }
+
+    for header_name, config_key in header_mapping.items():
+        header_value = headers.get(header_name) or headers.get(header_name.lower())
+        if header_value:
+            if config_key == "splunk_port":
+                client_config[config_key] = int(header_value)
+            elif config_key == "splunk_verify_ssl":
+                client_config[config_key] = header_value.lower() == "true"
+            else:
+                client_config[config_key] = header_value
+
+    return client_config if client_config else None
+
+
 def validate_splunk_connection(ctx: Any) -> tuple[bool, Any, str]:
     """
     Validate Splunk connection from MCP context.

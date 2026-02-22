@@ -15,10 +15,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Import FastMCP for proper testing
 try:
-    from fastmcp import Client, Context
+    from fastmcp import Client
 except ImportError:
-    # Create fallback if FastMCP not available
-    Context = None
     Client = None
 
 
@@ -770,7 +768,7 @@ def mock_splunk_get_service(mock_splunk_service):
             try:
                 p.stop()
             except Exception:
-                pass
+                pass  # Intentionally suppressed: patch cleanup is best-effort
 
 
 @pytest.fixture

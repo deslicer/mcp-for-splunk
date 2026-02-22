@@ -47,7 +47,7 @@ def trigger_hot_reload_via_mcp(base_url: str = "http://localhost:8001") -> bool:
         data = json.dumps(mcp_request).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
             if response.status != 200:
                 print(f"❌ HTTP {response.status}: {response.reason}")
                 return False
@@ -118,7 +118,7 @@ def trigger_hot_reload_direct(base_url: str = "http://localhost:8002") -> bool:
 
         print(f"Trying direct access at: {url}")
 
-        with urllib.request.urlopen(url, timeout=10) as response:
+        with urllib.request.urlopen(url, timeout=10) as response:  # nosec B310
             if response.status != 200:
                 print(f"❌ HTTP {response.status}: {response.reason}")
                 return False

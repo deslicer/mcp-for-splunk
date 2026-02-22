@@ -94,7 +94,7 @@ def analyze_tool_file(tool_file: Path) -> dict | None:
                         elif "requires_connection=False" in metadata_text:
                             tool_info["metadata"]["requires_connection"] = False
             except Exception:
-                pass
+                pass  # Intentionally suppressed: metadata extraction is best-effort
 
         # Check for corresponding test file
         test_file = Path(

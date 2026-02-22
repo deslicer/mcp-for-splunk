@@ -102,8 +102,7 @@ class BaseTool(ABC):
                     list(headers.keys()),
                 )
 
-                # Extract Splunk configuration from headers
-                from src.server import extract_client_config_from_headers
+                from src.core.utils import extract_client_config_from_headers
 
                 client_config = extract_client_config_from_headers(headers)
 
@@ -217,8 +216,7 @@ class BaseTool(ABC):
                         f"Client-config Splunk connection failed in availability check: {e}"
                     )
         except Exception:
-            # Ignore header/env extraction issues and continue with server default
-            pass
+            pass  # Intentionally suppressed: header/env extraction is best-effort fallback
 
         # Fallback: use server default service established at startup
         # Handle both SplunkContext objects and dict formats
@@ -256,7 +254,7 @@ class BaseTool(ABC):
             if hasattr(ctx.request_context, "lifespan_context"):
                 return ctx.request_context.lifespan_context
         except Exception:
-            pass
+            pass  # Intentionally suppressed: lifespan context may not exist in all transports
 
         try:
             # Fallback: try to get from server instance (module initialization path)
@@ -266,7 +264,7 @@ class BaseTool(ABC):
             if hasattr(server, "_splunk_context"):
                 return server._splunk_context
         except Exception:
-            pass
+            pass  # Intentionally suppressed: server instance fallback is optional
 
         return None
 
@@ -279,7 +277,7 @@ class BaseTool(ABC):
         return {"status": "success", **data}
 
     @abstractmethod
-    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
+    async def execute(self, ctx: Context, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """Execute the tool's main functionality"""
         pass
 

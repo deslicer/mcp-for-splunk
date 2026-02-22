@@ -66,7 +66,7 @@ class EnhancedConfigExtractor:
 
         extraction_methods = [
             ("tool_parameters", lambda: self._extract_from_tool_params(tool_params)),
-            ("context_variable_headers", lambda: self._extract_from_context_variable_headers()),
+            ("context_variable_headers", self._extract_from_context_variable_headers),
             ("middleware_context", lambda: self._extract_from_middleware_context(ctx)),
             ("http_headers", lambda: self._extract_from_http_headers(ctx)),
             ("mcp_metadata", lambda: self._extract_from_mcp_metadata(ctx)),
@@ -190,7 +190,7 @@ class EnhancedConfigExtractor:
 
                 # Check for individual metadata fields
                 config = {}
-                metadata_mapping = {
+                metadata_mapping = {  # nosec B105 - config key names, not passwords
                     "splunk_host": "splunk_host",
                     "splunk_instance": "splunk_host",
                     "splunk_server": "splunk_host",
@@ -198,7 +198,7 @@ class EnhancedConfigExtractor:
                     "splunk_username": "splunk_username",
                     "splunk_user": "splunk_username",
                     "splunk_password": "splunk_password",
-                    "splunk_token": "splunk_password",  # Support token auth
+                    "splunk_token": "splunk_password",
                     "splunk_scheme": "splunk_scheme",
                     "splunk_protocol": "splunk_scheme",
                 }
@@ -321,8 +321,6 @@ class EnhancedConfigExtractor:
 
                 # Look for client certificate in ASGI scope
                 if "client" in scope and scope["client"]:
-                    _client_info = scope["client"]
-
                     # Check for TLS client certificate
                     if "tls" in scope and "client_cert" in scope["tls"]:
                         cert_data = scope["tls"]["client_cert"]
@@ -441,7 +439,7 @@ class EnhancedConfigExtractor:
         normalized = {}
 
         # Standard field mapping
-        field_mapping = {
+        field_mapping = {  # nosec B105 - config key names, not passwords
             "host": "splunk_host",
             "hostname": "splunk_host",
             "server": "splunk_host",
@@ -523,7 +521,7 @@ class EnhancedConfigExtractor:
             default_config = {}
 
             # Standard server environment variables
-            env_mapping = {
+            env_mapping = {  # nosec B105 - config key names, not passwords
                 "SPLUNK_HOST": "splunk_host",
                 "SPLUNK_PORT": "splunk_port",
                 "SPLUNK_USERNAME": "splunk_username",

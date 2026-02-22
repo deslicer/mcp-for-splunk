@@ -27,6 +27,7 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
+from src.core.utils import extract_client_config_from_headers
 
 # Initialize Sentry monitoring (must be early in startup)
 from src.core.sentry import init_sentry
@@ -83,7 +84,7 @@ try:
         message="Default value .* is not JSON serializable; excluding default from JSON schema",
     )
 except Exception:
-    pass
+    pass  # Intentionally suppressed: warning filter is optional, not critical
 
 # Global cache to persist client config per session across Streamable HTTP requests
 # Keyed by a caller-provided "X-Session-ID" header value
@@ -161,7 +162,7 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
             logger.info("Plugin loading disabled by MCP_DISABLE_PLUGINS")
             return 0
     except Exception:
-        pass
+        pass  # Intentionally suppressed: env var check is best-effort
 
     loaded = 0
     try:
@@ -283,45 +284,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 try:
                     current_session_id.reset(token)
                 except Exception:
-                    pass
-
-
-def extract_client_config_from_headers(headers: dict) -> dict | None:
-    """
-    Extract Splunk configuration from HTTP headers.
-
-    Headers should be prefixed with 'X-Splunk-' for security.
-
-    Args:
-        headers: HTTP request headers
-
-    Returns:
-        Dict with Splunk configuration or None
-    """
-    client_config = {}
-
-    # Mapping of header names to config keys
-    header_mapping = {
-        "X-Splunk-Host": "splunk_host",
-        "X-Splunk-Port": "splunk_port",
-        "X-Splunk-Username": "splunk_username",
-        "X-Splunk-Password": "splunk_password",
-        "X-Splunk-Scheme": "splunk_scheme",
-        "X-Splunk-Verify-SSL": "splunk_verify_ssl",
-    }
-
-    for header_name, config_key in header_mapping.items():
-        header_value = headers.get(header_name) or headers.get(header_name.lower())
-        if header_value:
-            # Handle type conversions
-            if config_key == "splunk_port":
-                client_config[config_key] = int(header_value)
-            elif config_key == "splunk_verify_ssl":
-                client_config[config_key] = header_value.lower() == "true"
-            else:
-                client_config[config_key] = header_value
-
-    return client_config if client_config else None
+                    pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
 def extract_client_config_from_env() -> dict | None:
@@ -337,7 +300,7 @@ def extract_client_config_from_env() -> dict | None:
     client_config = {}
 
     # Check for MCP client-specific environment variables
-    env_mapping = {
+    env_mapping = {  # nosec B105 - these are config key names, not passwords
         "MCP_SPLUNK_HOST": "splunk_host",
         "MCP_SPLUNK_PORT": "splunk_port",
         "MCP_SPLUNK_USERNAME": "splunk_username",
@@ -786,7 +749,7 @@ class ClientConfigMiddleware(Middleware):
                             session_key,
                         )
         except Exception:
-            pass
+            pass  # Intentionally suppressed: cache eviction is best-effort
 
         # Continue with the request
         try:
@@ -797,7 +760,7 @@ class ClientConfigMiddleware(Middleware):
             try:
                 current_session_id.reset(token)
             except Exception:
-                pass
+                pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
 # Add the middleware to the server
@@ -924,7 +887,6 @@ def hot_reload() -> str:
 
     try:
         logger.info("Triggering hot reload of MCP components...")
-
         component_loader = ComponentLoader(mcp)
         results = component_loader.reload_all_components()
 
@@ -937,6 +899,7 @@ def hot_reload() -> str:
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
         return json.dumps({"status": "error", "message": f"Hot reload failed: {str(e)}"})
+
 
 
 @mcp.resource("test://greeting/{name}")
@@ -1114,13 +1077,13 @@ async def user_agent_info(ctx: Context) -> dict:
         if sess:
             state["session_id"] = sess
     except Exception:
-        pass
+        pass  # Intentionally suppressed: state retrieval is optional diagnostic info
     try:
         cfg = await ctx.get_state("client_config")
         if isinstance(cfg, dict):
             state["client_config"] = mask_sensitive(cfg)
     except Exception:
-        pass
+        pass  # Intentionally suppressed: state retrieval is optional diagnostic info
 
     return {
         "request": {
@@ -1154,7 +1117,7 @@ def create_root_app(server: FastMCP) -> Starlette:
     - Mounts the MCP app at "/"
     """
     # Build the MCP Starlette app with the /mcp path
-    # In FastMCP 2.13, stateless_http/json_response should be set at the transport/app level
+    # In FastMCP 3.x, stateless_http/json_response are set at the transport/app level
     mcp_app = server.http_app(
         path="/mcp",
         transport="http",
@@ -1189,7 +1152,7 @@ async def main(host: str | None = None, port: int | None = None):
     """Main function for running the MCP server"""
     # Resolve host/port with precedence: CLI args > env > defaults
     env_port = int(os.environ.get("MCP_SERVER_PORT", 8001))
-    env_host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+    env_host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")  # nosec B104 - intended for containerized deployments
     port = port or env_port
     host = host or env_host
 
@@ -1230,7 +1193,7 @@ if __name__ == "__main__":
         help="Transport mode for MCP server",
     )
     parser.add_argument(
-        "--host", default="0.0.0.0", help="Host to bind the HTTP server (only for http transport)"
+        "--host", default="0.0.0.0", help="Host to bind the HTTP server (only for http transport)"  # nosec B104
     )
     parser.add_argument(
         "--port",
