@@ -47,6 +47,7 @@ RUN mkdir -p /app/src/logs
 RUN useradd -r -s /bin/false -d /app mcp && chown -R mcp:mcp /app
 
 # Expose the internal HTTP port the server binds to
+# nosemgrep: dockerfile.security.missing-user.missing-user
 EXPOSE 8001
 
 USER mcp
