@@ -82,7 +82,7 @@ class BaseTool(ABC):
         # Priority 1: Context state (preferred, set by middleware)
         try:
             if hasattr(ctx, "get_state"):
-                state_cfg = await ctx.get_state("client_config")
+                state_cfg = await ctx.get_state("client_config")  # type: ignore[attr-defined]
                 if state_cfg:
                     self.logger.info(
                         "Using client config from context state (keys=%s)", list(state_cfg.keys())

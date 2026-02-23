@@ -65,7 +65,7 @@ async def test_with_fastmcp_client():
 
             # Test 2: Call user_agent_info (simple tool)
             print("🔧 Test 2: Calling user_agent_info...")
-            result = await client.call_tool("user_agent_info", {})
+            result = await client.call_tool_mcp("user_agent_info", {})
             if result and hasattr(result, "content") and len(result.content) > 0:
                 print("✅ user_agent_info executed successfully\n")
             else:
@@ -75,7 +75,7 @@ async def test_with_fastmcp_client():
             # Test 3: Call list_indexes (requires session)
             print("🔧 Test 3: Calling list_indexes (requires proper session)...")
             try:
-                result = await client.call_tool("list_indexes", {})
+                result = await client.call_tool_mcp("list_indexes", {})
                 if result and hasattr(result, "content") and len(result.content) > 0:
                     content = result.content[0]
                     if hasattr(content, "text"):
