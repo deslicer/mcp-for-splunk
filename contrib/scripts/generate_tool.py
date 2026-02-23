@@ -1013,7 +1013,7 @@ def create_files(info: dict[str, str]) -> tuple[str, str | None]:
                     break  # Continue with creation
                 elif choice == 2:
                     print("Skipping tool file creation.")
-                    return
+                    return ("", None)
                 else:
                     print("Please enter 1 or 2")
             except ValueError:

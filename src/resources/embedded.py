@@ -239,7 +239,9 @@ class EmbeddedResource(BaseResource):
 
     def _generate_content_hash(self, content: str) -> str:
         """Generate content hash for ETag."""
-        return hashlib.md5(content.encode("utf-8")).hexdigest()
+        return hashlib.md5(  # nosec B324  # nosemgrep: insecure-hash-algorithm-md5
+            content.encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
 
     def _generate_etag(self) -> str | None:
         """Generate ETag for the resource."""
@@ -253,10 +255,12 @@ class EmbeddedResource(BaseResource):
         if self.embedded_content is not None:
             try:
                 if isinstance(self.embedded_content, bytes):
-                    content_hash = hashlib.md5(self.embedded_content).hexdigest()
+                    content_hash = hashlib.md5(  # nosec B324  # nosemgrep: insecure-hash-algorithm-md5
+                        self.embedded_content, usedforsecurity=False
+                    ).hexdigest()
                 else:
-                    content_hash = hashlib.md5(
-                        str(self.embedded_content).encode("utf-8")
+                    content_hash = hashlib.md5(  # nosec B324  # nosemgrep: insecure-hash-algorithm-md5
+                        str(self.embedded_content).encode("utf-8"), usedforsecurity=False
                     ).hexdigest()
                 self._content_hash = content_hash
                 return f'"{content_hash}"'
@@ -649,7 +653,7 @@ class EmbeddedResourceRegistry:
         try:
             resource._registry = self
         except Exception:
-            pass
+            logger.debug("Could not set registry back-reference on resource", exc_info=True)
         logger.info(f"Registered embedded resource: {resource.uri}")
 
     def register_template(self, template: ResourceTemplate) -> None:

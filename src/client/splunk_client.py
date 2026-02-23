@@ -40,7 +40,7 @@ def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, 
     # Override with client-provided configuration if available
     if client_config:
         # Map client config keys to Splunk client keys
-        key_mapping = {
+        key_mapping = {  # nosec B105 - config key names, not passwords
             "splunk_host": "host",
             "splunk_port": "port",
             "splunk_username": "username",

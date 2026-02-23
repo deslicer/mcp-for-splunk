@@ -7,8 +7,6 @@ automatic discovery and loading of tools, resources, and prompts.
 
 import argparse
 import asyncio
-
-# Add import for Starlette responses at the top
 import logging
 import os
 import sys
@@ -28,10 +26,9 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
-
-# Initialize Sentry monitoring (must be early in startup)
 from src.core.sentry import init_sentry
 from src.core.shared_context import http_headers_context
+from src.core.utils import extract_client_config_from_headers
 from src.routes import setup_health_routes
 
 _sentry_enabled = init_sentry()
@@ -84,7 +81,7 @@ try:
         message="Default value .* is not JSON serializable; excluding default from JSON schema",
     )
 except Exception:
-    pass
+    pass  # Intentionally suppressed: warning filter is optional, not critical
 
 # Global cache to persist client config per session across Streamable HTTP requests
 # Keyed by a caller-provided "X-Session-ID" header value
@@ -175,7 +172,7 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
             logger.info("Plugin loading disabled by MCP_DISABLE_PLUGINS")
             return 0
     except Exception:
-        pass
+        pass  # Intentionally suppressed: env var check is best-effort
 
     loaded = 0
     try:
@@ -297,45 +294,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                 try:
                     current_session_id.reset(token)
                 except Exception:
-                    pass
-
-
-def extract_client_config_from_headers(headers: dict) -> dict | None:
-    """
-    Extract Splunk configuration from HTTP headers.
-
-    Headers should be prefixed with 'X-Splunk-' for security.
-
-    Args:
-        headers: HTTP request headers
-
-    Returns:
-        Dict with Splunk configuration or None
-    """
-    client_config = {}
-
-    # Mapping of header names to config keys
-    header_mapping = {
-        "X-Splunk-Host": "splunk_host",
-        "X-Splunk-Port": "splunk_port",
-        "X-Splunk-Username": "splunk_username",
-        "X-Splunk-Password": "splunk_password",
-        "X-Splunk-Scheme": "splunk_scheme",
-        "X-Splunk-Verify-SSL": "splunk_verify_ssl",
-    }
-
-    for header_name, config_key in header_mapping.items():
-        header_value = headers.get(header_name) or headers.get(header_name.lower())
-        if header_value:
-            # Handle type conversions
-            if config_key == "splunk_port":
-                client_config[config_key] = int(header_value)
-            elif config_key == "splunk_verify_ssl":
-                client_config[config_key] = header_value.lower() == "true"
-            else:
-                client_config[config_key] = header_value
-
-    return client_config if client_config else None
+                    pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
 def extract_client_config_from_env() -> dict | None:
@@ -351,7 +310,7 @@ def extract_client_config_from_env() -> dict | None:
     client_config = {}
 
     # Check for MCP client-specific environment variables
-    env_mapping = {
+    env_mapping = {  # nosec B105 - these are config key names, not passwords
         "MCP_SPLUNK_HOST": "splunk_host",
         "MCP_SPLUNK_PORT": "splunk_port",
         "MCP_SPLUNK_USERNAME": "splunk_username",
@@ -597,7 +556,7 @@ else:
 STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
 JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, stateless_http=STATELESS_HTTP)
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
 
 # Import and setup health routes
 setup_health_routes(mcp)
@@ -747,9 +706,9 @@ class ClientConfigMiddleware(Middleware):
                     and context.fastmcp_context
                 ):
                     effective_session = session_key or derived_session
-                    context.fastmcp_context.set_state("client_config", client_config)
+                    await context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
-                        context.fastmcp_context.set_state("session_id", effective_session)
+                        await context.fastmcp_context.set_state("session_id", effective_session)
                     logger.info(
                         "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
@@ -799,7 +758,7 @@ class ClientConfigMiddleware(Middleware):
                             session_key,
                         )
         except Exception:
-            pass
+            pass  # Intentionally suppressed: cache eviction is best-effort
 
         # Continue with the request
         try:
@@ -810,7 +769,7 @@ class ClientConfigMiddleware(Middleware):
             try:
                 current_session_id.reset(token)
             except Exception:
-                pass
+                pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
 # Add the middleware to the server
@@ -916,43 +875,43 @@ def health_check_resource() -> str:
 
 # Add more test resources for MCP Inspector testing
 @mcp.resource("info://server")
-def server_info() -> dict:
+def server_info() -> str:
     """Server information and capabilities"""
-    return {
+    import json as _json
+
+    return _json.dumps({
         "name": "MCP Server for Splunk",
         "version": "2.0.0",
         "transport": "http",
         "capabilities": ["tools", "resources", "prompts"],
         "description": "Modular MCP Server providing Splunk integration",
         "status": "running",
-    }
+    })
 
 
 # Hot reload endpoint for development
 @mcp.resource("debug://reload")
-def hot_reload() -> dict:
+def hot_reload() -> str:
     """Hot reload components for development (only works when MCP_HOT_RELOAD=true)"""
+    import json as _json
+
     if os.environ.get("MCP_HOT_RELOAD", "false").lower() != "true":
-        return {"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"}
+        return _json.dumps({"status": "error", "message": "Hot reload is disabled (MCP_HOT_RELOAD != true)"})
 
     try:
-        # Get the component loader from the server context
-        # This is a simple approach - in production you'd want proper context management
         logger.info("Triggering hot reload of MCP components...")
-
-        # Create a new component loader and reload
         component_loader = ComponentLoader(mcp)
         results = component_loader.reload_all_components()
 
-        return {
+        return _json.dumps({
             "status": "success",
             "message": "Components hot reloaded successfully",
             "results": results,
             "timestamp": time.time(),
-        }
+        })
     except Exception as e:
         logger.error(f"Hot reload failed: {e}")
-        return {"status": "error", "message": f"Hot reload failed: {str(e)}"}
+        return _json.dumps({"status": "error", "message": f"Hot reload failed: {str(e)}"})
 
 
 @mcp.resource("test://greeting/{name}")
@@ -1105,11 +1064,13 @@ async def sentry_test(ctx: Context, trigger_error: bool = False, test_type: str 
 
 
 @mcp.tool
-async def user_agent_info(ctx: Context) -> dict:
+async def user_agent_info(ctx: Context) -> str:
     """Return request headers and context details for debugging.
 
     Includes all HTTP headers (with sensitive values masked) and core context metadata.
     """
+    import json as _json
+
     request: Request = get_http_request()
     headers = get_http_headers(include_all=True)
 
@@ -1123,22 +1084,21 @@ async def user_agent_info(ctx: Context) -> dict:
                 masked[k] = v
         return masked
 
-    # Known context state keys we may set in middleware
     state: dict[str, object] = {}
     try:
-        sess = ctx.get_state("session_id")  # type: ignore[attr-defined]
+        sess = await ctx.get_state("session_id")  # type: ignore[attr-defined]
         if sess:
             state["session_id"] = sess
     except Exception:
-        pass
+        pass  # Intentionally suppressed: state retrieval is optional diagnostic info
     try:
-        cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+        cfg = await ctx.get_state("client_config")  # type: ignore[attr-defined]
         if isinstance(cfg, dict):
             state["client_config"] = mask_sensitive(cfg)
     except Exception:
-        pass
+        pass  # Intentionally suppressed: state retrieval is optional diagnostic info
 
-    return {
+    return _json.dumps({
         "request": {
             "method": request.method,
             "path": request.url.path,
@@ -1153,7 +1113,7 @@ async def user_agent_info(ctx: Context) -> dict:
             "server": {"name": getattr(getattr(ctx, "fastmcp", None), "name", None)},
             "state": state,
         },
-    }
+    })
 
 
 def get_mcp() -> FastMCP:
@@ -1170,7 +1130,7 @@ def create_root_app(server: FastMCP) -> Starlette:
     - Mounts the MCP app at "/"
     """
     # Build the MCP Starlette app with the /mcp path
-    # In FastMCP 2.13, stateless_http/json_response should be set at the transport/app level
+    # In FastMCP 3.x, stateless_http/json_response are set at the transport/app level
     mcp_app = server.http_app(
         path="/mcp",
         transport="http",
@@ -1205,7 +1165,7 @@ async def main(host: str | None = None, port: int | None = None):
     """Main function for running the MCP server"""
     # Resolve host/port with precedence: CLI args > env > defaults
     env_port = int(os.environ.get("MCP_SERVER_PORT", 8001))
-    env_host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+    env_host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")  # nosec B104 - intended for containerized deployments
     port = port or env_port
     host = host or env_host
 
@@ -1246,7 +1206,7 @@ if __name__ == "__main__":
         help="Transport mode for MCP server",
     )
     parser.add_argument(
-        "--host", default="0.0.0.0", help="Host to bind the HTTP server (only for http transport)"
+        "--host", default="0.0.0.0", help="Host to bind the HTTP server (only for http transport)"  # nosec B104
     )
     parser.add_argument(
         "--port",

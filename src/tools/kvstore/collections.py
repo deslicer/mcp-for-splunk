@@ -168,10 +168,6 @@ class CreateKvstoreCollection(BaseTool):
                     "Collection name must contain only alphanumeric characters and underscores"
                 )
 
-            # Prepare collection configuration (do not duplicate 'name' argument)
-            # Note: Some Splunk versions/handlers do not support a 'replicated' flag at create time
-            # Keep parameter for API compatibility but ignore its value here.
-            _replication_requested = bool(replicated)
             collection_config: dict[str, Any] = {}
 
             # Normalize fields: accept list of {name,type} or list of strings (default to string)
@@ -242,8 +238,7 @@ class CreateKvstoreCollection(BaseTool):
                         try:
                             new_collection.update_field(fname, ftype)
                         except Exception:
-                            # Ignore schema update errors; surface only creation failures
-                            pass
+                            pass  # Intentionally suppressed: field schema update is best-effort
 
                 # Optionally create a transforms.conf lookup definition in this app
                 lookup_info: dict[str, Any] | None = None

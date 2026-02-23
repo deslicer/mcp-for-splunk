@@ -1,0 +1,82 @@
+# Trivy Vulnerability Ignore File
+# All packages are at their latest versions as of 2026-02-23.
+# No fixed versions exist for any of these CVEs.
+# This file is reviewed periodically -- remove entries when fixes become available.
+
+# =============================================================================
+# Dev-only transitive dependencies (not shipped in production)
+# =============================================================================
+
+# nltk 3.9.2 (via safety) - Zip Slip in nltk.downloader
+# nltk is never imported; safety is a dev-only scanning tool.
+CVE-2025-14009
+
+# marshmallow 4.2.2 (via safety) - DoS via crafted Schema.load request
+# Dev-only dep; marshmallow is not used in production code.
+CVE-2025-68480
+
+# virtualenv 20.38.0 (via pre-commit) - TOCTOU race condition
+# Dev-only dep; virtualenv is only used during pre-commit hook setup.
+CVE-2026-22702
+
+# filelock 3.24.3 (via pre-commit, safety) - TOCTOU race / symlink attack
+# Dev-only dep; filelock is not used in production code.
+CVE-2026-22701
+CVE-2025-68146
+
+# diskcache (not in dependency tree) - insecure pickle deserialization
+# This package does not exist in uv.lock. Trivy false positive.
+CVE-2025-69872
+
+# =============================================================================
+# Production transitive dependencies (no fix available)
+# =============================================================================
+
+# cryptography 46.0.5 (via authlib, pyjwt) - SECT curve subgroup attack
+# Used for JWT validation, not SECT curve operations.
+CVE-2026-26007
+
+# python-multipart 0.0.22 (via mcp, fastapi) - path traversal in file upload
+# MCP server does not accept file uploads via multipart forms.
+CVE-2026-24486
+
+# protobuf 6.33.5 (via arize-phoenix, opentelemetry) - recursion DoS
+# Protobuf input is from trusted OpenTelemetry instrumentation, not user input.
+CVE-2026-0994
+
+# orjson 3.11.7 (via arize-phoenix) - recursion DoS with deep JSON
+# orjson processes instrumentation data, not untrusted user payloads.
+CVE-2025-67221
+
+# authlib 1.6.8 (via arize-phoenix, fastmcp) - multiple CVEs
+# CSRF via session state: server uses header-based auth, not browser sessions.
+CVE-2025-68158
+# JWE decompression bomb: server does not process JWE tokens.
+CVE-2025-62706
+# DoS: authlib is used for OAuth flows with trusted identity providers.
+CVE-2025-61920
+# RFC violation: no impact on server's OAuth usage pattern.
+CVE-2025-59420
+
+# urllib3 2.6.3 (via requests, sentry-sdk) - decompression bomb / redirect
+# urllib3 is used for outbound requests to trusted Splunk instances, not for
+# proxying arbitrary URLs from user input.
+CVE-2026-21441
+CVE-2025-66471
+CVE-2025-66418
+
+# starlette 0.52.1 (via mcp, fastapi) - DoS via Range header merging
+# Starlette is behind Traefik reverse proxy which handles Range headers.
+CVE-2025-62727
+
+# =============================================================================
+# Direct dependencies (no fix available)
+# =============================================================================
+
+# mcp 1.26.0 - DNS rebinding protection disabled by default
+# Server runs behind Traefik with explicit host validation.
+CVE-2025-66416
+
+# fastmcp 3.0.2 - references same MCP SDK CVE above
+# Updated to latest; advisory is about the underlying mcp SDK.
+GHSA-rcfx-77hg-w2wv

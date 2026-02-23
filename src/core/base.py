@@ -64,7 +64,7 @@ class BaseTool(ABC):
 
         return client_config if client_config else None
 
-    def get_client_config_from_context(self, ctx: Context) -> dict[str, Any] | None:
+    async def get_client_config_from_context(self, ctx: Context) -> dict[str, Any] | None:
         """
         Get client configuration from MCP context.
 
@@ -82,7 +82,7 @@ class BaseTool(ABC):
         # Priority 1: Context state (preferred, set by middleware)
         try:
             if hasattr(ctx, "get_state"):
-                state_cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+                state_cfg = await ctx.get_state("client_config")  # type: ignore[attr-defined]
                 if state_cfg:
                     self.logger.info(
                         "Using client config from context state (keys=%s)", list(state_cfg.keys())
@@ -102,8 +102,7 @@ class BaseTool(ABC):
                     list(headers.keys()),
                 )
 
-                # Extract Splunk configuration from headers
-                from src.server import extract_client_config_from_headers
+                from src.core.utils import extract_client_config_from_headers
 
                 client_config = extract_client_config_from_headers(headers)
 
@@ -160,7 +159,7 @@ class BaseTool(ABC):
                 self.logger.warning(f"Failed to connect with tool-level config: {e}")
 
         # Priority 2: MCP client configuration
-        client_config = self.get_client_config_from_context(ctx)
+        client_config = await self.get_client_config_from_context(ctx)
         if client_config:
             try:
                 from src.client.splunk_client import get_splunk_service
@@ -217,8 +216,7 @@ class BaseTool(ABC):
                         f"Client-config Splunk connection failed in availability check: {e}"
                     )
         except Exception:
-            # Ignore header/env extraction issues and continue with server default
-            pass
+            pass  # Intentionally suppressed: header/env extraction is best-effort fallback
 
         # Fallback: use server default service established at startup
         # Handle both SplunkContext objects and dict formats
@@ -256,7 +254,7 @@ class BaseTool(ABC):
             if hasattr(ctx.request_context, "lifespan_context"):
                 return ctx.request_context.lifespan_context
         except Exception:
-            pass
+            logger.debug("Lifespan context not available", exc_info=True)
 
         try:
             # Fallback: try to get from server instance (module initialization path)
@@ -266,7 +264,7 @@ class BaseTool(ABC):
             if hasattr(server, "_splunk_context"):
                 return server._splunk_context
         except Exception:
-            pass
+            logger.debug("Server instance fallback unavailable", exc_info=True)
 
         return None
 
@@ -279,7 +277,7 @@ class BaseTool(ABC):
         return {"status": "success", **data}
 
     @abstractmethod
-    async def execute(self, ctx: Context, **kwargs) -> dict[str, Any]:
+    async def execute(self, ctx: Context, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """Execute the tool's main functionality"""
         pass
 

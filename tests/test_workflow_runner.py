@@ -49,8 +49,6 @@ class TestWorkflowRunnerTool:
         """Mock OpenAI agents SDK."""
         with (
             patch("src.tools.workflows.workflow_runner.OPENAI_AGENTS_AVAILABLE", True),
-            patch("src.tools.workflows.workflow_runner.Agent"),
-            patch("src.tools.workflows.workflow_runner.Runner"),
             patch("src.tools.workflows.workflow_runner.trace"),
             patch("src.tools.workflows.workflow_runner.custom_span"),
         ):

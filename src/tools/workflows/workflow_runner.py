@@ -27,17 +27,14 @@ logger = logging.getLogger(__name__)
 
 # Only import OpenAI agents if available
 try:
-    from agents import Agent, Runner, custom_span, function_tool, trace
+    from agents import custom_span, trace
 
     OPENAI_AGENTS_AVAILABLE = True
     logger.info("OpenAI agents SDK loaded successfully for workflow runner")
 except ImportError:
     OPENAI_AGENTS_AVAILABLE = False
-    Agent = None
-    Runner = None
-    function_tool = None
+    custom_span = None  # type: ignore[assignment]
     trace = None
-    custom_span = None
     logger.warning("OpenAI agents SDK not available. Install with: pip install openai-agents")
 
 
@@ -350,10 +347,10 @@ you need to run, or for building automated troubleshooting pipelines.""",
                         trace_id_val = getattr(_trace, "id", None) or getattr(
                             _trace, "trace_id", None
                         )
-                        ctx.set_state("openai_trace_id", trace_id_val)
+                        await ctx.set_state("openai_trace_id", trace_id_val)
                         logger.info("Workflow trace_id resolved: %s", trace_id_val)
                 except Exception:
-                    pass
+                    logger.debug("Failed to set trace state", exc_info=True)
                 result = await self._execute_with_tracing(
                     ctx,
                     workflow_id,
@@ -381,7 +378,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     # Ensure trace_name is also present at the workflow level
                     result["tracing_info"]["trace_name"] = trace_name
                 except Exception:
-                    pass
+                    logger.debug("Failed to enrich trace metadata", exc_info=True)
                 return result
         else:
             # Fallback without tracing

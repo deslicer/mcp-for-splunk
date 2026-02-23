@@ -125,17 +125,18 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
             # Test 2: Call user_agent_info (simple tool)
             print_header("Test 2: Call user_agent_info (Simple Tool)")
             try:
-                result = await client.call_tool("user_agent_info", {})
-                if result and hasattr(result, "content") and len(result.content) > 0:
+                result = await client.call_tool_mcp("user_agent_info", {})
+                if result and not result.isError and result.content:
                     print_success("user_agent_info executed successfully")
-                    content = result.content[0]
-                    if hasattr(content, "text"):
-                        data = json.loads(content.text)
+                    text = getattr(result.content[0], "text", "")
+                    if text:
+                        data = json.loads(text)
                         session = data.get("context", {}).get("state", {}).get("session_id", "N/A")
                         print_info(f"Session ID: {session}")
                     results.append(("user_agent_info", True))
                 else:
-                    print_error("Unexpected result format")
+                    error_text = getattr(result.content[0], "text", "") if result.content else "unknown"
+                    print_error(f"Unexpected result: {error_text}")
                     results.append(("user_agent_info", False))
             except Exception as e:  # noqa: BLE001
                 print_error(f"Failed: {e}")
@@ -147,32 +148,30 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
             # Test 3: Call get_splunk_health (requires Splunk connection)
             print_header("Test 3: Call get_splunk_health (Splunk Tool)")
             try:
-                result = await client.call_tool("get_splunk_health", {})
+                result = await client.call_tool_mcp("get_splunk_health", {})
                 print_success("get_splunk_health tool called successfully")
 
-                # Print raw result for debugging
-                print_info("Raw result:")
-                if result and hasattr(result, "content") and len(result.content) > 0:
-                    for idx, content in enumerate(result.content):
-                        print(f"\n  Content[{idx}]:")
-                        if hasattr(content, "type"):
-                            print(f"    Type: {content.type}")
-                        if hasattr(content, "text"):
-                            print(f"    Text: {content.text}")
-
-                        # Try to parse as JSON for structured display
+                data = None
+                if result.structuredContent:
+                    data = result.structuredContent
+                elif result.content:
+                    text = getattr(result.content[0], "text", "")
+                    if text:
                         try:
-                            data = json.loads(content.text)
-                            print("\n  Parsed JSON:")
-                            for key, value in data.items():
-                                print(f"    {key}: {value}")
-                        except (json.JSONDecodeError, AttributeError):
-                            pass
+                            data = json.loads(text)
+                        except json.JSONDecodeError:
+                            pass  # Non-JSON text content is valid; fall through to non-structured handling
 
+                if data:
+                    print_info("Parsed result:")
+                    for key, value in data.items():
+                        print(f"    {key}: {value}")
+                    results.append(("get_splunk_health", True))
+                elif result and not result.isError:
+                    print_success("Tool executed (no structured data)")
                     results.append(("get_splunk_health", True))
                 else:
                     print_warning("Empty or unexpected result format")
-                    print(f"Result: {result}")
                     results.append(("get_splunk_health", False))
             except Exception as e:  # noqa: BLE001
                 print_error(f"Failed: {e}")
@@ -184,20 +183,22 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
             # Test 4: Call list_indexes (class-based tool, requires session)
             print_header("Test 4: Call list_indexes (Class-Based Tool)")
             try:
-                result = await client.call_tool("list_indexes", {})
-                if result and hasattr(result, "content") and len(result.content) > 0:
-                    content = result.content[0]
-                    if hasattr(content, "text"):
-                        data = json.loads(content.text)
-                        indexes = data.get("indexes", [])
-                        print_success("list_indexes executed successfully")
-                        print_info(f"Found {len(indexes)} indexes")
-                        if indexes:
-                            print_info(f"Sample: {', '.join(indexes[:5])}")
-                        results.append(("list_indexes", True))
-                    else:
-                        print_error("Unexpected content format")
-                        results.append(("list_indexes", False))
+                result = await client.call_tool_mcp("list_indexes", {})
+                data = None
+                if result.structuredContent:
+                    data = result.structuredContent
+                elif result.content:
+                    text = getattr(result.content[0], "text", "")
+                    if text:
+                        data = json.loads(text)
+
+                if data:
+                    indexes = data.get("indexes", [])
+                    print_success("list_indexes executed successfully")
+                    print_info(f"Found {len(indexes)} indexes")
+                    if indexes:
+                        print_info(f"Sample: {', '.join(indexes[:5])}")
+                    results.append(("list_indexes", True))
                 else:
                     print_error("Unexpected result format")
                     results.append(("list_indexes", False))
@@ -211,29 +212,28 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
             # Test 5: Verify session continuity and header config
             print_header("Test 5: Verify Session Continuity & Header Config")
             try:
-                # Call user_agent_info again to verify same session
-                result = await client.call_tool("user_agent_info", {})
-                if result and hasattr(result, "content") and len(result.content) > 0:
-                    content = result.content[0]
-                    if hasattr(content, "text"):
-                        data = json.loads(content.text)
-                        state = data.get("context", {}).get("state", {})
-                        session = state.get("session_id", "N/A")
-                        client_config = state.get("client_config", {})
+                result = await client.call_tool_mcp("user_agent_info", {})
+                data = None
+                if result and not result.isError and result.content:
+                    text = getattr(result.content[0], "text", "")
+                    if text:
+                        data = json.loads(text)
 
-                        print_success("Session continuity verified")
-                        print_info(f"Session ID: {session}")
-                        if client_config:
-                            print_info(f"Client config present: {list(client_config.keys())}")
-                            print_info(f"Splunk Host: {client_config.get('splunk_host', 'N/A')}")
-                            results.append(("Session Continuity", True))
-                        else:
-                            print_warning(
-                                "No client config in session state (may be using server defaults)"
-                            )
-                            results.append(("Session Continuity", False))
+                if data:
+                    state = data.get("context", {}).get("state", {})
+                    session = state.get("session_id", "N/A")
+                    client_config = state.get("client_config", {})
+
+                    print_success("Session continuity verified")
+                    print_info(f"Session ID: {session}")
+                    if client_config:
+                        print_info(f"Client config present: {list(client_config.keys())}")
+                        print_info(f"Splunk Host: {client_config.get('splunk_host', 'N/A')}")
+                        results.append(("Session Continuity", True))
                     else:
-                        print_error("Unexpected content format")
+                        print_warning(
+                            "No client config in session state (may be using server defaults)"
+                        )
                         results.append(("Session Continuity", False))
                 else:
                     print_error("Unexpected result format")
