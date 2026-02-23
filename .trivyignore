@@ -1,0 +1,10 @@
+# Trivy vulnerability ignore file
+# Format: CVE-ID or vulnerability ID, one per line
+
+# nltk: Zip Slip vulnerability in nltk.downloader (CVE-2025-14009)
+# nltk is a transitive dependency of `safety` (dev/security scanning tool only).
+# It is never imported or used in production code.
+# The vulnerability requires using nltk.downloader to download malicious corpora,
+# which this project never does.
+# No fixed version of nltk is available as of 2026-02-23.
+CVE-2025-14009
