@@ -778,9 +778,8 @@ def run_local_server(
         f"Setting env for local run: MCP_STATELESS_HTTP={child_env.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={child_env.get('MCP_JSON_RESPONSE')}"
     )
     with log_file.open("w", encoding="utf-8") as lf:
-        proc = subprocess.Popen(  # nosemgrep: dangerous-subprocess-use-tainted-env-args
-            cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env
-        )
+        # nosemgrep: dangerous-subprocess-use-tainted-env-args
+        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env)
 
     # Always write PID file for monitoring/testing
     pid_file = Path(".mcp_local_server.pid")
