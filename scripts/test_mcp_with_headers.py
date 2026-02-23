@@ -160,7 +160,7 @@ async def run_all_tests(server_url: str = "http://localhost:8003/mcp"):
                         try:
                             data = json.loads(text)
                         except json.JSONDecodeError:
-                            pass
+                            pass  # Non-JSON text content is valid; fall through to non-structured handling
 
                 if data:
                     print_info("Parsed result:")
