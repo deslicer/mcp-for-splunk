@@ -254,7 +254,7 @@ class BaseTool(ABC):
             if hasattr(ctx.request_context, "lifespan_context"):
                 return ctx.request_context.lifespan_context
         except Exception:
-            pass  # Intentionally suppressed: lifespan context may not exist in all transports
+            logger.debug("Lifespan context not available", exc_info=True)
 
         try:
             # Fallback: try to get from server instance (module initialization path)
@@ -264,7 +264,7 @@ class BaseTool(ABC):
             if hasattr(server, "_splunk_context"):
                 return server._splunk_context
         except Exception:
-            pass  # Intentionally suppressed: server instance fallback is optional
+            logger.debug("Server instance fallback unavailable", exc_info=True)
 
         return None
 

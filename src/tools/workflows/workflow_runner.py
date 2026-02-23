@@ -350,7 +350,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                         await ctx.set_state("openai_trace_id", trace_id_val)
                         logger.info("Workflow trace_id resolved: %s", trace_id_val)
                 except Exception:
-                    pass  # Intentionally suppressed: tracing state is optional
+                    logger.debug("Failed to set trace state", exc_info=True)
                 result = await self._execute_with_tracing(
                     ctx,
                     workflow_id,
@@ -378,7 +378,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                     # Ensure trace_name is also present at the workflow level
                     result["tracing_info"]["trace_name"] = trace_name
                 except Exception:
-                    pass  # Intentionally suppressed: trace info enrichment is optional
+                    logger.debug("Failed to enrich trace metadata", exc_info=True)
                 return result
         else:
             # Fallback without tracing

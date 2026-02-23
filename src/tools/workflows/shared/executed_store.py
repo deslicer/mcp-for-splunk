@@ -255,7 +255,7 @@ class ExecutedWorkflowStore:
                 reverse=True,
             )
         except Exception:
-            pass  # Intentionally suppressed: sort failure preserves insertion order
+            logger.debug("Could not sort execution records by date", exc_info=True)
 
         # Apply pagination
         return records[offset : offset + limit]

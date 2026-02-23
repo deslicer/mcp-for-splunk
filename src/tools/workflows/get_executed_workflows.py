@@ -96,7 +96,7 @@ class GetExecutedWorkflowsTool(BaseTool):
                     getattr(store, "ttl_seconds", "unknown"),
                 )
             except Exception:
-                pass  # Intentionally suppressed: debug logging is non-critical
+                self._logger.debug("Could not log store diagnostics", exc_info=True)
         return {
             "status": "ok",
             "count": len(items),

@@ -5,8 +5,11 @@ Tool Browser for MCP Server for Splunk Contributors
 This script helps contributors explore existing tools and their structure.
 """
 
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def find_tools(contrib_dir: Path) -> dict[str, list[dict]]:
@@ -94,7 +97,7 @@ def analyze_tool_file(tool_file: Path) -> dict | None:
                         elif "requires_connection=False" in metadata_text:
                             tool_info["metadata"]["requires_connection"] = False
             except Exception:
-                pass  # Intentionally suppressed: metadata extraction is best-effort
+                logger.debug("Could not parse tool metadata from %s", tool_file, exc_info=True)
 
         # Check for corresponding test file
         test_file = Path(

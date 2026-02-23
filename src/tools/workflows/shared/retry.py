@@ -82,7 +82,7 @@ async def retry_with_exponential_backoff(
                                 suggested_delay = float(match.group(1))
                                 logger.info(f"API suggested delay: {suggested_delay}s")
                         except Exception:
-                            pass  # Intentionally suppressed: delay hint parsing is optional
+                            logger.debug("Could not parse retry delay hint", exc_info=True)
 
                 elif isinstance(e, APIConnectionError | APITimeoutError):
                     is_retryable = True
@@ -134,5 +134,6 @@ async def retry_with_exponential_backoff(
             logger.info(f"Waiting {delay:.1f}s before retry {attempt + 2}")
             await asyncio.sleep(delay)
 
-    # This should never be reached, but just in case
+    # Reached when all retry attempts are exhausted; last_exception is always
+    # reassigned inside the except block on each failed attempt.
     raise last_exception
