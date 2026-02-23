@@ -26,11 +26,9 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
-from src.core.utils import extract_client_config_from_headers
-
-# Initialize Sentry monitoring (must be early in startup)
 from src.core.sentry import init_sentry
 from src.core.shared_context import http_headers_context
+from src.core.utils import extract_client_config_from_headers
 from src.routes import setup_health_routes
 
 _sentry_enabled = init_sentry()
@@ -708,9 +706,9 @@ class ClientConfigMiddleware(Middleware):
                     and context.fastmcp_context
                 ):
                     effective_session = session_key or derived_session
-                    context.fastmcp_context.set_state("client_config", client_config)
+                    await context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
-                        context.fastmcp_context.set_state("session_id", effective_session)
+                        await context.fastmcp_context.set_state("session_id", effective_session)
                     logger.info(
                         "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
@@ -1066,11 +1064,13 @@ async def sentry_test(ctx: Context, trigger_error: bool = False, test_type: str 
 
 
 @mcp.tool
-async def user_agent_info(ctx: Context) -> dict:
+async def user_agent_info(ctx: Context) -> str:
     """Return request headers and context details for debugging.
 
     Includes all HTTP headers (with sensitive values masked) and core context metadata.
     """
+    import json as _json
+
     request: Request = get_http_request()
     headers = get_http_headers(include_all=True)
 
@@ -1084,22 +1084,21 @@ async def user_agent_info(ctx: Context) -> dict:
                 masked[k] = v
         return masked
 
-    # Known context state keys we may set in middleware
     state: dict[str, object] = {}
     try:
-        sess = ctx.get_state("session_id")  # type: ignore[attr-defined]
+        sess = await ctx.get_state("session_id")  # type: ignore[attr-defined]
         if sess:
             state["session_id"] = sess
     except Exception:
         pass  # Intentionally suppressed: state retrieval is optional diagnostic info
     try:
-        cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+        cfg = await ctx.get_state("client_config")  # type: ignore[attr-defined]
         if isinstance(cfg, dict):
             state["client_config"] = mask_sensitive(cfg)
     except Exception:
         pass  # Intentionally suppressed: state retrieval is optional diagnostic info
 
-    return {
+    return _json.dumps({
         "request": {
             "method": request.method,
             "path": request.url.path,
@@ -1114,7 +1113,7 @@ async def user_agent_info(ctx: Context) -> dict:
             "server": {"name": getattr(getattr(ctx, "fastmcp", None), "name", None)},
             "state": state,
         },
-    }
+    })
 
 
 def get_mcp() -> FastMCP:

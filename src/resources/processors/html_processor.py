@@ -532,8 +532,8 @@ Use these values for eval functions strftime() and strptime(), and for timestamp
                 html = content_match.group(1)
 
         # Remove script and style elements
-        html = re.sub(r"<script[^>]*>.*?</script\s*>", "", html, flags=re.DOTALL | re.IGNORECASE)
-        html = re.sub(r"<style[^>]*>.*?</style\s*>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        html = re.sub(r"<script[^>]*>.*?</script[^>]*>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        html = re.sub(r"<style[^>]*>.*?</style[^>]*>", "", html, flags=re.DOTALL | re.IGNORECASE)
 
         # Extract text content
         text = re.sub(r"<[^>]+>", "", html)

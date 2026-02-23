@@ -348,7 +348,7 @@ you need to run, or for building automated troubleshooting pipelines.""",
                         trace_id_val = getattr(_trace, "id", None) or getattr(
                             _trace, "trace_id", None
                         )
-                        ctx.set_state("openai_trace_id", trace_id_val)
+                        await ctx.set_state("openai_trace_id", trace_id_val)
                         logger.info("Workflow trace_id resolved: %s", trace_id_val)
                 except Exception:
                     pass  # Intentionally suppressed: tracing state is optional
