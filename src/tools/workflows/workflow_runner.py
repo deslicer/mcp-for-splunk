@@ -35,7 +35,6 @@ except ImportError:
     OPENAI_AGENTS_AVAILABLE = False
     custom_span = None  # type: ignore[assignment]
     trace = None
-    custom_span = None
     logger.warning("OpenAI agents SDK not available. Install with: pip install openai-agents")
 
 
