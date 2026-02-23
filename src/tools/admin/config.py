@@ -375,7 +375,7 @@ class CreateConfig(BaseTool):
                         }
                 # If no matching entry found, return empty dict
             except Exception:
-                pass  # Intentionally suppressed: REST lookup failure falls through to empty dict
+                self.logger.debug("REST stanza lookup failed, returning empty", exc_info=True)
             return {}
 
         # Try REST first
