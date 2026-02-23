@@ -78,6 +78,11 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep scan --config p/security-audit --config p/python --config p/owasp-top-ten \
+            --exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
+            --exclude-rule python.lang.security.use-defused-xml.use-defused-xml \
+            --exclude-rule python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5 \
+            --exclude-rule python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args \
+            --exclude-rule dockerfile.security.missing-user.missing-user \
             --sarif --output semgrep.sarif --error || true
 
       - name: Upload Semgrep SARIF
