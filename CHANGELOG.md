@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.0...v0.5.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* unify Docker networks and update FastMCP v3 client compat ([#85](https://github.com/deslicer/mcp-for-splunk/issues/85)) ([feac977](https://github.com/deslicer/mcp-for-splunk/commit/feac977da75d3ac0c6c5db3951f63ec928540549))
+
 ## [0.4.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.3.1...v0.4.0) (2025-12-09)
 
 
