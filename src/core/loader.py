@@ -12,6 +12,7 @@ import sys
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
+from fastmcp.prompts import Message
 from fastmcp.server.dependencies import get_context
 
 from .base import BaseTool
@@ -851,6 +852,22 @@ Available topics:
 class PromptLoader:
     """Loads and registers prompts with the FastMCP server."""
 
+    @staticmethod
+    def _to_messages(result: Any) -> list[Message]:
+        """Convert a prompt result (dict or other) to a list of FastMCP Message objects."""
+        if isinstance(result, dict) and "content" in result:
+            role = result.get("role", "user")
+            content = result["content"]
+            if isinstance(content, list):
+                text = "\n".join(
+                    item.get("text", str(item)) if isinstance(item, dict) else str(item)
+                    for item in content
+                )
+            else:
+                text = str(content)
+            return [Message(text, role=role)]
+        return [Message(str(result))]
+
     def __init__(self, mcp_server: FastMCP):
         self.mcp_server = mcp_server
         self.logger = logging.getLogger(f"{__name__}.PromptLoader")
@@ -942,7 +959,7 @@ class PromptLoader:
                 latest_time: str = "now",
                 focus_index: str | None = None,
                 focus_host: str | None = None,
-            ) -> list[dict[str, Any]]:
+            ) -> list[Message]:
                 """Guided workflow for troubleshooting Splunk data input issues using metrics.log analysis"""
                 try:
                     # Create prompt instance
@@ -968,17 +985,12 @@ class PromptLoader:
                         focus_host=focus_host,
                     )
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return PromptLoader._to_messages(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return [Message(f"Error: {str(e)}")]
 
         elif prompt_name == "troubleshoot_indexing_performance":
             # Create a wrapper function with the specific signature for this prompt
@@ -990,7 +1002,7 @@ class PromptLoader:
                 analysis_depth: str = "standard",
                 include_delay_analysis: bool = True,
                 include_platform_instrumentation: bool = True,
-            ) -> list[dict[str, Any]]:
+            ) -> list[Message]:
                 """Comprehensive workflow for identifying and triaging Splunk indexing performance issues"""
                 try:
                     # Create prompt instance
@@ -1019,17 +1031,12 @@ class PromptLoader:
                         include_platform_instrumentation=include_platform_instrumentation,
                     )
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return PromptLoader._to_messages(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return [Message(f"Error: {str(e)}")]
 
         elif prompt_name == "troubleshoot_inputs_multi_agent":
             # Create a wrapper function with the specific signature for this prompt
@@ -1042,7 +1049,7 @@ class PromptLoader:
                 include_performance_analysis: bool = True,
                 enable_cross_validation: bool = True,
                 analysis_mode: str = "diagnostic",
-            ) -> list[dict[str, Any]]:
+            ) -> list[Message]:
                 """Advanced multi-agent troubleshooting workflow for Splunk data input issues"""
                 try:
                     # Create prompt instance
@@ -1072,17 +1079,12 @@ class PromptLoader:
                         analysis_mode=analysis_mode,
                     )
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return PromptLoader._to_messages(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return [Message(f"Error: {str(e)}")]
 
         elif prompt_name == "troubleshoot_performance":
             # Create a wrapper function with the specific signature for this prompt
@@ -1090,7 +1092,7 @@ class PromptLoader:
                 earliest_time: str = "-7d",
                 latest_time: str = "now",
                 analysis_type: str = "comprehensive",
-            ) -> list[dict[str, Any]]:
+            ) -> list[Message]:
                 """Specialized prompt for Splunk performance analysis and optimization"""
                 try:
                     # Create prompt instance
@@ -1115,21 +1117,16 @@ class PromptLoader:
                         analysis_type=analysis_type,
                     )
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return PromptLoader._to_messages(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return [Message(f"Error: {str(e)}")]
 
         else:
             # Intelligent wrapper for prompts with parameters - dynamically generate signature from metadata
-            async def prompt_wrapper(**kwargs) -> list[dict[str, Any]]:
+            async def prompt_wrapper(**kwargs) -> list[Message]:
                 """Intelligent prompt wrapper that handles parameters dynamically"""
                 try:
                     # Create prompt instance
@@ -1149,17 +1146,12 @@ class PromptLoader:
                     # Call the prompt's get_prompt method with all provided parameters
                     result = await prompt_instance.get_prompt(ctx, **kwargs)
 
-                    # Convert to FastMCP prompt format
-                    if isinstance(result, dict) and "content" in result:
-                        return result["content"]
-                    else:
-                        # Fallback format
-                        return [{"type": "text", "text": str(result)}]
+                    return PromptLoader._to_messages(result)
 
                 except Exception as e:
                     self.logger.error(f"Prompt {prompt_name} execution failed: {e}")
                     self.logger.exception("Full traceback:")
-                    return [{"type": "text", "text": f"Error: {str(e)}"}]
+                    return [Message(f"Error: {str(e)}")]
 
             # Dynamically set the function signature based on prompt metadata
             if hasattr(metadata, "arguments") and metadata.arguments:
@@ -1207,7 +1199,7 @@ class PromptLoader:
                     params.append(param)
 
                 # Create new signature
-                new_sig = inspect.Signature(params, return_annotation=list[dict[str, Any]])
+                new_sig = inspect.Signature(params, return_annotation=list[Message])
                 prompt_wrapper.__signature__ = new_sig
 
                 # Set type annotations
@@ -1215,13 +1207,13 @@ class PromptLoader:
                 for param in params:
                     if param.annotation != inspect.Parameter.empty:
                         prompt_wrapper.__annotations__[param.name] = param.annotation
-                prompt_wrapper.__annotations__["return"] = list[dict[str, Any]]
+                prompt_wrapper.__annotations__["return"] = list[Message]
 
                 self.logger.debug(f"Generated parameterized signature for {prompt_name}: {new_sig}")
             else:
                 # No parameters - use simple signature
                 prompt_wrapper.__signature__ = inspect.signature(lambda: None)
-                prompt_wrapper.__annotations__ = {"return": list[dict[str, Any]]}
+                prompt_wrapper.__annotations__ = {"return": list[Message]}
 
         # Set function metadata
         prompt_wrapper.__name__ = prompt_name

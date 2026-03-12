@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Any
 
-from fastmcp.server.context import Context
+from fastmcp import Context
 
 from ..core.base import BaseResource, ResourceMetadata
 from ..core.client_identity import get_client_manager

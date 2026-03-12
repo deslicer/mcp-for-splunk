@@ -64,7 +64,7 @@ class BaseTool(ABC):
 
         return client_config if client_config else None
 
-    def get_client_config_from_context(self, ctx: Context) -> dict[str, Any] | None:
+    async def get_client_config_from_context(self, ctx: Context) -> dict[str, Any] | None:
         """
         Get client configuration from MCP context.
 
@@ -82,7 +82,7 @@ class BaseTool(ABC):
         # Priority 1: Context state (preferred, set by middleware)
         try:
             if hasattr(ctx, "get_state"):
-                state_cfg = ctx.get_state("client_config")  # type: ignore[attr-defined]
+                state_cfg = await ctx.get_state("client_config")
                 if state_cfg:
                     self.logger.info(
                         "Using client config from context state (keys=%s)", list(state_cfg.keys())
@@ -160,7 +160,7 @@ class BaseTool(ABC):
                 self.logger.warning(f"Failed to connect with tool-level config: {e}")
 
         # Priority 2: MCP client configuration
-        client_config = self.get_client_config_from_context(ctx)
+        client_config = await self.get_client_config_from_context(ctx)
         if client_config:
             try:
                 from src.client.splunk_client import get_splunk_service

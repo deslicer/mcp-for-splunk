@@ -213,6 +213,7 @@ Your MCP server now includes:
 #### 🔍 Search Tools
 - `run_oneshot_search` - Quick SPL queries
 - `run_splunk_search` - Background search jobs
+- `get_search_job_info` - Inspect job status and errors by job id (sid)
 - `list_saved_searches` - Manage saved searches
 
 #### 📊 Data Discovery

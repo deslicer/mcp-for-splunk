@@ -10,6 +10,7 @@ from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
+from src.tools.search.job_message_parser import JobMessageParser
 
 
 class JobSearch(BaseTool):
@@ -96,22 +97,9 @@ class JobSearch(BaseTool):
 
                 # Check if job failed during execution
                 if stats.get("isFailed", "0") == "1":
-                    # Job failed, get error messages
-                    error_messages = []
-                    if "messages" in stats:
-                        for message in stats["messages"]:
-                            # Handle both dictionary and string message formats
-                            if isinstance(message, dict):
-                                if message.get("type") == "ERROR":
-                                    error_messages.append(message.get("text", "Unknown error"))
-                            elif isinstance(message, str):
-                                # String messages are typically error messages
-                                error_messages.append(message)
-
-                    error_detail = (
-                        "; ".join(error_messages)
-                        if error_messages
-                        else "Job failed with no specific error message"
+                    parsed = JobMessageParser.parse(stats.get("messages"))
+                    error_detail = "; ".join(parsed.error_texts) if parsed.error_texts else (
+                        "Job failed with no specific error message"
                     )
                     self.logger.error(f"Search job {job.sid} failed: {error_detail}")
                     await ctx.error(f"Search job {job.sid} failed: {error_detail}")
@@ -139,22 +127,9 @@ class JobSearch(BaseTool):
             await ctx.report_progress(progress=100, total=100)
             final_stats = job.content
             if final_stats.get("isFailed", "0") == "1":
-                # Job failed, get error messages
-                error_messages = []
-                if "messages" in final_stats:
-                    for message in final_stats["messages"]:
-                        # Handle both dictionary and string message formats
-                        if isinstance(message, dict):
-                            if message.get("type") == "ERROR":
-                                error_messages.append(message.get("text", "Unknown error"))
-                        elif isinstance(message, str):
-                            # String messages are typically error messages
-                            error_messages.append(message)
-
-                error_detail = (
-                    "; ".join(error_messages)
-                    if error_messages
-                    else "Job failed with no specific error message"
+                parsed = JobMessageParser.parse(final_stats.get("messages"))
+                error_detail = "; ".join(parsed.error_texts) if parsed.error_texts else (
+                    "Job failed with no specific error message"
                 )
                 self.logger.error(f"Search job {job.sid} failed after completion: {error_detail}")
                 await ctx.error(f"Search job {job.sid} failed: {error_detail}")
