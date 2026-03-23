@@ -113,24 +113,33 @@ jobs:
       - name: Filter ignored CVEs from SARIF
         if: always()
         run: |
-          python3 -c "
-          import json, re
+          python3 << 'PYEOF'
+          import json
+
           ignored = set()
-          with open('.trivyignore') as f:
+          with open(".trivyignore") as f:
               for line in f:
                   line = line.strip()
-                  if line and not line.startswith('#'):
+                  if line and not line.startswith("#"):
                       ignored.add(line)
-          with open('trivy-results.sarif') as f:
+
+          with open("trivy-results.sarif") as f:
               sarif = json.load(f)
-          for run in sarif.get('runs', []):
-              run['results'] = [
-                  r for r in run.get('results', [])
-                  if not any(cve in r.get('ruleId', '') for cve in ignored)
-              ]
-          with open('trivy-results.sarif', 'w') as f:
+
+          def is_ignored(result):
+              blob = json.dumps(result)
+              return any(cve in blob for cve in ignored)
+
+          for run in sarif.get("runs", []):
+              before = len(run.get("results", []))
+              run["results"] = [r for r in run.get("results", []) if not is_ignored(r)]
+              after = len(run["results"])
+              if before != after:
+                  print(f"Filtered {before - after} ignored findings from SARIF")
+
+          with open("trivy-results.sarif", "w") as f:
               json.dump(sarif, f)
-          "
+          PYEOF
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@v4

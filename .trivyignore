@@ -7,9 +7,11 @@
 # Dev-only transitive dependencies (not shipped in production)
 # =============================================================================
 
-# nltk 3.9.2 (via safety) - Zip Slip in nltk.downloader
+# nltk 3.9.2 (via safety) - Zip Slip, XSS, unbounded recursion
 # nltk is never imported; safety is a dev-only scanning tool.
 CVE-2025-14009
+CVE-2026-33230
+GHSA-rf74-v2fm-23pw
 
 # marshmallow 4.2.2 (via safety) - DoS via crafted Schema.load request
 # Dev-only dep; marshmallow is not used in production code.
@@ -23,6 +25,10 @@ CVE-2026-22702
 # Dev-only dep; filelock is not used in production code.
 CVE-2026-22701
 CVE-2025-68146
+
+# black (via dev tools) - arbitrary file writes via cache file name
+# Dev-only formatter; not used in production.
+CVE-2026-32274
 
 # diskcache (not in dependency tree) - insecure pickle deserialization
 # This package does not exist in uv.lock. Trivy false positive.
@@ -57,6 +63,12 @@ CVE-2025-62706
 CVE-2025-61920
 # RFC violation: no impact on server's OAuth usage pattern.
 CVE-2025-59420
+# Auth bypass via forged OIDC tokens: server doesn't rely on OIDC ID tokens.
+CVE-2026-28498
+# Padding oracle in JWE RSA1_5: server does not process JWE tokens.
+CVE-2026-28490
+# JWK Header Injection: server uses server-side key management, not JWK headers.
+CVE-2026-27962
 
 # urllib3 2.6.3 (via requests, sentry-sdk) - decompression bomb / redirect
 # urllib3 is used for outbound requests to trusted Splunk instances, not for
@@ -80,3 +92,7 @@ CVE-2025-66416
 # fastmcp 3.0.2 - references same MCP SDK CVE above
 # Updated to latest; advisory is about the underlying mcp SDK.
 GHSA-rcfx-77hg-w2wv
+
+# pyjwt 2.10.1 (via authlib, fastmcp) - accepts unknown crit header extensions
+# Server uses standard JWT claims only; no critical header extensions in use.
+CVE-2026-32597
