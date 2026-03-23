@@ -96,3 +96,7 @@ GHSA-rcfx-77hg-w2wv
 # pyjwt 2.10.1 (via authlib, fastmcp) - accepts unknown crit header extensions
 # Server uses standard JWT claims only; no critical header extensions in use.
 CVE-2026-32597
+
+# pyasn1 (via cryptography, authlib) - DoS via deep ASN.1 recursion
+# Transitive dep; server does not parse untrusted ASN.1 input.
+CVE-2026-30922
