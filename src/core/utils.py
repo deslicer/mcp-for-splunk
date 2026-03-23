@@ -44,7 +44,11 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
         header_value = headers.get(header_name) or headers.get(header_name.lower())
         if header_value:
             if config_key == "splunk_port":
-                client_config[config_key] = int(header_value)
+                try:
+                    client_config[config_key] = int(header_value)
+                except (ValueError, TypeError):
+                    logger.warning("Invalid non-numeric splunk_port header: %s", header_value)
+                    continue
             elif config_key == "splunk_verify_ssl":
                 client_config[config_key] = header_value.lower() == "true"
             else:
