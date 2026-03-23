@@ -134,8 +134,8 @@ jobs:
               before = len(run.get("results", []))
               run["results"] = [r for r in run.get("results", []) if not is_ignored(r)]
               after = len(run["results"])
-              if before != after:
-                  print(f"Filtered {before - after} ignored findings from SARIF")
+              remaining = [r.get("ruleId", "?") for r in run.get("results", [])]
+              print(f"SARIF: {before} total, filtered {before - after}, remaining {after}: {remaining}")
 
           with open("trivy-results.sarif", "w") as f:
               json.dump(sarif, f)
