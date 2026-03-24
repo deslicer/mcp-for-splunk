@@ -8,6 +8,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional tag name to publish as a GitHub Release (e.g. v0.5.1)"
+        required: false
+        type: string
 
 jobs:
   build-publish:
@@ -35,8 +40,11 @@ jobs:
           skip-existing: true
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || github.event.inputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
             dist/*.whl
