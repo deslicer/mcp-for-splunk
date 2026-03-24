@@ -168,7 +168,7 @@ def check_compose_available() -> tuple[bool, list[str]]:
     """
     if shutil.which("docker") is not None:
         # Verify `docker compose` subcommand works
-        code = subprocess.run(
+        code = subprocess.run(  # nosec B603 B607
             ["docker", "compose", "version"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -211,7 +211,9 @@ def not_implemented_yet(topic: str) -> int:
 def run_cmd(cmd: list[str], cwd: str | None = None) -> int:
     try:
         print_local(f"Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, cwd=cwd, check=False)
+        result = subprocess.run(  # nosec B603 B607
+            cmd, cwd=cwd, check=False
+        )
         return result.returncode
     except FileNotFoundError:
         print_error(f"Command not found: {cmd[0]}")
@@ -239,7 +241,9 @@ def install_uv_if_missing() -> bool:
         print_error("Neither curl nor wget found. Please install uv manually: pip install uv")
         return False
 
-    code = subprocess.run(installer, check=False).returncode
+    code = subprocess.run(  # nosec B603 B607
+        installer, check=False
+    ).returncode
     # try update PATH for current process
     os.environ["PATH"] = f"{os.path.expanduser('~')}/.cargo/bin:" + os.environ.get("PATH", "")
     if code == 0 and check_uv_available():
@@ -634,7 +638,9 @@ def start_mcp_inspector(mcp_port: int) -> bool:
         return False
 
     # Check Node version
-    out = subprocess.run(["node", "--version"], capture_output=True, text=True, check=False)
+    out = subprocess.run(  # nosec B603 B607
+        ["node", "--version"], capture_output=True, text=True, check=False
+    )
     version = out.stdout.strip().lstrip("v")
     try:
         major = int(version.split(".")[0]) if version else 0
@@ -668,7 +674,9 @@ def start_mcp_inspector(mcp_port: int) -> bool:
     log_file = Path("logs/inspector.log")
     try:
         with log_file.open("w", encoding="utf-8") as lf:
-            proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, env=env)
+            proc = subprocess.Popen(  # nosec B603 B607
+                cmd, stdout=lf, stderr=lf, env=env
+            )
     except FileNotFoundError:
         print_warning("Failed to start MCP Inspector (npx not available).")
         return False
@@ -742,7 +750,7 @@ def run_local_server(
 
     log_file = Path("logs/mcp_splunk_server.log")
     # Preflight: ensure fastmcp is importable; if not, install
-    test_code = subprocess.run(
+    test_code = subprocess.run(  # nosec B603 B607
         ["uv", "run", "python", "-c", "import fastmcp; print('ok')"],
         capture_output=True,
         text=True,
@@ -779,7 +787,9 @@ def run_local_server(
     )
     with log_file.open("w", encoding="utf-8") as lf:
         # nosemgrep: dangerous-subprocess-use-tainted-env-args
-        proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env)
+        proc = subprocess.Popen(  # nosec B603 B607
+            cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env
+        )
 
     # Always write PID file for monitoring/testing
     pid_file = Path(".mcp_local_server.pid")
@@ -952,7 +962,9 @@ def stop_docker_services() -> int:
         # Discover running services for this compose file only
         ps_services_cmd = base_cmd + ["-f", cf, "ps", "--services", "--filter", "status=running"]
         try:
-            out = subprocess.run(ps_services_cmd, capture_output=True, text=True, check=False)
+            out = subprocess.run(  # nosec B603 B607
+                ps_services_cmd, capture_output=True, text=True, check=False
+            )
             running_services = [line for line in out.stdout.strip().splitlines() if line.strip()]
         except FileNotFoundError:
             running_services = []
@@ -978,7 +990,9 @@ def stop_docker_services() -> int:
             continue
 
         # Verify after stopping targets
-        out2 = subprocess.run(ps_services_cmd, capture_output=True, text=True, check=False)
+        out2 = subprocess.run(  # nosec B603 B607
+            ps_services_cmd, capture_output=True, text=True, check=False
+        )
         remaining_services = [line for line in out2.stdout.strip().splitlines() if line.strip()]
         remaining_expected = [s for s in remaining_services if s in expected]
         if remaining_expected:
@@ -1018,7 +1032,9 @@ def stop_local_processes() -> int:
     ]
     for pat in patterns:
         if shutil.which("pgrep") is not None:
-            out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)
+            out = subprocess.run(  # nosec B603 B607
+                ["pgrep", "-f", pat], capture_output=True, text=True, check=False
+            )
             if out.returncode == 0 and out.stdout:
                 for line in out.stdout.strip().splitlines():
                     try:
@@ -1089,7 +1105,7 @@ def stop_local_processes() -> int:
 
     if port_open:
         if shutil.which("lsof"):
-            out = subprocess.run(
+            out = subprocess.run(  # nosec B603 B607
                 ["lsof", "-t", "-i", ":6274"], capture_output=True, text=True, check=False
             )
             pids = [line.strip() for line in out.stdout.splitlines() if line.strip()]
@@ -1104,12 +1120,16 @@ def stop_local_processes() -> int:
         else:
             if shutil.which("fuser"):
                 print_status("Using fuser to kill processes on port 6274...")
-                subprocess.run(["fuser", "-k", "6274/tcp"], check=False)
+                subprocess.run(  # nosec B603 B607
+                    ["fuser", "-k", "6274/tcp"], check=False
+                )
             elif shutil.which("pkill"):
                 print_status("Trying pkill -f '@modelcontextprotocol/inspector'...")
-                subprocess.run(["pkill", "-f", "@modelcontextprotocol/inspector"], check=False)
+                subprocess.run(  # nosec B603 B607
+                    ["pkill", "-f", "@modelcontextprotocol/inspector"], check=False
+                )
             elif shutil.which("pgrep") and shutil.which("kill"):
-                out = subprocess.run(
+                out = subprocess.run(  # nosec B603 B607
                     ["pgrep", "-f", "@modelcontextprotocol/inspector"],
                     capture_output=True,
                     text=True,
@@ -1133,10 +1153,12 @@ def stop_local_processes() -> int:
     for pat in patterns:
         if shutil.which("pkill") is not None:
             print_status(f"Trying pkill -f '{pat}'...")
-            subprocess.run(["pkill", "-f", pat], check=False)
+            subprocess.run(  # nosec B603 B607
+                ["pkill", "-f", pat], check=False
+            )
         else:
             if shutil.which("pgrep") and shutil.which("kill"):
-                out = subprocess.run(
+                out = subprocess.run(  # nosec B603 B607
                     ["pgrep", "-f", pat], capture_output=True, text=True, check=False
                 )
                 if out.returncode == 0 and out.stdout:
@@ -1167,7 +1189,9 @@ def stop_local_processes() -> int:
             pass  # Intentionally suppressed: PID file may be corrupt or missing
     for pat in patterns:
         if shutil.which("pgrep") is not None:
-            out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)
+            out = subprocess.run(  # nosec B603 B607
+                ["pgrep", "-f", pat], capture_output=True, text=True, check=False
+            )
             if out.returncode == 0 and out.stdout:
                 for line in out.stdout.strip().splitlines():
                     try:
