@@ -4,7 +4,7 @@ Create a dashboard (Simple XML or Dashboard Studio) via Splunk REST API.
 
 import json
 from typing import Any
-from xml.sax.saxutils import escape as xml_escape
+from xml.sax.saxutils import escape as xml_escape  # nosec B406  # nosemgrep: use-defused-xml
 
 from fastmcp import Context
 

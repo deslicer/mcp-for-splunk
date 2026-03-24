@@ -231,7 +231,7 @@ def setup_health_routes(mcp: FastMCP):
                                     "serverName": info.get("serverName", "Unknown"),
                                 }
                         except Exception:
-                            pass
+                            logger.debug("Could not retrieve Splunk info for health", exc_info=True)
                     else:
                         logger.debug("Splunk context shows disconnected state")
                 else:

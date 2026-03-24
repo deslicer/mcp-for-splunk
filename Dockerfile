@@ -43,8 +43,14 @@ COPY docs/ ./docs/
 # Create logs directory
 RUN mkdir -p /app/src/logs
 
+# Create non-root user for security
+RUN useradd -r -s /bin/false -d /app mcp && chown -R mcp:mcp /app
+
 # Expose the internal HTTP port the server binds to
+# nosemgrep: dockerfile.security.missing-user.missing-user
 EXPOSE 8001
+
+USER mcp
 
 # Run the MCP server using uv with enhanced hot reload support
 CMD ["sh", "-c", "echo 'Starting modular MCP server (src/server.py)'; if [ \"$MCP_HOT_RELOAD\" = \"true\" ]; then echo 'Starting with enhanced hot reload...'; uv run watchmedo auto-restart --directory=./src --directory=./contrib --pattern=*.py --recursive --ignore-patterns='*/__pycache__/*;*.pyc;*.pyo;*/.pytest_cache/*' -- python -u src/server.py; else echo 'Starting in production mode...'; uv run python src/server.py; fi"]

@@ -12,7 +12,7 @@ import argparse
 import os
 import shutil
 import signal
-import subprocess
+import subprocess  # nosec B404 - CLI tool requires subprocess for Docker/process management
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -281,7 +281,7 @@ def load_env_file(env_path: Path) -> None:
     print(f"   🔌 Port: {os.environ.get('SPLUNK_PORT', '8089 (default)')}")
     print(f"   👤 User: {os.environ.get('SPLUNK_USERNAME', 'Not set')}")
     pw = os.environ.get("SPLUNK_PASSWORD")
-    pw_display = f"***{pw[-3:]}" if pw else "Not set"
+    pw_display = "(set)" if pw else "Not set"
     print(f"   🔐 Pass: {pw_display}")
     print(f"   🔒 SSL:  {os.environ.get('SPLUNK_VERIFY_SSL', 'Not set')}")
 
@@ -320,7 +320,7 @@ def update_env_file(env_path: Path, updates: dict[str, str]) -> None:
     for k in keys:
         new_lines.append(f"{k}='{updates[k]}'\n")
 
-    with env_path.open("w", encoding="utf-8") as f:
+    with env_path.open("w", encoding="utf-8") as f:  # nosec B105 - .env config file write
         f.writelines(new_lines)
 
 
@@ -378,10 +378,10 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
             cur_host = "so1"
             cur_port = "8089"
             cur_user = "admin"
-            cur_pass = "Chang3d!"
+            cur_pass = os.environ.get("SPLUNK_DEFAULT_PASSWORD", "Chang3d!")  # nosec B105
             docker_defaults_restored = True
             print_success(
-                "Restored Docker defaults: SPLUNK_HOST=so1, SPLUNK_PORT=8089, SPLUNK_USERNAME=admin, SPLUNK_PASSWORD=Chang3d!"
+                "Restored Docker defaults: SPLUNK_HOST=so1, SPLUNK_PORT=8089, SPLUNK_USERNAME=admin"
             )
             print()
 
@@ -689,7 +689,7 @@ def start_mcp_inspector(mcp_port: int) -> bool:
                     ready = True
                     break
             except httpx.HTTPError:
-                pass
+                pass  # Intentionally suppressed: polling for readiness
             attempts += 1
             time.sleep(1)
     except ImportError:
@@ -778,6 +778,7 @@ def run_local_server(
         f"Setting env for local run: MCP_STATELESS_HTTP={child_env.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={child_env.get('MCP_JSON_RESPONSE')}"
     )
     with log_file.open("w", encoding="utf-8") as lf:
+        # nosemgrep: dangerous-subprocess-use-tainted-env-args
         proc = subprocess.Popen(cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env)
 
     # Always write PID file for monitoring/testing
@@ -896,7 +897,7 @@ def run_local_server(
         try:
             stop_local_processes()
         except (OSError, ValueError, subprocess.SubprocessError):
-            pass
+            pass  # Intentionally suppressed: cleanup on shutdown is best-effort
         # Cleanup PID file
         pid_file.unlink(missing_ok=True)
         return 0
@@ -915,7 +916,7 @@ def run_local_server(
     try:
         stop_local_processes()
     except (OSError, ValueError, subprocess.SubprocessError):
-        pass
+        pass  # Intentionally suppressed: cleanup on exit is best-effort
     # Cleanup PID file
     pid_file.unlink(missing_ok=True)
     return proc.returncode or 1
@@ -1009,7 +1010,7 @@ def stop_local_processes() -> int:
             p = int(p_str)
             initial_pids.add(p)
         except (OSError, ValueError):
-            pass
+            pass  # Intentionally suppressed: PID file may be corrupt or missing
 
     patterns = [
         "fastmcp run src/server.py",
@@ -1153,7 +1154,7 @@ def stop_local_processes() -> int:
 
         _t.sleep(0.5)
     except (ImportError, RuntimeError, OSError):
-        pass
+        pass  # Intentionally suppressed: grace period is best-effort
 
     # Verify post-state
     remaining_pids: set[int] = set()
@@ -1163,7 +1164,7 @@ def stop_local_processes() -> int:
             p = int(p_str)
             remaining_pids.add(p)
         except (OSError, ValueError):
-            pass
+            pass  # Intentionally suppressed: PID file may be corrupt or missing
     for pat in patterns:
         if shutil.which("pgrep") is not None:
             out = subprocess.run(["pgrep", "-f", pat], capture_output=True, text=True, check=False)

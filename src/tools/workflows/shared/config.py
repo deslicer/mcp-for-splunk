@@ -73,6 +73,6 @@ class RetryConfig:
 
         # Add jitter to prevent thundering herd
         if self.jitter:
-            delay = delay * (0.5 + random.random() * 0.5)
+            delay = delay * (0.5 + random.random() * 0.5)  # nosec B311 - not used for security
 
         return delay

@@ -216,7 +216,7 @@ class GetConfigurations(BaseTool):
                                 )
                                 return self.format_success_response(result)
                             except Exception:
-                                continue
+                                continue  # Try next app/owner combination
                 msg = f"Stanza '{normalized_stanza}' not found in {normalized_conf}."
                 self.logger.error("%s", msg)
                 await ctx.error(msg)
@@ -279,7 +279,7 @@ class GetConfigurations(BaseTool):
                                 if all_stanzas:
                                     break
                             except Exception:
-                                continue
+                                continue  # Try next app/owner fallback
 
             self.logger.debug(
                 "Collected %d stanzas: %s", len(all_stanzas), list(all_stanzas.keys())[:10]
@@ -375,7 +375,7 @@ class CreateConfig(BaseTool):
                         }
                 # If no matching entry found, return empty dict
             except Exception:
-                pass
+                self.logger.debug("REST stanza lookup failed, returning empty", exc_info=True)
             return {}
 
         # Try REST first

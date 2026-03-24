@@ -47,3 +47,8 @@ a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credenti
 8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/http_middleware.py:generic-credential:52
 8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/decorators.py:generic-credential:53
 8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/decorators.py:generic-credential:101
+
+# Dict key name "splunk_password" in config extractor and utils
+# These are configuration key mappings, not hardcoded secrets
+0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/enhanced_config_extractor.py:generic-credential:201
+0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/utils.py:splunk-password:38

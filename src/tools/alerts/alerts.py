@@ -122,8 +122,7 @@ class ListTriggeredAlerts(BaseTool):
                                         }
                                     )
                                 except Exception:
-                                    # Some properties might not be available
-                                    pass
+                                    pass  # Intentionally suppressed: optional alert properties may not exist
 
                                 group_alerts.append(alert_info)
                             except Exception as alert_error:
@@ -149,8 +148,7 @@ class ListTriggeredAlerts(BaseTool):
                             }
                         )
                     except Exception:
-                        # Some properties might not be available
-                        pass
+                        pass  # Intentionally suppressed: optional group properties may not exist
 
                     alerts_data.append(alert_group_data)
                     processed_count += 1
@@ -171,8 +169,7 @@ class ListTriggeredAlerts(BaseTool):
                     reverse=True,
                 )
             except Exception:
-                # If sorting fails, continue with unsorted data
-                pass
+                pass  # Intentionally suppressed: sort failure preserves insertion order
 
             await ctx.info(
                 f"Found {len(alerts_data)} alert groups with {sum(len(group.get('alerts', [])) for group in alerts_data)} total alerts"

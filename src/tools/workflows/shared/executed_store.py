@@ -61,7 +61,7 @@ def _get_session_id(ctx: Context) -> str:
                 logger.debug("Resolved session_id from request headers: %s", sid)
                 return sid
     except Exception:
-        pass
+        pass  # Intentionally suppressed: session extraction is best-effort
     # Fallback ephemeral
     logger.warning("Falling back to generated ephemeral session_id (no session present)")
     return uuid.uuid4().hex
@@ -146,7 +146,7 @@ class ExecutedWorkflowStore:
                 try:
                     os.remove(path)
                 except Exception:
-                    pass
+                    pass  # Intentionally suppressed: file removal during cleanup is best-effort
                 idx.pop(comp_key, None)
                 updated = True
         if updated:
@@ -255,7 +255,7 @@ class ExecutedWorkflowStore:
                 reverse=True,
             )
         except Exception:
-            pass
+            logger.debug("Could not sort execution records by date", exc_info=True)
 
         # Apply pagination
         return records[offset : offset + limit]

@@ -319,7 +319,7 @@ workflow for specific Splunk problems.""",
                                     category = path_parts[-2]  # Directory name
                                 break
                     except Exception:
-                        continue
+                        continue  # Skip unreadable workflow files
 
                 # Only include workflows that are actually from contrib directory
                 # Check if the file path is in the contrib/workflows directory

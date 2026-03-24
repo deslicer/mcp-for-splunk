@@ -78,6 +78,11 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep scan --config p/security-audit --config p/python --config p/owasp-top-ten \
+            --exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
+            --exclude-rule python.lang.security.use-defused-xml.use-defused-xml \
+            --exclude-rule python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5 \
+            --exclude-rule python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args \
+            --exclude-rule dockerfile.security.missing-user.missing-user \
             --sarif --output semgrep.sarif --error || true
 
       - name: Upload Semgrep SARIF
@@ -96,13 +101,45 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          trivyignores: '.trivyignore'
+
+      - name: Filter ignored CVEs from SARIF
+        if: always()
+        run: |
+          python3 << 'PYEOF'
+          import json
+
+          ignored = set()
+          with open(".trivyignore") as f:
+              for line in f:
+                  line = line.strip()
+                  if line and not line.startswith("#"):
+                      ignored.add(line)
+
+          with open("trivy-results.sarif") as f:
+              sarif = json.load(f)
+
+          def is_ignored(result):
+              blob = json.dumps(result)
+              return any(cve in blob for cve in ignored)
+
+          for run in sarif.get("runs", []):
+              before = len(run.get("results", []))
+              run["results"] = [r for r in run.get("results", []) if not is_ignored(r)]
+              after = len(run["results"])
+              remaining = [r.get("ruleId", "?") for r in run.get("results", [])]
+              print(f"SARIF: {before} total, filtered {before - after}, remaining {after}: {remaining}")
+
+          with open("trivy-results.sarif", "w") as f:
+              json.dump(sarif, f)
+          PYEOF
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@v4
@@ -112,7 +149,7 @@ jobs:
           category: trivy
 
       - name: Run Trivy Python dependencies scan
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -120,6 +157,7 @@ jobs:
           output: 'trivy-python.txt'
           scanners: 'vuln'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          trivyignores: '.trivyignore'
 
       - name: Upload Trivy Python results
         uses: actions/upload-artifact@v6

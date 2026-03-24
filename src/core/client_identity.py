@@ -302,7 +302,7 @@ class ClientConnectionManager:
                 if session_id:
                     return session_id
         except Exception:
-            pass
+            pass  # Intentionally suppressed: session extraction is best-effort
 
         # Fallback to generated ID
         return uuid4().hex[:16]
@@ -354,7 +354,7 @@ class ClientConnectionManager:
             try:
                 self._connections[client_id].logout()
             except Exception:
-                pass
+                pass  # Intentionally suppressed: logout failure during cleanup is non-critical
             del self._connections[client_id]
 
         if client_id in self._client_identities:
