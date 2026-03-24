@@ -779,15 +779,14 @@ def run_local_server(
 
     # Start server
     # Ensure local defaults for HTTP stateless mode and JSON responses for compatibility
-    child_env = os.environ.copy()
-    child_env.setdefault("MCP_STATELESS_HTTP", "true")
-    child_env.setdefault("MCP_JSON_RESPONSE", "true")
+    os.environ.setdefault("MCP_STATELESS_HTTP", "true")
+    os.environ.setdefault("MCP_JSON_RESPONSE", "true")
     print_local(
-        f"Setting env for local run: MCP_STATELESS_HTTP={child_env.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={child_env.get('MCP_JSON_RESPONSE')}"
+        f"Setting env for local run: MCP_STATELESS_HTTP={os.environ.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={os.environ.get('MCP_JSON_RESPONSE')}"
     )
     with log_file.open("w", encoding="utf-8") as lf:
-        proc = subprocess.Popen(  # nosec B603 B607 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
-            cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
+        proc = subprocess.Popen(  # nosec B603 B607
+            cmd, stdout=lf, stderr=lf, start_new_session=True
         )
 
     # Always write PID file for monitoring/testing
