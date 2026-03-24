@@ -80,6 +80,41 @@ jobs:
           semgrep scan --config p/security-audit --config p/python --config p/owasp-top-ten \
             --sarif --output semgrep.sarif --error || true
 
+      - name: Filter nosemgrep-suppressed findings from SARIF
+        if: always()
+        run: |
+          python3 << 'PYEOF'
+          import json
+
+          # Only suppress specific rule+file combinations where nosemgrep is documented
+          suppressed = {
+              ("python.lang.security.use-defused-xml.use-defused-xml", "src/tools/dashboards/create_dashboard.py"),
+              ("python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected", "scripts/hot_reload.py"),
+          }
+
+          with open("semgrep.sarif") as f:
+              sarif = json.load(f)
+
+          def is_suppressed(result):
+              rule_id = result.get("ruleId", "")
+              locations = result.get("locations", [])
+              for loc in locations:
+                  path = loc.get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
+                  if (rule_id, path) in suppressed:
+                      return True
+              return False
+
+          for run in sarif.get("runs", []):
+              before = len(run.get("results", []))
+              run["results"] = [r for r in run.get("results", []) if not is_suppressed(r)]
+              after = len(run["results"])
+              if before != after:
+                  print(f"Semgrep SARIF: filtered {before - after} suppressed findings, {after} remaining")
+
+          with open("semgrep.sarif", "w") as f:
+              json.dump(sarif, f)
+          PYEOF
+
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@v4
         if: always()

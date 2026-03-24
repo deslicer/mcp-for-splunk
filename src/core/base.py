@@ -215,7 +215,7 @@ class BaseTool(ABC):
                     logger.warning(
                         f"Client-config Splunk connection failed in availability check: {e}"
                     )
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Intentionally suppressed: header/env extraction is best-effort fallback
 
         # Fallback: use server default service established at startup

@@ -81,7 +81,7 @@ try:
         category=PydanticJsonSchemaWarning,
         message="Default value .* is not JSON serializable; excluding default from JSON schema",
     )
-except Exception:
+except Exception:  # nosec B110
     pass  # Intentionally suppressed: warning filter is optional, not critical
 
 # Global cache to persist client config per session across Streamable HTTP requests
@@ -159,7 +159,7 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
         if os.getenv("MCP_DISABLE_PLUGINS", "false").lower() == "true":
             logger.info("Plugin loading disabled by MCP_DISABLE_PLUGINS")
             return 0
-    except Exception:
+    except Exception:  # nosec B110
         pass  # Intentionally suppressed: env var check is best-effort
 
     loaded = 0
@@ -281,7 +281,7 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
             if token is not None:
                 try:
                     current_session_id.reset(token)
-                except Exception:
+                except Exception:  # nosec B110
                     pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
@@ -746,7 +746,7 @@ class ClientConfigMiddleware(Middleware):
                             "ClientConfigMiddleware: cleared global cached client_config for session %s",
                             session_key,
                         )
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Intentionally suppressed: cache eviction is best-effort
 
         # Continue with the request
@@ -757,7 +757,7 @@ class ClientConfigMiddleware(Middleware):
             # Clear session correlation after request completes
             try:
                 current_session_id.reset(token)
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Intentionally suppressed: ContextVar reset is best-effort cleanup
 
 
@@ -1075,13 +1075,13 @@ async def user_agent_info(ctx: Context) -> str:
         sess = await ctx.get_state("session_id")  # type: ignore[attr-defined]
         if sess:
             state["session_id"] = sess
-    except Exception:
+    except Exception:  # nosec B110
         pass  # Intentionally suppressed: state retrieval is optional diagnostic info
     try:
         cfg = await ctx.get_state("client_config")  # type: ignore[attr-defined]
         if isinstance(cfg, dict):
             state["client_config"] = mask_sensitive(cfg)
-    except Exception:
+    except Exception:  # nosec B110
         pass  # Intentionally suppressed: state retrieval is optional diagnostic info
 
     return _json.dumps({

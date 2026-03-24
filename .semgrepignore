@@ -1,0 +1,13 @@
+# Development scripts — not shipped in the package
+scripts/
+
+# Test files
+tests/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/

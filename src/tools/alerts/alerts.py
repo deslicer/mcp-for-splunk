@@ -121,7 +121,7 @@ class ListTriggeredAlerts(BaseTool):
                                             "server_uri": getattr(alert, "server_uri", ""),
                                         }
                                     )
-                                except Exception:
+                                except Exception:  # nosec B110
                                     pass  # Intentionally suppressed: optional alert properties may not exist
 
                                 group_alerts.append(alert_info)
@@ -147,7 +147,7 @@ class ListTriggeredAlerts(BaseTool):
                                 "access": getattr(alert_group, "access", {}),
                             }
                         )
-                    except Exception:
+                    except Exception:  # nosec B110
                         pass  # Intentionally suppressed: optional group properties may not exist
 
                     alerts_data.append(alert_group_data)
@@ -168,7 +168,7 @@ class ListTriggeredAlerts(BaseTool):
                     ),
                     reverse=True,
                 )
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Intentionally suppressed: sort failure preserves insertion order
 
             await ctx.info(

@@ -215,7 +215,7 @@ class GetConfigurations(BaseTool):
                                     f"Retrieved configuration for stanza: {normalized_stanza}"
                                 )
                                 return self.format_success_response(result)
-                            except Exception:
+                            except Exception:  # nosec B112
                                 continue  # Try next app/owner combination
                 msg = f"Stanza '{normalized_stanza}' not found in {normalized_conf}."
                 self.logger.error("%s", msg)
@@ -278,7 +278,7 @@ class GetConfigurations(BaseTool):
                                     all_stanzas[stanza_obj.name] = dict(stanza_obj.content)
                                 if all_stanzas:
                                     break
-                            except Exception:
+                            except Exception:  # nosec B112
                                 continue  # Try next app/owner fallback
 
             self.logger.debug(
