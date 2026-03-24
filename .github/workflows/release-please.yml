@@ -14,11 +14,21 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: Release Please
+        id: release
         uses: googleapis/release-please-action@v4
         with:
           release-type: python
           config-file: .github/release-please/release-please-config.json
           manifest-file: .github/release-please/release-please-manifest.json
+
+  build-publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
 
