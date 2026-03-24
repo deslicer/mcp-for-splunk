@@ -580,6 +580,7 @@ Available topics:
                         "splunk-docs://{version}/admin/{topic}",
                         "splunk-spec://{config}",
                         "splunk-cim://{version}/{model}",
+                        "dashboard-studio://{topic}",
                     ]
                 ):
                     self.logger.debug(
@@ -605,44 +606,63 @@ Available topics:
 
     def _register_template_resource(self, resource_class, pattern: str):
         """Register template resource with FastMCP that handles dynamic URIs"""
-        # For config template, register a catch-all pattern
         if "config" in pattern:
-
-            @self.mcp_server.resource("splunk://config/{config_file}", name="get_config_resource")
-            async def get_config_template(
-                config_file: str,
-                captured_pattern: str = pattern,
-                captured_resource_class=resource_class,
-            ) -> str:  # Fix closure bug with default parameters
-                """Get Splunk configuration resource (template)"""
-                try:
-                    from .registry import resource_registry
-
-                    ctx = get_context()
-
-                    # Create the actual URI from the template
-                    uri = f"splunk://config/{config_file}"
-
-                    # Get resource instance from registry using the pattern
-                    resource = resource_registry.get_resource(captured_pattern)
-                    if not resource:
-                        # Create instance directly if not in registry
-                        resource = captured_resource_class(
-                            uri=captured_pattern,
-                            name=captured_resource_class.METADATA.name,
-                            description=captured_resource_class.METADATA.description,
-                            mime_type=captured_resource_class.METADATA.mime_type,
-                        )
-
-                    # Call with the specific URI
-                    return await resource.get_content(ctx, uri)
-                except Exception as e:
-                    self.logger.error(f"Error reading config template {config_file}: {e}")
-                    raise RuntimeError(f"Failed to read config: {str(e)}") from e
-
+            self._register_config_template(resource_class, pattern)
+        elif "dashboard-studio://" in pattern:
+            self._register_dashboard_studio_template(resource_class, pattern)
         else:
-            # Fallback for other template types
             self._register_generic_resource(resource_class, pattern, resource_class.METADATA)
+
+    def _register_config_template(self, resource_class, pattern: str):
+        """Register config template resource with FastMCP"""
+
+        @self.mcp_server.resource("splunk://config/{config_file}", name="get_config_resource")
+        async def get_config_template(
+            config_file: str,
+            captured_pattern: str = pattern,
+            captured_resource_class=resource_class,
+        ) -> str:
+            """Get Splunk configuration resource (template)"""
+            try:
+                from .registry import resource_registry
+
+                ctx = get_context()
+                uri = f"splunk://config/{config_file}"
+
+                resource = resource_registry.get_resource(captured_pattern)
+                if not resource:
+                    resource = captured_resource_class(
+                        uri=captured_pattern,
+                        name=captured_resource_class.METADATA.name,
+                        description=captured_resource_class.METADATA.description,
+                        mime_type=captured_resource_class.METADATA.mime_type,
+                    )
+
+                return await resource.get_content(ctx, uri)
+            except Exception as e:
+                self.logger.error(f"Error reading config template {config_file}: {e}")
+                raise RuntimeError(f"Failed to read config: {str(e)}") from e
+
+    def _register_dashboard_studio_template(self, resource_class, pattern: str):
+        """Register Dashboard Studio template resource with FastMCP"""
+
+        @self.mcp_server.resource(
+            "dashboard-studio://{topic}",
+            name="dashboard_studio_docs",
+            description="Dashboard Studio documentation (9.4) with multiple topics",
+        )
+        async def get_dashboard_studio_resource(
+            topic: str,
+            captured_resource_class=resource_class,
+        ) -> str:
+            """Get Dashboard Studio documentation for the specified topic"""
+            try:
+                ctx = get_context()
+                resource = captured_resource_class(topic)
+                return await resource.get_content(ctx)
+            except Exception as e:
+                self.logger.error(f"Error reading dashboard-studio resource for topic '{topic}': {e}")
+                raise RuntimeError(f"Failed to read dashboard-studio docs: {str(e)}") from e
 
     def _register_with_fastmcp(self, resource_class, uri: str, metadata):
         """Register resource with FastMCP using appropriate pattern matching"""
