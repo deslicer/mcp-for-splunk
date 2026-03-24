@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.1...v0.5.2) (2026-03-24)
+
+
+### Bug Fixes
+
+* add id-token write permission for release workflow chaining ([#98](https://github.com/deslicer/mcp-for-splunk/issues/98)) ([61e02ac](https://github.com/deslicer/mcp-for-splunk/commit/61e02acfad0357ce66c3ed7ddb55d66a562edbcf))
+* chain release workflow from release-please to ensure PyPI publish ([#97](https://github.com/deslicer/mcp-for-splunk/issues/97)) ([dee4a0d](https://github.com/deslicer/mcp-for-splunk/commit/dee4a0d2ffe0ef1d9875855dc76485fd81744822))
+* resolve code scanning vulnerabilities and upgrade dependencies ([#87](https://github.com/deslicer/mcp-for-splunk/issues/87)) ([68979c2](https://github.com/deslicer/mcp-for-splunk/commit/68979c2c363cb9ab57fc2f94415b18ef115c4499))
+
 ## [0.5.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.0...v0.5.1) (2026-03-12)
 
 
