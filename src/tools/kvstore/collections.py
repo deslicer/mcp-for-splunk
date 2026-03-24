@@ -237,7 +237,7 @@ class CreateKvstoreCollection(BaseTool):
                     for fname, ftype in normalized_fields.items():
                         try:
                             new_collection.update_field(fname, ftype)
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass  # Intentionally suppressed: field schema update is best-effort
 
                 # Optionally create a transforms.conf lookup definition in this app

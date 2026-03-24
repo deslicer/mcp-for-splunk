@@ -301,7 +301,7 @@ class ClientConnectionManager:
                 session_id = headers.get("x-session-id") or headers.get("authorization", "")[:16]
                 if session_id:
                     return session_id
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Intentionally suppressed: session extraction is best-effort
 
         # Fallback to generated ID
@@ -353,7 +353,7 @@ class ClientConnectionManager:
         if client_id in self._connections:
             try:
                 self._connections[client_id].logout()
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Intentionally suppressed: logout failure during cleanup is non-critical
             del self._connections[client_id]
 

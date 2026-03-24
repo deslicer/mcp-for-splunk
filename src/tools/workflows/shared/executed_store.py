@@ -60,7 +60,7 @@ def _get_session_id(ctx: Context) -> str:
             if sid:
                 logger.debug("Resolved session_id from request headers: %s", sid)
                 return sid
-    except Exception:
+    except Exception:  # nosec B110
         pass  # Intentionally suppressed: session extraction is best-effort
     # Fallback ephemeral
     logger.warning("Falling back to generated ephemeral session_id (no session present)")
@@ -145,7 +145,7 @@ class ExecutedWorkflowStore:
             if executed_at and self._is_expired(executed_at):
                 try:
                     os.remove(path)
-                except Exception:
+                except Exception:  # nosec B110
                     pass  # Intentionally suppressed: file removal during cleanup is best-effort
                 idx.pop(comp_key, None)
                 updated = True
