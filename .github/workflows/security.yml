@@ -84,22 +84,29 @@ jobs:
         if: always()
         run: |
           python3 << 'PYEOF'
-          import json, re
+          import json
 
-          suppressed_rules = {
-              "python.lang.security.use-defused-xml.use-defused-xml",
-              "python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected",
+          # Only suppress specific rule+file combinations where nosemgrep is documented
+          suppressed = {
+              ("python.lang.security.use-defused-xml.use-defused-xml", "src/tools/dashboards/create_dashboard.py"),
+              ("python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected", "scripts/hot_reload.py"),
           }
 
           with open("semgrep.sarif") as f:
               sarif = json.load(f)
 
+          def is_suppressed(result):
+              rule_id = result.get("ruleId", "")
+              locations = result.get("locations", [])
+              for loc in locations:
+                  path = loc.get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
+                  if (rule_id, path) in suppressed:
+                      return True
+              return False
+
           for run in sarif.get("runs", []):
               before = len(run.get("results", []))
-              run["results"] = [
-                  r for r in run.get("results", [])
-                  if r.get("ruleId") not in suppressed_rules
-              ]
+              run["results"] = [r for r in run.get("results", []) if not is_suppressed(r)]
               after = len(run["results"])
               if before != after:
                   print(f"Semgrep SARIF: filtered {before - after} suppressed findings, {after} remaining")
