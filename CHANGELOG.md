@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.2...v0.5.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* resolve dashboard-studio template resource registration error ([#99](https://github.com/deslicer/mcp-for-splunk/issues/99)) ([c0f93db](https://github.com/deslicer/mcp-for-splunk/commit/c0f93dba211e13f069d70dfe72097dd656640e8a))
+
 ## [0.5.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.1...v0.5.2) (2026-03-24)
 
 
