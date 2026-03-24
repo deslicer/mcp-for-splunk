@@ -787,7 +787,7 @@ def run_local_server(
     )
     with log_file.open("w", encoding="utf-8") as lf:
         proc = subprocess.Popen(  # nosec B603 B607 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
-            cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env
+            cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
         )
 
     # Always write PID file for monitoring/testing
