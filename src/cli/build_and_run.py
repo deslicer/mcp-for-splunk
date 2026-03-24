@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import shutil
 import signal
 import subprocess  # nosec B404 - CLI tool requires subprocess for Docker/process management
@@ -764,6 +765,7 @@ def run_local_server(
                 "Failed to add fastmcp via uv; continuing, it may already be present via sync."
             )
         run_cmd(["uv", "sync", "--dev"])  # best-effort
+    safe_port = shlex.quote(str(mcp_port))
     cmd = [
         "uv",
         "run",
@@ -773,7 +775,7 @@ def run_local_server(
         "--transport",
         "http",
         "--port",
-        str(mcp_port),
+        safe_port,
     ]
     print_local(f"Command: {' '.join(cmd)}")
 
