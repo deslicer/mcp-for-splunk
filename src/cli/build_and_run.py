@@ -786,7 +786,7 @@ def run_local_server(
         f"Setting env for local run: MCP_STATELESS_HTTP={child_env.get('MCP_STATELESS_HTTP')}, MCP_JSON_RESPONSE={child_env.get('MCP_JSON_RESPONSE')}"
     )
     with log_file.open("w", encoding="utf-8") as lf:
-        # nosemgrep: dangerous-subprocess-use-tainted-env-args
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
         proc = subprocess.Popen(  # nosec B603 B607
             cmd, stdout=lf, stderr=lf, start_new_session=True, env=child_env
         )
