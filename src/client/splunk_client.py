@@ -33,6 +33,7 @@ def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, 
         "port": int(os.getenv("SPLUNK_PORT", 8089)),
         "username": os.getenv("SPLUNK_USERNAME"),
         "password": os.getenv("SPLUNK_PASSWORD"),
+        "token": os.getenv("SPLUNK_TOKEN"),
         "scheme": os.getenv("SPLUNK_SCHEME", "https"),
         "verify": os.getenv("SPLUNK_VERIFY_SSL", "False").lower() == "true",
     }
@@ -45,6 +46,7 @@ def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, 
             "splunk_port": "port",
             "splunk_username": "username",
             "splunk_password": "password",
+            "splunk_token": "token",
             "splunk_scheme": "scheme",
             "splunk_verify_ssl": "verify",
         }
@@ -79,10 +81,13 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
     """
     splunk_config = get_splunk_config(client_config)
 
-    # Validate required parameters
-    if not splunk_config["username"] or not splunk_config["password"]:
+    # Validate required parameters - either token OR username/password
+    has_token = splunk_config.get("token")
+    has_credentials = splunk_config.get("username") and splunk_config.get("password")
+
+    if not has_token and not has_credentials:
         raise ValueError(
-            "Splunk username and password must be provided via client config or environment variables"
+            "Either SPLUNK_TOKEN or SPLUNK_USERNAME/SPLUNK_PASSWORD must be provided via client config or environment variables"
         )
 
     logger.info(
@@ -90,7 +95,9 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
     )
 
     try:
-        service = client.connect(**splunk_config)
+        # Remove None values from config before passing to client.connect
+        clean_config = {k: v for k, v in splunk_config.items() if v is not None}
+        service = client.connect(**clean_config)
         logger.info("Successfully connected to Splunk")
         return service
     except Exception as e:

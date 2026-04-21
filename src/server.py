@@ -544,7 +544,7 @@ else:
 STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
 JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, lifespan=splunk_lifespan)
 
 # Import and setup health routes
 setup_health_routes(mcp)
