@@ -151,6 +151,11 @@ MCP_SPLUNK_USERNAME=your_username
 MCP_SPLUNK_PASSWORD=your_password
 MCP_SPLUNK_SCHEME=https
 MCP_SPLUNK_VERIFY_SSL=true
+
+# Or, instead of username/password, use a Splunk bearer / access token
+# (created in Splunk Web at Settings -> Tokens or via the
+# /services/authorization/tokens REST endpoint).
+MCP_SPLUNK_TOKEN=eyJraWQiOiJzcGx1bmsuc2VjcmV0...
 ```
 
 #### **Server Variables** (Fallback - Lower Priority)
@@ -161,11 +166,17 @@ SPLUNK_USERNAME=default_user
 SPLUNK_PASSWORD=default_password
 SPLUNK_SCHEME=https
 SPLUNK_VERIFY_SSL=true
+
+# Or use a bearer / access token at the server level.
+SPLUNK_TOKEN=eyJraWQiOiJzcGx1bmsuc2VjcmV0...
 ```
 
 ### 3. HTTP Headers (for HTTP Transport)
 
-When using HTTP transport, you can pass Splunk configuration via request headers:
+When using HTTP transport, you can pass Splunk configuration via request headers.
+Each MCP client / tool call can authenticate to Splunk independently.
+
+#### **Username + password**
 
 ```
 X-Splunk-Host: splunk.company.com
@@ -175,6 +186,30 @@ X-Splunk-Password: your_password
 X-Splunk-Scheme: https
 X-Splunk-Verify-SSL: true
 ```
+
+#### **Bearer / access token (recommended for per-user auth)**
+
+Authenticate per request using a Splunk access token. The token maps to
+the `splunkToken` argument of `splunklib.client.connect`, so no `login()`
+round-trip is performed.
+
+```
+X-Splunk-Host: splunk.company.com
+X-Splunk-Port: 8089
+X-Splunk-Token: eyJraWQiOiJzcGx1bmsuc2VjcmV0...
+X-Splunk-Scheme: https
+X-Splunk-Verify-SSL: true
+```
+
+If MCP server-level auth is disabled (`MCP_AUTH_DISABLED=true`), the
+standard `Authorization: Bearer <token>` header is also accepted as a
+fallback so existing clients that already inject bearer tokens through
+their HTTP middleware can authenticate to Splunk without additional
+header plumbing.
+
+> **Tip**: Create a token in Splunk Web under **Settings → Tokens**, or via the
+> `/services/authorization/tokens` REST endpoint. See the
+> [Splunk docs on creating authentication tokens](https://docs.splunk.com/Documentation/Splunk/latest/Security/CreateAuthTokens).
 
 ## 🎯 **Configuration Priority**
 
@@ -265,6 +300,9 @@ for customer_id, config in customer_configs.items():
 2. **HTTP Headers** - X-Splunk-* headers are prefixed for security
 3. **Credential Management** - Consider using credential managers for sensitive values
 4. **SSL Verification** - Always use `MCP_SPLUNK_VERIFY_SSL=true` in production
+5. **Prefer access tokens over passwords** - Splunk access tokens (`X-Splunk-Token` /
+   `SPLUNK_TOKEN`) are scoped, revocable, and have an explicit expiry. They are also
+   logged-redacted alongside `password` and `authorization` values throughout the server.
 
 ## 🚀 **Getting Started**
 

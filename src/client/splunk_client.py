@@ -21,14 +21,19 @@ def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, 
     """
     Get Splunk configuration from client config or environment variables.
 
+    Supports three authentication modes (in priority order at use site):
+      1. Bearer / access token (``splunk_token`` -> ``splunkToken``)
+      2. Existing session token (``splunk_session_token`` -> ``token``)
+      3. Username + password basic auth
+
     Args:
         client_config: Optional configuration provided by the MCP client
 
     Returns:
-        Dict with Splunk connection configuration
+        Dict with Splunk connection configuration suitable for ``client.connect``
     """
     # Start with environment variables as defaults
-    config = {
+    config: dict[str, Any] = {
         "host": os.getenv("SPLUNK_HOST", "localhost"),
         "port": int(os.getenv("SPLUNK_PORT", 8089)),
         "username": os.getenv("SPLUNK_USERNAME"),
@@ -37,36 +42,71 @@ def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, 
         "verify": os.getenv("SPLUNK_VERIFY_SSL", "False").lower() == "true",
     }
 
-    # Override with client-provided configuration if available
+    # Bearer / access token from environment maps to splunklib's ``splunkToken``
+    env_bearer_token = os.getenv("SPLUNK_TOKEN")
+    if env_bearer_token:
+        config["splunkToken"] = env_bearer_token
+
+    # Existing session token (rare) maps to splunklib's ``token``
+    env_session_token = os.getenv("SPLUNK_SESSION_TOKEN")
+    if env_session_token:
+        config["token"] = env_session_token
+
     if client_config:
-        # Map client config keys to Splunk client keys
-        key_mapping = {  # nosec B105 - config key names, not passwords
+        # Map client config keys to splunklib client.connect kwargs
+        key_mapping = {  # nosec B105 - config key names, not credential values
             "splunk_host": "host",
             "splunk_port": "port",
             "splunk_username": "username",
             "splunk_password": "password",
             "splunk_scheme": "scheme",
             "splunk_verify_ssl": "verify",
+            "splunk_token": "splunkToken",
+            "splunk_session_token": "token",
         }
 
         for client_key, splunk_key in key_mapping.items():
             if client_key in client_config:
                 value = client_config[client_key]
+                if value is None or value == "":
+                    continue
 
-                # Handle special cases
                 if splunk_key == "port":
                     config[splunk_key] = int(value)
                 elif splunk_key == "verify":
-                    config[splunk_key] = str(value).lower() == "true"
+                    if isinstance(value, bool):
+                        config[splunk_key] = value
+                    else:
+                        config[splunk_key] = str(value).lower() in (
+                            "true",
+                            "1",
+                            "yes",
+                            "on",
+                        )
                 else:
                     config[splunk_key] = value
 
     return config
 
 
+def _has_token_auth(splunk_config: dict[str, Any]) -> bool:
+    """Return True if config carries a bearer or session token."""
+    return bool(splunk_config.get("splunkToken")) or bool(splunk_config.get("token"))
+
+
+def _has_basic_auth(splunk_config: dict[str, Any]) -> bool:
+    """Return True if config carries username and password."""
+    return bool(splunk_config.get("username")) and bool(splunk_config.get("password"))
+
+
 def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Service:
     """
     Create and return a Splunk service connection.
+
+    Authentication precedence:
+      1. Bearer / access token (``splunkToken``) – preferred when present
+      2. Existing session token (``token``)
+      3. Basic auth (username + password)
 
     Args:
         client_config: Optional configuration provided by the MCP client
@@ -75,18 +115,34 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
         client.Service: Configured Splunk service connection
 
     Raises:
-        Exception: If connection cannot be established
+        ValueError: If no authentication material is available
+        Exception: If the Splunk connection cannot be established
     """
     splunk_config = get_splunk_config(client_config)
 
-    # Validate required parameters
-    if not splunk_config["username"] or not splunk_config["password"]:
+    if not (_has_token_auth(splunk_config) or _has_basic_auth(splunk_config)):
         raise ValueError(
-            "Splunk username and password must be provided via client config or environment variables"
+            "No Splunk credentials provided. Supply either a bearer token "
+            "(splunk_token / SPLUNK_TOKEN / X-Splunk-Token / Authorization: Bearer ...) "
+            "or splunk_username and splunk_password."
         )
 
+    # If a token is provided, drop username/password to avoid sending both.
+    # splunklib will prefer bearer token when ``splunkToken`` is set, but it's
+    # cleanest to send only the credentials we intend to use.
+    if _has_token_auth(splunk_config):
+        splunk_config.pop("username", None)
+        splunk_config.pop("password", None)
+        auth_mode = "bearer_token" if splunk_config.get("splunkToken") else "session_token"
+    else:
+        auth_mode = "basic"
+
     logger.info(
-        f"Connecting to Splunk at {splunk_config['scheme']}://{splunk_config['host']}:{splunk_config['port']}"
+        "Connecting to Splunk at %s://%s:%s using %s authentication",
+        splunk_config["scheme"],
+        splunk_config["host"],
+        splunk_config["port"],
+        auth_mode,
     )
 
     try:

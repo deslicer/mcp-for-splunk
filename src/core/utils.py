@@ -21,10 +21,21 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
     """
     Extract Splunk configuration from HTTP headers.
 
-    Headers should be prefixed with 'X-Splunk-' for security.
+    Splunk-specific headers are prefixed with ``X-Splunk-`` for clarity. A
+    bearer / access token can be supplied via:
+
+      - ``X-Splunk-Token: <token>`` (preferred, never collides with MCP auth)
+      - ``Authorization: Bearer <token>`` (used as a fallback only when MCP
+        server authentication is disabled, so it cannot be confused with
+        a JWT intended for the MCP server itself)
+
+    The bearer token is mapped to ``splunk_token`` (which becomes the
+    ``splunkToken`` argument of ``splunklib.client.connect``). Existing session
+    tokens may be supplied via ``X-Splunk-Session-Token`` and map to
+    ``splunk_session_token`` (the ``token`` argument of ``connect``).
 
     Args:
-        headers: HTTP request headers
+        headers: HTTP request headers (case-insensitive)
 
     Returns:
         Dict with Splunk configuration or None
@@ -38,6 +49,8 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
         "X-Splunk-Password": "splunk_password",
         "X-Splunk-Scheme": "splunk_scheme",
         "X-Splunk-Verify-SSL": "splunk_verify_ssl",
+        "X-Splunk-Token": "splunk_token",
+        "X-Splunk-Session-Token": "splunk_session_token",
     }
 
     for header_name, config_key in header_mapping.items():
@@ -54,7 +67,44 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
             else:
                 client_config[config_key] = header_value
 
+    # Fall back to a standard ``Authorization: Bearer <token>`` header for the
+    # Splunk bearer token. We only do this when MCP server-level auth is
+    # disabled to avoid mistaking an MCP auth JWT for a Splunk credential.
+    if "splunk_token" not in client_config and _mcp_auth_disabled():
+        bearer_token = _extract_bearer_token(headers)
+        if bearer_token:
+            client_config["splunk_token"] = bearer_token
+
     return client_config if client_config else None
+
+
+def _mcp_auth_disabled() -> bool:
+    """Return True when MCP server-level auth is explicitly disabled."""
+    import os
+
+    return (os.getenv("MCP_AUTH_DISABLED") or "false").strip().lower() == "true"
+
+
+def _extract_bearer_token(headers: dict) -> str | None:
+    """Return the bearer token from an ``Authorization`` header, if present.
+
+    Accepts both ``Authorization`` and ``authorization`` keys. Recognizes the
+    ``Bearer`` scheme case-insensitively.
+    """
+    auth_header = headers.get("Authorization") or headers.get("authorization")
+    if not auth_header or not isinstance(auth_header, str):
+        return None
+
+    parts = auth_header.strip().split(None, 1)
+    if len(parts) != 2:
+        return None
+
+    scheme, token = parts
+    if scheme.lower() != "bearer":
+        return None
+
+    token = token.strip()
+    return token or None
 
 
 def validate_splunk_connection(ctx: Any) -> tuple[bool, Any, str]:

@@ -198,7 +198,9 @@ class EnhancedConfigExtractor:
                     "splunk_username": "splunk_username",
                     "splunk_user": "splunk_username",
                     "splunk_password": "splunk_password",
-                    "splunk_token": "splunk_password",
+                    "splunk_token": "splunk_token",
+                    "splunk_bearer_token": "splunk_token",
+                    "splunk_session_token": "splunk_session_token",
                     "splunk_scheme": "splunk_scheme",
                     "splunk_protocol": "splunk_scheme",
                 }
@@ -409,30 +411,16 @@ class EnhancedConfigExtractor:
         return None
 
     def _extract_config_from_headers(self, headers: dict[str, str]) -> dict[str, Any] | None:
-        """Helper to extract Splunk config from headers dict"""
-        config = {}
+        """Helper to extract Splunk config from headers dict.
 
-        header_mapping = {
-            "X-Splunk-Host": "splunk_host",
-            "X-Splunk-Port": "splunk_port",
-            "X-Splunk-Username": "splunk_username",
-            "X-Splunk-Password": "splunk_password",
-            "X-Splunk-Token": "splunk_password",  # Support token auth
-            "X-Splunk-Scheme": "splunk_scheme",
-            "X-Splunk-Verify-SSL": "splunk_verify_ssl",
-        }
+        Delegates to :func:`src.core.utils.extract_client_config_from_headers`
+        so that bearer-token semantics (``X-Splunk-Token`` and the optional
+        ``Authorization: Bearer ...`` fallback) are handled consistently in
+        a single place.
+        """
+        from .utils import extract_client_config_from_headers
 
-        for header_name, config_key in header_mapping.items():
-            header_value = headers.get(header_name) or headers.get(header_name.lower())
-            if header_value:
-                if config_key == "splunk_port":
-                    config[config_key] = int(header_value)
-                elif config_key == "splunk_verify_ssl":
-                    config[config_key] = header_value.lower() == "true"
-                else:
-                    config[config_key] = header_value
-
-        return config if config else None
+        return extract_client_config_from_headers(headers)
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """Normalize configuration to standard format"""
@@ -447,8 +435,12 @@ class EnhancedConfigExtractor:
             "username": "splunk_username",
             "user": "splunk_username",
             "password": "splunk_password",
-            "token": "splunk_password",
-            "auth_token": "splunk_password",
+            "token": "splunk_token",
+            "auth_token": "splunk_token",
+            "bearer_token": "splunk_token",
+            "splunk_token": "splunk_token",
+            "session_token": "splunk_session_token",
+            "splunk_session_token": "splunk_session_token",
             "scheme": "splunk_scheme",
             "protocol": "splunk_scheme",
             "verify_ssl": "splunk_verify_ssl",
@@ -526,6 +518,8 @@ class EnhancedConfigExtractor:
                 "SPLUNK_PORT": "splunk_port",
                 "SPLUNK_USERNAME": "splunk_username",
                 "SPLUNK_PASSWORD": "splunk_password",
+                "SPLUNK_TOKEN": "splunk_token",
+                "SPLUNK_SESSION_TOKEN": "splunk_session_token",
                 "SPLUNK_SCHEME": "splunk_scheme",
                 "SPLUNK_VERIFY_SSL": "splunk_verify_ssl",
             }

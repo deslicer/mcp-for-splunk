@@ -303,6 +303,8 @@ def extract_client_config_from_env() -> dict | None:
         "MCP_SPLUNK_PORT": "splunk_port",
         "MCP_SPLUNK_USERNAME": "splunk_username",
         "MCP_SPLUNK_PASSWORD": "splunk_password",
+        "MCP_SPLUNK_TOKEN": "splunk_token",
+        "MCP_SPLUNK_SESSION_TOKEN": "splunk_session_token",
         "MCP_SPLUNK_SCHEME": "splunk_scheme",
         "MCP_SPLUNK_VERIFY_SSL": "splunk_verify_ssl",
     }
