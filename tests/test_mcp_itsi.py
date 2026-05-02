@@ -268,3 +268,50 @@ async def test_build_server_registers_everything():
 def test_error_response_helpers():
     assert success_response(a=1) == {"status": "success", "a": 1}
     assert error_response("boom", b=2) == {"status": "error", "error": "boom", "b": 2}
+
+
+# ---------------------------------------------------------------------------
+# Plugin / entry-point wiring
+# ---------------------------------------------------------------------------
+
+
+def test_mcp_splunk_plugin_entry_point_resolves():
+    """The mcp_splunk.plugins.itsi entry point must point at our setup hook."""
+    from importlib.metadata import entry_points
+
+    eps = list(entry_points(group="mcp_splunk.plugins"))
+    by_name = {ep.name: ep for ep in eps}
+    assert "itsi" in by_name, f"missing 'itsi' entry point; found: {list(by_name)}"
+
+    setup = by_name["itsi"].load()
+    from mcp_itsi.plugin import setup as expected
+
+    assert setup is expected
+
+
+@pytest.mark.asyncio
+async def test_plugin_setup_registers_on_existing_mcp():
+    """plugin.setup must register tools/resources/prompts on a host MCP."""
+    from fastmcp import FastMCP
+
+    from mcp_itsi.plugin import setup
+
+    host = FastMCP(name="host-mcp", version="0.0.1")
+
+    @host.tool(name="host_marker_tool")
+    async def _marker() -> dict:
+        return {"ok": True}
+
+    setup(host)
+
+    tools = await host.list_tools()
+    names = {getattr(t, "name", "") for t in tools}
+    # Host's own tool survived
+    assert "host_marker_tool" in names
+    # ITSI plugin tools were added
+    assert "itsi_list_services" in names
+    assert "itsi_create_correlation_search" in names
+
+    resources = await host.list_resources()
+    uris = {str(getattr(r, "uri", "")) for r in resources}
+    assert "itsi://docs/api/reference" in uris
