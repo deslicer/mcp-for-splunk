@@ -54,8 +54,8 @@ a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credenti
 0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/utils.py:splunk-password:38
 
 # PR #118 (bearer token auth): Gitleaks generic-credential false positives on
-# variable names like bearer_token= and dict keys splunk_token: splunk_token
-# (configuration identifiers, not secrets). Commit b12ed6d is the first token-auth commit.
+# variable names ending in _token= and MCP env key mappings (identifiers only).
+# Commit b12ed6d is the first token-auth commit.
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:290
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:291
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:292
@@ -69,3 +69,8 @@ b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:53
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:46
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:51
 b12ed6d07dcc7dabc7b177fac592e28753f88991:tests/test_splunk_client.py:splunk-password:183
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:25
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:26
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:306
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:307
+919e4aa97539e05a307fe719894d6ba650ff3ff5:tests/test_splunk_client.py:splunk-password:185
