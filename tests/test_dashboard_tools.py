@@ -320,6 +320,39 @@ class TestCreateDashboard:
         assert result.get("type") == "studio"
 
     @pytest.mark.asyncio
+    async def test_studio_wrapper_theme_dark(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        result = await tool.execute(
+            mock_context,
+            name="studio_theme_dark",
+            definition={
+                "title": "Dark Theme Studio",
+                "dataSources": {},
+                "visualizations": {},
+            },
+            dashboard_type="studio",
+            theme="dark",
+        )
+        assert result.get("status") == "success"
+        assert result.get("theme") == "dark"
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_theme_dark"]["content"]["eai:data"]
+        assert '<dashboard version="2" theme="dark">' in stored
+
+    @pytest.mark.asyncio
+    async def test_studio_wrapper_invalid_theme(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        result = await tool.execute(
+            mock_context,
+            name="studio_bad_theme",
+            definition={"title": "Bad", "dataSources": {}, "visualizations": {}},
+            dashboard_type="studio",
+            theme="sepia",
+        )
+        assert result.get("status") == "error"
+        assert "theme" in (result.get("error") or "").lower()
+
+    @pytest.mark.asyncio
     async def test_studio_wrapper_from_json_string_auto(self, mock_context):
         tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
         studio_json = json.dumps(
