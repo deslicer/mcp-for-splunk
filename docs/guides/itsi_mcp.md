@@ -75,6 +75,43 @@ catalog. High-level coverage:
 | Want different scaling / restart cadence for ITSI                | Standalone       |
 | Multi-tenant routing where ITSI traffic is separately observable | Standalone       |
 
+## Verifying the integration
+
+Three live test scripts cover both deployment modes:
+
+| Script | Coverage |
+|--------|----------|
+| `scripts/test_itsi_mcp.py` | Smoke test — every tool, resource, prompt. |
+| `scripts/test_itsi_mcp_deep.py` | Real `_key` round-trips through every `itsi_get_*`. |
+| `scripts/test_itsi_mcp_crud.py` | Full Create → Update → Delete for every mutable object. |
+| `scripts/test_itsi_plugin_isolation.py` | Plugin mode only: confirms ITSI tools coexist with parent tools. |
+
+The driver `scripts/test_itsi_mcp_both_modes.py` boots both servers in
+turn and runs the suites against each. To verify against your own
+ITSI cluster:
+
+```bash
+ITSI_HOST=<splunk-host> \
+ITSI_USERNAME=<user> \
+ITSI_PASSWORD=<pass> \
+ITSI_VERIFY_SSL=false \
+uv run python scripts/test_itsi_mcp_both_modes.py
+```
+
+Expected output:
+
+```text
+========== STANDALONE MODE ==========
+- tools: 70   resources: 9   prompts: 3
+... failures: 0 (smoke + deep + CRUD)
+
+========== PLUGIN MODE (mcp-for-splunk + itsi plugin) ==========
+- tools: 123   resources: 28   prompts: 6
+... failures: 0 (smoke + deep + CRUD + plugin isolation)
+
+--- TOTAL FAILURES: 0 ---
+```
+
 ## See also
 
 - [`mcp_itsi/README.md`](../../mcp_itsi/README.md) — full reference.
