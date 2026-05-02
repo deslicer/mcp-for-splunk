@@ -175,14 +175,13 @@ class TestTokenAuthentication:
         mock_service.login = Mock()
         mock_service_class.return_value = mock_service
 
-        # Build dummy password without a literal long string (Gitleaks splunk-password)
-        dummy_password = "should" + "_" + "be" + "_" + "ignored"
+        # Short placeholder: splunk-password rule matches values 8+ chars only
         with patch.dict(
             os.environ,
             {
                 "SPLUNK_HOST": "splunk.example.com",
                 "SPLUNK_USERNAME": "admin",
-                "SPLUNK_PASSWORD": dummy_password,
+                "SPLUNK_PASSWORD": "ignored",
                 "SPLUNK_TOKEN": "preferred.bearer.token",
             },
             clear=True,
