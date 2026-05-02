@@ -61,3 +61,65 @@ class GetDeepDive(BaseITSITool):
         if item is None:
             return error_response("deep_dive not found", key=key)
         return success_response(deep_dive=item)
+
+
+class CreateDeepDive(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_create_deep_dive",
+        description=(
+            "Create a new ITSI deep dive. The schema requires `title` and "
+            "`focus_id`/`focus_type` (or `lane_settings_collection`). When "
+            "updating, ITSI requires `owner`, `_owner` and `_user` to be "
+            "present in the payload."
+        ),
+        category="investigation",
+        tags=("itsi", "deep-dive", "create"),
+    )
+
+    async def execute(
+        self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if not isinstance(payload, dict) or not payload.get("title"):
+            return error_response("payload.title is required to create a deep dive")
+        result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
+        return success_response(deep_dive=result)
+
+
+class UpdateDeepDive(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_update_deep_dive",
+        description=(
+            "Update an existing deep dive by `_key`. NOTE: ITSI requires "
+            "`owner`, `_owner` and `_user` to be present in the payload."
+        ),
+        category="investigation",
+        tags=("itsi", "deep-dive", "update"),
+    )
+
+    async def execute(
+        self,
+        mcp_ctx: Context,
+        ctx: ITSICallContext,
+        key: str,
+        payload: dict[str, Any],
+        is_partial: bool = True,
+    ) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.update_object(ctx, _OBJECT_TYPE, key, payload, is_partial=is_partial)
+        return success_response(deep_dive=result)
+
+
+class DeleteDeepDive(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_delete_deep_dive",
+        description="Delete a deep dive by `_key`.",
+        category="investigation",
+        tags=("itsi", "deep-dive", "delete"),
+    )
+
+    async def execute(self, mcp_ctx: Context, ctx: ITSICallContext, key: str) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.delete_object(ctx, _OBJECT_TYPE, key)
+        return success_response(deleted_key=key, **result)

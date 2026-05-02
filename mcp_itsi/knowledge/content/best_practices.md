@@ -74,3 +74,27 @@ a quick checklist for AI agents and operators rolling out ITSI.
   episode per event, defeating the purpose.
 - Manually editing the KV store collections.
 - DELETE without `_key` filters (you can wipe an entire object type).
+
+## CRUD quirks (verified against ITSI 4.21)
+
+The ITSI REST API has a few subtle behaviours that catch automation off
+guard. They are all surfaced in the corresponding tool descriptions.
+
+- **Entity create** — every alias field declared in `identifier.fields`
+  must *also* be a top-level array on the document. For example, if
+  `identifier.fields=["host"]`, the payload must include
+  `host: ["my-host"]` at the top level.
+- **Service template create** — requires either `service_id` (a `_key`
+  of an existing service to derive from) or `base_service_template_id`.
+  Use `itsi_templatize_service` to build a ready-made payload.
+- **Correlation search update** — ITSI's handler requires the `name`
+  field to be present in the body even on partial updates; otherwise
+  the server returns 500 with a `'name'` KeyError.
+- **Aggregation policy update** — `is_partial_data=1` is honoured on
+  the URL but the handler still validates the full schema. Pattern:
+  `itsi_get_aggregation_policy` → merge changes → submit with
+  `is_partial=False`.
+- **Deep dive update** — payload must include `owner`, `_owner` and
+  `_user`. Always read the doc first and merge.
+- **Delete** — never pass a `filter` to bulk DELETE without an `_key`
+  clause; an empty / wrong filter wipes every object of that type.

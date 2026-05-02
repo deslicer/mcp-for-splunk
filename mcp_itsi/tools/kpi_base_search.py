@@ -60,3 +60,65 @@ class GetKpiBaseSearch(BaseITSITool):
         if item is None:
             return error_response("kpi_base_search not found", key=key)
         return success_response(kpi_base_search=item)
+
+
+class CreateKpiBaseSearch(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_create_kpi_base_search",
+        description=(
+            "Create a new KPI base search. `payload` must follow the ITSI "
+            "`kpi_base_search` schema (`title`, `base_search`, `metrics`, "
+            "`entity_id_fields`, `entity_alias_filtering_fields`, "
+            "`alert_period`, ...). Returns the new `_key`."
+        ),
+        category="kpi",
+        tags=("itsi", "kpi", "base-search", "create"),
+    )
+
+    async def execute(
+        self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if not isinstance(payload, dict) or not payload.get("title"):
+            return error_response("payload.title is required to create a KPI base search")
+        result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
+        return success_response(kpi_base_search=result)
+
+
+class UpdateKpiBaseSearch(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_update_kpi_base_search",
+        description=(
+            "Update an existing KPI base search by `_key`. Defaults to a "
+            "partial update; set `is_partial=False` for a full overwrite."
+        ),
+        category="kpi",
+        tags=("itsi", "kpi", "base-search", "update"),
+    )
+
+    async def execute(
+        self,
+        mcp_ctx: Context,
+        ctx: ITSICallContext,
+        key: str,
+        payload: dict[str, Any],
+        is_partial: bool = True,
+    ) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.update_object(ctx, _OBJECT_TYPE, key, payload, is_partial=is_partial)
+        return success_response(kpi_base_search=result)
+
+
+class DeleteKpiBaseSearch(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_delete_kpi_base_search",
+        description="Delete a KPI base search by `_key`.",
+        category="kpi",
+        tags=("itsi", "kpi", "base-search", "delete"),
+    )
+
+    async def execute(self, mcp_ctx: Context, ctx: ITSICallContext, key: str) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.delete_object(ctx, _OBJECT_TYPE, key)
+        return success_response(deleted_key=key, **result)

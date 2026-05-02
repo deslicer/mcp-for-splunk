@@ -235,9 +235,28 @@ async def test_build_server_registers_everything():
     prompts = await mcp.list_prompts()
 
     tool_names = {getattr(t, "name", "") for t in tools}
+    # Read-side
     assert "itsi_list_services" in tool_names
     assert "itsi_list_notable_events" in tool_names
     assert "itsi_read_doc" in tool_names
+
+    # Mutating side: every supported object type has full CRUD tools
+    for verb in ("create", "update", "delete"):
+        for obj in (
+            "service",
+            "service_template",
+            "entity",
+            "entity_type",
+            "kpi_base_search",
+            "kpi_threshold_template",
+            "glass_table",
+            "home_view",
+            "deep_dive",
+            "aggregation_policy",
+            "correlation_search",
+        ):
+            tool = f"itsi_{verb}_{obj}"
+            assert tool in tool_names, f"missing tool: {tool}"
 
     resource_uris = {str(getattr(r, "uri", "")) for r in resources}
     assert "itsi://docs/api/reference" in resource_uris

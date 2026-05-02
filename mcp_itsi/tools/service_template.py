@@ -91,3 +91,67 @@ class TemplatizeService(BaseITSITool):
             return error_response("`key` is required")
         result = await ops.templatize_object(ctx, "service", key)
         return success_response(template=result)
+
+
+class CreateServiceTemplate(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_create_service_template",
+        description=(
+            "Create an ITSI service template. `payload` requires `title` AND "
+            "`service_id` (the `_key` of an existing service the template is "
+            "derived from). Optional: `description`, `kpis[]`, "
+            "`entity_rules[]`. Use `itsi_templatize_service` to generate a "
+            "ready-to-use payload from an existing service. Templates can "
+            "only belong to `default_itsi_security_group`."
+        ),
+        category="service-insights",
+        tags=("itsi", "service-template", "create"),
+    )
+
+    async def execute(
+        self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if not isinstance(payload, dict) or not payload.get("title"):
+            return error_response("payload.title is required to create a service template")
+        result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
+        return success_response(template=result)
+
+
+class UpdateServiceTemplate(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_update_service_template",
+        description=(
+            "Update an existing ITSI service template by `_key`. Defaults to "
+            "a partial update; set `is_partial=False` for full replacement."
+        ),
+        category="service-insights",
+        tags=("itsi", "service-template", "update"),
+    )
+
+    async def execute(
+        self,
+        mcp_ctx: Context,
+        ctx: ITSICallContext,
+        key: str,
+        payload: dict[str, Any],
+        is_partial: bool = True,
+    ) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.update_object(ctx, _OBJECT_TYPE, key, payload, is_partial=is_partial)
+        return success_response(template=result)
+
+
+class DeleteServiceTemplate(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_delete_service_template",
+        description="Delete an ITSI service template by `_key`.",
+        category="service-insights",
+        tags=("itsi", "service-template", "delete"),
+    )
+
+    async def execute(self, mcp_ctx: Context, ctx: ITSICallContext, key: str) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.delete_object(ctx, _OBJECT_TYPE, key)
+        return success_response(deleted_key=key, **result)

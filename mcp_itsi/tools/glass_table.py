@@ -61,3 +61,60 @@ class GetGlassTable(BaseITSITool):
         if item is None:
             return error_response("glass_table not found", key=key)
         return success_response(glass_table=item)
+
+
+class CreateGlassTable(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_create_glass_table",
+        description=(
+            "Create an ITSI glass table. `payload` requires `title` and "
+            "should provide `definition` (the canvas spec)."
+        ),
+        category="visualization",
+        tags=("itsi", "glass-table", "create"),
+    )
+
+    async def execute(
+        self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        if not isinstance(payload, dict) or not payload.get("title"):
+            return error_response("payload.title is required to create a glass table")
+        result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
+        return success_response(glass_table=result)
+
+
+class UpdateGlassTable(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_update_glass_table",
+        description="Update a glass table by `_key` (partial update by default).",
+        category="visualization",
+        tags=("itsi", "glass-table", "update"),
+    )
+
+    async def execute(
+        self,
+        mcp_ctx: Context,
+        ctx: ITSICallContext,
+        key: str,
+        payload: dict[str, Any],
+        is_partial: bool = True,
+    ) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.update_object(ctx, _OBJECT_TYPE, key, payload, is_partial=is_partial)
+        return success_response(glass_table=result)
+
+
+class DeleteGlassTable(BaseITSITool):
+    METADATA = ToolMetadata(
+        name="itsi_delete_glass_table",
+        description="Delete a glass table by `_key`.",
+        category="visualization",
+        tags=("itsi", "glass-table", "delete"),
+    )
+
+    async def execute(self, mcp_ctx: Context, ctx: ITSICallContext, key: str) -> dict[str, Any]:
+        if not key:
+            return error_response("`key` is required")
+        result = await ops.delete_object(ctx, _OBJECT_TYPE, key)
+        return success_response(deleted_key=key, **result)

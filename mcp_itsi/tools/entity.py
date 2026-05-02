@@ -74,9 +74,13 @@ class CreateEntity(BaseITSITool):
         name="itsi_create_entity",
         description=(
             "Create a new ITSI entity. `payload` must include `title`, "
-            "`identifier` (alias fields/values that uniquely identify events "
-            "for the entity) and optionally `informational` and "
-            "`entity_type_ids`. Returns the new `_key`."
+            "`identifier` (alias `fields`/`values` that uniquely identify "
+            "events for the entity) and optionally `informational` and "
+            "`entity_type_ids`. IMPORTANT: every alias field listed in "
+            "`identifier.fields` must also exist as a top-level array on "
+            "the payload (e.g. if `identifier.fields=['host']`, include "
+            "`host: ['my-host']`). Entities can only belong to "
+            "`default_itsi_security_group`. Returns the new `_key`."
         ),
         category="entity-integrations",
         tags=("itsi", "entity", "create"),
