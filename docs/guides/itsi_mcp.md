@@ -19,7 +19,11 @@ preference:
    in the same environment.
 
 Both modes share the same `X-Splunk-*` headers used elsewhere in this
-project.
+project, including bearer tokens and session tokens as on
+[`client_configuration.md`](configuration/client_configuration.md).
+
+When `MCP_AUTH_DISABLED=true`, `Authorization: Bearer <splunk-token>` is
+accepted as a fallback (same rule as the core MCP server).
 
 ## Quick start
 
@@ -43,7 +47,9 @@ The server reuses the same per-request header convention as
 | `X-Splunk-Port`       | splunkd port (default `8089`).                         |
 | `X-Splunk-Username`   | Username (when not using a token).                     |
 | `X-Splunk-Password`   | Password.                                              |
-| `X-Splunk-Token`      | Splunk auth token (alternative to username/password).  |
+| `X-Splunk-Token`      | Splunk bearer / access token (same as parent server).  |
+| `X-Splunk-Session-Token` | Existing splunkd session token (`Splunk …` in `Authorization`). |
+| `auth_token`          | Alias for the bearer token (some clients send this name). |
 | `X-Splunk-Scheme`     | `http` or `https`.                                     |
 | `X-Splunk-Verify-SSL` | `true` / `false`.                                      |
 | `X-ITSI-App`          | App namespace (default `SA-ITOA`).                     |

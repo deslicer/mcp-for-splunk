@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from mcp_itsi.client.http_client import ITSIClient, ITSIError, ITSINotFoundError
+from mcp_itsi.client.http_client import ITSIClient, ITSIError, ITSINotFoundError, _SplunkSessionAuth
 from mcp_itsi.config.headers import extract_request_config
 from mcp_itsi.config.settings import ITSIServerSettings, load_settings
 from mcp_itsi.core.base import BaseITSITool, ToolMetadata
@@ -37,6 +37,9 @@ def test_load_settings_returns_defaults(monkeypatch):
         "SPLUNK_USERNAME",
         "SPLUNK_PASSWORD",
         "SPLUNK_TOKEN",
+        "MCP_SPLUNK_TOKEN",
+        "SPLUNK_SESSION_TOKEN",
+        "MCP_SPLUNK_SESSION_TOKEN",
         "ITSI_APP",
         "ITSI_USER_NS",
         "ITSI_API_VERSION",
@@ -77,6 +80,34 @@ def test_extract_request_config_token_auth():
     cfg = extract_request_config({"X-Splunk-Token": "abc"}, settings)
     assert cfg.splunk_token == "abc"
     assert cfg.has_credentials() is True
+
+
+def test_extract_request_config_auth_token_header_alias():
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    cfg = extract_request_config({"auth_token": "from-alias"}, settings)
+    assert cfg.splunk_token == "from-alias"
+
+
+def test_extract_request_config_session_token():
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    cfg = extract_request_config({"X-Splunk-Session-Token": "sess-1"}, settings)
+    assert cfg.splunk_session_token == "sess-1"
+    assert cfg.splunk_token is None
+    assert cfg.has_credentials() is True
+
+
+def test_extract_request_config_authorization_bearer_when_mcp_auth_disabled(monkeypatch):
+    monkeypatch.setenv("MCP_AUTH_DISABLED", "true")
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    cfg = extract_request_config({"Authorization": "Bearer hdr-token"}, settings)
+    assert cfg.splunk_token == "hdr-token"
+
+
+def test_extract_request_config_ignores_authorization_bearer_when_mcp_auth_enabled(monkeypatch):
+    monkeypatch.delenv("MCP_AUTH_DISABLED", raising=False)
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    with pytest.raises(ValueError, match="No Splunk credentials"):
+        extract_request_config({"Authorization": "Bearer ignored"}, settings)
 
 
 def test_extract_request_config_requires_host():
@@ -176,6 +207,15 @@ async def test_base_tool_handles_exceptions():
 # ---------------------------------------------------------------------------
 # HTTP client error mapping
 # ---------------------------------------------------------------------------
+
+
+def test_splunk_session_auth_sets_authorization_header():
+    req = httpx.Request("GET", "https://example.invalid/foo")
+    list(_SplunkSessionAuth("abc123").auth_flow(req))
+    assert req.headers["Authorization"] == "Splunk abc123"
+    req2 = httpx.Request("GET", "https://example.invalid/bar")
+    list(_SplunkSessionAuth("Splunk already").auth_flow(req2))
+    assert req2.headers["Authorization"] == "Splunk already"
 
 
 @pytest.mark.asyncio

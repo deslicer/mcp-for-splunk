@@ -67,6 +67,8 @@ class ITSIClient:
     def _build_auth(self) -> httpx.Auth | None:
         if self._cfg.splunk_token:
             return _BearerAuth(self._cfg.splunk_token)
+        if self._cfg.splunk_session_token:
+            return _SplunkSessionAuth(self._cfg.splunk_session_token)
         if self._cfg.splunk_username and self._cfg.splunk_password:
             return httpx.BasicAuth(self._cfg.splunk_username, self._cfg.splunk_password)
         return None
@@ -167,4 +169,18 @@ class _BearerAuth(httpx.Auth):
 
     def auth_flow(self, request: httpx.Request):
         request.headers["Authorization"] = f"Bearer {self._token}"
+        yield request
+
+
+class _SplunkSessionAuth(httpx.Auth):
+    """splunkd session token (maps to splunklib ``Context(token=...)`` semantics)."""
+
+    def __init__(self, token: str):
+        self._token = token.strip()
+
+    def auth_flow(self, request: httpx.Request):
+        if self._token.startswith("Splunk "):
+            request.headers["Authorization"] = self._token
+        else:
+            request.headers["Authorization"] = f"Splunk {self._token}"
         yield request

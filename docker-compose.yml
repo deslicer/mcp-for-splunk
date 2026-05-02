@@ -193,7 +193,7 @@ services:
       - "traefik.http.services.mcp-itsi.loadbalancer.server.port=8001"
       - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
-      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept,X-Splunk-Host,X-Splunk-Port,X-Splunk-Username,X-Splunk-Password,X-Splunk-Token,X-Splunk-Scheme,X-Splunk-Verify-SSL,X-ITSI-App,X-ITSI-User-NS,X-ITSI-API-Version,X-Session-ID"
+      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept,X-Splunk-Host,X-Splunk-Port,X-Splunk-Username,X-Splunk-Password,X-Splunk-Token,X-Splunk-Session-Token,X-Splunk-Scheme,X-Splunk-Verify-SSL,X-ITSI-App,X-ITSI-User-NS,X-ITSI-API-Version,X-Session-ID,auth_token,X-Auth-Token,X-Splunk-Auth-Token"
       - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolmaxage=100"
 
   # Splunk Enterprise (Optional - enabled based on environment variables)

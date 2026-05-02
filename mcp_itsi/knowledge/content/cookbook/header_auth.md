@@ -9,9 +9,11 @@ adds three optional `X-ITSI-*` headers for namespace overrides.
 | Header              | Description                                                          |
 |---------------------|----------------------------------------------------------------------|
 | `X-Splunk-Host`     | Splunk(d) host name or IP. **Required** if not set via env.          |
-| `X-Splunk-Username` | Username. **Required** when not using a token.                       |
-| `X-Splunk-Password` | Password. **Required** when not using a token.                       |
-| `X-Splunk-Token`    | Splunk auth token (alternative to user / password).                  |
+| `X-Splunk-Username` | Username. **Required** with password when not using a token or session token. |
+| `X-Splunk-Password` | Password. Same pairing rule as username.                           |
+| `X-Splunk-Token`    | Splunk bearer / access token (alternative to user / password).     |
+| `X-Splunk-Session-Token` | Existing splunkd session token (sends `Authorization: Splunk …`). |
+| `auth_token`        | Optional alias for the bearer token value.                           |
 
 ## Optional headers
 
