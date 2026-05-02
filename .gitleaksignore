@@ -54,7 +54,7 @@ a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credenti
 0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/utils.py:splunk-password:38
 
 # PR #118 (bearer token auth): Gitleaks generic-credential false positives on
-# variable names ending in _token= and MCP env key mappings (identifiers only).
+# Splunk credential variable names and config-key mappings (identifiers only).
 # Commit b12ed6d is the first token-auth commit.
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:290
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:291
@@ -74,3 +74,24 @@ b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:306
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:307
 919e4aa97539e05a307fe719894d6ba650ff3ff5:tests/test_splunk_client.py:splunk-password:185
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:33
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:35
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:55
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:59
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:68
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:74
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:75
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:106
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:64
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:438
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:439
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:440
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:441
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:442
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:443
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:521
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:522
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:337
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:338
+2bc622c4d5dcd09744727b533eea21e8abd3b9de:src/splunk_client.py:generic-credential:55
+c01a9a453a75d6cdb3b65391f25c08405b3e920a:.gitleaksignore:generic-credential:57
