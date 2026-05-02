@@ -230,3 +230,79 @@ class TestClientIdentityTokenValidation:
         # Raw token must not appear in the hash input
         assert "token-A" not in h1
         assert "token-B" not in h2
+
+
+# ---------------------------------------------------------------------------
+# src/tools/admin/me.py — username resolution under token auth
+# ---------------------------------------------------------------------------
+class TestMeToolUsernameResolution:
+    """`me` must work when service.username is empty (bearer / session token)."""
+
+    def _make_service_with_current_context(self, username: str):
+        """Return a fake splunklib service that mimics token-auth behaviour."""
+        from io import BytesIO
+        from unittest.mock import MagicMock
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<feed xmlns="http://www.w3.org/2005/Atom" xmlns:s="http://dev.splunk.com/ns/rest">'
+            "<entry>"
+            "<content>"
+            "<s:dict>"
+            f'<s:key name="username">{username}</s:key>'
+            "</s:dict>"
+            "</content>"
+            "</entry>"
+            "</feed>"
+        ).encode()
+
+        service = MagicMock()
+        # Bearer-token auth leaves username empty on the SDK side
+        service.username = ""
+
+        def _get(path, *args, **kwargs):
+            assert path.endswith("authentication/current-context")
+            return {"body": BytesIO(xml)}
+
+        service.get.side_effect = _get
+        return service
+
+    def test_resolve_username_falls_back_to_current_context(self):
+        from src.tools.admin.me import Me
+
+        tool = Me("me", "me")
+        service = self._make_service_with_current_context("admin")
+
+        resolved = tool._resolve_current_username(service)
+
+        assert resolved == "admin"
+        service.get.assert_called_once_with(
+            "/services/authentication/current-context"
+        )
+
+    def test_resolve_username_prefers_sdk_username_when_set(self):
+        """Basic-auth path should still short-circuit without an extra HTTP call."""
+        from unittest.mock import MagicMock
+
+        from src.tools.admin.me import Me
+
+        tool = Me("me", "me")
+        service = MagicMock()
+        service.username = "preset_user"
+
+        resolved = tool._resolve_current_username(service)
+
+        assert resolved == "preset_user"
+        service.get.assert_not_called()
+
+    def test_resolve_username_returns_none_when_endpoint_fails(self):
+        from unittest.mock import MagicMock
+
+        from src.tools.admin.me import Me
+
+        tool = Me("me", "me")
+        service = MagicMock()
+        service.username = ""
+        service.get.side_effect = RuntimeError("boom")
+
+        assert tool._resolve_current_username(service) is None
