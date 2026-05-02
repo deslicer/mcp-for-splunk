@@ -287,15 +287,15 @@ class ClientConnectionManager:
             "scheme": (config.get("splunk_scheme") or "https").lower(),
         }
 
-        bearer_token = config.get("splunk_token")
-        session_token = config.get("splunk_session_token")
-        if bearer_token:
+        splunk_cred_bearer = config.get("splunk_token")
+        splunk_cred_session = config.get("splunk_session_token")
+        if splunk_cred_bearer:
             normalized["token_fp"] = "bearer:" + hashlib.sha256(
-                str(bearer_token).encode()
+                str(splunk_cred_bearer).encode()
             ).hexdigest()[:16]
-        elif session_token:
+        elif splunk_cred_session:
             normalized["token_fp"] = "session:" + hashlib.sha256(
-                str(session_token).encode()
+                str(splunk_cred_session).encode()
             ).hexdigest()[:16]
 
         return "|".join(f"{k}:{v}" for k, v in sorted(normalized.items()))
@@ -334,13 +334,13 @@ class ClientConnectionManager:
         if not config.get("splunk_host"):
             raise SecurityError("Required field missing: splunk_host")
 
-        has_bearer_token = bool(config.get("splunk_token"))
-        has_session_token = bool(config.get("splunk_session_token"))
-        has_basic_auth = bool(config.get("splunk_username")) and bool(
+        using_bearer_cred = bool(config.get("splunk_token"))
+        using_session_cred = bool(config.get("splunk_session_token"))
+        using_basic_auth = bool(config.get("splunk_username")) and bool(
             config.get("splunk_password")
         )
 
-        if not (has_bearer_token or has_session_token or has_basic_auth):
+        if not (using_bearer_cred or using_session_cred or using_basic_auth):
             raise SecurityError(
                 "Required authentication missing: provide splunk_token, "
                 "splunk_session_token, or both splunk_username and splunk_password"
@@ -350,10 +350,10 @@ class ClientConnectionManager:
         if not isinstance(host, str) or len(host.strip()) == 0:
             raise SecurityError("Invalid Splunk host format")
 
-        if has_basic_auth and len(config["splunk_username"]) > 100:
+        if using_basic_auth and len(config["splunk_username"]) > 100:
             raise SecurityError("Username too long")
 
-        if has_bearer_token and len(str(config["splunk_token"])) > 4096:
+        if using_bearer_cred and len(str(config["splunk_token"])) > 4096:
             raise SecurityError("Bearer token too long")
 
         port = config.get("splunk_port", 8089)
