@@ -50,6 +50,7 @@ Practical guides for common tasks and scenarios.
 | **[Testing](guides/TESTING.md)** | Testing and validation | 15 min | Developers |
 | **[Tests Quick Start](tests.md)** | Fast path to a green run | 2 min | Developers |
 | **[ITSI MCP Server](guides/itsi_mcp.md)** | Dedicated MCP server for Splunk IT Service Intelligence | 10 min | ITSI users |
+| **[ITSI Service Creation review](guides/itsi_service_creation_review.md)** | Documented service-creation walk-through using the ITSI MCP tools, with critical findings | 10 min | ITSI users / contributors |
 | **[Lookups & Dashboards](guides/lookups_and_dashboards.md)** | Working with lookups and dashboards | 15 min | All users |
 | **[Create Dashboards Tool](guides/create_dashboard_tool.md)** | Use MCP tool to create dashboards | 10 min | Developers |
 | **[Migration](guides/migration_guide.md)** | Upgrading and migration | 20 min | Existing users |
