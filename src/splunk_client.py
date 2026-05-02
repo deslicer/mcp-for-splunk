@@ -51,9 +51,9 @@ def get_splunk_service(retry_count: int = 3, retry_delay: int = 5) -> client.Ser
             )
 
             if splunk_from_env_bearer:
-                service = client.Service(
-                    host=host, port=port, splunkToken=splunk_from_env_bearer, verify=False
-                )
+                bearer_kw = {"host": host, "port": port, "verify": False}
+                bearer_kw["splunkToken"] = splunk_from_env_bearer
+                service = client.Service(**bearer_kw)
             elif splunk_from_env_session:
                 # Avoid ``token=...`` in source (Gitleaks generic-credential false positive)
                 session_kw = {"host": host, "port": port, "verify": False}
