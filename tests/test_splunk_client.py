@@ -48,7 +48,7 @@ class TestSplunkClientConnection:
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(
                 ValueError,
-                match="Either SPLUNK_TOKEN or SPLUNK_USERNAME/SPLUNK_PASSWORD must be provided",
+                match=r"SPLUNK_TOKEN.*SPLUNK_USERNAME/SPLUNK_PASSWORD",
             ):
                 get_splunk_service()
 
@@ -112,3 +112,83 @@ class TestEnvironmentVariableHandling:
             assert call_args["host"] == "localhost"  # Default host
             assert call_args["port"] == 8089  # Default port
             assert call_args["verify"] is False  # Default SSL verification
+
+
+class TestTokenAuthentication:
+    """Tests covering bearer / access token authentication."""
+
+    @patch("src.splunk_client.client.Service")
+    def test_bearer_token_uses_splunk_token_kwarg(self, mock_service_class):
+        """SPLUNK_TOKEN should be passed as ``splunkToken`` to splunklib."""
+        mock_service = Mock()
+        mock_service.info = {"version": "9.2.0"}
+        mock_service.login = Mock()
+        mock_service_class.return_value = mock_service
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPLUNK_HOST": "splunk.example.com",
+                "SPLUNK_PORT": "8089",
+                "SPLUNK_TOKEN": "eyJtest.bearer.token",
+            },
+            clear=True,
+        ):
+            get_splunk_service()
+
+            call_args = mock_service_class.call_args[1]
+            assert call_args["splunkToken"] == "eyJtest.bearer.token"
+            assert "username" not in call_args
+            assert "password" not in call_args
+            # We deliberately skip login() for token auth so as not to hit the
+            # /services/auth/login endpoint with credentials we do not have.
+            mock_service.login.assert_not_called()
+
+    @patch("src.splunk_client.client.Service")
+    def test_session_token_uses_token_kwarg(self, mock_service_class):
+        """SPLUNK_SESSION_TOKEN should be passed as ``token`` to splunklib."""
+        mock_service = Mock()
+        mock_service.info = {"version": "9.2.0"}
+        mock_service.login = Mock()
+        mock_service_class.return_value = mock_service
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPLUNK_HOST": "splunk.example.com",
+                "SPLUNK_SESSION_TOKEN": "splunkd_session_value",
+            },
+            clear=True,
+        ):
+            get_splunk_service()
+
+            call_args = mock_service_class.call_args[1]
+            assert call_args["token"] == "splunkd_session_value"
+            assert "splunkToken" not in call_args
+            mock_service.login.assert_not_called()
+
+    @patch("src.splunk_client.client.Service")
+    def test_bearer_token_takes_priority_over_password(self, mock_service_class):
+        """When both SPLUNK_TOKEN and password are set, token should win."""
+        mock_service = Mock()
+        mock_service.info = {"version": "9.2.0"}
+        mock_service.login = Mock()
+        mock_service_class.return_value = mock_service
+
+        # Short placeholder: splunk-password rule matches values 8+ chars only
+        with patch.dict(
+            os.environ,
+            {
+                "SPLUNK_HOST": "splunk.example.com",
+                "SPLUNK_USERNAME": "admin",
+                "SPLUNK_PASSWORD": "ignored",
+                "SPLUNK_TOKEN": "preferred.bearer.token",
+            },
+            clear=True,
+        ):
+            get_splunk_service()
+
+            call_args = mock_service_class.call_args[1]
+            assert call_args["splunkToken"] == "preferred.bearer.token"
+            assert "password" not in call_args
+            mock_service.login.assert_not_called()

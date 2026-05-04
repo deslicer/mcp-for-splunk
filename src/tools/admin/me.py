@@ -56,8 +56,7 @@ class Me(BaseTool):
         await ctx.info("Retrieving current user information")
 
         try:
-            # Get current username from the service
-            current_username = service.username
+            current_username = self._resolve_current_username(service)
             if not current_username:
                 return self.format_error_response("Unable to determine current username")
 
@@ -114,3 +113,43 @@ class Me(BaseTool):
             self.logger.error(f"Failed to get current user information: {str(e)}")
             await ctx.error(f"Failed to get current user information: {str(e)}")
             return self.format_error_response(str(e))
+
+    def _resolve_current_username(self, service) -> str | None:
+        """Determine the current Splunk username across all auth modes.
+
+        ``service.username`` is only populated when the SDK was given a
+        username/password (basic auth). When authenticating with a bearer /
+        access token (``splunkToken``) or a pre-existing session token,
+        ``service.username`` is an empty string, so we fall back to the
+        REST endpoint ``/services/authentication/current-context`` which
+        Splunk exposes for exactly this purpose.
+        """
+        sdk_username = getattr(service, "username", None)
+        if sdk_username:
+            return sdk_username
+
+        try:
+            response = service.get("/services/authentication/current-context")
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.debug(
+                "current-context lookup failed while resolving username: %s", exc
+            )
+            return None
+
+        try:
+            from splunklib import data as _splunk_data
+
+            body = response["body"].read().decode("utf-8", "xmlcharrefreplace")
+            parsed = _splunk_data.load(body)
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.debug("Failed to parse current-context response: %s", exc)
+            return None
+
+        try:
+            entry = parsed["feed"]["entry"]
+            content = entry["content"] if isinstance(entry, dict) else entry[0]["content"]
+            username = content.get("username") or content.get("realName")
+            return str(username) if username else None
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.debug("current-context payload missing username: %s", exc)
+            return None

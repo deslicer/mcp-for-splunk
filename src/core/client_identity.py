@@ -275,16 +275,29 @@ class ClientConnectionManager:
         """
         Normalize client config for consistent hashing.
 
-        Only includes connection-relevant fields, excludes passwords.
+        Includes connection-relevant fields and a *fingerprint* of the
+        authentication material so that two callers using different bearer
+        tokens get different identities (and therefore separate connections),
+        without ever embedding the raw secret in the hash input.
         """
-        normalized = {
-            "host": config.get("splunk_host", "").lower(),
+        normalized: dict[str, Any] = {
+            "host": (config.get("splunk_host") or "").lower(),
             "port": config.get("splunk_port", 8089),
-            "username": config.get("splunk_username", "").lower(),
-            "scheme": config.get("splunk_scheme", "https").lower(),
+            "username": (config.get("splunk_username") or "").lower(),
+            "scheme": (config.get("splunk_scheme") or "https").lower(),
         }
 
-        # Sort keys for consistent hashing
+        splunk_cred_bearer = config.get("splunk_token")
+        splunk_cred_session = config.get("splunk_session_token")
+        if splunk_cred_bearer:
+            normalized["token_fp"] = "bearer:" + hashlib.sha256(
+                str(splunk_cred_bearer).encode()
+            ).hexdigest()[:16]
+        elif splunk_cred_session:
+            normalized["token_fp"] = "session:" + hashlib.sha256(
+                str(splunk_cred_session).encode()
+            ).hexdigest()[:16]
+
         return "|".join(f"{k}:{v}" for k, v in sorted(normalized.items()))
 
     def _extract_session_id(self, ctx: Context) -> str:
@@ -311,23 +324,37 @@ class ClientConnectionManager:
         """
         Validate client configuration for security.
 
+        A client must provide a host plus *at least one* form of
+        authentication: a bearer / access token, an existing session token, or
+        a username + password pair.
+
         Raises:
             SecurityError: If configuration is invalid or unsafe
         """
-        required_fields = ["splunk_host", "splunk_username", "splunk_password"]
+        if not config.get("splunk_host"):
+            raise SecurityError("Required field missing: splunk_host")
 
-        for field in required_fields:
-            if not config.get(field):
-                raise SecurityError(f"Required field missing: {field}")
+        using_bearer_cred = bool(config.get("splunk_token"))
+        using_session_cred = bool(config.get("splunk_session_token"))
+        using_basic_auth = bool(config.get("splunk_username")) and bool(
+            config.get("splunk_password")
+        )
 
-        # Validate host format (prevent injection)
+        if not (using_bearer_cred or using_session_cred or using_basic_auth):
+            raise SecurityError(
+                "Required authentication missing: provide splunk_token, "
+                "splunk_session_token, or both splunk_username and splunk_password"
+            )
+
         host = config["splunk_host"]
         if not isinstance(host, str) or len(host.strip()) == 0:
             raise SecurityError("Invalid Splunk host format")
 
-        # Additional security validations
-        if len(config["splunk_username"]) > 100:
+        if using_basic_auth and len(config["splunk_username"]) > 100:
             raise SecurityError("Username too long")
+
+        if using_bearer_cred and len(str(config["splunk_token"])) > 4096:
+            raise SecurityError("Bearer token too long")
 
         port = config.get("splunk_port", 8089)
         if not isinstance(port, int) or port < 1 or port > 65535:
