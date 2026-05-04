@@ -37,6 +37,7 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
   - [One-Command Setup](#one-command-setup)
 - [🎯 What You Can Do](#what-you-can-do)
   - [🤖 AI-Powered Troubleshooting](#ai-powered-troubleshooting-new)
+  - [🛡️ ITSI MCP Server](#itsi-mcp-server-new)
 - [📚 Documentation Hub](#documentation-hub)
 - [🔧 Available Tools & Capabilities](#available-tools--capabilities)
   - [🤖 AI Workflows & Specialists](#ai-workflows--specialists-new)
@@ -44,6 +45,7 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
   - [📊 Data Discovery](#data-discovery)
   - [👥 Administration](#administration)
   - [🏥 Health Monitoring](#health-monitoring)
+  - [🛡️ Splunk IT Service Intelligence](#splunk-it-service-intelligence-itsi-new)
 - [🌐 Client Integration Examples](#client-integration-examples)
   - [🔄 Multi-Client Benefits](#multi-client-benefits)
   - [Cursor IDE](#cursor-ide)
@@ -185,6 +187,21 @@ result = await workflow_runner.execute(
 
 **[📖 Read the Complete AI Workflows Guide →](docs/guides/workflows/README.md)** for detailed examples, workflow creation, and advanced troubleshooting techniques.
 
+<a name="itsi-mcp-server-new"></a>
+
+### 🛡️ **ITSI MCP Server** (NEW!)
+
+A dedicated Model Context Protocol server for **Splunk IT Service Intelligence** ships in this repo at [`mcp_itsi/`](mcp_itsi/README.md). It targets ITSI 4.21 and adds **70 tools, 9 documentation resources, and 3 workflow prompts** for managing services, entities, KPIs, episodes, glass tables, deep dives, correlation searches, and aggregation policies.
+
+You can deploy it two ways with **identical capabilities**:
+
+- **Plugin** of `mcp-for-splunk` — auto-registers via the `mcp_splunk.plugins` Python entry point. One process, one URL, one credential set.
+- **Standalone** — its own FastMCP HTTP/stdio process, behind Traefik on `/itsi/mcp` (Docker), via `mcp-itsi-server` (local Python), or as the `mcp_itsi` Docker image (anywhere).
+
+Both modes share the **same per-request `X-Splunk-*` headers** as the parent server (basic auth, bearer token, splunkd session token), plus optional `X-ITSI-*` overrides for app/user namespace.
+
+**[🚀 ITSI Getting Started →](docs/guides/itsi/getting-started.md)** | **[🏗️ ITSI Deployment Guide →](docs/guides/itsi/deployment.md)** | **[📦 Package README →](mcp_itsi/README.md)**
+
 <a name="documentation-hub"></a>
 
 ## 📚 Documentation Hub
@@ -203,6 +220,8 @@ result = await workflow_runner.execute(
 | **[Architecture](docs/architecture/)** | Technical deep-dive | Architects | Reference |
 | **[Tests Quick Start](docs/tests.md)** | First success test steps | Developers | 2 min |
 | **[Plugins](docs/guides/plugins.md)** | Extend with entry-point plugins (separate package) | Integrators | 5 min |
+| **[ITSI MCP Server (Getting Started)](docs/guides/itsi/getting-started.md)** | Zero-to-working ITSI MCP server in 15 minutes | ITSI users | 15 min |
+| **[ITSI MCP Server (Deployment)](docs/guides/itsi/deployment.md)** | Standalone vs plugin, Docker, scaling, security | DevOps / Splunk admins | 20 min |
 
 <a name="available-tools--capabilities"></a>
 
@@ -249,6 +268,19 @@ result = await workflow_runner.execute(
 - **System Health**: Monitor Splunk infrastructure status
 - **Degraded Feature Detection**: Proactive issue identification
 - **Alert Management**: Track and analyze triggered alerts
+
+<a name="splunk-it-service-intelligence-itsi-new"></a>
+
+### 🛡️ Splunk IT Service Intelligence (ITSI) — NEW!
+
+The companion `mcp_itsi` server (standalone or plugin — see [🛡️ ITSI MCP Server](#itsi-mcp-server-new)) adds **70 ITSI-specific tools**:
+
+- **Service Insights**: services, service templates, KPI base searches, KPI threshold templates, glass tables, deep dives, home views — full CRUD plus `itsi_count_services` and `itsi_templatize_service`.
+- **Entity Integration**: entities, entity types, alias inventory; full CRUD with the documented schema quirks (alias fields must also live at the document root).
+- **Event Analytics**: notable events with `itsi_acknowledge_notable_event` / `itsi_close_notable_event` shortcuts, plus full CRUD on aggregation policies and correlation searches.
+- **Teams, maintenance windows, supported object types, and bundled docs** as `itsi_*` tools and `itsi://docs/<slug>` resources.
+
+**[📦 Browse the ITSI tool catalog →](mcp_itsi/README.md#capabilities-at-a-glance)**
 
 <a name="client-integration-examples"></a>
 
@@ -410,6 +442,15 @@ uv run validate-tools
 - **Scalability**: Horizontal scaling, high availability
 - **Security**: Pod-level isolation, secret management
 - **Monitoring**: Comprehensive observability stack
+
+### ITSI MCP Server
+
+- **Plugin mode**: Auto-loads into `mcp-for-splunk` via the `mcp_splunk.plugins` entry point — single process, single URL.
+- **Standalone mode**: Dedicated FastMCP container behind Traefik at `/itsi/mcp`, or `mcp-itsi-server` console script for local Python, or `mcp_itsi` Docker image for any orchestrator.
+- **Auth parity**: Same `X-Splunk-*` headers as the parent server; optional `X-ITSI-App` / `X-ITSI-User-NS` / `X-ITSI-API-Version` for ITSI-specific namespacing.
+- **Verification**: `uv run python scripts/test_itsi_mcp_both_modes.py` exercises both modes end-to-end against any live ITSI cluster.
+
+**[📖 Full ITSI deployment guide →](docs/guides/itsi/deployment.md)**
 
 <a name="support--community"></a>
 
