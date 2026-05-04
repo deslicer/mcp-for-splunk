@@ -95,3 +95,39 @@ b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-cre
 b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:338
 2bc622c4d5dcd09744727b533eea21e8abd3b9de:src/splunk_client.py:generic-credential:55
 c01a9a453a75d6cdb3b65391f25c08405b3e920a:.gitleaksignore:generic-credential:57
+
+# PR #121 (ITSI MCP server): Gitleaks false positives.
+# These flag config-key identifiers, environment-variable indirection
+# (os.getenv / os.environ), local-dev defaults (Chang3d!), or "token"
+# variable names from the standard splunklib auth scheme — none of these
+# values are real secrets.
+
+# 05a1508 — initial ITSI MCP add: env defaults & header parsing identifiers
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/config/settings.py:splunk-password:87
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/config/settings.py:generic-credential:88
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/config/headers.py:splunk-password:101
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/config/headers.py:generic-credential:102
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:39
+05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:75
+
+# b06585d — docker-compose service for mcp-itsi (env passthrough only)
+b06585d676e62028542a2f89fa635691315d1fdf:docker-compose.yml:splunk-password:179
+
+# Live integration test scripts: env-derived auth headers, no hardcoded secrets
+d4c5b2350dcb2401aff1032c0c7b82cfb579eac9:scripts/test_itsi_mcp_deep.py:splunk-password:51
+d4c5b2350dcb2401aff1032c0c7b82cfb579eac9:scripts/test_itsi_mcp.py:splunk-password:45
+d4c665a183886cd25652ec58112aa6357556fb66:scripts/test_itsi_plugin_isolation.py:splunk-password:51
+6dc967712746282cf90ae82268a9572399dcba20:scripts/test_itsi_mcp_crud.py:splunk-password:632
+a677dfbae7dd5b417b349c6ffc662b3f8c8f0689:scripts/test_itsi_service_creation_scenario.py:splunk-password:636
+
+# f7bd2ee — unit test uses the well-known dev default Chang3d!
+f7bd2ee5e3ea6f3599ab9a60bc8ed6d6c59f1a31:tests/test_mcp_itsi.py:splunk-password:60
+
+# 257c93f — token/session auth alignment with parent server
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/client/http_client.py:generic-credential:179
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/settings.py:generic-credential:89
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/settings.py:generic-credential:92
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:generic-credential:136
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:splunk-token:138
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:generic-credential:152
+257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:generic-credential:153
