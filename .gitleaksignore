@@ -109,9 +109,17 @@ c01a9a453a75d6cdb3b65391f25c08405b3e920a:.gitleaksignore:generic-credential:57
 05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/config/headers.py:generic-credential:102
 05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:39
 05a1508317c9c4760b59038bab902d96dc393f4f:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:75
+# Same content after rebase onto origin/main:
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/config/settings.py:splunk-password:87
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/config/settings.py:generic-credential:88
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/config/headers.py:splunk-password:101
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/config/headers.py:generic-credential:102
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:39
+5f00683c0218f3c00cb2765a98237e346f2bd4b3:mcp_itsi/knowledge/content/cookbook/header_auth.md:splunk-password:75
 
 # b06585d — docker-compose service for mcp-itsi (env passthrough only)
 b06585d676e62028542a2f89fa635691315d1fdf:docker-compose.yml:splunk-password:179
+c8e8db77a19356f40b18c7147e289a6ae421124a:docker-compose.yml:splunk-password:179
 
 # Live integration test scripts: env-derived auth headers, no hardcoded secrets
 d4c5b2350dcb2401aff1032c0c7b82cfb579eac9:scripts/test_itsi_mcp_deep.py:splunk-password:51
@@ -119,9 +127,15 @@ d4c5b2350dcb2401aff1032c0c7b82cfb579eac9:scripts/test_itsi_mcp.py:splunk-passwor
 d4c665a183886cd25652ec58112aa6357556fb66:scripts/test_itsi_plugin_isolation.py:splunk-password:51
 6dc967712746282cf90ae82268a9572399dcba20:scripts/test_itsi_mcp_crud.py:splunk-password:632
 a677dfbae7dd5b417b349c6ffc662b3f8c8f0689:scripts/test_itsi_service_creation_scenario.py:splunk-password:636
+4a193b55c2c5bcc8f0fb662ebec0c36ae6d19513:scripts/test_itsi_mcp_deep.py:splunk-password:51
+4a193b55c2c5bcc8f0fb662ebec0c36ae6d19513:scripts/test_itsi_mcp.py:splunk-password:45
+6f5f96be1bbfcf89b134a08235066557cd6d7c03:scripts/test_itsi_plugin_isolation.py:splunk-password:51
+da11a5fdabb63acd79fdadc16c6c9bb05345a0d8:scripts/test_itsi_mcp_crud.py:splunk-password:632
+6837c5977d6df30ec66938e276be67e6443edfee:scripts/test_itsi_service_creation_scenario.py:splunk-password:636
 
 # f7bd2ee — unit test uses the well-known dev default Chang3d!
 f7bd2ee5e3ea6f3599ab9a60bc8ed6d6c59f1a31:tests/test_mcp_itsi.py:splunk-password:60
+361bbb8c653f643841ca0e9ceaa51091c8da3ea4:tests/test_mcp_itsi.py:splunk-password:60
 
 # 257c93f — token/session auth alignment with parent server
 257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/client/http_client.py:generic-credential:179
@@ -131,3 +145,10 @@ f7bd2ee5e3ea6f3599ab9a60bc8ed6d6c59f1a31:tests/test_mcp_itsi.py:splunk-password:
 257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:splunk-token:138
 257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:generic-credential:152
 257c93ff9d47a7cc575502e12953411110a947be:mcp_itsi/config/headers.py:generic-credential:153
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/client/http_client.py:generic-credential:179
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/settings.py:generic-credential:89
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/settings.py:generic-credential:92
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:136
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:splunk-token:138
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:152
+1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:153
