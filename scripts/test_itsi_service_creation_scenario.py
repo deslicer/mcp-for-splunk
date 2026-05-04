@@ -638,9 +638,10 @@ async def main() -> int:
         "X-Session-ID": "service-creation-scenario",
     }
 
+    splunk_host = os.environ["ITSI_HOST"]
     run_id = f"{int(time.time())}-{os.getpid()}"
     print(f"# ITSI service creation scenario (run {run_id})\n")
-    print(f"Server: {url}\nITSI host: {headers['X-Splunk-Host']}\n")
+    print(f"Server: {url}\nITSI host: {splunk_host}\n")
 
     async with _connected_client(url, headers) as client:
         s = Scenario(client, run_id)

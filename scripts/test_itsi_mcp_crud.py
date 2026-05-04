@@ -634,7 +634,8 @@ async def main() -> int:
         "X-Session-ID": "crud-roundtrip",
     }
 
-    print(f"# ITSI MCP CRUD round-trip\n\nServer: {url}\nITSI host: {headers['X-Splunk-Host']}\n")
+    splunk_host = os.environ["ITSI_HOST"]
+    print(f"# ITSI MCP CRUD round-trip\n\nServer: {url}\nITSI host: {splunk_host}\n")
     print("## CRUD round-trips\n")
 
     async with _connected_client(url, headers) as client:

@@ -47,7 +47,8 @@ async def main() -> int:
         "X-Session-ID": "smoke-test",
     }
 
-    print(f"# ITSI MCP smoke test\n\nServer: {url}\nITSI host: {headers['X-Splunk-Host']}\n")
+    splunk_host = os.environ["ITSI_HOST"]
+    print(f"# ITSI MCP smoke test\n\nServer: {url}\nITSI host: {splunk_host}\n")
 
     transport = StreamableHttpTransport(url, headers=headers)
     async with Client(transport) as client:

@@ -53,7 +53,8 @@ async def main() -> int:
         "X-Session-ID": "deep-smoke",
     }
 
-    print(f"# ITSI MCP deep test\n\nServer: {url}\nITSI host: {headers['X-Splunk-Host']}\n")
+    splunk_host = os.environ["ITSI_HOST"]
+    print(f"# ITSI MCP deep test\n\nServer: {url}\nITSI host: {splunk_host}\n")
     failures = 0
 
     transport = StreamableHttpTransport(url, headers=headers)
