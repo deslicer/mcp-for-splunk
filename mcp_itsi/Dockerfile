@@ -28,4 +28,7 @@ USER mcp
 
 EXPOSE 8001
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl --fail --silent --show-error http://127.0.0.1:8001/mcp/ -H 'Accept: application/json' >/dev/null || exit 1
+
 CMD ["uv", "run", "mcp-itsi-server", "--host", "0.0.0.0", "--port", "8001"]
