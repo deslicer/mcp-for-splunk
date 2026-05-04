@@ -39,6 +39,7 @@ The `create_dashboard` tool enables AI agents and automation to create dashboard
     "label": "My Dashboard",             # Optional: Human-readable label
     "description": "Dashboard desc",     # Optional: Description text
     "dashboard_type": "auto",            # Optional: 'classic', 'studio', 'auto'
+    "theme": "light",                    # Optional: 'light' or 'dark' (Studio only, when tool wraps JSON)
     "overwrite": false                   # Optional: Update if exists
 }
 ```
@@ -127,8 +128,11 @@ result = await create_dashboard.execute(
     name="performance_dashboard",
     definition=studio_definition,
     dashboard_type="studio",
+    theme="dark",  # Optional: 'light' (default) or 'dark' — sets `<dashboard theme="...">` when wrapping JSON
     app="myapp"
 )
+```
+
 ### Studio XML Wrapper Behavior
 
 When `dashboard_type="studio"` or auto-detected as Studio, you can provide either:
@@ -137,10 +141,10 @@ When `dashboard_type="studio"` or auto-detected as Studio, you can provide eithe
 - A JSON string. The tool wraps it the same way.
 - A pre-wrapped XML string that already contains `<definition>` or `<dashboard version="2">`. The tool detects this and will not double‑wrap.
 
-Wrapper template used (theme default is light):
+Wrapper template (the `theme` argument becomes the `theme` attribute on the root `<dashboard>`; default is `light`):
 
 ```xml
-<dashboard version="2" theme="light">
+<dashboard version="2" theme="${THEME}">
   <label>${LABEL}</label>
   <description>${DESCRIPTION}</description>
   <definition><![CDATA[
@@ -153,8 +157,7 @@ Notes:
 
 - The tool protects against embedded `]]>` in JSON by splitting the CDATA safely.
 - Label/description are also posted via a follow‑up metadata call for compatibility; wrapper includes them when provided.
-
-```
+- If you pass a pre-wrapped Studio XML string, the tool does not modify it; set `theme` inside your XML in that case.
 
 ### Overwrite Existing Dashboard
 

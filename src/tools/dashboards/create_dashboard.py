@@ -3,7 +3,7 @@ Create a dashboard (Simple XML or Dashboard Studio) via Splunk REST API.
 """
 
 import json
-from typing import Any
+from typing import Any, Literal
 from xml.sax.saxutils import escape as xml_escape  # nosec B406  # nosemgrep: use-defused-xml
 
 from fastmcp import Context
@@ -34,6 +34,9 @@ class CreateDashboard(BaseTool):
             "    label (str, optional): Human label shown in UI\n"
             "    description (str, optional): Dashboard description\n"
             "    dashboard_type (str, optional): 'studio'|'classic'|'auto' (default: 'auto')\n"
+            "    theme (str, optional): Dashboard Studio UI theme when the tool wraps JSON into "
+            "XML: 'light' or 'dark' (default: 'light'). Ignored for Classic Simple XML and when "
+            "you pass a pre-wrapped Studio XML string (already containing <dashboard>).\n"
             "    sharing (str, optional): 'user'|'app'|'global'\n"
             "    read_perms (list[str], optional): Roles/users granted read\n"
             "    write_perms (list[str], optional): Roles/users granted write\n"
@@ -49,6 +52,7 @@ class CreateDashboard(BaseTool):
         definition: Any,
         label: str | None,
         description: str | None,
+        theme: Literal["light", "dark"] = "light",
     ) -> str:
         """
         Ensure the provided Studio definition is wrapped in the required XML
@@ -82,9 +86,9 @@ class CreateDashboard(BaseTool):
         # Protect CDATA from accidental termination inside JSON
         cdata_safe_json = studio_json_str.replace("]]>", "]]]]><![CDATA[>")
 
-        # Build XML wrapper
+        # Build XML wrapper (Splunk Dashboard Studio v2: theme on root <dashboard>)
         xml_parts: list[str] = []
-        xml_parts.append('<dashboard version="2" theme="light">')
+        xml_parts.append(f'<dashboard version="2" theme="{theme}">')
         if label:
             xml_parts.append(f"  <label>{xml_escape(label)}</label>")
         if description:
@@ -110,6 +114,7 @@ class CreateDashboard(BaseTool):
         read_perms: list[str] | None = None,
         write_perms: list[str] | None = None,
         overwrite: bool = False,
+        theme: Literal["light", "dark"] = "light",
     ) -> dict[str, Any]:
         """
         Create (or overwrite) a dashboard in Splunk.
@@ -121,6 +126,7 @@ class CreateDashboard(BaseTool):
             app=app,
             label=label,
             dashboard_type=dashboard_type,
+            theme=theme,
             overwrite=overwrite,
             sharing=sharing,
         )
@@ -139,10 +145,17 @@ class CreateDashboard(BaseTool):
             if resolved_type not in ("studio", "classic", "auto"):
                 resolved_type = "auto"
 
+            if theme not in ("light", "dark"):
+                return self.format_error_response(
+                    "Invalid 'theme'. Use 'light' or 'dark' (Dashboard Studio wrapper only)."
+                )
+
             if resolved_type == "auto":
                 if isinstance(definition, dict):
                     resolved_type = "studio"
-                    eai_data = self._ensure_studio_xml_wrapper(definition, label, description)
+                    eai_data = self._ensure_studio_xml_wrapper(
+                        definition, label, description, theme
+                    )
                 elif isinstance(definition, str):
                     # Heuristics: Studio hybrid (<definition>) or pure JSON
                     if "<definition>" in definition:
@@ -153,7 +166,7 @@ class CreateDashboard(BaseTool):
                             json.loads(definition)
                             resolved_type = "studio"
                             eai_data = self._ensure_studio_xml_wrapper(
-                                definition, label, description
+                                definition, label, description, theme
                             )
                         except (json.JSONDecodeError, TypeError):
                             resolved_type = "classic"
@@ -165,7 +178,9 @@ class CreateDashboard(BaseTool):
             elif resolved_type == "studio":
                 if isinstance(definition, dict) or isinstance(definition, str):
                     try:
-                        eai_data = self._ensure_studio_xml_wrapper(definition, label, description)
+                        eai_data = self._ensure_studio_xml_wrapper(
+                            definition, label, description, theme
+                        )
                     except Exception as wrap_err:  # pylint: disable=broad-except
                         return self.format_error_response(
                             f"Invalid Studio definition: {str(wrap_err)}"
@@ -182,7 +197,9 @@ class CreateDashboard(BaseTool):
                 eai_data = definition
 
             await ctx.info(
-                f"Creating dashboard '{name}' (type={resolved_type}, owner={owner}, app={app})"
+                f"Creating dashboard '{name}' (type={resolved_type}, owner={owner}, app={app}"
+                + (f", theme={theme}" if resolved_type == "studio" else "")
+                + ")"
             )
 
             # Web URL for response (use Splunk Web port 8000, not management port)
@@ -299,8 +316,7 @@ class CreateDashboard(BaseTool):
                 f"Dashboard '{name}' {'created' if created else 'updated'} (type={detected_type})"
             )
 
-            return self.format_success_response(
-                {
+            response_payload: dict[str, Any] = {
                     "name": name,
                     "label": content.get("label", label or name),
                     "type": detected_type,
@@ -315,8 +331,10 @@ class CreateDashboard(BaseTool):
                     },
                     "web_url": web_url,
                     "id": (entry or {}).get("id", ""),
-                }
-            )
+            }
+            if detected_type == "studio":
+                response_payload["theme"] = theme
+            return self.format_success_response(response_payload)
 
         except Exception as e:  # pylint: disable=broad-except
             self.logger.error("Failed to create dashboard: %s", str(e), exc_info=True)
