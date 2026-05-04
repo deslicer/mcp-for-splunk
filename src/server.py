@@ -429,8 +429,8 @@ async def ensure_components_loaded(server: FastMCP) -> None:
         server._splunk_context = SplunkContext(service=None, is_connected=False, client_config=None)
 
 
-# Initialize FastMCP server without lifespan (components loaded at startup instead)
-# Note: lifespan causes issues in HTTP mode as it runs for each SSE connection
+# Initialize FastMCP with lifespan so tools can access the shared SplunkContext.
+# Components are still preloaded below for fastmcp CLI and health endpoint compatibility.
 # Optionally load auth verifier dynamically (module:attr) or via Supabase API fallback
 auth_verifier = None
 # Disable entirely
@@ -546,7 +546,7 @@ else:
 STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
 JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier)
+mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, lifespan=splunk_lifespan)
 
 # Import and setup health routes
 setup_health_routes(mcp)
