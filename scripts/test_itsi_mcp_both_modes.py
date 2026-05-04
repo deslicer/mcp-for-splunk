@@ -24,6 +24,7 @@ Required environment (same as the individual scripts):
 
 from __future__ import annotations
 
+import logging
 import os
 import signal
 import socket
@@ -32,6 +33,8 @@ import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
@@ -62,7 +65,9 @@ def _spawn(cmd: list[str], env: dict[str, str], log_path: Path):
             try:
                 os.killpg(proc.pid, signal.SIGINT)
             except ProcessLookupError:
-                pass
+                logger.debug(
+                    "Process group %s already exited before SIGINT", proc.pid
+                )
             try:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
