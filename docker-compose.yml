@@ -153,6 +153,49 @@ services:
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept"
       - "traefik.http.middlewares.mcp-cors.headers.accesscontrolmaxage=100"
       - "traefik.http.routers.mcp-server.middlewares=mcp-cors"
+  # ITSI MCP Server (Standalone) - exposes Splunk IT Service Intelligence
+  # tools, resources and prompts on a dedicated port. Authenticate via the
+  # same X-Splunk-* headers used by mcp-server (plus optional X-ITSI-*).
+  mcp-itsi:
+    build:
+      context: .
+      dockerfile: mcp_itsi/Dockerfile
+    container_name: mcp-itsi
+    restart: unless-stopped
+    networks:
+      - splunk-network
+    env_file:
+      - .env
+    environment:
+      - MCP_ITSI_SERVER_HOST=0.0.0.0
+      - MCP_ITSI_SERVER_PORT=8001
+      - MCP_ITSI_TRANSPORT=${MCP_ITSI_TRANSPORT:-http}
+      - MCP_STATELESS_HTTP=${MCP_STATELESS_HTTP:-true}
+      - MCP_JSON_RESPONSE=${MCP_JSON_RESPONSE:-true}
+      - MCP_ITSI_LOG_LEVEL=${MCP_ITSI_LOG_LEVEL:-INFO}
+      - SPLUNK_HOST=${SPLUNK_HOST:-localhost}
+      - SPLUNK_PORT=${SPLUNK_PORT:-8089}
+      - SPLUNK_USERNAME=${SPLUNK_USERNAME:-admin}
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-Chang3d!}
+      - SPLUNK_VERIFY_SSL=${SPLUNK_VERIFY_SSL:-false}
+      - ITSI_APP=${ITSI_APP:-SA-ITOA}
+      - ITSI_USER_NS=${ITSI_USER_NS:-nobody}
+      - ITSI_API_VERSION=${ITSI_API_VERSION:-vLatest}
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mcp-itsi.rule=PathPrefix(`/itsi/mcp`)"
+      - "traefik.http.routers.mcp-itsi.entrypoints=mcp"
+      - "traefik.http.routers.mcp-itsi.service=mcp-itsi"
+      - "traefik.http.middlewares.mcp-itsi-strip.stripprefix.prefixes=/itsi"
+      - "traefik.http.routers.mcp-itsi.middlewares=mcp-itsi-strip,mcp-itsi-cors"
+      - "traefik.http.services.mcp-itsi.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolallowheaders=Content-Type,Authorization,Accept,X-Splunk-Host,X-Splunk-Port,X-Splunk-Username,X-Splunk-Password,X-Splunk-Token,X-Splunk-Session-Token,X-Splunk-Scheme,X-Splunk-Verify-SSL,X-ITSI-App,X-ITSI-User-NS,X-ITSI-API-Version,X-Session-ID,auth_token,X-Auth-Token,X-Splunk-Auth-Token"
+      - "traefik.http.middlewares.mcp-itsi-cors.headers.accesscontrolmaxage=100"
+
   # Splunk Enterprise (Optional - enabled based on environment variables)
   so1:
     profiles:
