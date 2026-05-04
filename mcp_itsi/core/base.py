@@ -86,12 +86,21 @@ class BaseITSITool(ABC):
 
     @abstractmethod
     async def execute(
-        self, mcp_ctx: Context, ctx: ITSICallContext | None, **kwargs: Any
+        self,
+        mcp_ctx: Context,
+        ctx: ITSICallContext | None,
+        *args: Any,
+        **kwargs: Any,
     ) -> dict[str, Any]:  # pragma: no cover - abstract
         """Run the tool's main logic. ``ctx`` is request-scoped.
 
         ``ctx`` is ``None`` for tools whose ``METADATA.requires_connection``
         is ``False`` (e.g. read-only docs tools).
+
+        Subclasses are free to declare additional named parameters; the
+        ``*args`` / ``**kwargs`` here keeps overrides Liskov-compatible from
+        a static-analysis standpoint while preserving descriptive signatures
+        on each concrete tool.
         """
 
 
