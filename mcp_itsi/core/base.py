@@ -114,7 +114,8 @@ class BaseITSIResource(ABC):
 
     @abstractmethod
     async def read(self, mcp_ctx: Context) -> str:  # pragma: no cover - abstract
-        ...
+        """Return the resource body as a markdown string."""
+        raise NotImplementedError
 
 
 class BaseITSIPrompt(ABC):
@@ -127,4 +128,5 @@ class BaseITSIPrompt(ABC):
 
     @abstractmethod
     async def render(self, mcp_ctx: Context, **kwargs: Any) -> str:  # pragma: no cover
-        ...
+        """Render the prompt as a markdown string."""
+        raise NotImplementedError
