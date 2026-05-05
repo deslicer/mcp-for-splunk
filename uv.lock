@@ -1890,9 +1890,9 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "openai-agents", specifier = ">=0.1.0" },
-    { name = "openinference-instrumentation-mcp", specifier = ">=1.3.3" },
-    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.41.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
+    { name = "openinference-instrumentation-mcp", specifier = ">=2.0.0" },
+    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.41.1" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.6.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
@@ -1915,7 +1915,7 @@ dev = [
     { name = "bandit", specifier = ">=1.7.0" },
     { name = "black", specifier = ">=23.0.0" },
     { name = "mypy", specifier = ">=1.0.0" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pre-commit", specifier = ">=4.6.0" },
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
@@ -2240,7 +2240,7 @@ wheels = [
 
 [[package]]
 name = "openinference-instrumentation-mcp"
-version = "1.3.3"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openinference-instrumentation" },
@@ -2248,9 +2248,9 @@ dependencies = [
     { name = "opentelemetry-instrumentation" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/66/4a21f048f89653ba782edf6b901d384c5c71819ec7459378894831e444ed/openinference_instrumentation_mcp-1.3.3.tar.gz", hash = "sha256:2094caa206428b3f3d1e5aa299fe48653694fd20402172169f128d45416ddd5a", size = 7387, upload-time = "2025-10-23T20:55:26.359Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/9f/d1fa05ac36e96e392a5f8b0eed9846b54f78f674caa80fcc3b9067a83a7c/openinference_instrumentation_mcp-2.0.0.tar.gz", hash = "sha256:f06d6ad76d15426b7ad42b74eda8a43cd67b56a6b78f3b707900a141c6ca519b", size = 7307, upload-time = "2026-04-29T00:34:04.817Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/11/246c177613a59d35ba2ad365fda11ff2acfbf2193742978efd183257b90f/openinference_instrumentation_mcp-1.3.3-py3-none-any.whl", hash = "sha256:c220523c9975328ac04011f328461e2b9196be97aba63d18b6e7109b0f4d0f7d", size = 8621, upload-time = "2025-10-23T20:55:25.23Z" },
+    { url = "https://files.pythonhosted.org/packages/63/51/fc5e17aab5ebdbcd38c939b8aba66425043f7501e5e8e4dd4b0e96e9d29d/openinference_instrumentation_mcp-2.0.0-py3-none-any.whl", hash = "sha256:117649027737178b43a3f2a67fabffedae9b62e814542c8de5eeaa33a7eb094f", size = 8618, upload-time = "2026-04-29T00:34:03.655Z" },
 ]
 
 [[package]]
@@ -2687,7 +2687,7 @@ wheels = [
 
 [[package]]
 name = "pre-commit"
-version = "4.5.1"
+version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cfgv" },
@@ -2696,9 +2696,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/40/f1/6d86a29246dfd2e9b6237f0b5823717f60cad94d47ddc26afa916d21f525/pre_commit-4.5.1.tar.gz", hash = "sha256:eb545fcff725875197837263e977ea257a402056661f09dae08e4b149b030a61", size = 198232, upload-time = "2025-12-16T21:14:33.552Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/22/2de9408ac81acbb8a7d05d4cc064a152ccf33b3d480ebe0cd292153db239/pre_commit-4.6.0.tar.gz", hash = "sha256:718d2208cef53fdc38206e40524a6d4d9576d103eb16f0fec11c875e7716e9d9", size = 198525, upload-time = "2026-04-21T20:31:41.613Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/19/fd3ef348460c80af7bb4669ea7926651d1f95c23ff2df18b9d24bab4f3fa/pre_commit-4.5.1-py2.py3-none-any.whl", hash = "sha256:3b3afd891e97337708c1674210f8eba659b52a38ea5f822ff142d10786221f77", size = 226437, upload-time = "2025-12-16T21:14:32.409Z" },
+    { url = "https://files.pythonhosted.org/packages/80/6e/4b28b62ecb6aae56769c34a8ff1d661473ec1e9519e2d5f8b2c150086b26/pre_commit-4.6.0-py2.py3-none-any.whl", hash = "sha256:e2cf246f7299edcabcf15f9b0571fdce06058527f0a06535068a86d38089f29b", size = 226472, upload-time = "2026-04-21T20:31:40.092Z" },
 ]
 
 [[package]]
