@@ -17,7 +17,7 @@ classifiers = [
 "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-"mcp[cli]>=1.8.1",
+"mcp[cli]>=1.27.0",
 "fastmcp>=3.0.0,<4",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.0.0",
