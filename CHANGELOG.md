@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.3...v0.6.0) (2026-05-06)
+
+
+### Features
+
+* **auth:** support Splunk bearer / access token authentication ([#118](https://github.com/deslicer/mcp-for-splunk/issues/118)) ([5091c1c](https://github.com/deslicer/mcp-for-splunk/commit/5091c1c0cdd8eccef179b4ee04ff8387d19a6a02))
+* **dashboards:** add theme param to create_dashboard for Studio ([#122](https://github.com/deslicer/mcp-for-splunk/issues/122)) ([b5a0597](https://github.com/deslicer/mcp-for-splunk/commit/b5a0597414147561fbd5edf3e20b4c10b035a61d))
+* **itsi:** add Splunk IT Service Intelligence MCP server (`mcp_itsi`) ([#121](https://github.com/deslicer/mcp-for-splunk/issues/121)) ([675c2ee](https://github.com/deslicer/mcp-for-splunk/commit/675c2eed6519c1ac3394dda8ac185a81bada3a9a))
+
+
+### Bug Fixes
+
+* resolve PR 117 lifespan merge ([#124](https://github.com/deslicer/mcp-for-splunk/issues/124)) ([1458864](https://github.com/deslicer/mcp-for-splunk/commit/1458864ac79b387e83d4eaeb745bfe861ce90bd9))
+
+
+### Dependencies
+
+* **deps-dev:** update pre-commit requirement from &gt;=4.5.1 to &gt;=4.6.0 ([#109](https://github.com/deslicer/mcp-for-splunk/issues/109)) ([dc9a962](https://github.com/deslicer/mcp-for-splunk/commit/dc9a96210e69ea24877730b3abe18e37322bfef8))
+* **deps:** update openinference-instrumentation-mcp requirement from &gt;=1.3.3 to &gt;=2.0.0 ([#115](https://github.com/deslicer/mcp-for-splunk/issues/115)) ([8823c1c](https://github.com/deslicer/mcp-for-splunk/commit/8823c1cfa26827a37ee067107f5ffd2d4ff6c3b4))
+* **deps:** update opentelemetry-exporter-otlp-proto-http requirement ([#111](https://github.com/deslicer/mcp-for-splunk/issues/111)) ([98f6554](https://github.com/deslicer/mcp-for-splunk/commit/98f6554b8e22eecfb47ccda42161855ec63c71b2))
+* **deps:** update splunk-sdk requirement from &gt;=2.1.0 to &gt;=2.1.1 ([#106](https://github.com/deslicer/mcp-for-splunk/issues/106)) ([40922d8](https://github.com/deslicer/mcp-for-splunk/commit/40922d8bd0f8ab62a742b662f14626f5133f1339))
+
 ## [0.5.3](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.2...v0.5.3) (2026-03-24)
 
 
