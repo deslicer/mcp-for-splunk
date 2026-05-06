@@ -204,10 +204,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          # Gitleaks needs the parent commit for PR diff scans. Avoid fetching
-          # full history on scheduled scans because historical false positives
-          # are already tracked separately and republished as code-scanning alerts.
-          fetch-depth: 2
+          # Gitleaks needs full history for PR/push diff ranges. Keep scheduled
+          # and manual scans shallow so historical false positives are not
+          # republished as current code-scanning alerts.
+          fetch-depth: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 2 || 0 }}
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
