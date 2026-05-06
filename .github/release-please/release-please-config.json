@@ -3,12 +3,28 @@
   "release-type": "python",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
+  "separate-pull-requests": true,
   "packages": {
     ".": {
       "release-type": "python",
+      "package-name": "mcp-server-for-splunk",
+      "include-component-in-tag": false,
       "include-v-in-tag": true,
       "changelog-path": "CHANGELOG.md"
+    },
+    "packaging/mcp-itsi-server": {
+      "release-type": "python",
+      "package-name": "mcp-itsi-server",
+      "include-component-in-tag": true,
+      "include-v-in-tag": true,
+      "component": "mcp-itsi-server",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "../../mcp_itsi/_version.py"
+        }
+      ]
     }
   }
 }
-
