@@ -38,10 +38,10 @@ urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 generate-tool = "contrib.scripts.generate_tool:main"
 validate-tools = "contrib.scripts.validate_tools:main"
 mcp-server = "src.cli.build_and_run:main"
-mcp-itsi-server = "mcp_itsi.cli:main"
-
-[project.entry-points."mcp_splunk.plugins"]
-itsi = "mcp_itsi.plugin:setup"
+# `mcp-itsi-server` script and the `mcp_splunk.plugins.itsi` entry point are
+# provided by the sibling `mcp-itsi-server` distribution
+# (packaging/mcp-itsi-server). Install with the [itsi] extra below to pull
+# them in alongside the parent server.
 
 [project.optional-dependencies]
 dev = [
@@ -51,6 +51,11 @@ dev = [
 "mypy>=1.0.0",
 "ruff>=0.1.0",
 "pre-commit>=3.7.0"
+]
+# Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
+# distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
+itsi = [
+"mcp-itsi-server>=0.1.0",
 ]
 test = [
 "pytest>=7.0.0",
@@ -76,16 +81,24 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src", "mcp_itsi"]
+packages = ["src"]
 
 [tool.hatch.build.targets.sdist]
 include = [
 "/src",
-"/mcp_itsi",
 "/tests",
 "/pyproject.toml",
 "/README.md"
 ]
+
+# Treat packaging/mcp-itsi-server as a workspace member so `uv sync` from the
+# repo root installs both packages from local source. End-user installs from
+# PyPI continue to resolve `mcp-itsi-server` normally via the [itsi] extra.
+[tool.uv.workspace]
+members = ["packaging/mcp-itsi-server"]
+
+[tool.uv.sources]
+mcp-itsi-server = { workspace = true }
 
 [tool.uv]
 dev-dependencies = [
@@ -100,6 +113,7 @@ dev-dependencies = [
 "asgi-lifespan>=2.1.0",
 "bandit>=1.7.0",
 "safety>=2.3.0",
+"mcp-itsi-server",
 ]
 
 [tool.pytest.ini_options]
