@@ -20,12 +20,29 @@ This guide takes you from zero to a working ITSI MCP server in **about 15 minute
 
 > **No ITSI of your own?** Spin up a Splunk Cloud ITSI lab or use the docker compose stack’s `so1` Splunk container with the ITSI app installed.
 
-## Step 1 — Clone and install
+## Step 1 — Install
+
+The repo ships **two PyPI distributions** as a uv workspace:
+
+- `mcp-server-for-splunk` — the parent server (root `pyproject.toml`).
+- `mcp-itsi-server` — the ITSI server (this guide; `packaging/mcp-itsi-server/`).
+
+You can install them straight from PyPI:
+
+```bash
+# Standalone ITSI server only
+pip install mcp-itsi-server
+
+# Together with the parent mcp-server-for-splunk
+pip install "mcp-server-for-splunk[itsi]"
+```
+
+Or work from a clone (recommended if you'll iterate on tools or run the integration tests):
 
 ```bash
 git clone https://github.com/[REDACTED]/mcp-for-splunk.git
 cd mcp-for-splunk
-uv sync                           # installs both mcp-for-splunk and mcp_itsi
+uv sync                           # installs both packages from local source
 cp env.example .env               # tune SPLUNK_*, ITSI_*, MCP_* values
 ```
 

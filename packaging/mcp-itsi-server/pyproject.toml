@@ -1,0 +1,77 @@
+# Build root for the `mcp-itsi-server` PyPI distribution.
+#
+# The actual source lives at ../../mcp_itsi/ — kept in place so that
+# (a) developers and contributors don't have to move files, and
+# (b) the parent project can keep using the package as a normal Python
+#     module from the same git tree.
+#
+# Hatchling pulls the source in via `force-include` so the wheel and
+# sdist contain only the ITSI code (no `src/` from the parent).
+
+[project]
+name = "mcp-itsi-server"
+version = "0.1.0"
+description = "MCP server for Splunk IT Service Intelligence (ITSI). Standalone FastMCP server, or plugin of mcp-server-for-splunk."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "MCP for Splunk", email = "developer@example.com" }]
+license = { file = "LICENSE" }
+keywords = [
+  "mcp",
+  "splunk",
+  "itsi",
+  "splunk-it-service-intelligence",
+  "model-context-protocol",
+  "ai",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: System :: Monitoring",
+]
+dependencies = [
+  "fastmcp>=3.0.0,<4",
+  "httpx>=0.27.0",
+  "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/[REDACTED]/mcp-for-splunk"
+Documentation = "https://github.com/[REDACTED]/mcp-for-splunk/blob/main/mcp_itsi/README.md"
+Repository = "https://github.com/[REDACTED]/mcp-for-splunk"
+Issues = "https://github.com/[REDACTED]/mcp-for-splunk/issues"
+Changelog = "https://github.com/[REDACTED]/mcp-for-splunk/blob/main/packaging/mcp-itsi-server/CHANGELOG.md"
+
+[project.scripts]
+mcp-itsi-server = "mcp_itsi.cli:main"
+
+# Loaded automatically by mcp-server-for-splunk through the
+# mcp_splunk.plugins entry-point group.
+[project.entry-points."mcp_splunk.plugins"]
+itsi = "mcp_itsi.plugin:setup"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The package source lives at ../../mcp_itsi/ — surfaced here through a
+# symlink (`./mcp_itsi -> ../../mcp_itsi`) so hatchling can include it
+# with a relative path. README and LICENSE are likewise symlinked from
+# the repo root (../../README via mcp_itsi/README.md and ../../LICENSE).
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_itsi"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "pyproject.toml",
+  "README.md",
+  "LICENSE",
+  "CHANGELOG.md",
+  "mcp_itsi",
+]

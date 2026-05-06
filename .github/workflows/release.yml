@@ -1,21 +1,91 @@
 name: Release
 
+# Two distributions live in this repo:
+#   * mcp-server-for-splunk         (root pyproject.toml; tagged `v*.*.*`)
+#   * mcp-itsi-server               (packaging/mcp-itsi-server; tagged `mcp-itsi-server-v*.*.*`)
+#
+# This workflow builds + publishes either or both, depending on what fired
+# it. release-please.yml fans out per-package via `workflow_call` after a
+# release-please PR merges. Manual / tag pushes auto-detect from the tag
+# name; `workflow_dispatch` lets a maintainer publish ad-hoc.
+
 on:
   push:
     tags:
       - "v*.*.*"
       - "mcp-server-for-splunk-v*.*.*"
+      - "mcp-itsi-server-v*.*.*"
   release:
     types: [published]
-  workflow_call:
   workflow_dispatch:
+    inputs:
+      package:
+        description: "Which package to build (parent | itsi | all)."
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - parent
+          - itsi
+  workflow_call:
+    inputs:
+      package:
+        description: "Which package to build (parent | itsi)."
+        required: true
+        type: string
 
 jobs:
-  build-publish:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      build_parent: ${{ steps.decide.outputs.build_parent }}
+      build_itsi: ${{ steps.decide.outputs.build_itsi }}
+    steps:
+      - name: Decide which packages to build
+        id: decide
+        env:
+          INPUT_PACKAGE: ${{ inputs.package }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          input="${INPUT_PACKAGE:-}"
+          ref="${REF_NAME:-}"
+
+          build_parent=false
+          build_itsi=false
+
+          # Explicit input wins (workflow_dispatch / workflow_call)
+          case "${input}" in
+            parent) build_parent=true ;;
+            itsi)   build_itsi=true ;;
+            all)    build_parent=true; build_itsi=true ;;
+            "")     : ;;
+            *) echo "Unknown package input: ${input}" >&2; exit 1 ;;
+          esac
+
+          # Auto-detect from tag name on `push: tags`
+          if [ -z "${input}" ] && [ -n "${ref}" ]; then
+            case "${ref}" in
+              mcp-itsi-server-v*) build_itsi=true ;;
+              v*|mcp-server-for-splunk-v*) build_parent=true ;;
+              *) echo "Tag ${ref} matched no known release pattern" >&2 ;;
+            esac
+          fi
+
+          echo "build_parent=${build_parent}" >> "${GITHUB_OUTPUT}"
+          echo "build_itsi=${build_itsi}" >> "${GITHUB_OUTPUT}"
+          echo "Decided: parent=${build_parent}, itsi=${build_itsi} (ref=${ref}, input=${input})"
+
+  build-publish-parent:
+    needs: detect
+    if: needs.detect.outputs.build_parent == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
+    env:
+      PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -26,20 +96,80 @@ jobs:
       - name: Install Python 3.10 via uv
         run: uv python install 3.10
 
-      - name: Build sdist/wheel (uv)
-        run: uv build
+      - name: Build mcp-server-for-splunk
+        run: uv build --no-sources --package mcp-server-for-splunk --out-dir dist-parent
 
-      - name: Publish to PyPI
+      # Trusted publishing path (no token configured — uses GitHub OIDC).
+      - name: Publish mcp-server-for-splunk to PyPI (trusted publishing)
+        if: env.PYPI_TOKEN == ''
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist-parent
           skip-existing: true
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      # Token publishing path (back-compat with the existing PYPI_API_TOKEN secret).
+      - name: Publish mcp-server-for-splunk to PyPI (token)
+        if: env.PYPI_TOKEN != ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ env.PYPI_TOKEN }}
+          packages-dir: dist-parent
+          skip-existing: true
+
+      - name: Create / update GitHub Release (mcp-server-for-splunk)
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/mcp-server-for-splunk-v')
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: |
-            dist/*.whl
-            dist/*.tar.gz
+            dist-parent/*.whl
+            dist-parent/*.tar.gz
+
+  build-publish-itsi:
+    needs: detect
+    if: needs.detect.outputs.build_itsi == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      # Prefer a project-scoped token if configured; fall back to the shared
+      # account-scoped token (existing setup). When neither is set, the
+      # action uses trusted publishing via GitHub OIDC.
+      PYPI_TOKEN: ${{ secrets.PYPI_ITSI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Python 3.10 via uv
+        run: uv python install 3.10
+
+      - name: Build mcp-itsi-server
+        run: uv build --no-sources --package mcp-itsi-server --out-dir dist-itsi
+
+      - name: Publish mcp-itsi-server to PyPI (trusted publishing)
+        if: env.PYPI_TOKEN == ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-itsi
+          skip-existing: true
+
+      - name: Publish mcp-itsi-server to PyPI (token)
+        if: env.PYPI_TOKEN != ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ env.PYPI_TOKEN }}
+          packages-dir: dist-itsi
+          skip-existing: true
+
+      - name: Create / update GitHub Release (mcp-itsi-server)
+        if: startsWith(github.ref, 'refs/tags/mcp-itsi-server-v')
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: |
+            dist-itsi/*.whl
+            dist-itsi/*.tar.gz
