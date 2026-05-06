@@ -204,7 +204,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Full history for better detection
+          # Gitleaks needs full history for PR/push diff ranges. Keep scheduled
+          # and manual scans shallow so historical false positives are not
+          # republished as current code-scanning alerts.
+          fetch-depth: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 2 || 0 }}
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
@@ -249,14 +252,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install license checker
-        run: pip install pip-licenses
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies from lockfile
+        run: uv sync --frozen --all-extras --dev
 
       - name: Check licenses
         run: |
-          pip install -e .
-          pip-licenses --format=json --output-file=licenses.json
-          pip-licenses --format=markdown --output-file=licenses.md
+          uv run --with pip-licenses pip-licenses --format=json --output-file=licenses.json
+          uv run --with pip-licenses pip-licenses --format=markdown --output-file=licenses.md
 
       - name: Upload license report
         uses: actions/upload-artifact@v7
