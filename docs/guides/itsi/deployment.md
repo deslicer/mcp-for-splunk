@@ -278,6 +278,22 @@ This script:
 | Plugin → standalone | Set `MCP_DISABLE_PLUGINS=true` on the parent, deploy `mcp-itsi` separately, point any AI client config that needs ITSI at the new URL. |
 | Standalone → plugin | Add `mcp_itsi` to the parent's environment (`uv sync`), unset `MCP_DISABLE_PLUGINS`, and decommission the standalone container. AI clients can keep talking to the parent URL. |
 
+## Releases & PyPI
+
+`mcp-itsi-server` ships as its own PyPI distribution, separate from `mcp-server-for-splunk`:
+
+- **Source root**: `packaging/mcp-itsi-server/` (uv workspace member; the actual code is under `mcp_itsi/`).
+- **Versioning**: managed by [release-please](https://github.com/googleapis/release-please) with its own changelog (`packaging/mcp-itsi-server/CHANGELOG.md`) and tag prefix `mcp-itsi-server-v*.*.*`. The parent server keeps its own `v*.*.*` tag scheme.
+- **GitHub workflow**: [`.github/workflows/release.yml`](../../../.github/workflows/release.yml) builds and publishes either or both packages depending on which tag fires; release-please dispatches per-package builds via `workflow_call`.
+- **PyPI auth**: the workflow prefers a project-scoped `PYPI_ITSI_API_TOKEN` secret if set, falls back to the existing `PYPI_API_TOKEN`, and uses [trusted publishing](https://docs.pypi.org/trusted-publishers/) via GitHub OIDC when neither is configured. To switch to trusted publishing for `mcp-itsi-server`, configure a *pending publisher* on PyPI for this repo + workflow file, then unset the token secret.
+
+End-user install paths (PyPI):
+
+```bash
+pip install mcp-itsi-server                 # standalone
+pip install "mcp-server-for-splunk[itsi]"   # parent + ITSI plugin
+```
+
 ## Related
 
 - [Getting Started](getting-started.md) — first 15 minutes against a real cluster.

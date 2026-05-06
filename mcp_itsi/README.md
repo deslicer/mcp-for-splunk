@@ -30,14 +30,33 @@
 | Browse the tool catalog and resource list | [Capabilities at a glance](#capabilities-at-a-glance) below |
 | Understand the package layout | [Architecture](#architecture) below |
 
+## Install from PyPI
+
+```bash
+# Standalone server (only ITSI tools)
+pip install mcp-itsi-server
+
+# Together with the parent mcp-server-for-splunk
+pip install "mcp-server-for-splunk[itsi]"
+```
+
+The two distributions live in this repo as a uv workspace:
+
+- `mcp-server-for-splunk` — root `pyproject.toml`.
+- `mcp-itsi-server` — `packaging/mcp-itsi-server/pyproject.toml` (this package).
+
+Both are released independently via [release-please](https://github.com/googleapis/release-please) — see `CHANGELOG.md` (parent) and `packaging/mcp-itsi-server/CHANGELOG.md` (ITSI).
+
 ## Quick start
 
 ### 1. As a plugin of `mcp-for-splunk` (recommended)
 
-Installing this package in the same environment as `mcp-server-for-splunk` is enough — the parent server loads ITSI through the `mcp_splunk.plugins` Python entry point on startup.
+Install both packages and the ITSI tools auto-register on the parent server through the `mcp_splunk.plugins` Python entry point at startup.
 
 ```bash
-uv sync                       # installs the plugin alongside the parent server
+pip install "mcp-server-for-splunk[itsi]"   # PyPI
+# or, from a checkout of this repo:
+uv sync                                      # uv workspace pulls in both packages
 uv run mcp-server --local --detached
 # Look for: "Loading ITSI plugin into parent MCP server" in the logs.
 ```
@@ -62,12 +81,19 @@ docker compose up -d mcp-itsi
 #   http://localhost:8003/itsi/mcp/   (Traefik strips /itsi → mcp-itsi:8001)
 ```
 
-### 3. Standalone via local Python
+### 3. Standalone via local Python (PyPI)
+
+```bash
+pip install mcp-itsi-server
+mcp-itsi-server --host 127.0.0.1 --port 8004
+# Endpoint: http://127.0.0.1:8004/mcp/
+```
+
+### 4. Standalone via local Python (workspace checkout)
 
 ```bash
 uv sync
 uv run mcp-itsi-server --host 127.0.0.1 --port 8004
-# Endpoint: http://127.0.0.1:8004/mcp/
 ```
 
 `stdio` transport works too:
