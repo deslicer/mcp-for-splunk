@@ -191,7 +191,15 @@ result = await workflow_runner.execute(
 
 ### 🛡️ **ITSI MCP Server** (NEW!)
 
-A dedicated Model Context Protocol server for **Splunk IT Service Intelligence** ships in this repo at [`mcp_itsi/`](mcp_itsi/README.md). It targets ITSI 4.21 and adds **70 tools, 9 documentation resources, and 3 workflow prompts** for managing services, entities, KPIs, episodes, glass tables, deep dives, correlation searches, and aggregation policies.
+A dedicated Model Context Protocol server for **Splunk IT Service Intelligence** ships in this repo at [`mcp_itsi/`](mcp_itsi/README.md), released independently to PyPI as **[`mcp-itsi-server`](https://pypi.org/project/mcp-itsi-server/)**. It targets ITSI 4.21 and adds **70 tools, 9 documentation resources, and 3 workflow prompts** for managing services, entities, KPIs, episodes, glass tables, deep dives, correlation searches, and aggregation policies.
+
+```bash
+# Standalone install
+pip install mcp-itsi-server
+
+# Together with the parent server
+pip install "mcp-server-for-splunk[itsi]"
+```
 
 You can deploy it two ways with **identical capabilities**:
 
