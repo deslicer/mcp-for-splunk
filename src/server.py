@@ -197,6 +197,26 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
     return loaded
 
 
+def install_toolset_filter(mcp: FastMCP) -> bool:
+    """Install :class:`ToolsetFilterMiddleware` on the host server.
+
+    The known-toolsets callable is evaluated lazily per request, so any
+    plugins loaded after this helper runs are still picked up. The
+    universe is ``{"splunk"}`` (the host's own toolset) unioned with
+    every entry-point name recorded on ``mcp._loaded_plugins``.
+
+    Returns the value of :meth:`ToolsetFilterMiddleware.install_once`
+    (``True`` on first install, ``False`` if already installed).
+    """
+    from src.core.toolset_filter import ToolsetFilterMiddleware
+
+    def _known() -> set[str]:
+        plugin_names = {p["name"] for p in getattr(mcp, "_loaded_plugins", [])}
+        return {"splunk"} | plugin_names
+
+    return ToolsetFilterMiddleware.install_once(mcp, known_toolsets=_known)
+
+
 def _cache_summary(include_values: bool = True) -> dict:
     """Return a sanitized summary of the header client-config cache.
 
@@ -1155,6 +1175,13 @@ def create_root_app(server: FastMCP) -> Starlette:
         load_plugins(server, root_app)
     except Exception as _e:
         logger.warning("Plugin load (HTTP stage) failed: %s", _e)
+
+    # Install the per-client toolset filter middleware. install_once is a
+    # no-op if it was already added by an earlier code path.
+    try:
+        install_toolset_filter(server)
+    except Exception as _e:
+        logger.warning("Failed to install ToolsetFilterMiddleware: %s", _e)
 
     # Mount the entire MCP app at root since it already includes /mcp in its path
     root_app.mount("/", mcp_app)
