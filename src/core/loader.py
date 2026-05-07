@@ -213,8 +213,13 @@ class ToolLoader:
                 # Create wrapper function for FastMCP
                 tool_wrapper = self._create_tool_wrapper(tool_class, tool_name)
 
-                # Register with FastMCP using the tool decorator
-                self.mcp_server.tool(name=tool_name)(tool_wrapper)
+                # Register with FastMCP using the tool decorator. Every host
+                # tool is tagged with the "splunk" toolset (merged with any
+                # per-tool metadata tags) so downstream tag-based filtering
+                # can distinguish host tools from plugin tools.
+                extra_tags = set(getattr(tool_metadata, "tags", None) or [])
+                all_tags = {"splunk"} | extra_tags
+                self.mcp_server.tool(name=tool_name, tags=all_tags)(tool_wrapper)
 
                 loaded_count += 1
                 self.logger.info(f"Loaded tool: {tool_name}")
