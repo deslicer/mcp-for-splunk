@@ -408,3 +408,22 @@ using a fake plugin module that calls `mcp.mount`.
 
 None blocking. Items flagged at the end of brainstorming were resolved by
 sections 5, 7, 8, and 11 respectively.
+
+## 17. Implementation status (2026-05-07)
+
+Implemented on branch `feat/itsi-mcp-plugin` (commits `15a92bf`..`c66338a`):
+
+| Section | Status | Commit(s) |
+|---|---|---|
+| 7. Tool tagging (ITSI side) | ✅ implemented | `15a92bf` |
+| 7. Tool tagging (host side) | ✅ implemented | `29eac58` |
+| 8. ToolsetFilterMiddleware | ✅ implemented | `e17c11d` |
+| 11.1 Tag core tools `{"splunk"}` | ✅ implemented | `29eac58` |
+| 11.2 Track loaded plugin names | ✅ implemented | `d46580e` |
+| 11.3 Health endpoint surface | ✅ implemented | `1d1b61d` |
+| 11.4 Docs update | ✅ implemented | `c66338a` |
+| 5–6, 9–10 (plugin packaging, standalone) | ✅ already in upstream `origin/main` | n/a |
+
+414 unit tests pass (35 net new). No regressions. Resources/prompts now
+also forward their metadata tags so resource/prompt list filtering works
+the same way as tools.
