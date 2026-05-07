@@ -170,14 +170,26 @@ def load_plugins(mcp: FastMCP, root_app: Starlette | None = None) -> int:
         except Exception:
             eps = []
 
+        # Track loaded plugins on the FastMCP instance so the toolset
+        # filter middleware and /health endpoint can query them. List of
+        # {"name": str} dicts; future fields (version, prefix, ...) can
+        # be added without breaking consumers.
+        if not hasattr(mcp, "_loaded_plugins"):
+            mcp._loaded_plugins = []
+        existing_names = {p["name"] for p in mcp._loaded_plugins}
+
         for ep in eps:
+            ep_name = getattr(ep, "name", str(ep))
             try:
                 setup = ep.load()
                 setup(mcp=mcp, root_app=root_app)
                 loaded += 1
-                logger.info("Loaded plugin: %s", getattr(ep, "name", str(ep)))
+                if ep_name not in existing_names:
+                    mcp._loaded_plugins.append({"name": ep_name})
+                    existing_names.add(ep_name)
+                logger.info("Loaded plugin: %s", ep_name)
             except Exception as e:
-                logger.warning("Plugin %s failed during setup: %s", getattr(ep, "name", str(ep)), e)
+                logger.warning("Plugin %s failed during setup: %s", ep_name, e)
     except Exception as e:
         logger.warning("Plugin discovery failed: %s", e)
 
