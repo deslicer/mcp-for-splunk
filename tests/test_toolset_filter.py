@@ -14,8 +14,17 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastmcp.exceptions import ToolError
+from fastmcp.server.dependencies import (
+    get_http_headers as fastmcp_get_http_headers,
+)
 
-from src.core.toolset_filter import ToolsetFilterMiddleware, _wanted_toolsets
+from src.core.toolset_filter import (
+    ToolsetFilterMiddleware,
+    _wanted_toolsets,
+)
+from src.core.toolset_filter import (
+    get_http_headers as toolset_filter_get_http_headers,
+)
 
 
 def _component(name: str, tags: set[str]):
@@ -239,11 +248,7 @@ def test_middleware_reads_headers_via_fastmcp_dependency():
     If this assertion fails it almost certainly means the import was
     removed or renamed; revisit ``_wanted`` before adjusting the test.
     """
-    from fastmcp.server.dependencies import get_http_headers as upstream
-
-    import src.core.toolset_filter as tf
-
-    assert tf.get_http_headers is upstream
+    assert toolset_filter_get_http_headers is fastmcp_get_http_headers
 
 
 # --- install_once -----------------------------------------------------------
@@ -257,8 +262,8 @@ def test_install_once_is_idempotent():
             added.append(mw)
 
     fake = FakeMcp()
-    first = ToolsetFilterMiddleware.install_once(fake, known_toolsets=lambda: set())
-    second = ToolsetFilterMiddleware.install_once(fake, known_toolsets=lambda: set())
+    first = ToolsetFilterMiddleware.install_once(fake, known_toolsets=set)
+    second = ToolsetFilterMiddleware.install_once(fake, known_toolsets=set)
 
     assert first is True
     assert second is False

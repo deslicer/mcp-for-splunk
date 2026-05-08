@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from src.core.base import BaseTool, ToolMetadata
 from src.core.loader import ToolLoader
 

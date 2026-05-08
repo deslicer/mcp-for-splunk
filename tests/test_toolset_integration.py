@@ -14,7 +14,6 @@ middleware to the FastMCP instance.
 from __future__ import annotations
 
 import importlib
-from typing import Any
 
 import pytest
 from fastmcp import Client, FastMCP

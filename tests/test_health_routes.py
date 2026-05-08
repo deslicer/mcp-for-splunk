@@ -7,7 +7,6 @@ the universe of values they may pass in ``X-MCP-Toolsets``.
 
 from __future__ import annotations
 
-import pytest
 from fastmcp import FastMCP
 from starlette.testclient import TestClient
 
