@@ -25,6 +25,7 @@ import os
 from collections.abc import Callable, Iterable
 
 from fastmcp.exceptions import ToolError
+from fastmcp.server.dependencies import get_http_headers
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,12 @@ class ToolsetFilterMiddleware(Middleware):
         return bool(set(tags) & known)
 
     def _wanted(self, ctx: MiddlewareContext, known: set[str]) -> set[str]:
-        headers = getattr(ctx, "http_headers", None)
+        # FastMCP exposes the active HTTP request's headers via this dependency.
+        # Outside an HTTP request (e.g. in-memory transport, unit tests) it
+        # returns an empty dict, in which case we fall back to MCP_DEFAULT_TOOLSETS.
+        # The ``ctx`` argument is kept for future per-context overrides.
+        del ctx
+        headers = get_http_headers()
         return _wanted_toolsets(headers, known)
 
     def _passes(self, tags: Iterable[str], known: set[str], wanted: set[str]) -> bool:
