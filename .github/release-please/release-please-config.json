@@ -18,13 +18,7 @@
       "include-component-in-tag": true,
       "include-v-in-tag": true,
       "component": "mcp-itsi-server",
-      "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        {
-          "type": "generic",
-          "path": "../../mcp_itsi/_version.py"
-        }
-      ]
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }
