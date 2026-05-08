@@ -128,6 +128,13 @@ class ToolsetFilterMiddleware(Middleware):
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         known = self._known()
         wanted = self._wanted(context, known)
+        # FastMCP always populates fastmcp_context for tools/call middleware;
+        # the assert narrows ``Context | None`` to ``Context`` for mypy and
+        # fails loudly if the upstream invariant ever changes (failing closed
+        # is preferable to silently skipping the toolset guard).
+        assert context.fastmcp_context is not None, (
+            "fastmcp_context must be populated during tools/call"
+        )
         tool = await context.fastmcp_context.fastmcp.get_tool(context.message.name)
         if self._is_toolset_member(getattr(tool, "tags", set()), known) and not (
             set(getattr(tool, "tags", set())) & wanted
