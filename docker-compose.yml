@@ -133,6 +133,11 @@ services:
       - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-4000}
       # Logging level for MCP server
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+
+      # Per-client toolset filtering. Comma-separated tags
+      # (e.g. "splunk,itsi") or the literal "all". Applies when a
+      # client omits the X-MCP-Toolsets header. See docs/guides/plugins.md.
+      - MCP_DEFAULT_TOOLSETS=${MCP_DEFAULT_TOOLSETS:-all}
     depends_on:
       - traefik
     labels:
