@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.0...v0.6.1) (2026-05-08)
+
+
+### Features
+
+* per-client toolset selection via X-MCP-Toolsets (ITSI plugin) ([#131](https://github.com/deslicer/mcp-for-splunk/issues/131)) ([a0638d7](https://github.com/deslicer/mcp-for-splunk/commit/a0638d7abce1be8ee00fce204e5f5e534c35603a))
+
+
+### Bug Fixes
+
+* **ci:** sync release-please manifest with the released v0.6.0 ([#129](https://github.com/deslicer/mcp-for-splunk/issues/129)) ([12edca7](https://github.com/deslicer/mcp-for-splunk/commit/12edca71f3a54aa3104e0b747a99f636b1609fce))
+
 ## [0.6.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.5.3...v0.6.0) (2026-05-06)
 
 
