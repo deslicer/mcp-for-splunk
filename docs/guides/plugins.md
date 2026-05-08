@@ -134,12 +134,14 @@ X-MCP-Toolsets: splunk,itsi
 ### 4. Operators set the default for header-less clients
 
 ```bash
-export MCP_DEFAULT_TOOLSETS=splunk        # OSS-only deployment
-export MCP_DEFAULT_TOOLSETS=splunk,itsi   # both
-export MCP_DEFAULT_TOOLSETS=all           # default
+export MCP_DEFAULT_TOOLSETS=splunk        # default — host tools only
+export MCP_DEFAULT_TOOLSETS=splunk,itsi   # opt clients into ITSI by default
+export MCP_DEFAULT_TOOLSETS=all           # opt every loaded plugin in
 ```
 
-The header always wins over the env var when both are set.
+A header-less client sees the host's Splunk toolset only — plugins
+must be opted into explicitly. The header always wins over the env
+var when both are set.
 
 ### 5. Discovery
 

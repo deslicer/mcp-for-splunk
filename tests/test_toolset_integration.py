@@ -78,8 +78,23 @@ async def test_header_both_shows_both(monkeypatch, host: FastMCP):
 
 
 @pytest.mark.asyncio
-async def test_no_header_default_all(monkeypatch, host: FastMCP):
+async def test_no_header_defaults_to_splunk_only(monkeypatch, host: FastMCP):
+    """No env var, no header → only the host's Splunk tools and untagged
+    framework helpers. ITSI (and every other plugin) is opt-in.
+    """
     monkeypatch.delenv("MCP_DEFAULT_TOOLSETS", raising=False)
+    async with Client(host) as client:
+        names = {t.name for t in await client.list_tools()}
+
+    assert "oneshot_search" in names, "host splunk tool must remain visible"
+    assert "internal_health" in names, "untagged framework tool must remain visible"
+    assert "itsi_list_entities" not in names, "itsi must be opt-in by default"
+
+
+@pytest.mark.asyncio
+async def test_no_header_with_env_override_all_restores_legacy(monkeypatch, host: FastMCP):
+    """Operators can opt back into the old "everything visible" default."""
+    monkeypatch.setenv("MCP_DEFAULT_TOOLSETS", "all")
     async with Client(host) as client:
         names = {t.name for t in await client.list_tools()}
 

@@ -5,7 +5,9 @@ convention the same name used as the entry-point key under
 ``mcp_splunk.plugins``. Clients pick which toolsets they want for a
 session by sending the ``X-MCP-Toolsets`` HTTP header (comma-separated).
 When the header is absent the middleware falls back to the
-``MCP_DEFAULT_TOOLSETS`` environment variable (``"all"`` by default).
+``MCP_DEFAULT_TOOLSETS`` environment variable, which defaults to
+``"splunk"`` — i.e. only the host's own toolset is visible. Plugins
+(e.g. ITSI) must be opted into explicitly via header or env var.
 
 Untagged components — components whose ``tags`` set has no overlap with
 the known toolset universe — are always visible. This protects
@@ -33,6 +35,10 @@ logger = logging.getLogger(__name__)
 HEADER_NAME = "x-mcp-toolsets"
 DEFAULT_ENV_VAR = "MCP_DEFAULT_TOOLSETS"
 ALL_KEYWORD = "all"
+# Implicit fallback when neither the X-MCP-Toolsets header nor the
+# MCP_DEFAULT_TOOLSETS env var is set. Defaults to the host's own
+# toolset so plugins (e.g. ITSI) must be explicitly opted into.
+HOST_DEFAULT = "splunk"
 
 
 def _read_header(headers: dict | None) -> str | None:
@@ -46,20 +52,25 @@ def _read_header(headers: dict | None) -> str | None:
     )
 
 
-def _wanted_toolsets(headers: dict | None, known: set[str]) -> set[str]:
+def _wanted_toolsets(
+    headers: dict | None,
+    known: set[str],
+    default: str = HOST_DEFAULT,
+) -> set[str]:
     """Return the set of toolset tags the current request wants to see.
 
     Selection rules (highest precedence first):
 
     1. ``X-MCP-Toolsets`` header value (case-insensitive header name).
     2. ``MCP_DEFAULT_TOOLSETS`` environment variable.
-    3. The default ``"all"`` keyword, which expands to ``known``.
+    3. The ``default`` argument (``"splunk"`` for the standard host).
 
-    Unknown values (tags not in ``known``) are silently dropped.
+    The literal keyword ``"all"`` (case-insensitive) at any layer
+    expands to ``known``. Unknown values are silently dropped.
     """
     raw: str | None = _read_header(headers)
     if not raw or not raw.strip():
-        raw = os.getenv(DEFAULT_ENV_VAR, ALL_KEYWORD)
+        raw = os.getenv(DEFAULT_ENV_VAR, default)
 
     raw = raw.strip().lower()
     if raw == ALL_KEYWORD:

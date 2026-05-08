@@ -42,10 +42,31 @@ def _patch_headers(monkeypatch, headers: dict[str, str] | None):
 # --- _wanted_toolsets pure-logic tests --------------------------------------
 
 
-def test_wanted_default_all_when_no_env_no_header(monkeypatch):
+def test_wanted_defaults_to_splunk_when_no_env_no_header(monkeypatch):
+    """Implicit fallback is the host's own toolset, NOT every loaded plugin.
+
+    Plugins (e.g. ITSI) must be opt-in via X-MCP-Toolsets or
+    MCP_DEFAULT_TOOLSETS so a fresh deployment looks like a stock
+    Splunk MCP server. Regression guard against silently re-enabling
+    plugins for header-less clients.
+    """
     monkeypatch.delenv("MCP_DEFAULT_TOOLSETS", raising=False)
     known = {"splunk", "itsi"}
-    assert _wanted_toolsets(headers=None, known=known) == known
+    assert _wanted_toolsets(headers=None, known=known) == {"splunk"}
+
+
+def test_wanted_explicit_default_overrides_splunk_fallback(monkeypatch):
+    """Hosts that ship a different default toolset can pass it explicitly."""
+    monkeypatch.delenv("MCP_DEFAULT_TOOLSETS", raising=False)
+    known = {"splunk", "itsi", "secops"}
+    assert _wanted_toolsets(headers=None, known=known, default="secops") == {"secops"}
+
+
+def test_wanted_explicit_default_can_request_all(monkeypatch):
+    """An explicit default of 'all' restores the previous global behaviour."""
+    monkeypatch.delenv("MCP_DEFAULT_TOOLSETS", raising=False)
+    known = {"splunk", "itsi"}
+    assert _wanted_toolsets(headers=None, known=known, default="all") == known
 
 
 def test_wanted_default_env_override(monkeypatch):

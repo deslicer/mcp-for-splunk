@@ -8,7 +8,8 @@ Run after starting the container, e.g.:
 The script lists the tools the server advertises under four selection
 modes and prints a short summary table so we can eyeball that:
 
-* No header   → both toolsets visible (default ``MCP_DEFAULT_TOOLSETS=all``)
+* No header   → splunk tools only (default ``MCP_DEFAULT_TOOLSETS=splunk``;
+                plugins like ITSI are opt-in)
 * ``splunk``  → only ``splunk``-tagged tools (no ``itsi_*``)
 * ``itsi``    → only ``itsi_*`` tools (plus untagged framework helpers)
 * ``splunk,itsi`` → union of the two
