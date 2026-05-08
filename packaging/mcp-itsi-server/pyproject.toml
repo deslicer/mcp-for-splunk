@@ -10,7 +10,7 @@
 
 [project]
 name = "mcp-itsi-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for Splunk IT Service Intelligence (ITSI). Standalone FastMCP server, or plugin of mcp-server-for-splunk."
 readme = "README.md"
 requires-python = ">=3.10"
