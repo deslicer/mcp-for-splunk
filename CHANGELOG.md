@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.1...v0.6.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **release:** unblock auto-publish chain and itsi PyPI metadata ([#132](https://github.com/deslicer/mcp-for-splunk/issues/132)) ([9256d75](https://github.com/deslicer/mcp-for-splunk/commit/9256d75d08da1742542953968d61679ed0e37b77))
+
 ## [0.6.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.0...v0.6.1) (2026-05-08)
 
 
