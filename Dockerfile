@@ -32,8 +32,15 @@ ENV PATH="${PATH}:/root/.cargo/bin"
 COPY pyproject.toml uv.lock README.md ./
 COPY LICENSE ./
 
-# Install Python dependencies
-RUN uv sync --frozen --no-dev && uv add watchdog "sentry-sdk[mcp,starlette,httpx,asyncio]"
+# The ITSI plugin ships as a uv workspace member at packaging/mcp-itsi-server,
+# with its source force-included from mcp_itsi/. Both must be present at
+# `uv sync` time so the workspace graph resolves and the wheel can build.
+COPY packaging/ ./packaging/
+COPY mcp_itsi/ ./mcp_itsi/
+
+# Install Python dependencies, including the [itsi] extra so the plugin
+# entry point (mcp_splunk.plugins.itsi) is registered inside the container.
+RUN uv sync --frozen --no-dev --extra itsi && uv add watchdog "sentry-sdk[mcp,starlette,httpx,asyncio]"
 
 # Copy source code
 COPY src/ ./src/

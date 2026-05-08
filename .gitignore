@@ -140,3 +140,6 @@ data/
 # Local env backups
 .env_bak
 opt-splunk/
+
+# Git worktrees (created via `git worktree add .worktrees/...`)
+.worktrees/

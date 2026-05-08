@@ -245,12 +245,22 @@ def setup_health_routes(mcp: FastMCP):
                 "running" if (has_components or splunk_connected) else "degraded"
             )
 
+            # Plugin / toolset surface so operators and clients can introspect
+            # which plugins are loaded and which X-MCP-Toolsets values are
+            # advertisable on this server.
+            loaded_plugins = list(getattr(mcp, "_loaded_plugins", []) or [])
+            available_toolsets = sorted(
+                {"splunk"} | {p["name"] for p in loaded_plugins if "name" in p}
+            )
+
             return JSONResponse(
                 {
                     "status": "healthy",
                     "server": server_info_data,
                     "splunk_connection": splunk_status,
                     "splunk_info": splunk_info,
+                    "loaded_plugins": loaded_plugins,
+                    "available_toolsets": available_toolsets,
                     "timestamp": time.time(),
                 }
             )

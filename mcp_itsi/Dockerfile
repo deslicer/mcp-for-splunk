@@ -19,6 +19,11 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="${PATH}:/root/.cargo/bin"
 
 COPY pyproject.toml uv.lock README.md LICENSE ./
+# The parent pyproject.toml declares packaging/mcp-itsi-server as a uv
+# workspace member (and redirects mcp-itsi-server -> {workspace = true}).
+# Without the member directory present, `uv sync --frozen` fails with:
+#   "mcp-itsi-server references a workspace ... but is not a workspace member"
+COPY packaging/ ./packaging/
 COPY mcp_itsi/ ./mcp_itsi/
 
 RUN uv sync --frozen --no-dev \

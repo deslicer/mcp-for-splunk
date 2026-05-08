@@ -26,6 +26,11 @@ from mcp_itsi.core.base import (
 logger = logging.getLogger(__name__)
 
 
+def _tags_as_set(tags: tuple[str, ...] | None) -> set[str]:
+    """Coerce a metadata ``tags`` tuple into the ``set`` FastMCP expects."""
+    return set(tags) if tags else set()
+
+
 def register_tools(mcp: FastMCP, tool_classes: Iterable[type[BaseITSITool]]) -> int:
     """Register every tool class with the given MCP server."""
     count = 0
@@ -34,7 +39,11 @@ def register_tools(mcp: FastMCP, tool_classes: Iterable[type[BaseITSITool]]) -> 
             instance = tool_cls()
             metadata: ToolMetadata = tool_cls.METADATA
             wrapper = _build_tool_wrapper(instance, metadata)
-            mcp.tool(name=metadata.name, description=metadata.description)(wrapper)
+            mcp.tool(
+                name=metadata.name,
+                description=metadata.description,
+                tags=_tags_as_set(metadata.tags),
+            )(wrapper)
             count += 1
         except Exception:
             logger.exception("Failed to register tool %s", tool_cls.__name__)
@@ -54,6 +63,7 @@ def register_resources(mcp: FastMCP, resource_classes: Iterable[type[BaseITSIRes
                 name=metadata.name,
                 description=metadata.description,
                 mime_type=metadata.mime_type,
+                tags=_tags_as_set(metadata.tags),
             )(handler)
             count += 1
         except Exception:
@@ -69,7 +79,11 @@ def register_prompts(mcp: FastMCP, prompt_classes: Iterable[type[BaseITSIPrompt]
             instance = prompt_cls()
             metadata: PromptMetadata = prompt_cls.METADATA
             wrapper = _build_prompt_wrapper(instance, metadata)
-            mcp.prompt(name=metadata.name, description=metadata.description)(wrapper)
+            mcp.prompt(
+                name=metadata.name,
+                description=metadata.description,
+                tags=_tags_as_set(metadata.tags),
+            )(wrapper)
             count += 1
         except Exception:
             logger.exception("Failed to register prompt %s", prompt_cls.__name__)

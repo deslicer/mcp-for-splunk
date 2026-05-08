@@ -89,3 +89,69 @@ COPY dist/mcp_splunk_auth_plugin-0.1.0-py3-none-any.whl /tmp/
 RUN pip install /tmp/mcp_splunk_auth_plugin-0.1.0-py3-none-any.whl
 ENV PLUGIN_API_KEY=...  # set via secrets
 ```
+
+## Per-client toolset filtering (`X-MCP-Toolsets`)
+
+A single deployed mcp-for-splunk server can serve clients that want only
+the host's Splunk tools, only a plugin's tools, or both — chosen at
+runtime via the `X-MCP-Toolsets` HTTP header. The contract is intentionally
+minimal:
+
+### 1. Tag every tool with your plugin's entry-point name
+
+```python
+@mcp.tool(name="my_tool", tags={"my_plugin"})
+async def my_tool(...): ...
+```
+
+For class-based plugins like `mcp_itsi`, set `tags=("itsi", ...)` on
+`ToolMetadata` and let `register_tools()` forward the set to FastMCP.
+The host registers core Splunk tools with `tags={"splunk"}` automatically
+via `ToolLoader`.
+
+### 2. Match your entry-point name to the tag
+
+```toml
+[project.entry-points."mcp_splunk.plugins"]
+my_plugin = "my_plugin.plugin:setup"
+```
+
+The convention "entry-point name == toolset tag" is what lets the
+middleware know the toolset universe without extra registration calls.
+
+### 3. Clients pick toolsets at runtime
+
+```http
+X-MCP-Toolsets: splunk,itsi
+```
+
+- Comma-separated list of toolset tags.
+- Special value `all` enables every known toolset.
+- Unknown values are silently dropped.
+- Untagged components — health probes and other framework internals —
+  are always visible regardless of the header.
+
+### 4. Operators set the default for header-less clients
+
+```bash
+export MCP_DEFAULT_TOOLSETS=splunk        # default — host tools only
+export MCP_DEFAULT_TOOLSETS=splunk,itsi   # opt clients into ITSI by default
+export MCP_DEFAULT_TOOLSETS=all           # opt every loaded plugin in
+```
+
+A header-less client sees the host's Splunk toolset only — plugins
+must be opted into explicitly. The header always wins over the env
+var when both are set.
+
+### 5. Discovery
+
+The `/health` endpoint exposes the loaded plugins and the
+toolset universe so clients can discover valid `X-MCP-Toolsets`
+values:
+
+```json
+{
+  "available_toolsets": ["itsi", "splunk"],
+  "loaded_plugins": [{"name": "itsi"}]
+}
+```

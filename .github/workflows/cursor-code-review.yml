@@ -9,9 +9,139 @@ permissions:
   pull-requests: write
 
 jobs:
-  code-review:
-    uses: deslicer/deslicer-code-harness/.github/workflows/core_cursor_code_review.yml@v1
-    with:
-      model: gpt-5.3-codex
-    secrets:
-      cursor_api_key: ${{ secrets.CURSOR_API_KEY }}
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Pre-fetch base and head refs
+        run: |
+          git fetch --no-tags origin \
+            ${{ github.event.pull_request.base.ref }} \
+            +refs/pull/${{ github.event.pull_request.number }}/head
+
+      - name: Install Cursor CLI
+        id: install-cursor
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          agent --version
+
+      - name: Perform code review (Cursor)
+        id: cursor-review
+        if: steps.install-cursor.outcome == 'success'
+        continue-on-error: true
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          MODEL: gpt-5.3-codex
+        run: |
+          set -euo pipefail
+          agent --force --model "$MODEL" --output-format=text "You are operating in a GitHub Actions runner performing automated code review. The gh CLI is available and authenticated via GH_TOKEN. You may comment on pull requests.
+
+          Context:
+          - Repo: ${{ github.repository }}
+          - PR Number: ${{ github.event.pull_request.number }}
+          - PR Head SHA: ${{ github.event.pull_request.head.sha }}
+          - PR Base SHA: ${{ github.event.pull_request.base.sha }}
+
+          Objectives:
+          1) Re-check existing review comments and reply resolved when addressed
+          2) Review the current PR diff and flag only clear, high-severity issues
+          3) Leave very short inline comments (1-2 sentences) on changed lines only and a brief summary at the end
+
+          Procedure:
+          - Get existing comments: gh pr view --json comments
+          - Get diff: gh pr diff
+          - If a previously reported issue appears fixed by nearby changes, reply: ✅ This issue appears to be resolved by the recent changes
+          - Avoid duplicates: skip if similar feedback already exists on or near the same lines
+
+          Commenting rules:
+          - Max 10 inline comments total; prioritize the most critical issues
+          - One issue per comment; place on the exact changed line
+          - Natural tone, specific and actionable; do not mention automated or high-confidence
+
+          Submission:
+          - Submit one review containing inline comments plus a concise summary
+          - Use only: gh pr review --comment
+          - Do not use: gh pr review --approve or --request-changes"
+
+      - name: Check Codex availability
+        id: check-codex
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Perform code review (Codex fallback)
+        id: codex-fallback
+        if: (steps.install-cursor.outcome != 'success' || steps.cursor-review.outcome != 'success') && steps.check-codex.outputs.available == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: danger-full-access
+          safety-strategy: drop-sudo
+          model: o3
+          prompt: |
+            You are performing automated code review. The gh CLI is available and authenticated via GH_TOKEN.
+
+            Context:
+            - Repo: ${{ github.repository }}
+            - PR Number: ${{ github.event.pull_request.number }}
+            - PR Head SHA: ${{ github.event.pull_request.head.sha }}
+            - PR Base SHA: ${{ github.event.pull_request.base.sha }}
+
+            Objectives:
+            1) Re-check existing review comments and reply resolved when addressed
+            2) Review the current PR diff and flag only clear, high-severity issues
+            3) Leave very short inline comments (1-2 sentences) on changed lines only and a brief summary at the end
+
+            Procedure:
+            - Get existing comments: gh pr view --json comments
+            - Get diff: gh pr diff
+            - If a previously reported issue appears fixed by nearby changes, reply: ✅ This issue appears to be resolved by the recent changes
+            - Avoid duplicates: skip if similar feedback already exists on or near the same lines
+
+            Commenting rules:
+            - Max 10 inline comments total; prioritize the most critical issues
+            - One issue per comment; place on the exact changed line
+            - Natural tone, specific and actionable; do not mention automated or high-confidence
+
+            Submission:
+            - Submit one review containing inline comments plus a concise summary
+            - Use only: gh pr review --comment
+            - Do not use: gh pr review --approve or --request-changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Ensure review completed
+        if: always()
+        run: |
+          CURSOR_INSTALL="${{ steps.install-cursor.outcome }}"
+          CURSOR_REVIEW="${{ steps.cursor-review.outcome }}"
+          CODEX_OUTCOME="${{ steps.codex-fallback.outcome }}"
+
+          if [[ "$CURSOR_REVIEW" == "success" ]]; then
+            echo "✅ Code review completed via Cursor"
+          elif [[ "$CODEX_OUTCOME" == "success" ]]; then
+            if [[ "$CURSOR_INSTALL" != "success" ]]; then
+              echo "⚠️  Cursor CLI unavailable — review completed via Codex"
+            else
+              echo "⚠️  Cursor review failed — review completed via Codex"
+            fi
+          elif [[ "$CODEX_OUTCOME" == "skipped" ]]; then
+            echo "⚠️  Cursor failed and Codex skipped (no OPENAI_API_KEY) — no review performed"
+            exit 1
+          else
+            echo "❌ Both Cursor and Codex reviews failed"
+            exit 1
+          fi
