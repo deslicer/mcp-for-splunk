@@ -15,3 +15,4 @@ jobs:
       model: gpt-5.3-codex
     secrets:
       cursor_api_key: ${{ secrets.CURSOR_API_KEY }}
+      openai_api_key: ${{ secrets.OPENAI_API_KEY }}
