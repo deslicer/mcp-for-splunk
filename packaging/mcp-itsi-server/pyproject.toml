@@ -42,11 +42,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/[REDACTED]/mcp-for-splunk"
-Documentation = "https://github.com/[REDACTED]/mcp-for-splunk/blob/main/mcp_itsi/README.md"
-Repository = "https://github.com/[REDACTED]/mcp-for-splunk"
-Issues = "https://github.com/[REDACTED]/mcp-for-splunk/issues"
-Changelog = "https://github.com/[REDACTED]/mcp-for-splunk/blob/main/packaging/mcp-itsi-server/CHANGELOG.md"
+Homepage = "https://github.com/deslicer/mcp-for-splunk"
+Documentation = "https://github.com/deslicer/mcp-for-splunk/blob/main/mcp_itsi/README.md"
+Repository = "https://github.com/deslicer/mcp-for-splunk"
+Issues = "https://github.com/deslicer/mcp-for-splunk/issues"
+Changelog = "https://github.com/deslicer/mcp-for-splunk/blob/main/packaging/mcp-itsi-server/CHANGELOG.md"
 
 [project.scripts]
 mcp-itsi-server = "mcp_itsi.cli:main"

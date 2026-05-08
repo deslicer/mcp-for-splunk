@@ -16,11 +16,14 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
-      # Per-package outputs from googleapis/release-please-action@v4.
-      # See https://github.com/googleapis/release-please-action#outputs
-      parent_released: ${{ steps.release.outputs['.--release_created'] }}
+      # Per-package outputs from googleapis/release-please-action@v5.
+      # In manifest mode the action emits ``${path}--${key}`` for non-root
+      # paths, but for the root path (``.``) it emits the bare key — see
+      # `dist/index.js` `if (path === '.') { core.setOutput(key, value); }`.
+      # https://github.com/googleapis/release-please-action#outputs
+      parent_released: ${{ steps.release.outputs.release_created }}
       itsi_released: ${{ steps.release.outputs['packaging/mcp-itsi-server--release_created'] }}
-      parent_tag: ${{ steps.release.outputs['.--tag_name'] }}
+      parent_tag: ${{ steps.release.outputs.tag_name }}
       itsi_tag: ${{ steps.release.outputs['packaging/mcp-itsi-server--tag_name'] }}
     steps:
       - name: Release Please
