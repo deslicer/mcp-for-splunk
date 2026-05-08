@@ -211,6 +211,160 @@ header plumbing.
 > `/services/authorization/tokens` REST endpoint. See the
 > [Splunk docs on creating authentication tokens](https://docs.splunk.com/Documentation/Splunk/latest/Security/CreateAuthTokens).
 
+## 🧩 **Selecting toolsets (`X-MCP-Toolsets`)**
+
+`mcp-server-for-splunk` can host the core Splunk tools alongside one or more
+plugin toolsets (e.g. ITSI) in the **same** server. Each client picks which
+toolsets it wants on a per-request basis through an HTTP header — no separate
+deployment per persona.
+
+For the contract a plugin author needs to satisfy, see
+[Per-client toolset filtering in `docs/guides/plugins.md`](../plugins.md#per-client-toolset-filtering-x-mcp-toolsets).
+The rest of this section is for **client operators** picking what to connect to.
+
+### Two ways to deploy (`docker-compose.yml`)
+
+| Endpoint                          | Service     | Tools served                        |
+|-----------------------------------|-------------|-------------------------------------|
+| `http(s)://HOST:PORT/mcp`         | `mcp-server`| Splunk core + every loaded plugin (filtered per-request via `X-MCP-Toolsets`) |
+| `http(s)://HOST:PORT/itsi/mcp`    | `mcp-itsi`  | ITSI only (standalone server, no filter) |
+
+Pick the **unified** endpoint when you want one URL for everything and let
+clients opt into toolsets dynamically. Pick the **standalone** endpoint when
+you want strict role separation (e.g. an ITSI-only environment).
+
+### Header reference
+
+```http
+X-MCP-Toolsets: splunk            # core Splunk tools only
+X-MCP-Toolsets: itsi              # ITSI plugin tools only
+X-MCP-Toolsets: splunk,itsi       # both
+X-MCP-Toolsets: all               # every known toolset
+```
+
+- Unknown values are silently dropped.
+- Untagged framework helpers (e.g. `sentry_test`, internal probes) stay
+  visible regardless of header.
+- When the header is omitted the server falls back to the
+  `MCP_DEFAULT_TOOLSETS` env var, which defaults to `splunk`. Plugins
+  (e.g. ITSI) must be opted into explicitly — header or env var.
+
+Discover what your server supports via `/health`:
+
+```json
+{
+  "available_toolsets": ["itsi", "splunk"],
+  "loaded_plugins": [{"name": "itsi"}]
+}
+```
+
+### Cursor IDE / Claude Desktop
+
+Add one entry per persona under `mcpServers`. The header travels with every
+request, so calls to `tools/list` and `tools/call` both see the same view.
+
+```json
+{
+  "mcpServers": {
+    "splunk-only": {
+      "url": "http://localhost:8003/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "splunk",
+        "X-Splunk-Host": "splunk.company.com",
+        "X-Splunk-Token": "eyJraWQiOiJzcGx1bmsuc2VjcmV0..."
+      }
+    },
+    "itsi-only": {
+      "url": "http://localhost:8003/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "itsi",
+        "X-Splunk-Host": "splunk.company.com",
+        "X-Splunk-Token": "eyJraWQiOiJzcGx1bmsuc2VjcmV0..."
+      }
+    },
+    "splunk-and-itsi": {
+      "url": "http://localhost:8003/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "splunk,itsi",
+        "X-Splunk-Host": "splunk.company.com",
+        "X-Splunk-Token": "eyJraWQiOiJzcGx1bmsuc2VjcmV0..."
+      }
+    }
+  }
+}
+```
+
+> Most clients merge `headers` into every outbound MCP request automatically.
+> If yours does not, set `MCP_DEFAULT_TOOLSETS` server-side (next section) so
+> header-less clients still land on the right view.
+
+### MCP Inspector
+
+In the Inspector UI (the compose stack ships one at <http://localhost:6274>):
+
+1. Set **Transport** to `Streamable HTTP`.
+2. Set **Server URL** to `http://localhost:8003/mcp` (or `/itsi/mcp` for the
+   standalone server).
+3. Open **Custom Headers** and add `X-MCP-Toolsets: splunk` (or `itsi`,
+   `splunk,itsi`, `all`).
+4. Click **Connect** and **List Tools** — the list reflects your selection
+   immediately.
+
+### Python (FastMCP client)
+
+```python
+from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
+
+transport = StreamableHttpTransport(
+    "http://localhost:8003/mcp",
+    headers={
+        "X-MCP-Toolsets": "splunk,itsi",
+        # plus any X-Splunk-* headers you would normally send
+    },
+)
+
+async with Client(transport) as client:
+    tools = await client.list_tools()
+    print(sorted(t.name for t in tools))
+```
+
+### Raw HTTP / curl smoke test
+
+```bash
+curl -sS -X POST http://localhost:8003/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'X-MCP-Toolsets: itsi' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | head
+```
+
+### Operator default (`MCP_DEFAULT_TOOLSETS`)
+
+Set it in the compose `.env` (already wired through `docker-compose.yml`) to
+choose what header-less clients see:
+
+```bash
+MCP_DEFAULT_TOOLSETS=splunk        # default — host tools only, plugins opt-in
+MCP_DEFAULT_TOOLSETS=splunk,itsi   # opt clients into ITSI by default
+MCP_DEFAULT_TOOLSETS=all           # opt every loaded plugin in
+```
+
+A request that includes `X-MCP-Toolsets` always wins over this default.
+
+### Calling a disabled tool
+
+The middleware also guards `tools/call`. A client that asks for a tool whose
+toolset is not enabled receives a `ToolError` instead of an unexpected
+execution:
+
+```text
+Tool 'itsi_list_entities' is not in an enabled toolset for this client
+```
+
+This is the canonical signal to surface in your client UI when a toolset
+toggle changes.
+
 ## 🎯 **Configuration Priority**
 
 The server uses the following priority order (highest to lowest):
