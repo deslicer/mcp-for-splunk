@@ -50,6 +50,9 @@ def test_spec_reference_handler_registration():
     assert any("splunk-spec://{config}" in uri for uri in spec_uris), (
         f"Expected 'splunk-spec://{{config}}' pattern, got: {spec_uris}"
     )
+    assert any("splunk-spec://{version}/{config}" in uri for uri in spec_uris), (
+        f"Expected 'splunk-spec://{{version}}/{{config}}' pattern, got: {spec_uris}"
+    )
 
     # Check for correct name
     spec_names = [r["name"] for r in spec_resources]

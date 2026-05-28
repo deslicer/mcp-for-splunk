@@ -44,6 +44,10 @@ class TestSplunkSpecReferenceResource:
         # Test stripping .spec suffix
         assert resource._normalize_config_name("alert_actions.conf.spec") == "alert_actions.conf"
 
+        # Test stripping an optional version prefix from advertised spec URIs
+        assert resource._normalize_config_name("latest/props.conf") == "props.conf"
+        assert resource._normalize_config_name("10.0/props") == "props.conf"
+
     def test_parse_version_components(self):
         """Test version parsing into minor and full components."""
         resource = SplunkSpecReferenceResource("alert_actions.conf")
@@ -121,6 +125,29 @@ This is the documentation for alert_actions.conf.
                 assert "/en/splunk-enterprise/administer/admin-manual/10.0/" in called_url
                 assert "10.0.0-configuration-file-reference" in called_url
                 assert "alert_actions.conf" in called_url
+
+    @pytest.mark.asyncio
+    async def test_get_content_uses_version_prefix_from_config_reference(self):
+        """Test version-prefixed config references use the prefix as the docs version."""
+        resource = SplunkSpecReferenceResource("10.0/props.conf")
+        mock_content = "# Props Configuration"
+
+        with patch.object(resource, "get_splunk_version", new_callable=AsyncMock) as mock_version:
+            mock_version.return_value = "9.4"
+
+            with patch.object(resource, "fetch_doc_content", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = mock_content
+
+                content = await resource.get_content(AsyncMock())
+
+                assert "# Splunk Configuration Spec: props.conf" in content
+                assert "Version**: Splunk 10.0" in content
+
+                called_url = mock_fetch.call_args[0][0]
+                assert "/admin-manual/10.0/" in called_url
+                assert "10.0.0-configuration-file-reference" in called_url
+                assert called_url.endswith("/props.conf")
+                mock_version.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_content_fallback(self):
