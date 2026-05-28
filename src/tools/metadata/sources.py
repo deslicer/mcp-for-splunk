@@ -5,7 +5,7 @@ Tool for listing Splunk data sources.
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
