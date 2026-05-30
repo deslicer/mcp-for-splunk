@@ -503,6 +503,13 @@ For more SPL commands, see the complete [SPL Reference](splunk-docs://{self.vers
 class AdminGuideResource(SplunkDocsResource):
     """Splunk administration documentation."""
 
+    TOPIC_PATHS = {
+        "indexes": (
+            "en/data-management/manage-splunk-enterprise-indexers/{version}/"
+            "manage-indexes/about-managing-indexes"
+        ),
+    }
+
     METADATA = ResourceMetadata(
         uri="splunk-docs://{version}/admin/{topic}",
         name="admin_guide",
@@ -527,11 +534,10 @@ class AdminGuideResource(SplunkDocsResource):
         """Get administration documentation for specific topic."""
 
         async def fetch_admin_docs():
-            # help.splunk.com uses hyphenated topic names and different URL structure
-            topic_url = self.topic.replace("_", "-").lower()
-            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/{topic_url}"
+            help_version = self.format_version_for_help_url(self.version)
+            topic_url = self._build_topic_url(help_version)
 
-            content = await self.fetch_doc_content(url)
+            content = await self.fetch_doc_content(topic_url)
 
             return f"""# Splunk Administration: {self.topic}
 
@@ -549,9 +555,21 @@ For related administration topics, see the complete [Admin Guide](splunk-docs://
 
         return await _doc_cache.get_or_fetch(self.version, "admin", self.topic, fetch_admin_docs)
 
+    def _build_topic_url(self, help_version: str) -> str:
+        """Build the current Splunk Help URL for an admin topic."""
+        topic_key = self.topic.replace("_", "-").lower()
+        topic_path = self.TOPIC_PATHS.get(topic_key)
+
+        if topic_path:
+            return f"{self.SPLUNK_HELP_BASE}/{topic_path.format(version=help_version)}"
+
+        return f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/{topic_key}"
+
 
 class SplunkSpecReferenceResource(SplunkDocsResource):
     """Splunk configuration specification file reference documentation."""
+
+    VERSION_PREFIXES = {"latest", "auto"}
 
     METADATA = ResourceMetadata(
         uri="splunk-spec://{config}",
@@ -562,19 +580,41 @@ class SplunkSpecReferenceResource(SplunkDocsResource):
         tags=["spec", "configuration", "reference", "admin"],
     )
 
-    def __init__(self, config: str):
-        self.config = config
+    def __init__(self, config: str, version: str | None = None):
+        parsed_version, parsed_config = self._split_versioned_config_reference(config)
+        self.config = parsed_config
+        self.version = version or parsed_version
         # Version will be detected dynamically in get_content()
         self._cached_version = None
 
-        uri = f"splunk-spec://{config}"
+        uri_path = f"{self.version}/{self.config}" if self.version else self.config
+        uri = f"splunk-spec://{uri_path}"
         # Normalize config name for display
-        display_config = self._normalize_config_name(config)
+        display_config = self._normalize_config_name(self.config)
         super().__init__(
             uri=uri,
-            name=f"spec_{config.replace('.', '_')}",
+            name=f"spec_{uri_path.replace('/', '_').replace('.', '_')}",
             description=f"Splunk configuration spec for {display_config} (auto-detected version)",
         )
+
+    def _split_versioned_config_reference(self, config: str) -> tuple[str | None, str]:
+        """Split optional version prefixes from config references."""
+        if "/" not in config:
+            return None, config
+
+        version, config_name = config.split("/", 1)
+        if self._is_version_reference(version) and config_name:
+            return version, config_name
+
+        return None, config
+
+    def _is_version_reference(self, value: str) -> bool:
+        """Return whether a URI path segment is a Splunk version selector."""
+        if value in self.VERSION_PREFIXES:
+            return True
+
+        parts = value.split(".")
+        return len(parts) in {2, 3} and all(part.isdigit() for part in parts)
 
     def _parse_version_components(self, version: str) -> tuple[str, str]:
         """Parse version into minor (X.Y) and full (X.Y.Z) components.
@@ -616,6 +656,8 @@ class SplunkSpecReferenceResource(SplunkDocsResource):
         Returns:
             Config name with .conf extension
         """
+        _, config = self._split_versioned_config_reference(config)
+
         # Always use .conf (not .conf.spec)
         if config.endswith(".conf.spec"):
             # Strip .spec suffix if present
@@ -628,8 +670,8 @@ class SplunkSpecReferenceResource(SplunkDocsResource):
     async def get_content(self, ctx: Context) -> str:
         """Get configuration specification documentation for specific file."""
 
-        # Detect version once before caching
-        version = await self.get_splunk_version(ctx)
+        # Detect version once before caching unless the URI supplied one explicitly.
+        version = self.version or await self.get_splunk_version(ctx)
         logger.info(f"Auto-detected Splunk version: {version}")
 
         async def fetch_spec_docs():
@@ -1012,16 +1054,19 @@ def create_troubleshooting_resource(version: str, topic: str) -> Troubleshooting
     return TroubleshootingResource(version, topic)
 
 
-def create_spec_reference_resource(config: str) -> SplunkSpecReferenceResource:
+def create_spec_reference_resource(
+    config: str, version: str | None = None
+) -> SplunkSpecReferenceResource:
     """Factory function to create configuration spec reference resources.
 
     Args:
         config: Configuration file name (e.g., "alert_actions.conf", "limits.conf")
+        version: Optional Splunk version selector from versioned resource URIs
 
     Returns:
         SplunkSpecReferenceResource instance (version auto-detected from Splunk instance)
     """
-    return SplunkSpecReferenceResource(config)
+    return SplunkSpecReferenceResource(config, version=version)
 
 
 # Auto-register resources when module is imported

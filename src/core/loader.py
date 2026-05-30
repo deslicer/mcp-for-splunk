@@ -465,6 +465,46 @@ Common config files:
 Try using the discovery resource: `splunk-docs://discovery`
 """
 
+            @self.mcp_server.resource(
+                "splunk-spec://{version}/{config}", name="get_versioned_spec_reference_docs"
+            )
+            async def get_versioned_spec_reference_docs(version: str, config: str) -> str:
+                """Get Splunk configuration specification documentation for a specific version"""
+                try:
+                    from ..resources.splunk_docs import create_spec_reference_resource
+
+                    ctx = get_context()
+
+                    resource = create_spec_reference_resource(config, version=version)
+                    content = await resource.get_content(ctx)
+                    return content
+                except Exception as e:
+                    self.logger.error(
+                        f"Error getting spec docs for {config} (version {version}): {e}"
+                    )
+                    return f"""# Error: Configuration Specification Documentation
+
+Failed to retrieve configuration specification for `{config}` (version {version}).
+
+**Error**: {str(e)}
+
+Please check:
+- Config file name spelling (e.g., alert_actions.conf)
+- Splunk version availability
+- Network connectivity
+
+Common config files:
+- alert_actions.conf
+- limits.conf
+- indexes.conf
+- inputs.conf
+- outputs.conf
+- props.conf
+- transforms.conf
+
+Try using the discovery resource: `splunk-docs://discovery`
+"""
+
             self.logger.info("✅ Configuration spec handler registered successfully")
 
             # Register CIM data model documentation handler
@@ -584,6 +624,7 @@ Available topics:
                         "splunk-docs://{version}/spl-reference/{command}",
                         "splunk-docs://{version}/admin/{topic}",
                         "splunk-spec://{config}",
+                        "splunk-spec://{version}/{config}",
                         "splunk-cim://{version}/{model}",
                         "dashboard-studio://{topic}",
                     ]
