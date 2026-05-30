@@ -62,7 +62,7 @@ class ListSources(BaseTool):
             job = service.jobs.oneshot("| metadata type=sources index=_* index=* | table source")
 
             sources = []
-            for result in ResultsReader(job):
+            for result in JSONResultsReader(job):
                 if isinstance(result, dict) and "source" in result:
                     sources.append(result["source"])
 
