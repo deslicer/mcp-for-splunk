@@ -61,7 +61,8 @@ class ListSourcetypes(BaseTool):
         try:
             # Use metadata command to retrieve sourcetypes
             job = service.jobs.oneshot(
-                "| metadata type=sourcetypes index=_* index=* | table sourcetype"
+                "| metadata type=sourcetypes index=_* index=* | table sourcetype",
+                output_mode="json",
             )
 
             sourcetypes = []

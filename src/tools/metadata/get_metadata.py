@@ -91,7 +91,7 @@ class GetMetadata(BaseTool):
             if field == "host":
                 # metadata supports hosts directly
                 query = f"| metadata type=hosts index={index} | table host | head {int(limit)}"
-                job = service.jobs.oneshot(query)
+                job = service.jobs.oneshot(query, output_mode="json")
                 from splunklib.results import JSONResultsReader  # lazy import
 
                 for result in JSONResultsReader(job):
@@ -101,7 +101,7 @@ class GetMetadata(BaseTool):
             elif field == "source":
                 # metadata supports sources directly
                 query = f"| metadata type=sources index={index} | table source | head {int(limit)}"
-                job = service.jobs.oneshot(query)
+                job = service.jobs.oneshot(query, output_mode="json")
                 from splunklib.results import JSONResultsReader  # lazy import
 
                 for result in JSONResultsReader(job):
@@ -114,7 +114,7 @@ class GetMetadata(BaseTool):
                     f"| tstats count where index={index} earliest={earliest_time} latest={latest_time} by sourcetype "
                     f"| fields sourcetype | head {int(limit)}"
                 )
-                job = service.jobs.oneshot(query)
+                job = service.jobs.oneshot(query, output_mode="json")
                 from splunklib.results import JSONResultsReader  # lazy import
 
                 for result in JSONResultsReader(job):

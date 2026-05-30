@@ -59,7 +59,10 @@ class ListSources(BaseTool):
 
         try:
             # Use metadata command to retrieve sources
-            job = service.jobs.oneshot("| metadata type=sources index=_* index=* | table source")
+            job = service.jobs.oneshot(
+                "| metadata type=sources index=_* index=* | table source",
+                output_mode="json",
+            )
 
             sources = []
             for result in JSONResultsReader(job):
