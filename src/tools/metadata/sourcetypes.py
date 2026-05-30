@@ -5,7 +5,7 @@ Tool for listing Splunk sourcetypes.
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
@@ -61,11 +61,12 @@ class ListSourcetypes(BaseTool):
         try:
             # Use metadata command to retrieve sourcetypes
             job = service.jobs.oneshot(
-                "| metadata type=sourcetypes index=_* index=* | table sourcetype"
+                "| metadata type=sourcetypes index=_* index=* | table sourcetype",
+                output_mode="json",
             )
 
             sourcetypes = []
-            for result in ResultsReader(job):
+            for result in JSONResultsReader(job):
                 if isinstance(result, dict) and "sourcetype" in result:
                     sourcetypes.append(result["sourcetype"])
 

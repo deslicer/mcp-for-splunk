@@ -5,7 +5,7 @@ Tool for listing Splunk data sources.
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import ResultsReader
+from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
@@ -59,10 +59,13 @@ class ListSources(BaseTool):
 
         try:
             # Use metadata command to retrieve sources
-            job = service.jobs.oneshot("| metadata type=sources index=_* index=* | table source")
+            job = service.jobs.oneshot(
+                "| metadata type=sources index=_* index=* | table source",
+                output_mode="json",
+            )
 
             sources = []
-            for result in ResultsReader(job):
+            for result in JSONResultsReader(job):
                 if isinstance(result, dict) and "source" in result:
                     sources.append(result["source"])
 
