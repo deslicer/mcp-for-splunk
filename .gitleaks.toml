@@ -112,8 +112,9 @@ paths = [
     '''docker-compose.*\.yml$''',
     '''scripts/''',
     '''examples/''',
-    '''mcp_itsi/''',
-    '''src/''',
+    '''mcp_itsi/config/''',
+    '''src/core/security/''',
+    '''src/splunk_connector\.py$''',
     '''\.github/workflows/''',
 ]
 regexes = [
@@ -150,8 +151,6 @@ paths = [
     '''\.ruff_cache/''',
     '''\.worktrees/''',
     '''\.gitleaksignore$''',
-    '''\.env$''',
-    '''\.env_bak$''',
 ]
 
 regexes = [

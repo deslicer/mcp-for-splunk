@@ -11,10 +11,9 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Dependabot PRs cannot read GitHub Actions secrets; use Dependabot secrets
-    # (Settings → Secrets → Dependabot) if automated review is required there.
+    # Dependabot and fork PRs cannot read repository Actions secrets.
     steps:
-      - name: Skip review when credentials unavailable (Dependabot PRs)
+      - name: Skip review when credentials unavailable
         id: skip-review
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
@@ -22,20 +21,16 @@ jobs:
         run: |
           if [ -n "$CURSOR_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+          else
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Dependabot PR: GitHub Actions secrets are not exposed to this workflow."
-            exit 0
+            echo "No CURSOR_API_KEY or OPENAI_API_KEY available (common for Dependabot and fork PRs)."
           fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
 
-      - name: Review skipped (Dependabot)
+      - name: Review skipped (no API keys)
         if: steps.skip-review.outputs.skip == 'true'
         run: |
-          echo "Automated code review skipped for Dependabot PR (no Actions secrets available)."
-          echo "Other CI checks still apply. To enable review, add CURSOR_API_KEY or OPENAI_API_KEY as Dependabot secrets."
+          echo "Automated code review skipped because Actions secrets are unavailable for this PR."
+          echo "Other CI checks still apply. For Dependabot PRs, add keys under Settings → Secrets → Dependabot."
 
       - name: Checkout repository
         if: steps.skip-review.outputs.skip != 'true'

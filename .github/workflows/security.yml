@@ -242,7 +242,8 @@ jobs:
               ARGS+=(--log-opts "HEAD~1..HEAD")
             fi
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ARGS+=(--no-git)
+            # Shallow checkout (fetch-depth 2): scan recent commits only, not full history or --no-git tree
+            ARGS+=(--log-opts "HEAD~1..HEAD")
           fi
           gitleaks "${ARGS[@]}"
 
