@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.2...v0.6.3) (2026-05-30)
+
+
+### Bug Fixes
+
+* **ci:** unblock Dependabot PRs for Cursor review and Gitleaks ([#151](https://github.com/deslicer/mcp-for-splunk/issues/151)) ([0a9806e](https://github.com/deslicer/mcp-for-splunk/commit/0a9806e63ba0627b197120d19386bc0e33a77f46))
+* replace ResultsReader with JSONResultsReader for splunk-sdk 2.x compatibility (closes [#147](https://github.com/deslicer/mcp-for-splunk/issues/147)) ([#150](https://github.com/deslicer/mcp-for-splunk/issues/150)) ([ee88729](https://github.com/deslicer/mcp-for-splunk/commit/ee887294eebbba31142c89235e5b12b2d5eb36c2))
+
 ## [0.6.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.1...v0.6.2) (2026-05-08)
 
 
