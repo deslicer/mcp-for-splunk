@@ -196,7 +196,9 @@ jobs:
           name: trivy-python-results
           path: trivy-python.txt
 
-  # Secrets scanning with Gitleaks
+  # Secrets scanning with Gitleaks (OSS CLI).
+  # gitleaks-action@v2 requires a paid GITLEAKS_LICENSE for org repos and cannot
+  # read Actions secrets on Dependabot PRs; the CLI uses .gitleaks.toml only.
   gitleaks-scan:
     name: Gitleaks Secret Scan
     runs-on: ubuntu-latest
@@ -209,11 +211,48 @@ jobs:
           # republished as current code-scanning alerts.
           fetch-depth: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 2 || 0 }}
 
+      - name: Install Gitleaks
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION=8.24.2
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp
+          sudo install -m 0755 "/tmp/gitleaks" /usr/local/bin/gitleaks
+          gitleaks version
+
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE || '' }}
+        run: |
+          set -euo pipefail
+          ARGS=(
+            detect
+            --source .
+            --config .gitleaks.toml
+            --redact
+            --verbose
+            --report-format json
+            --report-path gitleaks-results.json
+          )
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ARGS+=(--log-opts "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}")
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              ARGS+=(--log-opts "${{ github.event.before }}..${{ github.sha }}")
+            else
+              ARGS+=(--log-opts "HEAD~1..HEAD")
+            fi
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ARGS+=(--no-git)
+          fi
+          gitleaks "${ARGS[@]}"
+
+      - name: Upload Gitleaks results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gitleaks-results
+          path: gitleaks-results.json
+          if-no-files-found: ignore
 
   # CodeQL advanced security analysis
   codeql-analysis:

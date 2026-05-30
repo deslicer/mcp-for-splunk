@@ -11,14 +11,41 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
+    # Dependabot PRs cannot read GitHub Actions secrets; use Dependabot secrets
+    # (Settings → Secrets → Dependabot) if automated review is required there.
     steps:
+      - name: Skip review when credentials unavailable (Dependabot PRs)
+        id: skip-review
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$CURSOR_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Dependabot PR: GitHub Actions secrets are not exposed to this workflow."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Review skipped (Dependabot)
+        if: steps.skip-review.outputs.skip == 'true'
+        run: |
+          echo "Automated code review skipped for Dependabot PR (no Actions secrets available)."
+          echo "Other CI checks still apply. To enable review, add CURSOR_API_KEY or OPENAI_API_KEY as Dependabot secrets."
+
       - name: Checkout repository
+        if: steps.skip-review.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Pre-fetch base and head refs
+        if: steps.skip-review.outputs.skip != 'true'
         run: |
           git fetch --no-tags origin \
             ${{ github.event.pull_request.base.ref }} \
@@ -26,6 +53,7 @@ jobs:
 
       - name: Install Cursor CLI
         id: install-cursor
+        if: steps.skip-review.outputs.skip != 'true'
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -36,7 +64,7 @@ jobs:
 
       - name: Perform code review (Cursor)
         id: cursor-review
-        if: steps.install-cursor.outcome == 'success'
+        if: steps.skip-review.outputs.skip != 'true' && steps.install-cursor.outcome == 'success'
         continue-on-error: true
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
@@ -75,6 +103,7 @@ jobs:
 
       - name: Check Codex availability
         id: check-codex
+        if: steps.skip-review.outputs.skip != 'true'
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -84,7 +113,7 @@ jobs:
 
       - name: Perform code review (Codex fallback)
         id: codex-fallback
-        if: (steps.install-cursor.outcome != 'success' || steps.cursor-review.outcome != 'success') && steps.check-codex.outputs.available == 'true'
+        if: steps.skip-review.outputs.skip != 'true' && (steps.install-cursor.outcome != 'success' || steps.cursor-review.outcome != 'success') && steps.check-codex.outputs.available == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -124,7 +153,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Ensure review completed
-        if: always()
+        if: always() && steps.skip-review.outputs.skip != 'true'
         run: |
           CURSOR_INSTALL="${{ steps.install-cursor.outcome }}"
           CURSOR_REVIEW="${{ steps.cursor-review.outcome }}"
