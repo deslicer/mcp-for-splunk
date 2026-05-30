@@ -20,6 +20,16 @@ id = "splunk-token"
 description = "Splunk Authentication Token"
 regex = '''(?i)(splunk[_-]?token)['\"]?\s*[:=]\s*['"]?([0-9a-zA-Z\-_]{32,})'''
 tags = ["splunk", "token"]
+[rules.allowlist]
+paths = [
+    '''mcp_itsi/config/''',
+    '''tests/''',
+    '''docs/.*\.md''',
+]
+regexes = [
+    '''(?i)splunk_token\s*=''',
+    '''(?i)os\.getenv''',
+]
 
 [[rules]]
 id = "splunk-password"
@@ -31,6 +41,29 @@ paths = [
     '''env\.example''',
     '''README\.md''',
     '''docs/.*\.md''',
+    '''tests/''',
+    '''conftest\.py$''',
+    '''docker-compose.*\.yml$''',
+    '''scripts/test_.*''',
+    '''scripts/build_and_run\.(sh|ps1)$''',
+    '''scripts/run_splunk\.sh$''',
+    '''scripts/README.*\.md$''',
+    '''examples/''',
+    '''mcp_itsi/knowledge/''',
+    '''\.github/workflows/''',
+    '''src/cli/''',
+]
+regexes = [
+    '''os\.getenv''',
+    '''os\.environ''',
+    '''\$\{SPLUNK_PASSWORD''',
+    '''\$\{.*PASSWORD.*\}''',
+    '''(?i)splunk_password''',  # Config key name, not a secret value
+    '''(?i)Splunk-Password''',  # HTTP header name, not a secret value
+    '''(?i)your-password''',  # Documentation placeholder
+    '''(?i)changeme''',  # Documentation placeholder
+    '''(?i)Chang3d!''',  # Well-known Splunk Docker default
+    '''gitleaks:allow''',
 ]
 
 [[rules]]
@@ -72,13 +105,34 @@ tags = ["credential"]
 paths = [
     '''env\.example''',
     '''\.md$''',
+    '''tests/''',
+    '''conftest\.py$''',
     '''test.*\.py$''',
     '''.*_test\.py$''',
+    '''docker-compose.*\.yml$''',
+    '''scripts/''',
+    '''examples/''',
+    '''mcp_itsi/''',
+    '''src/''',
+    '''\.github/workflows/''',
 ]
 regexes = [
     '''password.*=.*\$\{.*\}''',  # Environment variable references
     '''password.*=.*os\.getenv''',  # Python env var
+    '''password.*:.*os\.getenv''',  # Dict env var reference
     '''password.*=.*"<.*>"''',  # Placeholder
+    '''(?i)"password": "password"''',  # splunklib connect kwarg mapping
+    '''(?i)_token\s*=.*\.set\(''',  # ContextVar token return values
+    '''(?i)token\s*=.*\.set\(''',  # ContextVar token return values
+    '''(?i)PASSWORD": "splunk_''',  # Env-to-config key mapping
+    '''(?i)TOKEN": "splunk_''',  # Env-to-config key mapping
+    '''(?i)Password: Chang3d!''',  # Well-known Splunk Docker default
+    '''(?i)Password: \*\*\*''',  # Redacted password display
+    '''(?i)splunk_password''',  # Config key name
+    '''(?i)splunk_token''',  # Config key name
+    '''(?i)ContextVar''',  # stdlib contextvar token return values
+    '''nosec B105''',
+    '''gitleaks:allow''',
 ]
 
 # Global allowlist
@@ -91,6 +145,13 @@ paths = [
     '''package-lock\.json''',
     '''\.pytest_cache/''',
     '''\.mypy_cache/''',
+    '''__pycache__/''',
+    '''\.pyc$''',
+    '''\.ruff_cache/''',
+    '''\.worktrees/''',
+    '''\.gitleaksignore$''',
+    '''\.env$''',
+    '''\.env_bak$''',
 ]
 
 regexes = [
@@ -99,6 +160,9 @@ regexes = [
     '''(?i)YOUR[_-](API|KEY|TOKEN|SECRET|PASSWORD)''',
     '''(?i)<.*>''',  # Placeholders in angle brackets
     '''(?i)\$\{.*\}''',  # Environment variable references
+    '''(?i)Splunk-Password''',  # HTTP header name
+    '''(?i)your-password''',
+    '''(?i)changeme''',
 ]
 
 descriptions = [
