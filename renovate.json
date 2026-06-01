@@ -87,14 +87,6 @@
       "description": "Pin actions by commit SHA",
       "matchManagers": ["github-actions"],
       "pinDigests": true
-    },
-    {
-      "description": "Observability and Phoenix dependencies",
-      "matchPackagePatterns": ["^arize", "^openinference", "^opentelemetry"],
-      "groupName": "Observability dependencies",
-      "labels": ["dependencies", "observability"],
-      "automerge": true,
-      "automergeType": "branch"
     }
   ],
   "schedule": ["after 9am on monday"],

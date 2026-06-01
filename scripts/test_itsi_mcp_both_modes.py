@@ -148,7 +148,6 @@ def main() -> int:
         "MCP_STATELESS_HTTP": "true",
         "MCP_JSON_RESPONSE": "true",
         "MCP_AUTH_DISABLED": "true",
-        "PHOENIX_ENABLED": "false",
     }
     print("\n========== PLUGIN MODE (mcp-for-splunk + itsi plugin) ==========", flush=True)
     with _spawn(

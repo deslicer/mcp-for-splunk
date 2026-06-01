@@ -27,9 +27,6 @@ dependencies = [
 "wsproto>=1.3.2",
 "openai>=1.0.0",
 "openai-agents>=0.1.0",
-"arize-phoenix>=5.0.0",
-"openinference-instrumentation-mcp>=2.0.3",
-"opentelemetry-exporter-otlp-proto-http>=1.41.1",
 ]
 license = { file = "LICENSE" }
 urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
@@ -45,7 +42,7 @@ mcp-server = "src.cli.build_and_run:main"
 
 [project.optional-dependencies]
 dev = [
-"pytest>=7.0.0",
+"pytest>=9.0.3",
 "pytest-asyncio>=1.3.0",
 "black>=23.0.0",
 "mypy>=2.1.0",
@@ -58,7 +55,7 @@ itsi = [
 "mcp-itsi-server>=0.1.0",
 ]
 test = [
-"pytest>=7.0.0",
+"pytest>=9.0.3",
 "pytest-asyncio>=1.3.0",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
@@ -102,7 +99,7 @@ mcp-itsi-server = { workspace = true }
 
 [tool.uv]
 dev-dependencies = [
-"pytest>=7.0.0",
+"pytest>=9.0.3",
 "pytest-asyncio>=1.3.0",
 "pytest-cov>=7.1.0",
 "black>=23.0.0",
