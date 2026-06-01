@@ -3,13 +3,17 @@ Create a dashboard (Simple XML or Dashboard Studio) via Splunk REST API.
 """
 
 import json
-from typing import Any, Literal
-from xml.sax.saxutils import escape as xml_escape  # nosec B406  # nosemgrep: use-defused-xml
+from typing import Any
 
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
+from src.tools.dashboards.studio_wrapper import (
+    DashboardDefinitionPreparer,
+    PreparedDashboard,
+    ThemeParam,
+)
 
 
 class CreateDashboard(BaseTool):
@@ -34,9 +38,10 @@ class CreateDashboard(BaseTool):
             "    label (str, optional): Human label shown in UI\n"
             "    description (str, optional): Dashboard description\n"
             "    dashboard_type (str, optional): 'studio'|'classic'|'auto' (default: 'auto')\n"
-            "    theme (str, optional): Dashboard Studio UI theme when the tool wraps JSON into "
-            "XML: 'light' or 'dark' (default: 'light'). Ignored for Classic Simple XML and when "
-            "you pass a pre-wrapped Studio XML string (already containing <dashboard>).\n"
+            "    theme (str, optional): Dashboard Studio UI theme when wrapping JSON: "
+            "'light', 'dark', or 'auto' (default: 'auto'). With 'auto', reads "
+            "uiSettings.theme / theme from Studio JSON or pre-wrapped XML; falls back to "
+            "'dark'. Ignored for Classic Simple XML.\n"
             "    sharing (str, optional): 'user'|'app'|'global'\n"
             "    read_perms (list[str], optional): Roles/users granted read\n"
             "    write_perms (list[str], optional): Roles/users granted write\n"
@@ -47,58 +52,64 @@ class CreateDashboard(BaseTool):
         requires_connection=True,
     )
 
-    def _ensure_studio_xml_wrapper(
-        self,
-        definition: Any,
+    @staticmethod
+    def _build_create_payload(name: str, prepared: PreparedDashboard) -> dict[str, Any]:
+        """Splunk create handler accepts name and eai:data only."""
+        return {
+            "name": name,
+            "eai:data": prepared.eai_data,
+            "output_mode": "json",
+        }
+
+    @staticmethod
+    def _should_skip_metadata_post(
+        prepared: PreparedDashboard,
+        *,
         label: str | None,
         description: str | None,
-        theme: Literal["light", "dark"] = "light",
-    ) -> str:
-        """
-        Ensure the provided Studio definition is wrapped in the required XML
-        structure with a CDATA <definition> block. If the definition already
-        includes a <definition> or a <dashboard> wrapper, return it unchanged.
+    ) -> bool:
+        """Studio XML wrapper already embeds label/description when provided."""
+        if prepared.resolved_type != "studio":
+            return False
+        data = prepared.eai_data
+        if label and "<label>" not in data:
+            return False
+        if description and "<description>" not in data:
+            return False
+        return bool(label or description)
 
-        - Accepts dict (Studio JSON) or str (JSON string or pre-wrapped XML)
-        - Compacts JSON for CDATA
-        - Handles embedded ']]>' by splitting CDATA safely
-        - Includes optional <label> and <description>
-        """
-
-        # Pass-through if already wrapped (avoid double wrap)
-        if isinstance(definition, str):
-            if "<definition>" in definition or "<dashboard" in definition:
-                return definition
-
-        # Normalize to a compact JSON string
-        studio_json_str: str
-        if isinstance(definition, dict):
-            studio_json_str = json.dumps(definition, separators=(",", ":"))
-        elif isinstance(definition, str):
-            try:
-                parsed = json.loads(definition)
-                studio_json_str = json.dumps(parsed, separators=(",", ":"))
-            except Exception:  # noqa: BLE001 - be permissive, use raw string
-                studio_json_str = definition.strip()
-        else:
-            raise TypeError("Studio definition must be dict or str")
-
-        # Protect CDATA from accidental termination inside JSON
-        cdata_safe_json = studio_json_str.replace("]]>", "]]]]><![CDATA[>")
-
-        # Build XML wrapper (Splunk Dashboard Studio v2: theme on root <dashboard>)
-        xml_parts: list[str] = []
-        xml_parts.append(f'<dashboard version="2" theme="{theme}">')
+    @staticmethod
+    def _update_dashboard_metadata(
+        service: Any,
+        *,
+        owner: str,
+        app: str,
+        name: str,
+        label: str | None,
+        description: str | None,
+    ) -> None:
+        endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}"
+        meta_payload: dict[str, Any] = {"output_mode": "json"}
         if label:
-            xml_parts.append(f"  <label>{xml_escape(label)}</label>")
+            meta_payload["label"] = label
         if description:
-            xml_parts.append(f"  <description>{xml_escape(description)}</description>")
-        xml_parts.append("  <definition><![CDATA[")
-        xml_parts.append(cdata_safe_json)
-        xml_parts.append("  ]]></definition>")
-        xml_parts.append("</dashboard>")
+            meta_payload["description"] = description
+        service.post(endpoint, **meta_payload)
 
-        return "\n".join(xml_parts)
+    @staticmethod
+    def _read_response_entry(response_body: bytes) -> dict[str, Any] | None:
+        if not response_body:
+            return None
+        try:
+            response_data = json.loads(response_body)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(response_data, dict):
+            return None
+        entries = response_data.get("entry", [])
+        if entries and isinstance(entries[0], dict):
+            return entries[0]
+        return None
 
     async def execute(
         self,
@@ -114,11 +125,9 @@ class CreateDashboard(BaseTool):
         read_perms: list[str] | None = None,
         write_perms: list[str] | None = None,
         overwrite: bool = False,
-        theme: Literal["light", "dark"] = "light",
+        theme: ThemeParam = "auto",
     ) -> dict[str, Any]:
-        """
-        Create (or overwrite) a dashboard in Splunk.
-        """
+        """Create (or overwrite) a dashboard in Splunk."""
         log_tool_execution(
             "create_dashboard",
             name=name,
@@ -138,108 +147,59 @@ class CreateDashboard(BaseTool):
             return self.format_error_response(error_msg)
 
         try:
-            # Determine Studio vs Classic and prepare eai:data
-            resolved_type = dashboard_type
-            eai_data: str
+            await ctx.report_progress(progress=5, total=100)
 
-            if resolved_type not in ("studio", "classic", "auto"):
-                resolved_type = "auto"
+            prepared_result = DashboardDefinitionPreparer.prepare(
+                definition,
+                dashboard_type=dashboard_type,
+                label=label,
+                description=description,
+                theme=theme,
+            )
+            if isinstance(prepared_result, str):
+                return self.format_error_response(prepared_result)
 
-            if theme not in ("light", "dark"):
-                return self.format_error_response(
-                    "Invalid 'theme'. Use 'light' or 'dark' (Dashboard Studio wrapper only)."
-                )
+            prepared = prepared_result
+            resolved_type = prepared.resolved_type
+            resolved_theme = prepared.resolved_theme
 
-            if resolved_type == "auto":
-                if isinstance(definition, dict):
-                    resolved_type = "studio"
-                    eai_data = self._ensure_studio_xml_wrapper(
-                        definition, label, description, theme
-                    )
-                elif isinstance(definition, str):
-                    # Heuristics: Studio hybrid (<definition>) or pure JSON
-                    if "<definition>" in definition:
-                        resolved_type = "studio"
-                        eai_data = definition
-                    else:
-                        try:
-                            json.loads(definition)
-                            resolved_type = "studio"
-                            eai_data = self._ensure_studio_xml_wrapper(
-                                definition, label, description, theme
-                            )
-                        except (json.JSONDecodeError, TypeError):
-                            resolved_type = "classic"
-                            eai_data = definition
-                else:
-                    return self.format_error_response(
-                        "Invalid 'definition' type. Expect dict or str"
-                    )
-            elif resolved_type == "studio":
-                if isinstance(definition, dict) or isinstance(definition, str):
-                    try:
-                        eai_data = self._ensure_studio_xml_wrapper(
-                            definition, label, description, theme
-                        )
-                    except Exception as wrap_err:  # pylint: disable=broad-except
-                        return self.format_error_response(
-                            f"Invalid Studio definition: {str(wrap_err)}"
-                        )
-                else:
-                    return self.format_error_response(
-                        "Studio dashboards require JSON (dict) or JSON string"
-                    )
-            else:  # classic
-                if not isinstance(definition, str):
-                    return self.format_error_response(
-                        "Classic dashboards require XML string definition"
-                    )
-                eai_data = definition
-
+            await ctx.report_progress(progress=20, total=100)
             await ctx.info(
                 f"Creating dashboard '{name}' (type={resolved_type}, owner={owner}, app={app}"
-                + (f", theme={theme}" if resolved_type == "studio" else "")
+                + (
+                    f", theme={resolved_theme}, size={prepared.definition_size_bytes} bytes"
+                    if resolved_type == "studio"
+                    else f", size={prepared.definition_size_bytes} bytes"
+                )
                 + ")"
             )
 
-            # Web URL for response (use Splunk Web port 8000, not management port)
-            # Use safe defaults for mocks that may not define host/scheme
             splunk_host = getattr(service, "host", "localhost")
             web_scheme = getattr(service, "scheme", "https")
-            web_port = (
-                443 if web_scheme == "https" else 8000
-            )  # Splunk Web UI port (management API is on service.port which is 8089)
-
+            web_port = 443 if web_scheme == "https" else 8000
             web_base = f"{web_scheme}://{splunk_host}:{web_port}"
 
-            # Create first; on conflict and overwrite=True, update existing
-            created = False
-            response_data: dict[str, Any] | None = None
-            try:
-                # Initial create: only name and eai:data
-                # Use full path like list_dashboards does
-                endpoint = f"/servicesNS/{owner}/{app}/data/ui/views"
+            endpoint = f"/servicesNS/{owner}/{app}/data/ui/views"
+            create_payload = self._build_create_payload(name, prepared)
 
-                # Don't pass owner/app as separate params - they're in the path
-                response = service.post(
-                    endpoint,
-                    name=name,
-                    **{"eai:data": eai_data, "output_mode": "json"},
-                )
-                response_body = response.body.read()
-                response_data = json.loads(response_body) if response_body else {}
+            created = False
+            entry: dict[str, Any] | None = None
+
+            await ctx.report_progress(progress=35, total=100)
+            try:
+                response = service.post(endpoint, **create_payload)
+                entry = self._read_response_entry(response.body.read())
                 created = True
             except Exception as create_err:  # pylint: disable=broad-except
                 err_str = str(create_err)
                 if overwrite and ("409" in err_str or "exists" in err_str.lower()):
                     await ctx.info(f"Dashboard exists. Overwriting existing dashboard '{name}'")
-                    # Update allows eai:data only (no name parameter)
-                    endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}"
-                    response = service.post(
-                        endpoint, **{"eai:data": eai_data, "output_mode": "json"}
-                    )
-                    response_body = response.body.read()
-                    response_data = json.loads(response_body) if response_body else {}
+                    update_endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}"
+                    update_payload = {
+                        key: value for key, value in create_payload.items() if key != "name"
+                    }
+                    response = service.post(update_endpoint, **update_payload)
+                    entry = self._read_response_entry(response.body.read())
                 else:
                     self.logger.error("Create dashboard failed: %s", err_str, exc_info=True)
                     await ctx.error(f"Failed to create dashboard: {err_str}")
@@ -254,24 +214,26 @@ class CreateDashboard(BaseTool):
                         detail += " (Session error - try reconnecting to Splunk)"
                     return self.format_error_response(detail)
 
-            # Optional: Update label/description if provided (separate API call)
-            if label or description:
+            await ctx.report_progress(progress=75, total=100)
+
+            if (label or description) and not self._should_skip_metadata_post(
+                prepared, label=label, description=description
+            ):
                 try:
-                    endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}"
-                    meta_payload: dict[str, Any] = {"output_mode": "json"}
-                    if label:
-                        meta_payload["label"] = label
-                    if description:
-                        meta_payload["description"] = description
-                    service.post(endpoint, **meta_payload)
+                    self._update_dashboard_metadata(
+                        service,
+                        owner=owner,
+                        app=app,
+                        name=name,
+                        label=label,
+                        description=description,
+                    )
                 except Exception as meta_err:  # pylint: disable=broad-except
-                    # Non-fatal: dashboard was created, just label/description update failed
                     await ctx.warning(f"Label/description update failed: {str(meta_err)}")
 
-            # Optional ACL update (sharing/perms)
             if sharing or read_perms or write_perms:
                 try:
-                    endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}/acl"
+                    acl_endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}/acl"
                     acl_payload: dict[str, Any] = {"output_mode": "json"}
                     if sharing:
                         acl_payload["sharing"] = sharing
@@ -279,61 +241,39 @@ class CreateDashboard(BaseTool):
                         acl_payload["perms.read"] = ",".join(read_perms)
                     if write_perms:
                         acl_payload["perms.write"] = ",".join(write_perms)
-                    service.post(endpoint, **acl_payload)
+                    service.post(acl_endpoint, **acl_payload)
                 except Exception as acl_err:  # pylint: disable=broad-except
-                    # Non-fatal: include warning in response
                     await ctx.warning(f"ACL update failed: {str(acl_err)}")
 
-            # Parse response entry (best-effort)
-            entry = None
-            if isinstance(response_data, dict):
-                entries = response_data.get("entry", [])
-                if entries:
-                    entry = entries[0]
-
-            # Fallbacks if server didn't echo entry
-            content = (entry or {}).get("content", {}) if entry else {}
-            acl = (entry or {}).get("acl", {}) if entry else {}
-
-            # Determine dashboard app for web URL
+            content = (entry or {}).get("content", {})
+            acl = (entry or {}).get("acl", {})
             dashboard_app = acl.get("app", app)
             web_url = f"{web_base}/en-US/app/{dashboard_app}/{name}"
 
-            # Determine type (reuse read logic heuristics)
-            eai_data_from_resp = content.get("eai:data", eai_data)
-            detected_type = "classic"
-            if eai_data_from_resp:
-                if "<definition>" in str(eai_data_from_resp):
-                    detected_type = "studio"
-                else:
-                    try:
-                        json.loads(eai_data_from_resp)
-                        detected_type = "studio"
-                    except Exception:  # noqa: BLE001
-                        detected_type = "classic"
-
             await ctx.info(
-                f"Dashboard '{name}' {'created' if created else 'updated'} (type={detected_type})"
+                f"Dashboard '{name}' {'created' if created else 'updated'} (type={resolved_type})"
             )
+            await ctx.report_progress(progress=100, total=100)
 
             response_payload: dict[str, Any] = {
-                    "name": name,
-                    "label": content.get("label", label or name),
-                    "type": detected_type,
-                    "app": dashboard_app,
-                    "owner": acl.get("owner", owner),
-                    "sharing": acl.get("sharing", sharing or ""),
-                    "description": content.get("description", description or ""),
-                    "version": content.get("version", ""),
-                    "permissions": {
-                        "read": (acl.get("perms", {}) or {}).get("read", []),
-                        "write": (acl.get("perms", {}) or {}).get("write", []),
-                    },
-                    "web_url": web_url,
-                    "id": (entry or {}).get("id", ""),
+                "name": name,
+                "label": content.get("label", label or name),
+                "type": resolved_type,
+                "app": dashboard_app,
+                "owner": acl.get("owner", owner),
+                "sharing": acl.get("sharing", sharing or ""),
+                "description": content.get("description", description or ""),
+                "version": content.get("version", ""),
+                "definition_size_bytes": prepared.definition_size_bytes,
+                "permissions": {
+                    "read": (acl.get("perms", {}) or {}).get("read", []),
+                    "write": (acl.get("perms", {}) or {}).get("write", []),
+                },
+                "web_url": web_url,
+                "id": (entry or {}).get("id", ""),
             }
-            if detected_type == "studio":
-                response_payload["theme"] = theme
+            if resolved_type == "studio" and resolved_theme:
+                response_payload["theme"] = resolved_theme
             return self.format_success_response(response_payload)
 
         except Exception as e:  # pylint: disable=broad-except
