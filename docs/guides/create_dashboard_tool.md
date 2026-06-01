@@ -39,7 +39,7 @@ The `create_dashboard` tool enables AI agents and automation to create dashboard
     "label": "My Dashboard",             # Optional: Human-readable label
     "description": "Dashboard desc",     # Optional: Description text
     "dashboard_type": "auto",            # Optional: 'classic', 'studio', 'auto'
-    "theme": "light",                    # Optional: 'light' or 'dark' (Studio only, when tool wraps JSON)
+    "theme": "auto",                   # Optional: 'light', 'dark', or 'auto' (Studio only; auto reads uiSettings.theme)
     "overwrite": false                   # Optional: Update if exists
 }
 ```
@@ -128,7 +128,7 @@ result = await create_dashboard.execute(
     name="performance_dashboard",
     definition=studio_definition,
     dashboard_type="studio",
-    theme="dark",  # Optional: 'light' (default) or 'dark' — sets `<dashboard theme="...">` when wrapping JSON
+    theme="dark",  # Optional: 'light', 'dark', or 'auto' (default) — sets `<dashboard theme="...">` when wrapping JSON
     app="myapp"
 )
 ```
@@ -141,7 +141,7 @@ When `dashboard_type="studio"` or auto-detected as Studio, you can provide eithe
 - A JSON string. The tool wraps it the same way.
 - A pre-wrapped XML string that already contains `<definition>` or `<dashboard version="2">`. The tool detects this and will not double‑wrap.
 
-Wrapper template (the `theme` argument becomes the `theme` attribute on the root `<dashboard>`; default is `light`):
+Wrapper template (the resolved `theme` becomes the `theme` attribute on the root `<dashboard>`; default is `auto`, which reads `uiSettings.theme` from Studio JSON and falls back to `dark`):
 
 ```xml
 <dashboard version="2" theme="${THEME}">
@@ -156,7 +156,7 @@ ${STUDIO_JSON}
 Notes:
 
 - The tool protects against embedded `]]>` in JSON by splitting the CDATA safely.
-- Label/description are also posted via a follow‑up metadata call for compatibility; wrapper includes them when provided.
+- Label/description are embedded in the Studio XML wrapper when provided (single create POST). Classic dashboards may use a follow-up metadata POST when label/description are supplied separately.
 - If you pass a pre-wrapped Studio XML string, the tool does not modify it; set `theme` inside your XML in that case.
 
 ### Overwrite Existing Dashboard

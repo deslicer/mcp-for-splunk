@@ -9,10 +9,104 @@ import time
 from typing import Any, Literal
 
 from fastmcp import Context
+from splunklib import client as spl_client
 from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
+
+
+def _acl_field(content: dict[str, Any], field: str) -> str | None:
+    acl = content.get("eai:acl")
+    if not isinstance(acl, dict):
+        return None
+    value = acl.get(field)
+    return str(value) if value is not None else None
+
+
+def _matches_app_owner(
+    content: dict[str, Any],
+    app: str | None,
+    owner: str | None,
+) -> bool:
+    if app:
+        acl_app = _acl_field(content, "app")
+        if acl_app is not None and acl_app != app:
+            return False
+    if owner:
+        acl_owner = _acl_field(content, "owner")
+        if acl_owner is not None and acl_owner != owner:
+            return False
+    return True
+
+
+def _find_saved_search(
+    service: Any,
+    name: str,
+    app: str | None = None,
+    owner: str | None = None,
+) -> Any | None:
+    original_namespace = getattr(service, "namespace", None)
+    namespaces: list[Any | None] = []
+
+    if app:
+        namespaces.append(
+            spl_client.namespace(app=app, owner=owner or "nobody", sharing="app")
+        )
+
+    for try_owner in dict.fromkeys([owner, "admin", "nobody"]):
+        if try_owner:
+            namespaces.append(spl_client.namespace(owner=try_owner, sharing="user"))
+
+    namespaces.extend([spl_client.namespace(sharing="global"), original_namespace, None])
+
+    seen: set[str] = set()
+    try:
+        for namespace in namespaces:
+            key = repr(namespace)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            if namespace is not None:
+                service.namespace = namespace
+
+            try:
+                candidate = service.saved_searches[name]
+                if _matches_app_owner(candidate.content, app, owner):
+                    return candidate
+            except KeyError:
+                pass
+
+            for saved_search in service.saved_searches:
+                if saved_search.name == name and _matches_app_owner(
+                    saved_search.content, app, owner
+                ):
+                    return saved_search
+    finally:
+        service.namespace = original_namespace
+
+    return None
+
+
+def _apply_saved_search_namespace(service: Any, saved_search: Any) -> Any:
+    """Set service namespace to match a located saved search entity."""
+    original_namespace = getattr(service, "namespace", None)
+    acl = saved_search.content.get("eai:acl")
+    if isinstance(acl, dict):
+        app = acl.get("app")
+        owner = acl.get("owner")
+        sharing = acl.get("sharing") or "user"
+        if app:
+            service.namespace = spl_client.namespace(
+                app=app, owner=owner or "nobody", sharing=sharing
+            )
+        elif owner:
+            service.namespace = spl_client.namespace(owner=owner, sharing=sharing)
+    else:
+        create_owner = getattr(service, "username", None) or "admin"
+        service.namespace = spl_client.namespace(owner=create_owner, sharing="user")
+    return original_namespace
 
 
 class ListSavedSearches(BaseTool):
@@ -228,34 +322,7 @@ class ExecuteSavedSearch(BaseTool):
             # Find the saved search
             await ctx.info(f"Looking for saved search: {name}")
 
-            # Build search criteria
-            search_kwargs = {}
-            if app:
-                search_kwargs["app"] = app
-            if owner:
-                search_kwargs["owner"] = owner
-
-            saved_search = None
-            try:
-                if search_kwargs:
-                    # Search with specific criteria
-                    for ss in service.saved_searches(**search_kwargs):
-                        if ss.name == name:
-                            saved_search = ss
-                            break
-                else:
-                    # Direct access
-                    saved_search = service.saved_searches[name]
-            except KeyError:
-                # Try to find it by iterating through all saved searches
-                for ss in service.saved_searches:
-                    if ss.name == name:
-                        if app and ss.content.get("eai:acl", {}).get("app") != app:
-                            continue
-                        if owner and ss.content.get("eai:acl", {}).get("owner") != owner:
-                            continue
-                        saved_search = ss
-                        break
+            saved_search = _find_saved_search(service, name, app, owner)
 
             if not saved_search:
                 error_msg = f"Saved search '{name}' not found"
@@ -263,6 +330,16 @@ class ExecuteSavedSearch(BaseTool):
                     error_msg += f" (app: {app}, owner: {owner})"
                 await ctx.error(error_msg)
                 return self.format_error_response(error_msg, saved_search_name=name)
+
+            original_namespace = _apply_saved_search_namespace(service, saved_search)
+            try:
+                saved_search = service.saved_searches[saved_search.name]
+            except KeyError:
+                service.namespace = original_namespace
+                return self.format_error_response(
+                    f"Saved search '{name}' is not accessible in the expected namespace",
+                    saved_search_name=name,
+                )
 
             # Check if saved search is disabled
             if self._convert_splunk_boolean(saved_search.content.get("disabled"), False):
@@ -275,28 +352,36 @@ class ExecuteSavedSearch(BaseTool):
 
             # Use override times if provided, otherwise use saved search defaults
             if earliest_time is not None:
-                dispatch_kwargs["earliest_time"] = earliest_time
+                dispatch_kwargs["dispatch.earliest_time"] = earliest_time
             elif saved_search.content.get("dispatch.earliest_time"):
-                dispatch_kwargs["earliest_time"] = saved_search.content.get(
+                dispatch_kwargs["dispatch.earliest_time"] = saved_search.content.get(
                     "dispatch.earliest_time"
                 )
 
             if latest_time is not None:
-                dispatch_kwargs["latest_time"] = latest_time
+                dispatch_kwargs["dispatch.latest_time"] = latest_time
             elif saved_search.content.get("dispatch.latest_time"):
-                dispatch_kwargs["latest_time"] = saved_search.content.get("dispatch.latest_time")
+                dispatch_kwargs["dispatch.latest_time"] = saved_search.content.get(
+                    "dispatch.latest_time"
+                )
 
             await ctx.info(f"Executing saved search '{name}' in {mode} mode")
             start_time = time.time()
 
             if mode == "oneshot":
-                return await self._execute_oneshot(
-                    ctx, saved_search, dispatch_kwargs, max_results, start_time
-                )
+                try:
+                    return await self._execute_oneshot(
+                        ctx, saved_search, dispatch_kwargs, max_results, start_time
+                    )
+                finally:
+                    service.namespace = original_namespace
             else:
-                return await self._execute_job(
-                    ctx, saved_search, dispatch_kwargs, max_results, start_time
-                )
+                try:
+                    return await self._execute_job(
+                        ctx, saved_search, dispatch_kwargs, max_results, start_time
+                    )
+                finally:
+                    service.namespace = original_namespace
 
         except Exception as e:
             self.logger.error(f"Failed to execute saved search '{name}': {str(e)}")
@@ -307,7 +392,6 @@ class ExecuteSavedSearch(BaseTool):
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
         """Execute saved search in oneshot mode"""
-        dispatch_kwargs["count"] = max_results
         dispatch_kwargs["output_mode"] = "json"
 
         job = saved_search.dispatch(**dispatch_kwargs)
@@ -525,11 +609,34 @@ class CreateSavedSearch(BaseTool):
 
             await ctx.info(f"Creating saved search '{name}'")
 
-            # Create the saved search
-            if app:
-                service.saved_searches.create(name, **config, app=app, sharing=sharing)
-            else:
-                service.saved_searches.create(name, **config, sharing=sharing)
+            original_namespace = getattr(service, "namespace", None)
+            create_owner = getattr(service, "username", None) or "admin"
+            try:
+                if app:
+                    service.namespace = spl_client.namespace(
+                        app=app, owner="nobody", sharing=sharing or "app"
+                    )
+                    service.saved_searches.create(name, **config)
+                else:
+                    service.namespace = spl_client.namespace(
+                        owner=create_owner, sharing=sharing or "user"
+                    )
+                    service.saved_searches.create(name, **config)
+            finally:
+                service.namespace = original_namespace
+
+            saved_search = _find_saved_search(
+                service,
+                name,
+                app=app,
+                owner=create_owner if sharing == "user" and not app else None,
+            )
+            if not saved_search:
+                return self.format_error_response(
+                    f"Saved search '{name}' was submitted but is not accessible after creation",
+                    name=name,
+                    created=False,
+                )
 
             return self.format_success_response(
                 {
@@ -644,27 +751,7 @@ class UpdateSavedSearch(BaseTool):
             # Find the saved search
             await ctx.info(f"Looking for saved search to update: {name}")
 
-            saved_search = None
-            try:
-                # Try direct access first
-                saved_search = service.saved_searches[name]
-
-                # Check app/owner constraints if specified
-                if app and saved_search.content.get("eai:acl", {}).get("app") != app:
-                    saved_search = None
-                if owner and saved_search.content.get("eai:acl", {}).get("owner") != owner:
-                    saved_search = None
-
-            except KeyError:
-                # Search by iterating if direct access fails
-                for ss in service.saved_searches:
-                    if ss.name == name:
-                        if app and ss.content.get("eai:acl", {}).get("app") != app:
-                            continue
-                        if owner and ss.content.get("eai:acl", {}).get("owner") != owner:
-                            continue
-                        saved_search = ss
-                        break
+            saved_search = _find_saved_search(service, name, app, owner)
 
             if not saved_search:
                 error_msg = f"Saved search '{name}' not found"
@@ -725,8 +812,12 @@ class UpdateSavedSearch(BaseTool):
 
             await ctx.info(f"Updating saved search '{name}' with changes: {changes_made}")
 
-            # Apply updates
-            saved_search.update(**update_config)
+            original_namespace = _apply_saved_search_namespace(service, saved_search)
+            try:
+                saved_search = service.saved_searches[saved_search.name]
+                saved_search.update(**update_config)
+            finally:
+                service.namespace = original_namespace
 
             return self.format_success_response(
                 {
@@ -805,27 +896,7 @@ class DeleteSavedSearch(BaseTool):
             # Find the saved search
             await ctx.info(f"Looking for saved search to delete: {name}")
 
-            saved_search = None
-            try:
-                # Try direct access first
-                saved_search = service.saved_searches[name]
-
-                # Check app/owner constraints if specified
-                if app and saved_search.content.get("eai:acl", {}).get("app") != app:
-                    saved_search = None
-                if owner and saved_search.content.get("eai:acl", {}).get("owner") != owner:
-                    saved_search = None
-
-            except KeyError:
-                # Search by iterating if direct access fails
-                for ss in service.saved_searches:
-                    if ss.name == name:
-                        if app and ss.content.get("eai:acl", {}).get("app") != app:
-                            continue
-                        if owner and ss.content.get("eai:acl", {}).get("owner") != owner:
-                            continue
-                        saved_search = ss
-                        break
+            saved_search = _find_saved_search(service, name, app, owner)
 
             if not saved_search:
                 error_msg = f"Saved search '{name}' not found"
@@ -845,8 +916,12 @@ class DeleteSavedSearch(BaseTool):
                 f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})"
             )
 
-            # Delete the saved search
-            saved_search.delete()
+            original_namespace = _apply_saved_search_namespace(service, saved_search)
+            try:
+                saved_search = service.saved_searches[saved_search.name]
+                saved_search.delete()
+            finally:
+                service.namespace = original_namespace
 
             return self.format_success_response(
                 {
@@ -942,27 +1017,7 @@ class GetSavedSearchDetails(BaseTool):
             # Find the saved search
             await ctx.info(f"Retrieving details for saved search: {name}")
 
-            saved_search = None
-            try:
-                # Try direct access first
-                saved_search = service.saved_searches[name]
-
-                # Check app/owner constraints if specified
-                if app and saved_search.content.get("eai:acl", {}).get("app") != app:
-                    saved_search = None
-                if owner and saved_search.content.get("eai:acl", {}).get("owner") != owner:
-                    saved_search = None
-
-            except KeyError:
-                # Search by iterating if direct access fails
-                for ss in service.saved_searches:
-                    if ss.name == name:
-                        if app and ss.content.get("eai:acl", {}).get("app") != app:
-                            continue
-                        if owner and ss.content.get("eai:acl", {}).get("owner") != owner:
-                            continue
-                        saved_search = ss
-                        break
+            saved_search = _find_saved_search(service, name, app, owner)
 
             if not saved_search:
                 error_msg = f"Saved search '{name}' not found"

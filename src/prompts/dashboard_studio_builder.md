@@ -122,6 +122,19 @@ Return the complete JSON object only. No explanatory text before or after.
 - `inputs` (object): Time pickers, dropdowns, etc.
 - `tokens` (object): Variables for dynamic queries
 - `eventHandlers` (object): Interaction handlers
+- `uiSettings` (object): UI preferences, including theme
+
+### Theme (light / dark)
+
+Set the dashboard theme in Studio JSON so `create_dashboard` applies it automatically (`theme="auto"` is the default):
+
+```json
+"uiSettings": {
+  "theme": "dark"
+}
+```
+
+Use `"dark"` for operations/SOC dashboards unless the user asks for light mode. You can also pass `theme="dark"` or `theme="light"` on the `create_dashboard` tool call.
 
 ### Output Format
 
