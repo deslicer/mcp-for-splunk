@@ -73,7 +73,7 @@ docs = [
 ]
 # Optional Sentry monitoring
 sentry = [
-"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.0.0",
+"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.61.1",
 ]
 
 [build-system]
