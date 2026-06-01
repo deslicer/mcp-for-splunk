@@ -11,6 +11,7 @@ permissions:
   pull-requests: write
   issues: write
   id-token: write
+  packages: write
 
 jobs:
   release-please:
@@ -24,6 +25,7 @@ jobs:
       parent_released: ${{ steps.release.outputs.release_created }}
       itsi_released: ${{ steps.release.outputs['packaging/mcp-itsi-server--release_created'] }}
       parent_tag: ${{ steps.release.outputs.tag_name }}
+      parent_version: ${{ steps.release.outputs.version }}
       itsi_tag: ${{ steps.release.outputs['packaging/mcp-itsi-server--tag_name'] }}
     steps:
       - name: Release Please
@@ -47,4 +49,15 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       package: itsi
+    secrets: inherit
+
+  # Docker image tracks the parent package (tagged `v*.*.*`). The tag created
+  # by release-please can't trigger docker.yml's `push: tags` event, so we fan
+  # out to it directly here on merge.
+  build-docker-parent:
+    needs: release-please
+    if: needs.release-please.outputs.parent_released == 'true'
+    uses: ./.github/workflows/docker.yml
+    with:
+      version: ${{ needs.release-please.outputs.parent_version }}
     secrets: inherit
