@@ -64,7 +64,7 @@ test = [
 "asgi-lifespan>=2.1.0"
 ]
 security = [
-"bandit>=1.7.0",
+"bandit>=1.9.4",
 "safety>=2.3.0",
 "semgrep>=1.0.0"
 ]
@@ -111,7 +111,7 @@ dev-dependencies = [
 "pre-commit>=4.6.0",
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
-"bandit>=1.7.0",
+"bandit>=1.9.4",
 "safety>=2.3.0",
 "mcp-itsi-server",
 ]
