@@ -12,6 +12,68 @@ from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
 
 
+def _create_kvstore_collection_via_rest(
+    service: Any,
+    app: str,
+    collection: str,
+    collection_config: dict[str, Any],
+) -> None:
+    """Create a KV store collection through the REST API when splunklib create fails."""
+    endpoint = f"/servicesNS/nobody/{app}/storage/collections/config"
+    params = {"name": collection, "output_mode": "json", **collection_config}
+    response = service.post(endpoint, **params)
+    if response.status in (200, 201, 409):
+        return
+    body = response.body.read()
+    raise HTTPError(response.status, response.reason, body)
+
+
+def _resolve_kvstore_collection(
+    service: Any,
+    app: str,
+    collection: str,
+    collection_config: dict[str, Any],
+) -> Any:
+    """Create a KV store collection when needed and return the collection entity."""
+    if collection in service.kvstore:
+        return service.kvstore[collection]
+
+    created: Any | None = None
+    try:
+        created = service.kvstore.create(collection, **collection_config)
+    except (TypeError, KeyError, AttributeError):
+        try:
+            created = service.kvstore.create(name=collection, **collection_config)
+        except (TypeError, KeyError, AttributeError, HTTPError) as inner_error:
+            if isinstance(inner_error, HTTPError) and inner_error.status not in (400, 409):
+                raise
+            _create_kvstore_collection_via_rest(service, app, collection, collection_config)
+            return service.kvstore[collection]
+    except HTTPError as error:
+        if error.status == 409:
+            return service.kvstore[collection]
+        if collection_config and error.status == 400:
+            fallback_config = {
+                key: value
+                for key, value in collection_config.items()
+                if not key.startswith("field.")
+            }
+            field_entries = {
+                key.split(".", 1)[1]: value
+                for key, value in collection_config.items()
+                if key.startswith("field.")
+            }
+            if field_entries:
+                fallback_config["fields"] = field_entries
+            _create_kvstore_collection_via_rest(service, app, collection, fallback_config)
+            return service.kvstore[collection]
+        raise
+
+    if created is not None and hasattr(created, "name"):
+        return created
+    return service.kvstore[collection]
+
+
 class ListKvstoreCollections(BaseTool):
     """
     List all KV Store collections in Splunk.
@@ -178,6 +240,8 @@ class CreateKvstoreCollection(BaseTool):
                     if isinstance(f, dict):
                         field_name = f.get("name") or f.get("field")
                         field_type = (f.get("type") or "string").lower()
+                        if field_type == "str":
+                            field_type = "string"
                         if field_name:
                             normalized_fields[str(field_name)] = str(field_type)
                     elif isinstance(f, str):
@@ -199,38 +263,9 @@ class CreateKvstoreCollection(BaseTool):
                 if collection in service.kvstore:
                     new_collection = service.kvstore[collection]
                 else:
-                    try:
-                        # First try positional signature
-                        new_collection = service.kvstore.create(collection, **collection_config)
-                    except (TypeError, KeyError):
-                        # Retry using keyword name
-                        new_collection = service.kvstore.create(
-                            name=collection, **collection_config
-                        )
-                    except HTTPError as e:
-                        # Retry with 'fields' dict if REST-style params were not accepted
-                        if field_params and e.status == 400:
-                            fallback_config = {
-                                k: v
-                                for k, v in collection_config.items()
-                                if not k.startswith("field.")
-                            }
-                            fallback_config["fields"] = {
-                                k.split(".", 1)[1]: v for k, v in field_params.items()
-                            }
-                            try:
-                                new_collection = service.kvstore.create(
-                                    collection, **fallback_config
-                                )
-                            except (TypeError, KeyError):
-                                new_collection = service.kvstore.create(
-                                    name=collection, **fallback_config
-                                )
-                        elif e.status == 409:
-                            # Already exists - treat as idempotent success by returning existing collection
-                            new_collection = service.kvstore[collection]
-                        else:
-                            raise
+                    new_collection = _resolve_kvstore_collection(
+                        service, app, collection, collection_config
+                    )
 
                 # Ensure schema via update_field for each normalized field (best-effort)
                 if normalized_fields:

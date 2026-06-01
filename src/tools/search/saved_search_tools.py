@@ -56,6 +56,13 @@ def _find_saved_search(
 
     for try_owner in dict.fromkeys([owner, "admin", "nobody"]):
         if try_owner:
+            namespaces.append(
+                spl_client.namespace(
+                    app=app or DEFAULT_SAVED_SEARCH_APP,
+                    owner=try_owner,
+                    sharing="user",
+                )
+            )
             namespaces.append(spl_client.namespace(owner=try_owner, sharing="user"))
 
     namespaces.extend([spl_client.namespace(sharing="global"), original_namespace, None])
@@ -89,23 +96,42 @@ def _find_saved_search(
     return None
 
 
+DEFAULT_SAVED_SEARCH_APP = "search"
+
+
+def _namespace_for_saved_search_acl(acl: dict[str, Any]) -> Any:
+    """Build a splunklib namespace from saved search ACL metadata."""
+    app = acl.get("app") or DEFAULT_SAVED_SEARCH_APP
+    owner = acl.get("owner") or "nobody"
+    sharing = acl.get("sharing") or "app"
+    return spl_client.namespace(app=app, owner=owner, sharing=sharing)
+
+
+def _namespace_for_saved_search_create(
+    *,
+    app: str,
+    owner: str,
+    sharing: Literal["user", "app", "global"],
+) -> Any:
+    """Return a namespace where saved searches can be created and dispatched reliably."""
+    if sharing == "global":
+        return spl_client.namespace(app=app, owner="nobody", sharing="global")
+    if sharing == "app":
+        return spl_client.namespace(app=app, owner="nobody", sharing="app")
+    return spl_client.namespace(app=app, owner=owner, sharing="user")
+
+
 def _apply_saved_search_namespace(service: Any, saved_search: Any) -> Any:
     """Set service namespace to match a located saved search entity."""
     original_namespace = getattr(service, "namespace", None)
     acl = saved_search.content.get("eai:acl")
-    if isinstance(acl, dict):
-        app = acl.get("app")
-        owner = acl.get("owner")
-        sharing = acl.get("sharing") or "user"
-        if app:
-            service.namespace = spl_client.namespace(
-                app=app, owner=owner or "nobody", sharing=sharing
-            )
-        elif owner:
-            service.namespace = spl_client.namespace(owner=owner, sharing=sharing)
+    if isinstance(acl, dict) and any(acl.get(key) for key in ("app", "owner", "sharing")):
+        service.namespace = _namespace_for_saved_search_acl(acl)
     else:
         create_owner = getattr(service, "username", None) or "admin"
-        service.namespace = spl_client.namespace(owner=create_owner, sharing="user")
+        service.namespace = spl_client.namespace(
+            app=DEFAULT_SAVED_SEARCH_APP, owner=create_owner, sharing="user"
+        )
     return original_namespace
 
 
@@ -392,13 +418,18 @@ class ExecuteSavedSearch(BaseTool):
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
         """Execute saved search in oneshot mode"""
-        dispatch_kwargs["output_mode"] = "json"
-
         job = saved_search.dispatch(**dispatch_kwargs)
+
+        while not job.is_done():
+            job.refresh()
+            time.sleep(0.1)
+
         results = []
         result_count = 0
 
-        reader = JSONResultsReader(job)
+        reader = JSONResultsReader(
+            job.results(output_mode="json", count=max_results)
+        )
         for result in reader:
             if isinstance(result, dict):
                 results.append(result)
@@ -611,25 +642,22 @@ class CreateSavedSearch(BaseTool):
 
             original_namespace = getattr(service, "namespace", None)
             create_owner = getattr(service, "username", None) or "admin"
+            target_app = (app or DEFAULT_SAVED_SEARCH_APP).strip()
             try:
-                if app:
-                    service.namespace = spl_client.namespace(
-                        app=app, owner="nobody", sharing=sharing or "app"
-                    )
-                    service.saved_searches.create(name, **config)
-                else:
-                    service.namespace = spl_client.namespace(
-                        owner=create_owner, sharing=sharing or "user"
-                    )
-                    service.saved_searches.create(name, **config)
+                service.namespace = _namespace_for_saved_search_create(
+                    app=target_app,
+                    owner=create_owner,
+                    sharing=sharing,
+                )
+                service.saved_searches.create(name, **config)
             finally:
                 service.namespace = original_namespace
 
             saved_search = _find_saved_search(
                 service,
                 name,
-                app=app,
-                owner=create_owner if sharing == "user" and not app else None,
+                app=target_app,
+                owner=create_owner if sharing == "user" else None,
             )
             if not saved_search:
                 return self.format_error_response(
@@ -647,7 +675,7 @@ class CreateSavedSearch(BaseTool):
                         "description": description,
                         "earliest_time": earliest_time,
                         "latest_time": latest_time,
-                        "app": app or "default",
+                        "app": target_app,
                         "sharing": sharing,
                         "is_scheduled": is_scheduled,
                         "cron_schedule": cron_schedule if is_scheduled else "",
