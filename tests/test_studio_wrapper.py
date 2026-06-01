@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from src.tools.dashboards.studio_wrapper import (
     DashboardDefinitionPreparer,
     StudioDashboardWrapper,

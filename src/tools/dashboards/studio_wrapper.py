@@ -4,11 +4,20 @@ import json
 import re
 from dataclasses import dataclass
 from typing import Any, Literal
-from xml.sax.saxutils import escape as xml_escape  # nosec B406  # nosemgrep: use-defused-xml
 
 ThemeParam = Literal["light", "dark", "auto"]
 ResolvedTheme = Literal["light", "dark"]
 DashboardType = Literal["studio", "classic"]
+
+
+def _xml_escape(value: str) -> str:
+    """Escape text for XML element content without using the stdlib xml package."""
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
 @dataclass(frozen=True)
@@ -122,9 +131,9 @@ class StudioDashboardWrapper:
 
         xml_parts: list[str] = [f'<dashboard version="2" theme="{theme}">']
         if label:
-            xml_parts.append(f"  <label>{xml_escape(label)}</label>")
+            xml_parts.append(f"  <label>{_xml_escape(label)}</label>")
         if description:
-            xml_parts.append(f"  <description>{xml_escape(description)}</description>")
+            xml_parts.append(f"  <description>{_xml_escape(description)}</description>")
         xml_parts.extend(
             [
                 "  <definition><![CDATA[",

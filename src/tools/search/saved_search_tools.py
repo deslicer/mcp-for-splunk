@@ -83,6 +83,7 @@ def _find_saved_search(
                 if _matches_app_owner(candidate.content, app, owner):
                     return candidate
             except KeyError:
+                # Direct lookup misses names outside the current namespace; keep scanning.
                 pass
 
             for saved_search in service.saved_searches:
@@ -359,55 +360,50 @@ class ExecuteSavedSearch(BaseTool):
 
             original_namespace = _apply_saved_search_namespace(service, saved_search)
             try:
-                saved_search = service.saved_searches[saved_search.name]
-            except KeyError:
-                service.namespace = original_namespace
-                return self.format_error_response(
-                    f"Saved search '{name}' is not accessible in the expected namespace",
-                    saved_search_name=name,
-                )
-
-            # Check if saved search is disabled
-            if self._convert_splunk_boolean(saved_search.content.get("disabled"), False):
-                error_msg = f"Saved search '{name}' is disabled"
-                await ctx.error(error_msg)
-                return self.format_error_response(error_msg, saved_search_name=name)
-
-            # Prepare execution parameters
-            dispatch_kwargs = {}
-
-            # Use override times if provided, otherwise use saved search defaults
-            if earliest_time is not None:
-                dispatch_kwargs["dispatch.earliest_time"] = earliest_time
-            elif saved_search.content.get("dispatch.earliest_time"):
-                dispatch_kwargs["dispatch.earliest_time"] = saved_search.content.get(
-                    "dispatch.earliest_time"
-                )
-
-            if latest_time is not None:
-                dispatch_kwargs["dispatch.latest_time"] = latest_time
-            elif saved_search.content.get("dispatch.latest_time"):
-                dispatch_kwargs["dispatch.latest_time"] = saved_search.content.get(
-                    "dispatch.latest_time"
-                )
-
-            await ctx.info(f"Executing saved search '{name}' in {mode} mode")
-            start_time = time.time()
-
-            if mode == "oneshot":
                 try:
+                    saved_search = service.saved_searches[saved_search.name]
+                except KeyError:
+                    return self.format_error_response(
+                        f"Saved search '{name}' is not accessible in the expected namespace",
+                        saved_search_name=name,
+                    )
+
+                # Check if saved search is disabled
+                if self._convert_splunk_boolean(saved_search.content.get("disabled"), False):
+                    error_msg = f"Saved search '{name}' is disabled"
+                    await ctx.error(error_msg)
+                    return self.format_error_response(error_msg, saved_search_name=name)
+
+                # Prepare execution parameters
+                dispatch_kwargs = {}
+
+                # Use override times if provided, otherwise use saved search defaults
+                if earliest_time is not None:
+                    dispatch_kwargs["dispatch.earliest_time"] = earliest_time
+                elif saved_search.content.get("dispatch.earliest_time"):
+                    dispatch_kwargs["dispatch.earliest_time"] = saved_search.content.get(
+                        "dispatch.earliest_time"
+                    )
+
+                if latest_time is not None:
+                    dispatch_kwargs["dispatch.latest_time"] = latest_time
+                elif saved_search.content.get("dispatch.latest_time"):
+                    dispatch_kwargs["dispatch.latest_time"] = saved_search.content.get(
+                        "dispatch.latest_time"
+                    )
+
+                await ctx.info(f"Executing saved search '{name}' in {mode} mode")
+                start_time = time.time()
+
+                if mode == "oneshot":
                     return await self._execute_oneshot(
                         ctx, saved_search, dispatch_kwargs, max_results, start_time
                     )
-                finally:
-                    service.namespace = original_namespace
-            else:
-                try:
-                    return await self._execute_job(
-                        ctx, saved_search, dispatch_kwargs, max_results, start_time
-                    )
-                finally:
-                    service.namespace = original_namespace
+                return await self._execute_job(
+                    ctx, saved_search, dispatch_kwargs, max_results, start_time
+                )
+            finally:
+                service.namespace = original_namespace
 
         except Exception as e:
             self.logger.error(f"Failed to execute saved search '{name}': {str(e)}")

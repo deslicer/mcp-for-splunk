@@ -288,6 +288,11 @@ def _tool_plan(state: LiveTestState) -> list[tuple[str, dict[str, Any] | None]]:
 
 async def main() -> int:
     config = _splunk_env_config()
+    connection_label = (
+        f"{os.environ.get('SPLUNK_SCHEME', 'https')}://"
+        f"{_normalize_host(os.environ.get('SPLUNK_HOST', ''))}:"
+        f"{os.environ.get('SPLUNK_PORT', '8089')}"
+    )
 
     from src.client.splunk_client import get_splunk_service
     from src.core.discovery import discover_tools
@@ -295,7 +300,7 @@ async def main() -> int:
 
     print("Connecting to Splunk...")
     service = get_splunk_service(config)
-    print(f"Connected to {config['splunk_scheme']}://{config['splunk_host']}:{config['splunk_port']}")
+    print(f"Connected to {connection_label}")
 
     discover_tools()
     ctx = LiveSplunkContext(service)

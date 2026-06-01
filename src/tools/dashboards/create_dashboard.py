@@ -3,7 +3,7 @@ Create a dashboard (Simple XML or Dashboard Studio) via Splunk REST API.
 """
 
 import json
-from typing import Any, Literal
+from typing import Any
 
 from fastmcp import Context
 
@@ -220,7 +220,7 @@ class CreateDashboard(BaseTool):
                 prepared, label=label, description=description
             ):
                 try:
-                    await self._update_dashboard_metadata(
+                    self._update_dashboard_metadata(
                         service,
                         owner=owner,
                         app=app,
