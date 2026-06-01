@@ -65,7 +65,7 @@ test = [
 ]
 security = [
 "bandit>=1.9.4",
-"safety>=2.3.0",
+"safety>=3.8.1",
 "semgrep>=1.0.0"
 ]
 docs = [
@@ -112,7 +112,7 @@ dev-dependencies = [
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
 "bandit>=1.9.4",
-"safety>=2.3.0",
+"safety>=3.8.1",
 "mcp-itsi-server",
 ]
 
