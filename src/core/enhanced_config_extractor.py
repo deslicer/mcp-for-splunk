@@ -194,7 +194,6 @@ class EnhancedConfigExtractor:
                 # ``key: value`` pairs (avoids Gitleaks generic-credential false positives).
                 _tok = "token"
                 _splunk_t = "splunk_" + _tok
-                _session_t = "session_" + _tok
                 metadata_mapping = {  # nosec B105 - config key names, not passwords
                     "splunk_host": "splunk_host",
                     "splunk_instance": "splunk_host",
