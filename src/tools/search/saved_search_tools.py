@@ -5,6 +5,7 @@ Provides comprehensive functionality for managing and executing Splunk saved sea
 including listing, executing, creating, updating, and deleting saved searches.
 """
 
+import asyncio
 import time
 from typing import Any, Literal
 
@@ -418,7 +419,7 @@ class ExecuteSavedSearch(BaseTool):
 
         while not job.is_done():
             job.refresh()
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
 
         results = []
         result_count = 0
@@ -459,7 +460,7 @@ class ExecuteSavedSearch(BaseTool):
                 progress=int(float(job.content.get("dispatchState", {}).get("percentComplete", 0))),
                 total=100,
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
             job.refresh()
 
         # Get job statistics
