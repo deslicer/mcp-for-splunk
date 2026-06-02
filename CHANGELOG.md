@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.4...v0.6.5) (2026-06-02)
+
+
+### Features
+
+* **itsi:** schema-aware tooling + write-path validation ([#156](https://github.com/deslicer/mcp-for-splunk/issues/156)) ([e5ad9bc](https://github.com/deslicer/mcp-for-splunk/commit/e5ad9bc28ee0a622b1edee9949d3fb638db534e8))
+
 ## [0.6.4](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.3...v0.6.4) (2026-06-01)
 
 
