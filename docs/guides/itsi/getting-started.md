@@ -82,7 +82,7 @@ Look for these lines in the logs to confirm the plugin loaded:
 
 ```text
 Loading ITSI plugin into parent MCP server
-Registered 70 ITSI tools
+Registered 73 ITSI tools
 ITSI plugin loaded
 ```
 
@@ -173,11 +173,11 @@ Expected:
 
 ```text
 ========== STANDALONE MODE ==========
-- tools: 70   resources: 9   prompts: 3
+- tools: 73   resources: 27   prompts: 3
 ... failures: 0 (smoke + deep + CRUD)
 
 ========== PLUGIN MODE (mcp-for-splunk + itsi plugin) ==========
-- tools: 123   resources: 28   prompts: 6
+- tools: 126   resources: 46   prompts: 6
 ... failures: 0 (smoke + deep + CRUD + plugin isolation)
 
 --- TOTAL FAILURES: 0 ---
@@ -193,6 +193,8 @@ Targeted scripts you can also run directly:
 | `scripts/test_itsi_plugin_isolation.py` | Confirms parent + plugin coexist (plugin mode only). |
 
 ## Step 5 — Try a real workflow
+
+> **Tip for reliable writes:** before creating or updating objects, have the agent call `itsi_get_object_schema(<type>)` and `itsi_validate_object_payload(<type>, payload)`. See the [User Guide](user-guide.md) for the full schema-first workflow.
 
 Ask your AI client something like:
 
@@ -228,6 +230,7 @@ For wider-project troubleshooting (Splunk auth, transport, sessions) see [`docs/
 
 ## Where next
 
+- **[User Guide](user-guide.md)** — the schema-first workflow, reading data efficiently, safe create/update patterns, recipes, and pitfalls. (Agents: read `itsi://llms.txt` for the condensed version.)
 - **[Deployment Guide](deployment.md)** — choose between standalone and plugin, configure Traefik, run behind a reverse proxy, scale.
 - **[Package README](../../../mcp_itsi/README.md)** — full tool catalog, resources, prompts.
 - **[Service-creation review](../itsi_service_creation_review.md)** — documented walk-through against the official ITSI guides.

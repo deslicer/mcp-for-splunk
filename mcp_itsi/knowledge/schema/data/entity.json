@@ -1,0 +1,192 @@
+{
+  "slug": "entity",
+  "title": "Entity",
+  "kind": "object",
+  "description": "An entity is a basic unit of configuration in an IT environment that meets a specific need for an IT service. Entities are usually servers, but can be other IT infrastructure components, such as network devices, storage subsystems, applications, and so on. Entities are optional. The `entity` object contains field aliases and values that identify the entity in KPI searches.",
+  "object_type": "entity",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/entity",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique identifier for this entity. Can be any unique value.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Name of the entity. Can be any unique value.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User defined description of the entity.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "entity",
+      "subordinate": null
+    },
+    {
+      "name": "identifier",
+      "label": "identifier",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "_values_: Array of alias values that identify the entity _fields_: Array of search fields that identify events for the entity.",
+      "subordinate": null
+    },
+    {
+      "name": "informational",
+      "label": "informational",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "_values_: Array of alias values that provide information/description for the entity. _fields_: Array of search fields to extract information/description of the entity.",
+      "subordinate": null
+    },
+    {
+      "name": "services",
+      "label": "services",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of sub-objects with _key and title fields of services monitoring this entity via rules configured in services.",
+      "subordinate": null
+    },
+    {
+      "name": "sec_grp",
+      "label": "sec_grp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The team the object belongs to. The entity object can only belong to default_itsi_security_group (Global team).",
+      "subordinate": null
+    },
+    {
+      "name": "sai_entity_key",
+      "label": "sai_entity_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "This field exists in ITSI entities that have been merged with SAI entities. It symbolizes the original SAI entities's _key and is used for drilldowns to SAI.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_type_ids",
+      "label": "entity_type_ids",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of _key values for each entity type associated with the entity.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

@@ -79,8 +79,8 @@ class CreateDeepDive(BaseITSITool):
     async def execute(
         self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        if not isinstance(payload, dict) or not payload.get("title"):
-            return error_response("payload.title is required to create a deep dive")
+        if not isinstance(payload, dict):
+            return error_response("`payload` must be a JSON object")
         result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
         return success_response(deep_dive=result)
 

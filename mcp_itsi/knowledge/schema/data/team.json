@@ -1,0 +1,172 @@
+{
+  "slug": "team",
+  "title": "Team",
+  "kind": "object",
+  "description": "Teams are used to restrict service-level information in the following objects: - Glass tables - Service analyzers - Deep dives - Episode Review - Correlation searches - Multi-KPI alerts The team object is called `team`.",
+  "object_type": "team",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/team",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "identifying_name",
+      "label": "identifying_name",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The name of the team. Does not have to match `title`.",
+      "subordinate": null
+    },
+    {
+      "name": "acl",
+      "label": "acl",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": true,
+      "description": "Access control list for the team. Must include itoa_admin.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "User provided name of the team. Does not have to match `identifying_name`.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User provided description of the team.",
+      "subordinate": null
+    },
+    {
+      "name": "children",
+      "label": "children",
+      "type": "array",
+      "type_raw": "List",
+      "required": false,
+      "read_only": false,
+      "description": "List of private teams created in ITSI. For private teams, this field will be an empty list.",
+      "subordinate": null
+    },
+    {
+      "name": "parents",
+      "label": "parents",
+      "type": "array",
+      "type_raw": "List",
+      "required": false,
+      "read_only": false,
+      "description": "The parent of this team. Cannot be configured in current release.",
+      "subordinate": null
+    },
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Unique ID for the entry in KV store.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

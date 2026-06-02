@@ -4,7 +4,7 @@
   [![FastMCP](https://img.shields.io/badge/FastMCP-2.13%2B-blue)](https://gofastmcp.com/)
   [![Python](https://img.shields.io/badge/Python-3.10%2B-green)](https://python.org)
   [![ITSI](https://img.shields.io/badge/ITSI-4.21-purple)](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-reference/itsi-rest-api-reference)
-  [![Tools](https://img.shields.io/badge/tools-70-orange)](#capabilities-at-a-glance)
+  [![Tools](https://img.shields.io/badge/tools-73-orange)](#capabilities-at-a-glance)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
   *Model Context Protocol server purpose-built for Splunk IT Service Intelligence — runs standalone or as a plugin of [`mcp-server-for-splunk`](../README.md).*
@@ -14,8 +14,9 @@
 
 ## What you get
 
-- **70 tools** covering full CRUD on every mutable ITSI object (services, service templates, entities, entity types, KPI base searches, KPI threshold templates, glass tables, deep dives, home views, teams, notable events, aggregation policies, correlation searches) plus discovery, doc-search, and event triage shortcuts.
-- **9 documentation resources** distilled from the official ITSI 4.21 docs — accessible as MCP resources (`itsi://docs/<slug>`) and as `itsi_list_docs` / `itsi_read_doc` / `itsi_search_docs` tools.
+- **73 tools** covering full CRUD on every mutable ITSI object (services, service templates, entities, entity types, KPI base searches, KPI threshold templates, glass tables, deep dives, home views, teams, notable events, aggregation policies, correlation searches) plus schema discovery, payload validation, doc-search, and event triage shortcuts.
+- **Schema-aware writes** — bundled schemas for every ITSI object type power `itsi_list_object_schemas`, `itsi_get_object_schema`, and `itsi_validate_object_payload`, and every create/update is validated before submission (structural errors block the call; warnings surface inline on success).
+- **27 MCP resources** — 9 documentation guides (`itsi://docs/<slug>`), 17 object-type schemas (`itsi://schema/<object_type>`), and an agent usage map (`itsi://llms.txt`). The docs are also callable as `itsi_list_docs` / `itsi_read_doc` / `itsi_search_docs`.
 - **3 workflow prompts** — `itsi_service_onboarding`, `itsi_kpi_design`, `itsi_episode_triage`.
 - **Two deployment modes** with identical capabilities: a dedicated FastMCP process or a plugin of the parent `mcp-server-for-splunk` server.
 - **The same auth contract as `mcp-for-splunk`**: per-request `X-Splunk-*` headers (basic, bearer, or session token) plus optional `X-ITSI-*` namespace overrides.
@@ -25,6 +26,8 @@
 | You want to… | Go to |
 |---|---|
 | Run a server in 5 minutes against a real ITSI host | [Getting Started](../docs/guides/itsi/getting-started.md) |
+| Use the tools effectively (schema-first workflow, recipes) | [User Guide](../docs/guides/itsi/user-guide.md) |
+| Hand an AI agent a condensed usage map | [`llms.txt`](llms.txt) (also `itsi://llms.txt`) |
 | Decide between standalone and plugin mode | [Deployment Guide](../docs/guides/itsi/deployment.md) |
 | Configure auth headers for your MCP client | [Authentication](#authentication) below |
 | Browse the tool catalog and resource list | [Capabilities at a glance](#capabilities-at-a-glance) below |
@@ -186,7 +189,17 @@ All variables have safe defaults; everything below is optional.
 
 ## Capabilities at a glance
 
-### Service Insights (14 tools)
+### Schema & validation (3 tools)
+
+Start here when creating or updating any object — these make CRUD on deeply nested ITOA objects reliable.
+
+| Tool | Purpose |
+|---|---|
+| `itsi_list_object_schemas` | List every object type with a documented schema, its endpoint, required fields, and nested objects. |
+| `itsi_get_object_schema` | Full schema for one type: fields + types, inlined subordinate schemas, derived JSON Schema, and example payloads. Optionally fetch a live example. |
+| `itsi_validate_object_payload` | Dry-run validate a payload (errors + warnings) without writing — recurses into nested objects. |
+
+### Service Insights (12 tools)
 
 | Tool | Purpose |
 |---|---|
@@ -203,7 +216,7 @@ All variables have safe defaults; everything below is optional.
 | `itsi_delete_service_template` | Delete a template. |
 | `itsi_templatize_service` | Generate a template payload from a service. |
 
-### Entity integration (10 tools)
+### Entity integration (11 tools)
 
 | Tool | Purpose |
 |---|---|
@@ -226,7 +239,7 @@ All variables have safe defaults; everything below is optional.
 
 `itsi_list_glass_tables`, `itsi_get_glass_table`, `itsi_create_glass_table`, `itsi_update_glass_table`, `itsi_delete_glass_table`, `itsi_list_home_views`, `itsi_get_home_view`, `itsi_create_home_view`, `itsi_update_home_view`, `itsi_delete_home_view`, `itsi_list_deep_dives`, `itsi_get_deep_dive`, `itsi_create_deep_dive`, `itsi_update_deep_dive`, `itsi_delete_deep_dive`.
 
-### Event Analytics (15 tools)
+### Event Analytics (14 tools)
 
 | Tool | Purpose |
 |---|---|
@@ -243,9 +256,15 @@ All variables have safe defaults; everything below is optional.
 
 `itsi_list_maintenance_windows`, `itsi_get_maintenance_window`, `itsi_list_teams`, `itsi_get_team`, `itsi_get_supported_object_types`, `itsi_list_docs`, `itsi_read_doc`, `itsi_search_docs`.
 
-### Resources
+### Resources (27)
+
+Read-only and credential-free. An agent should read `itsi://llms.txt` first.
 
 ```text
+# Agent usage map (llms.txt)
+itsi://llms.txt
+
+# Documentation guides (9)
 itsi://docs/overview
 itsi://docs/api/reference
 itsi://docs/api/schema
@@ -255,6 +274,18 @@ itsi://docs/event-analytics
 itsi://docs/modules
 itsi://docs/best-practices
 itsi://docs/cookbook/header-auth
+
+# Object-type schemas (17) — structured JSON, same data as itsi_get_object_schema
+itsi://schema/service              itsi://schema/base_service_template
+itsi://schema/entity               itsi://schema/entity_type
+itsi://schema/kpi_base_search      itsi://schema/kpi_threshold_template
+itsi://schema/glass_table          itsi://schema/home_view
+itsi://schema/deep_dive            itsi://schema/team
+itsi://schema/correlation_search   itsi://schema/maintenance_calendar
+itsi://schema/event_management_state
+itsi://schema/notable_event_group  itsi://schema/notable_event_comment
+itsi://schema/notable_event_email_template
+itsi://schema/notable_event_aggregation_policy
 ```
 
 ### Prompts
@@ -307,11 +338,11 @@ Expected output:
 
 ```text
 ========== STANDALONE MODE ==========
-- tools: 70   resources: 9   prompts: 3
+- tools: 73   resources: 27   prompts: 3
 ... failures: 0 (smoke + deep + CRUD)
 
 ========== PLUGIN MODE (mcp-for-splunk + itsi plugin) ==========
-- tools: 123   resources: 28   prompts: 6
+- tools: 126   resources: 46   prompts: 6
 ... failures: 0 (smoke + deep + CRUD + plugin isolation)
 
 --- TOTAL FAILURES: 0 ---
@@ -320,6 +351,8 @@ Expected output:
 ## See also
 
 - **[Getting Started](../docs/guides/itsi/getting-started.md)** — first 15 minutes against a real ITSI cluster.
+- **[User Guide](../docs/guides/itsi/user-guide.md)** — the schema-first workflow, recipes, and common pitfalls.
+- **[`llms.txt`](llms.txt)** — condensed agent usage map (also served at `itsi://llms.txt`).
 - **[Deployment Guide](../docs/guides/itsi/deployment.md)** — standalone vs plugin, networking, scaling.
 - **[ITSI MCP overview](../docs/guides/itsi_mcp.md)** — short hub page in the project docs.
 - **[Service-creation walk-through and critical review](../docs/guides/itsi_service_creation_review.md)** — what works, what's still rough, and the workarounds we've documented.

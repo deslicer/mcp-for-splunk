@@ -61,6 +61,13 @@ class BaseITSITool(ABC):
         self.logger = logging.getLogger(f"mcp_itsi.tools.{self.METADATA.name}")
 
     async def __call__(self, ctx: Context, **kwargs: Any) -> dict[str, Any]:
+        # Local import avoids a module-level cycle (tools -> core.base -> tools).
+        from mcp_itsi.tools._validation import (
+            PayloadValidationError,
+            drain_warnings,
+            reset_warnings,
+        )
+
         if self.METADATA.requires_connection:
             try:
                 call_ctx = build_call_context(ctx)
@@ -70,8 +77,18 @@ class BaseITSITool(ABC):
         else:
             call_ctx = None  # type: ignore[assignment]
 
+        reset_warnings()
         try:
-            return await self.execute(ctx, call_ctx, **kwargs)
+            result = await self.execute(ctx, call_ctx, **kwargs)
+            return self._attach_warnings(result, drain_warnings())
+        except PayloadValidationError as exc:
+            self.logger.info("Pre-flight validation blocked %s", self.METADATA.name)
+            return error_response(
+                str(exc),
+                object_type=exc.object_type,
+                validation_errors=[e.to_dict() for e in exc.result.errors],
+                validation_warnings=[w.to_dict() for w in exc.result.warnings],
+            )
         except ITSIError as exc:
             self.logger.warning(
                 "ITSI API error in %s: %s (status=%s)",
@@ -83,6 +100,15 @@ class BaseITSITool(ABC):
         except Exception as exc:  # noqa: BLE001 -- we surface to the caller
             self.logger.exception("Unhandled error in tool %s", self.METADATA.name)
             return error_response(f"{type(exc).__name__}: {exc}")
+
+    @staticmethod
+    def _attach_warnings(
+        result: dict[str, Any], warnings: list[dict[str, str]]
+    ) -> dict[str, Any]:
+        """Merge pre-flight warnings into a successful response."""
+        if warnings and isinstance(result, dict) and result.get("status") == "success":
+            result.setdefault("validation_warnings", warnings)
+        return result
 
     @abstractmethod
     async def execute(

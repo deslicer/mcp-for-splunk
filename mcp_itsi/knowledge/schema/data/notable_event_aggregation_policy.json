@@ -1,0 +1,222 @@
+{
+  "slug": "notable_event_aggregation_policy",
+  "title": "Notable Event Aggregation Policy",
+  "kind": "object",
+  "description": "`notable_event_aggregation_policy` contains the data for a notable event aggregation policy which aggregates notable events into episodes.",
+  "object_type": "notable_event_aggregation_policy",
+  "interface": "/event_management_interface",
+  "endpoint": "/event_management_interface/notable_event_aggregation_policy",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "disabled",
+      "label": "disabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "`1` if the aggregation policy is disabled and `0` if enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "breaking_criteria",
+      "label": "breaking_criteria",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "A JSON blob of all the criteria used to break an episode.",
+      "subordinate": null
+    },
+    {
+      "name": "filter_criteria",
+      "label": "filter_criteria",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "A JSON blob of all the criteria used to filter events into an episode.",
+      "subordinate": null
+    },
+    {
+      "name": "is_default",
+      "label": "is_default",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates if this is the default aggregation policy. `1` if it's the default policy and `0` if not.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The description of the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "group_severity",
+      "label": "group_severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The default severity of each episode created by the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "group_status",
+      "label": "group_status",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The default status of each episode created by the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "group_asignee",
+      "label": "group_asignee",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The default owner of each episode created by the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "group_description",
+      "label": "group_description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The default description of each episode created by the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The title of the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "rules",
+      "label": "rules",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "An array of all the rules and actions to be executed for the notable event aggregation policy.",
+      "subordinate": null
+    },
+    {
+      "name": "split_by_field",
+      "label": "split_by_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A string containing all the fields to split episodes by.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

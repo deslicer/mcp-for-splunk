@@ -1,0 +1,310 @@
+{
+  "version": "4.21",
+  "source": "https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema",
+  "object_types": [
+    "base_service_template",
+    "correlation_search",
+    "deep_dive",
+    "entity",
+    "entity_type",
+    "event_management_state",
+    "glass_table",
+    "home_view",
+    "kpi_base_search",
+    "kpi_threshold_template",
+    "maintenance_calendar",
+    "notable_event_aggregation_policy",
+    "notable_event_comment",
+    "notable_event_email_template",
+    "notable_event_group",
+    "service",
+    "team"
+  ],
+  "subordinate_structures": [
+    "anomaly_detection_algorithm_settings",
+    "deep_dive_lane_setting",
+    "entity_rules",
+    "entity_type_dashboard_drilldown",
+    "entity_type_data_drilldown",
+    "entity_type_vital_metrics",
+    "event_management_export",
+    "glass_table_icon",
+    "glass_table_widget_configuration",
+    "kpi_threshold_levels",
+    "kpi_threshold_settings",
+    "service_kpi",
+    "service_template_kpi",
+    "time_variate_thresholds_specification"
+  ],
+  "entries": {
+    "anomaly_detection_algorithm_settings": {
+      "title": "Anomaly Detection Algorithm Settings",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 10,
+      "subordinate_objects": []
+    },
+    "base_service_template": {
+      "title": "Service Template",
+      "kind": "object",
+      "object_type": "base_service_template",
+      "endpoint": "/itoa_interface/base_service_template",
+      "attribute_count": 23,
+      "subordinate_objects": [
+        "entity_rules",
+        "service_template_kpi"
+      ]
+    },
+    "correlation_search": {
+      "title": "Correlation Search",
+      "kind": "object",
+      "object_type": "correlation_search",
+      "endpoint": "/event_management_interface/correlation_search",
+      "attribute_count": 50,
+      "subordinate_objects": []
+    },
+    "deep_dive": {
+      "title": "Deep Dive",
+      "kind": "object",
+      "object_type": "deep_dive",
+      "endpoint": "/itoa_interface/deep_dive",
+      "attribute_count": 18,
+      "subordinate_objects": [
+        "deep_dive_lane_setting"
+      ]
+    },
+    "deep_dive_lane_setting": {
+      "title": "Deep Dive Lane Setting",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 37,
+      "subordinate_objects": []
+    },
+    "entity": {
+      "title": "Entity",
+      "kind": "object",
+      "object_type": "entity",
+      "endpoint": "/itoa_interface/entity",
+      "attribute_count": 18,
+      "subordinate_objects": []
+    },
+    "entity_rules": {
+      "title": "Entity Rules",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 15,
+      "subordinate_objects": []
+    },
+    "entity_type": {
+      "title": "Entity Type",
+      "kind": "object",
+      "object_type": "entity_type",
+      "endpoint": "/itoa_interface/entity_type",
+      "attribute_count": 14,
+      "subordinate_objects": [
+        "entity_type_dashboard_drilldown",
+        "entity_type_data_drilldown",
+        "entity_type_vital_metrics"
+      ]
+    },
+    "entity_type_dashboard_drilldown": {
+      "title": "Entity Type Dashboard Drilldown",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 15,
+      "subordinate_objects": []
+    },
+    "entity_type_data_drilldown": {
+      "title": "Entity Type Data Drilldown",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 13,
+      "subordinate_objects": []
+    },
+    "entity_type_vital_metrics": {
+      "title": "Entity Type Vital Metrics",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 16,
+      "subordinate_objects": []
+    },
+    "event_management_export": {
+      "title": "Event Management Export",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 12,
+      "subordinate_objects": []
+    },
+    "event_management_state": {
+      "title": "Event Management State",
+      "kind": "object",
+      "object_type": "event_management_state",
+      "endpoint": "/event_management_interface/event_management_state",
+      "attribute_count": 21,
+      "subordinate_objects": []
+    },
+    "glass_table": {
+      "title": "Glass Table",
+      "kind": "object",
+      "object_type": "glass_table",
+      "endpoint": "/itoa_interface/glass_table",
+      "attribute_count": 19,
+      "subordinate_objects": [
+        "glass_table_widget_configuration",
+        "glass_table_icon"
+      ]
+    },
+    "glass_table_icon": {
+      "title": "Glass Table Icon",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 17,
+      "subordinate_objects": []
+    },
+    "glass_table_widget_configuration": {
+      "title": "Glass Table Widget Configuration",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 44,
+      "subordinate_objects": []
+    },
+    "home_view": {
+      "title": "Service Analyzer",
+      "kind": "object",
+      "object_type": "home_view",
+      "endpoint": "/itoa_interface/home_view",
+      "attribute_count": 23,
+      "subordinate_objects": []
+    },
+    "kpi_base_search": {
+      "title": "KPI Base Search",
+      "kind": "object",
+      "object_type": "kpi_base_search",
+      "endpoint": "/itoa_interface/kpi_base_search",
+      "attribute_count": 32,
+      "subordinate_objects": []
+    },
+    "kpi_threshold_levels": {
+      "title": "KPI Threshold Levels",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 15,
+      "subordinate_objects": []
+    },
+    "kpi_threshold_settings": {
+      "title": "KPI Threshold Settings",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 21,
+      "subordinate_objects": [
+        "kpi_threshold_levels"
+      ]
+    },
+    "kpi_threshold_template": {
+      "title": "KPI Threshold Templates",
+      "kind": "object",
+      "object_type": "kpi_threshold_template",
+      "endpoint": "/itoa_interface/kpi_threshold_template",
+      "attribute_count": 16,
+      "subordinate_objects": []
+    },
+    "maintenance_calendar": {
+      "title": "Maintenance Calendar",
+      "kind": "object",
+      "object_type": "maintenance_calendar",
+      "endpoint": "/maintenance_services_interface/maintenance_calendar",
+      "attribute_count": 15,
+      "subordinate_objects": []
+    },
+    "notable_event_aggregation_policy": {
+      "title": "Notable Event Aggregation Policy",
+      "kind": "object",
+      "object_type": "notable_event_aggregation_policy",
+      "endpoint": "/event_management_interface/notable_event_aggregation_policy",
+      "attribute_count": 21,
+      "subordinate_objects": []
+    },
+    "notable_event_comment": {
+      "title": "Notable Event Comment",
+      "kind": "object",
+      "object_type": "notable_event_comment",
+      "endpoint": "/event_management_interface/notable_event_comment",
+      "attribute_count": 15,
+      "subordinate_objects": []
+    },
+    "notable_event_email_template": {
+      "title": "Notable Event Email Template",
+      "kind": "object",
+      "object_type": "notable_event_email_template",
+      "endpoint": "/event_management_interface/notable_event_email_template",
+      "attribute_count": 11,
+      "subordinate_objects": []
+    },
+    "notable_event_group": {
+      "title": "Notable Event Group",
+      "kind": "object",
+      "object_type": "notable_event_group",
+      "endpoint": "/event_management_interface/notable_event_group",
+      "attribute_count": 13,
+      "subordinate_objects": []
+    },
+    "service": {
+      "title": "Service",
+      "kind": "object",
+      "object_type": "service",
+      "endpoint": "/itoa_interface/service",
+      "attribute_count": 23,
+      "subordinate_objects": [
+        "entity_rules",
+        "service_kpi"
+      ]
+    },
+    "service_kpi": {
+      "title": "Service KPI",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 69,
+      "subordinate_objects": []
+    },
+    "service_template_kpi": {
+      "title": "Service Template KPI",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 43,
+      "subordinate_objects": [
+        "kpi_threshold_settings",
+        "time_variate_thresholds_specification",
+        "anomaly_detection_algorithm_settings"
+      ]
+    },
+    "team": {
+      "title": "Team",
+      "kind": "object",
+      "object_type": "team",
+      "endpoint": "/itoa_interface/team",
+      "attribute_count": 16,
+      "subordinate_objects": []
+    },
+    "time_variate_thresholds_specification": {
+      "title": "Time Variate Thresholds Specification",
+      "kind": "subordinate",
+      "object_type": null,
+      "endpoint": null,
+      "attribute_count": 13,
+      "subordinate_objects": []
+    }
+  }
+}

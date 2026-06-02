@@ -80,6 +80,11 @@ from mcp_itsi.tools.kpi_threshold_template import (
 )
 from mcp_itsi.tools.maintenance import GetMaintenanceWindow, ListMaintenanceWindows
 from mcp_itsi.tools.meta import GetAliasList, GetSupportedObjectTypes
+from mcp_itsi.tools.schema import (
+    GetObjectSchema,
+    ListObjectSchemas,
+    ValidateObjectPayload,
+)
 from mcp_itsi.tools.service import (
     CountServices,
     CreateService,
@@ -105,6 +110,10 @@ def all_tools() -> list[type[BaseITSITool]]:
         # Meta / discovery
         GetAliasList,
         GetSupportedObjectTypes,
+        # Schema / validation
+        ListObjectSchemas,
+        GetObjectSchema,
+        ValidateObjectPayload,
         # Service Insights
         ListServices,
         GetService,

@@ -1,0 +1,156 @@
+{
+  "slug": "entity_type",
+  "title": "Entity Type",
+  "kind": "object",
+  "description": "An `entity_type` defines how to classify a type of data source. For example, you can create a Linux, Windows, Unix/Linux add-on, VMware, or Kubernetes entity type. An entity type can include zero or more data drilldowns and zero or more dashboard drilldowns. You can use a single data drilldown or dashboard drilldown for multiple entity types.",
+  "object_type": "entity_type",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/entity_type",
+  "subordinate_objects": [
+    "entity_type_dashboard_drilldown",
+    "entity_type_data_drilldown",
+    "entity_type_vital_metrics"
+  ],
+  "attributes": [
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "The name of the entity type.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A description of the entity type.",
+      "subordinate": null
+    },
+    {
+      "name": "dashboard_drilldowns",
+      "label": "dashboard_drilldowns",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "An array of dashboard drilldown objects. Each dashboard drilldown defines an internal or external resource you specify with a URL and parameters that map to one of an entity fields. The parameters are passed to the resource when you open the URL. See [Entity Type Dashboard Drilldown](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema#db5a9c8d_7a60_4c88_9385_44cf3fb415b5--en__ITSI_REST_API_schema).",
+      "subordinate": "entity_type_dashboard_drilldown"
+    },
+    {
+      "name": "data_drilldown",
+      "label": "data_drilldown",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "An array of data drilldown objects. Each data drilldown defines filters for raw data associated with entities that belong to the entity type. See [Entity Type Data Drilldown](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema#ade3ea81_9cb7_4514_a0c4_dedaa2e5e9f1--en__Entity_Type_Data_Drilldown).",
+      "subordinate": "entity_type_data_drilldown"
+    },
+    {
+      "name": "vital_metrics",
+      "label": "vital_metrics",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "An array of vital metric objects. Vital metrics are statistical calculations based on SPL searches that represent the overall health of entities of that type. See [Entity Type Vital Metrics](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema#id_76df76d8_0f87_4b90_b28d_1cda9f70b7cc--en__Entity_Type_Vital_Metrics).",
+      "subordinate": "entity_type_vital_metrics"
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

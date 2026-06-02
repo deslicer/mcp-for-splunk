@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Evaluation set for the ITSI schema tools (itsi_list_object_schemas,
+  itsi_get_object_schema, itsi_validate_object_payload).
+
+  All questions are read-only, deterministic and answerable from the bundled
+  ITSI 4.21 schema corpus alone (no live Splunk instance required), so answers
+  are stable and verifiable by string comparison.
+-->
+<evaluation>
+  <qa_pair>
+    <question>Using the ITSI schema tools, what is the REST endpoint path for the kpi_base_search object type?</question>
+    <answer>/itoa_interface/kpi_base_search</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>The correlation_search object is not on the ITOA interface. According to its schema, what is its full REST endpoint path?</question>
+    <answer>/event_management_interface/correlation_search</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>A service object contains a nested array under its kpis field. What is the object-type slug of the subordinate structure used for each item in that array?</question>
+    <answer>service_kpi</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Inside a Service KPI, the entity_thresholds field references which subordinate schema slug?</question>
+    <answer>kpi_threshold_settings</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>How many ITSI object types (top-level REST object types, not subordinate structures) have a documented schema in the bundled 4.21 corpus?</question>
+    <answer>17</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>For a service, which single field does the schema mark as required?</question>
+    <answer>title</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>According to the Service KPI schema, what are the three possible values of the alert_on field?</question>
+    <answer>aggregate, entities, both</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>If you validate the service payload {"titel": "Web"} with itsi_validate_object_payload, which existing field name does the tool suggest you meant instead of "titel"?</question>
+    <answer>title</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>When you validate a service payload that sets the read-only field object_type, does itsi_validate_object_payload report ok=true with a warning, or ok=false? Answer with just the value of ok.</question>
+    <answer>true</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>In an entity_rules rule item, the field_type attribute takes which two values according to the schema description?</question>
+    <answer>alias, info</answer>
+  </qa_pair>
+</evaluation>

@@ -1,0 +1,142 @@
+{
+  "slug": "notable_event_group",
+  "title": "Notable Event Group",
+  "kind": "object",
+  "description": "The `notable_event_group` contains information about an episode.",
+  "object_type": "notable_event_group",
+  "interface": "/event_management_interface",
+  "endpoint": "/event_management_interface/notable_event_group",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "severity",
+      "label": "severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The level of importance of the episode. Values must match an integer specified in the default version of `itsi_notable_event_severity.conf` (or the local version if you created one). Default values: `1` \\- Info `2` \\- Normal `3` \\- Low `4` \\- Medium `5` \\- High `6` \\- Critical",
+      "subordinate": null
+    },
+    {
+      "name": "status",
+      "label": "status",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The triage status of the episode in Episode Review. Values must match an integer specified in the default version of `itsi_notable_event_status.conf` (or the local version if you created one). Default values: `0` \\- Unassigned `1` \\- New `2` \\- In Progress `3` \\- Pending `4` \\- Resolved `5` \\- Closed",
+      "subordinate": null
+    },
+    {
+      "name": "owner",
+      "label": "owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The Splunk user who is the owner of the episode.",
+      "subordinate": null
+    },
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The episode ID that a change is associated with.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}
