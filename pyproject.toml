@@ -63,7 +63,7 @@ test = [
 security = [
 "bandit>=1.9.4",
 "safety>=3.8.1",
-"semgrep>=1.0.0"
+"semgrep>=1.164.0"
 ]
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)
