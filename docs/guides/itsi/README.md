@@ -5,13 +5,15 @@ A dedicated Model Context Protocol server for **Splunk IT Service Intelligence (
 - **Plugin** of [`mcp-for-splunk`](../../../README.md) — one process, one URL, one set of credentials.
 - **Standalone** FastMCP server — its own container or local Python process, separately routed.
 
-Both modes ship **70 tools**, **9 documentation resources**, and **3 workflow prompts**, target ITSI 4.21, and accept the same `X-Splunk-*` per-request auth headers as the parent server.
+Both modes ship **73 tools**, **27 MCP resources** (9 documentation guides, 17 object-type schemas, and `itsi://llms.txt`), and **3 workflow prompts**, target ITSI 4.21, and accept the same `X-Splunk-*` per-request auth headers as the parent server.
 
 ## Pick a guide
 
 | You want to… | Go to | Time |
 |---|---|---|
 | Get a working server in under 15 minutes | **[Getting Started](getting-started.md)** | 10–15 min |
+| Use the tools effectively (schema-first workflow, recipes, pitfalls) | **[User Guide](user-guide.md)** | 15 min |
+| Hand an AI agent a condensed usage map | **[`llms.txt`](../../../mcp_itsi/llms.txt)** (also `itsi://llms.txt`) | reference |
 | Decide standalone vs plugin and roll out properly | **[Deployment Guide](deployment.md)** | 20 min |
 | Browse every tool, resource, and prompt | **[Package README](../../../mcp_itsi/README.md)** | reference |
 | Configure auth headers for an MCP client | [Authentication](../../../mcp_itsi/README.md#authentication) | 5 min |

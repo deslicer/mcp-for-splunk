@@ -300,6 +300,7 @@ async def test_build_server_registers_everything():
 
     resource_uris = {str(getattr(r, "uri", "")) for r in resources}
     assert "itsi://docs/api/reference" in resource_uris
+    assert "itsi://llms.txt" in resource_uris
 
     prompt_names = {getattr(p, "name", "") for p in prompts}
     assert "itsi_service_onboarding" in prompt_names

@@ -1,0 +1,59 @@
+# ITSI MCP Server
+
+> Model Context Protocol server for Splunk IT Service Intelligence (ITSI 4.21). It exposes ~73 `itsi_*` tools for full CRUD on ITSI configuration objects (services, KPIs, entities, glass tables, notable events, ...), a bundled schema for every object type, and a knowledge corpus distilled from the official Splunk docs. This file tells an LLM agent how to use the server reliably.
+
+ITSI configuration objects (ITOA objects) are deeply nested JSON. A `service` contains `kpis[]` and `entity_rules[]`; a KPI contains threshold settings; and so on. Guessing field names is the main source of failed writes. The server solves this with bundled schemas and pre-flight validation — always work schema-first.
+
+## Golden path (do this for every create/update)
+
+1. Discover the type: call `itsi_list_object_schemas` to see all object types, their REST endpoints, required fields, and nested objects.
+2. Get the schema: call `itsi_get_object_schema(object_type)`. It returns every documented field (type + description), inlined schemas for nested objects, a derived JSON Schema, and minimal/full/curated example payloads. Pass `include_live_example=True` to also fetch one real object from the connected instance to copy the exact shape.
+3. Build the payload from the returned examples — do not invent field names.
+4. Dry-run validate: call `itsi_validate_object_payload(object_type, payload)`. Fix every `error`; review every `warning`. Use `is_partial=True` to skip required-field checks for partial updates.
+5. Write: call `itsi_create_*` / `itsi_update_*`. The server re-validates server-side: hard errors block before the API call and return structured `validation_errors`; non-fatal warnings (read-only or undocumented fields) are returned inline under `validation_warnings`.
+
+## Tool families
+
+- Discovery & schema: `itsi_get_supported_object_types`, `itsi_get_alias_list`, `itsi_list_object_schemas`, `itsi_get_object_schema`, `itsi_validate_object_payload`.
+- Service Insights: `itsi_list_services`, `itsi_get_service`, `itsi_create_service`, `itsi_update_service`, `itsi_delete_service`, `itsi_count_services`, plus service templates (`itsi_*_service_template`, `itsi_templatize_service`).
+- Entities: `itsi_list_entities`, `itsi_get_entity`, `itsi_create_entity`, `itsi_update_entity`, `itsi_delete_entity`, and entity types (`itsi_*_entity_type`).
+- KPI config: `itsi_*_kpi_base_search`, `itsi_*_kpi_threshold_template`.
+- Visualisation: `itsi_*_glass_table`, `itsi_*_home_view`, `itsi_*_deep_dive`.
+- Event Analytics: `itsi_list_notable_events`, `itsi_get_notable_event`, `itsi_acknowledge_notable_event`, `itsi_close_notable_event`, and `itsi_*_aggregation_policy`, `itsi_*_correlation_search`.
+- Maintenance & RBAC: `itsi_list_maintenance_windows`, `itsi_get_maintenance_window`, `itsi_list_teams`, `itsi_get_team`.
+- Docs as tools: `itsi_list_docs`, `itsi_read_doc`, `itsi_search_docs`.
+
+## Resources (read with the MCP resources API, no credentials needed)
+
+- `itsi://schema/<object_type>`: structured schema JSON for one object type (e.g. `itsi://schema/service`, `itsi://schema/kpi_base_search`). Same data as `itsi_get_object_schema`.
+- `itsi://docs/overview`: map of the bundled knowledge corpus — read this to orient.
+- `itsi://docs/api/schema` and `itsi://docs/api/reference`: full ITSI 4.21 REST schema and endpoint/filter reference.
+- `itsi://docs/service-insights`, `itsi://docs/entity-integrations`, `itsi://docs/event-analytics`, `itsi://docs/best-practices`: concept guides.
+- `itsi://docs/cookbook/header-auth`: how credentials reach the server.
+
+## Reading data efficiently
+
+- Filter with MongoDB-style queries: pass `filter_query` as an object or JSON string, e.g. `{"title": {"$regex": ".*Web.*"}}`.
+- Limit response size: pass `fields` (comma-separated) to project only what you need; use `limit`/`offset` to page and `sort_key`/`sort_dir` to order.
+- Objects are addressed by `_key` (notable events use `event_id`). List or count first to resolve a `_key` before get/update/delete.
+
+## Rules and gotchas
+
+- Always schema-first. The #1 failure mode is misspelled or invented field names; `itsi_get_object_schema` + `itsi_validate_object_payload` prevent it.
+- Updates are partial by default (only fields you send change). Set `is_partial=False` for a full overwrite.
+- Some ITSI endpoints validate the full document even on partial update; if a partial update 5xxs, GET the object, merge your change, and PUT it back with `is_partial=False`.
+- Booleans accept `true/false` or `1/0`. Read-only/server-generated fields (`_key`, `object_type`, `create_time`, `mod_time`, `acl`, ...) are ignored on write and produce a warning, not an error.
+- Entities: every alias field named in `identifier.fields` must also appear at the document root, e.g. `"host": ["web-1"]`.
+- Deletes are permanent — confirm intent with the user first.
+
+## Workflow prompts
+
+- `itsi_service_onboarding`: end-to-end service onboarding playbook.
+- `itsi_kpi_design`: KPI design with thresholds and urgency.
+- `itsi_episode_triage`: notable-event / episode triage runbook.
+
+## Optional
+
+- User guide: `docs/guides/itsi/user-guide.md` (task-oriented walk-throughs and recipes).
+- Getting started / deployment: `docs/guides/itsi/getting-started.md`, `docs/guides/itsi/deployment.md`.
+- Package reference (tool catalog, auth headers, env vars): `mcp_itsi/README.md`.
