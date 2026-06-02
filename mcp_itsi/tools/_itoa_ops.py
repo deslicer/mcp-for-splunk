@@ -16,6 +16,7 @@ from mcp_itsi.client.endpoints import (
     itoa_templatize,
 )
 from mcp_itsi.core.context import ITSICallContext
+from mcp_itsi.tools._validation import preflight
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +97,14 @@ async def get_object(ctx: ITSICallContext, object_type: str, key: str) -> dict[s
 
 
 async def create_object(
-    ctx: ITSICallContext, object_type: str, payload: dict[str, Any]
+    ctx: ITSICallContext,
+    object_type: str,
+    payload: dict[str, Any],
+    *,
+    validate: bool = True,
 ) -> dict[str, Any]:
+    if validate:
+        preflight(object_type, payload, is_partial=False)
     async with ctx.client() as client:
         result = await client.post_json(itoa_collection(object_type), body=payload)
     return result if isinstance(result, dict) else {"raw": result}
@@ -110,7 +117,10 @@ async def update_object(
     payload: dict[str, Any],
     *,
     is_partial: bool = True,
+    validate: bool = True,
 ) -> dict[str, Any]:
+    if validate:
+        preflight(object_type, payload, is_partial=is_partial)
     params = {"is_partial_data": 1 if is_partial else 0}
     async with ctx.client() as client:
         result = await client.post_json(itoa_item(object_type, key), body=payload, params=params)

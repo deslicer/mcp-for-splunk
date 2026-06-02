@@ -104,10 +104,13 @@ class CreateService(BaseITSITool):
     METADATA = ToolMetadata(
         name="itsi_create_service",
         description=(
-            "Create a new ITSI service. `payload` must follow the ITSI REST API "
-            "schema for service objects (title, description, kpis, entity_rules, "
-            "services_depends_on, sec_grp, enabled, ...). See the embedded "
-            "knowledge resource itsi://docs/api/schema for the full schema."
+            "Create a new ITSI service. `payload` must follow the ITSI service "
+            "schema (title, description, kpis[], entity_rules[], "
+            "services_depends_on, sec_grp, enabled, ...). Call "
+            "itsi_get_object_schema('service') for the full schema + examples and "
+            "itsi_validate_object_payload('service', payload) to check it first. "
+            "The payload is validated before submission: structural errors are "
+            "rejected and any warnings are returned alongside the result."
         ),
         category="service-insights",
         tags=("itsi", "service", "create"),
@@ -119,8 +122,8 @@ class CreateService(BaseITSITool):
         ctx: ITSICallContext,
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        if not isinstance(payload, dict) or not payload.get("title"):
-            return error_response("payload.title is required to create a service")
+        if not isinstance(payload, dict):
+            return error_response("`payload` must be a JSON object")
         result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
         return success_response(service=result)
 
@@ -133,7 +136,10 @@ class UpdateService(BaseITSITool):
         description=(
             "Update an existing ITSI service identified by `key`. Defaults to a "
             "partial update (only the fields you send are changed). Set "
-            "`is_partial=False` for a full replacement of the service document."
+            "`is_partial=False` for a full replacement of the service document. "
+            "The payload is validated against the service schema before "
+            "submission (use itsi_get_object_schema / itsi_validate_object_payload "
+            "to prepare it)."
         ),
         category="service-insights",
         tags=("itsi", "service", "update"),

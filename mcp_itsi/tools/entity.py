@@ -92,8 +92,8 @@ class CreateEntity(BaseITSITool):
         ctx: ITSICallContext,
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        if not isinstance(payload, dict) or not payload.get("title"):
-            return error_response("payload.title is required to create an entity")
+        if not isinstance(payload, dict):
+            return error_response("`payload` must be a JSON object")
         if "identifier" not in payload:
             return error_response("payload.identifier is required to create an entity")
         result = await ops.create_object(ctx, _OBJECT_TYPE, payload)

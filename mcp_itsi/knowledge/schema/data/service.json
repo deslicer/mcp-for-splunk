@@ -1,0 +1,245 @@
+{
+  "slug": "service",
+  "title": "Service",
+  "kind": "object",
+  "description": "An ITSI service is a representation of a real world IT service. You can configure an ITSI service to monitor various IT metrics using KPI searches, which reflect the health of a service. ITSI services can describe any real world IT service, such as a network service or email service. The `service` object contains the service definition, including entities, KPIs, and dependent services.",
+  "object_type": "service",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/service",
+  "subordinate_objects": [
+    "entity_rules",
+    "service_kpi"
+  ],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique identifier for this service.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User defined description for the service.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Title of this service.",
+      "subordinate": null
+    },
+    {
+      "name": "kpis",
+      "label": "kpis",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of KPI descriptions for this service.",
+      "subordinate": "service_kpi"
+    },
+    {
+      "name": "entity_rules",
+      "label": "entity_rules",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of rules describing entities referenced by this service.",
+      "subordinate": "entity_rules"
+    },
+    {
+      "name": "services_depends_on",
+      "label": "services_depends_on",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of service descriptions with KPIs in those services that this service depends on.",
+      "subordinate": null
+    },
+    {
+      "name": "service_id",
+      "label": "service_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "_key value of service that this service depends on.",
+      "subordinate": null
+    },
+    {
+      "name": "kpis_depending_on",
+      "label": "kpis_depending_on",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of _key ids for each KPI in service identified by serviceid, which this service will depend on.",
+      "subordinate": null
+    },
+    {
+      "name": "services_depending_on_me",
+      "label": "services_depending_on_me",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "An array of service descriptions with KPIs in this service that those services depend on.",
+      "subordinate": null
+    },
+    {
+      "name": "serviceid",
+      "label": "serviceid",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "_key value of service that depends on this service.",
+      "subordinate": null
+    },
+    {
+      "name": "enabled",
+      "label": "enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If set to 1, service is enabled. If value is absent or not set to 1, service is disabled. On upgrade service is flagged as enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "sec_grp",
+      "label": "sec_grp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The team the object belongs to.",
+      "subordinate": null
+    },
+    {
+      "name": "base_service_template_id",
+      "label": "base_service_template_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The ID of the service template the service is linked to. Not required. If empty, the service is not linked to a service template. To create a service based on a service template, include this field.",
+      "subordinate": null
+    },
+    {
+      "name": "service_tags",
+      "label": "service_tags",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "The tags for the service. The `service_tags` object can have an array for `tags` and `template_tags`. `tags` are regular tags that are added manually and `template_tags` are tags that are populated from a service template. Tags have to be strings and can't contain the following characters: `/ \\ \" ' ! @ ? . , ; $ ^` Example `service_tags` object: JSONCopy ```json \"service_tags\": { \"tags\": [ \"unix\", \"seattle\" ], \"template_tags\": [ \"cloud_systems\", \"us-west\" ] }, ```",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

@@ -1,0 +1,512 @@
+{
+  "slug": "correlation_search",
+  "title": "Correlation Search",
+  "kind": "object",
+  "description": "`correlation_search` contains the data for a correlation search. A correlation search is a recurring search that generates a notable event when search results meet specific conditions. A multi-KPI alert is a type of correlation search.",
+  "object_type": "correlation_search",
+  "interface": "/event_management_interface",
+  "endpoint": "/event_management_interface/correlation_search",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "is_scheduled",
+      "label": "is_scheduled",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Values: 1 means scheduled; 0 means not scheduled.",
+      "subordinate": null
+    },
+    {
+      "name": "disabled",
+      "label": "disabled",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Values: 1 means disabled; 0 means enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "cron_schedule",
+      "label": "cron_schedule",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Schedule searches to run periodically at fixed times, dates, or intervals using a cron expression. Default value is `*/5* * * *` (every 5 minutes).",
+      "subordinate": null
+    },
+    {
+      "name": "dispatch.earliest_time",
+      "label": "dispatch.earliest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates the beginning of the time range for the search. The default value is `-15m`.",
+      "subordinate": null
+    },
+    {
+      "name": "dispatch.latest_time",
+      "label": "dispatch.latest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates the end of the time range for the search. The default value is `-now`.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A description of the type of issue the search is intended to detect.",
+      "subordinate": null
+    },
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The Splunk search to run.",
+      "subordinate": null
+    },
+    {
+      "name": "name",
+      "label": "name",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A name that describes the correlation search. For example, \"cpu_load_percent\".",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.title",
+      "label": "action.itsi_event_generator.param.title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The title to use for the notable event in Episode Review. For example, `mysql-01 server cpu Load %`.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.description",
+      "label": "action.itsi_event_generator.param.description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A brief phrase to describe the notable event. For example, \"This alert triggers when DB CPU load on the mysql-01 server reaches 80%.\"",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.status",
+      "label": "action.itsi_event_generator.param.status",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The triage status of the event in Episode Review. You can provide a token in the format `%fieldname%` to substitute the value of a third-party alert field. Values must match an integer specified in `$SPLUNK_HOME/etc/apps/SA-ITOA/local/itsi_notable_event_status.conf` or `/default/itsi_notable_event_status.conf` if a local version does not exist. By default, these values are 0-5.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.owner",
+      "label": "action.itsi_event_generator.param.owner",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "The ITSI role to which the notable event is assigned in Episode Review.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.severity",
+      "label": "action.itsi_event_generator.param.severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The level of importance of the event. You can provide a token in the format `%fieldname%` to substitute the value of a third-party alert field. Values must match an integer specified in `$SPLUNK_HOME/etc/apps/SA-ITOA/local/itsi_notable_event_severity.conf` or `/default/itsi_notable_event_severity.conf` if a local version does not exist. By default, these values are 1-6.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_search_title",
+      "label": "action.itsi_event_generator.param.drilldown_search_title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The name of the drilldown search link. You can drill down to a specific Splunk search from an episode in Episode Review.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_search_search",
+      "label": "action.itsi_event_generator.param.drilldown_search_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The Splunk search you drill down to.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_search_latest_offset",
+      "label": "action.itsi_event_generator.param.drilldown_search_latest_offset",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Defines how far ahead from the time of the event to look for related events.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_search_earliest_offset",
+      "label": "action.itsi_event_generator.param.drilldown_search_earliest_offset",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Defines how far back from the time of the event to start looking for related events.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_title",
+      "label": "action.itsi_event_generator.param.drilldown_title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The name of the drilldown website link if you want to drill down to a specific website from the episode in Episode Review.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.drilldown_uri",
+      "label": "action.itsi_event_generator.param.drilldown_uri",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The website you drill down to.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.event_identifier_fields",
+      "label": "action.itsi_event_generator.param.event_identifier_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "These identifier fields form the event hash field, which is added to every notable event to help identify unique alarm types.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.service_ids",
+      "label": "action.itsi_event_generator.param.service_ids",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "One or more ITSI services to which this correlation search applies. You can only specify services that belong to teams for which you have read access.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.entity_lookup_field",
+      "label": "action.itsi_event_generator.param.entity_lookup_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The field in the data retrieved by the correlation search that is used to look up corresponding entities. For example, `host`.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.search_type",
+      "label": "action.itsi_event_generator.param.search_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "search_type = \"basic\", \"composite_kpi_score_type\", or composite_kpi_percentage_type",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.meta_data",
+      "label": "action.itsi_event_generator.param.meta_data",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "One of two JSON object schemas, depending on whether it is a correlation search or a multi-KPI alert. Correlation search object schema: - threshold_health_score - threshold score set by user - threshold_status - threshold status (default is undefined) - suppression criteria fields - alert_type - score or status - is_suppression - if suppression is enabled or not - is_consecutive - if count is consecutive or not - count - minimum number of times if this alert happens - suppression_period - suppression period in minute if it is non-consecutive - min_alert_period - minimum alert period of selected KPIs - run_every - frequency of search in minutes - score_based_kpis - list of KPIs which is added as part of a composite KPI. Each object in the list must have kpiid - <kpi id>, serviceid - <service id>, urgency - <urgency value> Multi-KPI alert object schema: - time_label - time label for time range - percentage_based_kpis - list of KPIs and service IDs included. Each item should contain kpiid - <kpi id>, serviceid - <service id>, label_thresholds - <threshold and operation type for trigger>. label_thresholds data format is as follows: `{ operation : 'OR', // default for now thresholds : [ { severity: <severity name>, percentage: <percentage value>, percentage_operation: '>=', // default for now } ...... ] }`",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator.param.editor",
+      "label": "action.itsi_event_generator.param.editor",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "One of two values: advance_correlation_builder_editor or multi_kpi_alert_editor. It directs to the specific UI page to make edits based on the type of search, correlation search or multi-KPI alert.",
+      "subordinate": null
+    },
+    {
+      "name": "action.itsi_event_generator",
+      "label": "action.itsi_event_generator",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Value: 1",
+      "subordinate": null
+    },
+    {
+      "name": "actions",
+      "label": "actions",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Value: itsi_event_generator",
+      "subordinate": null
+    },
+    {
+      "name": "alert.suppress",
+      "label": "alert.suppress",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Enable suppression to minimize the number of duplicate notable events sent to Episode Review. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "alert.suppress.fields",
+      "label": "alert.suppress.fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The fields to consider when determining if another event matches the current one.",
+      "subordinate": null
+    },
+    {
+      "name": "alert.suppress.period",
+      "label": "alert.suppress.period",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The number of seconds to ignore other events that have the same field values.",
+      "subordinate": null
+    },
+    {
+      "name": "action.rss",
+      "label": "action.rss",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Included in RSS feed. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.email",
+      "label": "action.email",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Send an email when the alert is triggered. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.to",
+      "label": "action.email.to",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The email addresses to send the email to.",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.subject",
+      "label": "action.email.subject",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The subject of the email.",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.sendcsv",
+      "label": "action.email.sendcsv",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Send an email in CSV format. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.sendpdf",
+      "label": "action.email.sendpdf",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Send an email with a PDF attachment. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.inline",
+      "label": "action.email.inline",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Send an email with the text inline. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.format",
+      "label": "action.email.format",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Default value is pdf. Other values: html, csv.",
+      "subordinate": null
+    },
+    {
+      "name": "action.email.sendresults",
+      "label": "action.email.sendresults",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Include alert information as an email attachment. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.script",
+      "label": "action.script",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Triggers a shell script if enabled. Values: 1 (means enabled) or 0 (means disabled).",
+      "subordinate": null
+    },
+    {
+      "name": "action.script.filename",
+      "label": "action.script.filename",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Provide the file name of the shell script to run when this alert is triggered.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

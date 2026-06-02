@@ -1,0 +1,162 @@
+{
+  "slug": "entity_rules",
+  "title": "Entity Rules",
+  "kind": "subordinate",
+  "description": "`entity_rules` determine the specific entities that a KPI monitors in a service. This includes entities directly identified by title, and entities identified by regular expression-based rules.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "rule_condition",
+      "label": "rule_condition",
+      "type": "string",
+      "type_raw": "Boolean operator",
+      "required": false,
+      "read_only": false,
+      "description": "Uses the value AND indicating this rule appends all nested rules contained in the `rule_items` attribute.",
+      "subordinate": null
+    },
+    {
+      "name": "rule_items",
+      "label": "rule_items",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of rules that are appended within a rule group.",
+      "subordinate": null
+    },
+    {
+      "name": "field",
+      "label": "field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The field in the entity definition to compare values to evaluate this rule.",
+      "subordinate": null
+    },
+    {
+      "name": "rule_type",
+      "label": "rule_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Takes values `not` or `matches` to indicate whether it's an inclusion or exclusion rule. Value can be `matchesblank` or `doesnotmatchblank` when used with service templates.",
+      "subordinate": null
+    },
+    {
+      "name": "value",
+      "label": "value",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Values to evaluate in the rule. To specify multiple values, separate them with a comma. Values are not case sensitive.",
+      "subordinate": null
+    },
+    {
+      "name": "field_type",
+      "label": "field_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Takes values `alias` or `info` specifying in which category of fields the `field` attribute is located.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

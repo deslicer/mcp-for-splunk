@@ -136,6 +136,9 @@ lic/*.lic
 # Local data storage
 .data/
 data/
+# ...but keep bundled ITSI schema data (shipped with the package).
+!mcp_itsi/knowledge/schema/data/
+!mcp_itsi/knowledge/schema/data/**
 
 # Local env backups
 .env_bak
@@ -143,3 +146,7 @@ opt-splunk/
 
 # Git worktrees (created via `git worktree add .worktrees/...`)
 .worktrees/
+
+# Local research scratch (e.g. firecrawl scrapes used to regenerate schemas)
+.research/
+.firecrawl/

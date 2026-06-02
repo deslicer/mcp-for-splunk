@@ -1,0 +1,452 @@
+{
+  "slug": "glass_table_widget_configuration",
+  "title": "Glass Table Widget Configuration",
+  "kind": "subordinate",
+  "description": "Glass Table Widget Configuration (`content`) is an array of JSON structures that contains all of the attributes needed to render the glass table. Each element of the array represents one glass table widget, and the attributes of the element are parsed into a glass table BaseWidgetViewManager object.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The search to power the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "labelVal",
+      "label": "labelVal",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The text to show in the label located beneath the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "labelFlag",
+      "label": "labelFlag",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True if labelVal is to be shown with the widget, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "vizType",
+      "label": "vizType",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Numeric indication of which visualization type the widget is - SingleValue, Gauge, Sparkline, SVD from 0-3, respectively",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_field",
+      "label": "threshold_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Field in data to which thresholds apply.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_comparator",
+      "label": "threshold_comparator",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Comparator used for threshold severity computation",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_values",
+      "label": "threshold_values",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of values to indicate the bounds of the thresholds set for the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_labels",
+      "label": "threshold_labels",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of labels to match the threshold values set for the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "context_id",
+      "label": "context_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Id of service to which the widget's KPI belongs.",
+      "subordinate": null
+    },
+    {
+      "name": "kpi_id",
+      "label": "kpi_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Id of KPI the widget represents",
+      "subordinate": null
+    },
+    {
+      "name": "searchSource",
+      "label": "searchSource",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Source of search for glass table widget - can be datamodel or ad hoc.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelSpecification",
+      "label": "dataModelSpecification",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Data model specification for the datamodel search.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelStatOp",
+      "label": "dataModelStatOp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Datamodel stats operation for the datamodel search.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelWhereClause",
+      "label": "dataModelWhereClause",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Datamodel where clause for the datamodel search.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_eval",
+      "label": "threshold_eval",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Threshold eval search clause for threshold severity evaluation.",
+      "subordinate": null
+    },
+    {
+      "name": "aggregate_eval",
+      "label": "aggregate_eval",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Aggregate eval search clause for threshold severity evaluation.",
+      "subordinate": null
+    },
+    {
+      "name": "base_search",
+      "label": "base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Base search of the KPI the widget represents.",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert_earliest",
+      "label": "search_alert_earliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for the search that powers the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "entities",
+      "label": "entities",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "List of entities that the widget's KPI contains.",
+      "subordinate": null
+    },
+    {
+      "name": "search_aggregate",
+      "label": "search_aggregate",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Aggregate search of the KPI the widget represents.",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_series_aggregate",
+      "label": "search_time_series_aggregate",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Time series search of the KPI the widget represents",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_compare",
+      "label": "search_time_compare",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Compare time series search of the KPI the widget represents (for the SVD viz type).",
+      "subordinate": null
+    },
+    {
+      "name": "search_type",
+      "label": "search_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Type of search the widget is powered by. Must match one of the search_\\* attributes of the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "relativeEarliest",
+      "label": "relativeEarliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time (in relative units) for the search that powers the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "defaultWidth",
+      "label": "defaultWidth",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Initial width to use for the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "defaultHeight",
+      "label": "defaultHeight",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Initial height to use for the widget.",
+      "subordinate": null
+    },
+    {
+      "name": "existingKPI",
+      "label": "existingKPI",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True if KPI exists in user's system, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_on",
+      "label": "alert_on",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Threshold alert type (aggregate or entities) of the KPI the widget represents.",
+      "subordinate": null
+    },
+    {
+      "name": "isThresholdEnabled",
+      "label": "isThresholdEnabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True if thresholds should be applied to the widget's search results, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "useKPISummary",
+      "label": "useKPISummary",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "true if widget uses the kpi_summary_index to power its search, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "unit",
+      "label": "unit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Unit string for widget to display.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity",
+      "label": "gap_severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Gap severity value of the KPI the widget represents.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_color",
+      "label": "gap_severity_color",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Gap severity color of the KPI the widget represents.",
+      "subordinate": null
+    },
+    {
+      "name": "drilldownSettingsModel",
+      "label": "drilldownSettingsModel",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Model to hold properties required for generating URLs for custom drilldown.",
+      "subordinate": null
+    },
+    {
+      "name": "useCustomDrilldown",
+      "label": "useCustomDrilldown",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True if widget has custom drilldown turned on, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

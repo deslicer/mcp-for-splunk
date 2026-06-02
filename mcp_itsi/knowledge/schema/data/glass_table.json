@@ -1,0 +1,205 @@
+{
+  "slug": "glass_table",
+  "title": "Glass Table",
+  "kind": "object",
+  "description": "ITSI glass tables are custom visualizations that let you monitor KPI search results. `glass_table` objects define all widgets and drawing elements that appear in the glass table.",
+  "object_type": "glass_table",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/glass_table",
+  "subordinate_objects": [
+    "glass_table_widget_configuration",
+    "glass_table_icon"
+  ],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Unique identifier for this glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Name of this glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined description for this glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "glass_table.",
+      "subordinate": null
+    },
+    {
+      "name": "latest",
+      "label": "latest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Latest time for all of the widget searches on the glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "latest_label",
+      "label": "latest_label",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Latest label displayed in the glass table instant picker. Matches latest attribute.",
+      "subordinate": null
+    },
+    {
+      "name": "svg_coordinates",
+      "label": "svg_coordinates",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "x and y viewbox offsets for the glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "content",
+      "label": "content",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of JSON structures containing all attributes needed to draw the glass table. See Glass Table Widget Configuration.",
+      "subordinate": null
+    },
+    {
+      "name": "is_epoch",
+      "label": "is_epoch",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True when the glass table uses a custom (non-preset) time, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "templateSelectedServiceId",
+      "label": "templateSelectedServiceId",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The id of the service currently in focus if templatization is enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "templateSwappableServiceIds",
+      "label": "templateSwappableServiceIds",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "The array of services available to be swapped to for templatization.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

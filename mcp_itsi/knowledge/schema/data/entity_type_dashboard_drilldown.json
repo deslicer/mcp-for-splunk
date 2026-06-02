@@ -1,0 +1,162 @@
+{
+  "slug": "entity_type_dashboard_drilldown",
+  "title": "Entity Type Dashboard Drilldown",
+  "kind": "subordinate",
+  "description": "A `dashboard_drilldown` lists the dashboards associated with an entity and its entity type.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The name of the dashboard.",
+      "subordinate": null
+    },
+    {
+      "name": "id",
+      "label": "id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A unique identifier for the dashboard.",
+      "subordinate": null
+    },
+    {
+      "name": "base_url",
+      "label": "base_url",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "An internal or external URL that points to the dashboard. This setting exists because for internal purposes, navigation suggestions are treated as dashboards. This setting is only required if `is_splunk_dashboard` is `false`.",
+      "subordinate": null
+    },
+    {
+      "name": "is_splunk_dashboard",
+      "label": "is_splunk_dashboard",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "`true` if the dashboard is a Splunk XML dashboard. If it's another dashboard type such as a JSON dashboard from the Splunk Dashboards app, or if it's a navigation link, this value is `false`.",
+      "subordinate": null
+    },
+    {
+      "name": "dashboard_type",
+      "label": "dashboard_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The type of dashboard being added. This element is required. The following options are available: - `xml_dashboard` \\- a Splunk XML dashboard. Any dashboards you add must be of this type. - `navigation_link` \\- a navigation URL. Should be used when `base_url` is specified.",
+      "subordinate": null
+    },
+    {
+      "name": "params",
+      "label": "params",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "A set of parameters for the entity dashboard drilldown that provide a mapping of a URL parameter and its alias and static parameters.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

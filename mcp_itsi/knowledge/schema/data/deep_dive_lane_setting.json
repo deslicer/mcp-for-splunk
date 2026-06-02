@@ -1,0 +1,382 @@
+{
+  "slug": "deep_dive_lane_setting",
+  "title": "Deep Dive Lane Setting",
+  "kind": "subordinate",
+  "description": "Configuration settings that define what information a deep dive lane shows. Deep dive views use these settings for per lane configuration.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Name of the lane to display.",
+      "subordinate": null
+    },
+    {
+      "name": "subtitle",
+      "label": "subtitle",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The subtitle of the lane to display.",
+      "subordinate": null
+    },
+    {
+      "name": "laneType",
+      "label": "laneType",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The type of lane to render. Possible values: event, kpi, metric (the default).",
+      "subordinate": null
+    },
+    {
+      "name": "graphType",
+      "label": "graphType",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The type of graph to render",
+      "subordinate": null
+    },
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The search to use to get data for the lane.",
+      "subordinate": null
+    },
+    {
+      "name": "searchSource",
+      "label": "searchSource",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Represents how a search is generated. Possible values: datamodel, ad hoc search, or kpi search.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelSpecification",
+      "label": "dataModelSpecification",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "An object showing the selections that went into the generation of the search, null unless searchSource is data model. If defined, it is structured as {datamodel: <Data Model name> object: <Object Name>, field: <Field Info Data Structure>.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelStatOp",
+      "label": "dataModelStatOp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Stats operation used in the data model search.",
+      "subordinate": null
+    },
+    {
+      "name": "dataModelWhereClause",
+      "label": "dataModelWhereClause",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Where clause defined during data model search creation.",
+      "subordinate": null
+    },
+    {
+      "name": "overwriteKpiTitle",
+      "label": "overwriteKpiTitle",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Overwrite KPI title with user specified title.",
+      "subordinate": null
+    },
+    {
+      "name": "overwriteEntityTitle",
+      "label": "overwriteEntityTitle",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Overwrite Entity title with user specified title.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiTitle",
+      "label": "kpiTitle",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The original title of the KPI as defined in the KPI model.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiServiceId",
+      "label": "kpiServiceId",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The id of the service associated with the selected KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiUnit",
+      "label": "kpiUnit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The unit of the KPI driving this lane.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiAddToSummary",
+      "label": "kpiAddToSummary",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Add or remove from kpi summary based on user selection. \\[yes, no\\] Yes runs the search against kpi summary index and no runs raw search.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiStatsOp",
+      "label": "kpiStatsOp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Stats operation to calculate the KPI value, avg by default \\[avg, max, min, median\\].",
+      "subordinate": null
+    },
+    {
+      "name": "entityAddToSummary",
+      "label": "entityAddToSummary",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Shows the accelerated output for entity lanes. Always set to \"yes.\"",
+      "subordinate": null
+    },
+    {
+      "name": "thresholdIndicationEnabled",
+      "label": "thresholdIndicationEnabled",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Enable/disable threshold indication. Disabled by default.",
+      "subordinate": null
+    },
+    {
+      "name": "thresholdIndicationType",
+      "label": "thresholdIndicationType",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Type of threshold indication. \\[foreground/background\\] Foreground selected by default.",
+      "subordinate": null
+    },
+    {
+      "name": "hideGraph",
+      "label": "hideGraph",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Only available with background threshold indications. If selected, hides the graph and only shows the top view with background thresholds \\[yes, no\\].",
+      "subordinate": null
+    },
+    {
+      "name": "verticalAxisScale",
+      "label": "verticalAxisScale",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Determines the scale of the y axis. It is linear or log.",
+      "subordinate": null
+    },
+    {
+      "name": "verticalAxisBoundaryType",
+      "label": "verticalAxisBoundaryType",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Determine the extent of the y axis. It is staticValue, value, or zeroValue.",
+      "subordinate": null
+    },
+    {
+      "name": "verticalAxisStaticBounds",
+      "label": "verticalAxisStaticBounds",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "If static, these are the bounds to use. Otherwise this is ignored. This is an object of the form\\[<min number>, <max number>\\].",
+      "subordinate": null
+    },
+    {
+      "name": "dataGaps",
+      "label": "dataGaps",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "null values in the data can be represented as gaps or connected through the graph.",
+      "subordinate": null
+    },
+    {
+      "name": "graphColor",
+      "label": "graphColor",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The color of the graph to render.",
+      "subordinate": null
+    },
+    {
+      "name": "graphSeries",
+      "label": "graphSeries",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The field in the data which to plot as the range, if unspecified plots all.",
+      "subordinate": null
+    },
+    {
+      "name": "excludeSeries",
+      "label": "excludeSeries",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The series of data to omit from being displayed in graph. Series with a leading _ (indicating internal use) is always excluded.",
+      "subordinate": null
+    },
+    {
+      "name": "laneOverlaySettingsModel",
+      "label": "laneOverlaySettingsModel",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "Model to define the overlay lane settings.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

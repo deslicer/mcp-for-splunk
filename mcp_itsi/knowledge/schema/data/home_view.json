@@ -1,0 +1,242 @@
+{
+  "slug": "home_view",
+  "title": "Service Analyzer",
+  "kind": "object",
+  "description": "Service Analyzer is the ITSI UI home page. It displays service and KPI health scores that are trending at top severity levels. You can configure Service Analyzer to filter the display of services and KPIs relevant to the user. The Service Analyzer object is called `home_view`.",
+  "object_type": "home_view",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/home_view",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Unique ID for the entry in KV store.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "home_view",
+      "subordinate": null
+    },
+    {
+      "name": "-owner",
+      "label": "-owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User that creates the saved service analyzer.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User given title for the service analyzer.",
+      "subordinate": null
+    },
+    {
+      "name": "earliest_time",
+      "label": "earliest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for the searches.",
+      "subordinate": null
+    },
+    {
+      "name": "latest_time",
+      "label": "latest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Latest time for the searches.",
+      "subordinate": null
+    },
+    {
+      "name": "serviceWhitelist",
+      "label": "serviceWhitelist",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "List of filtered services.",
+      "subordinate": null
+    },
+    {
+      "name": "kpiWhitelist",
+      "label": "kpiWhitelist",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "List of filtered kpis.",
+      "subordinate": null
+    },
+    {
+      "name": "isServiceFilterEnabled",
+      "label": "isServiceFilterEnabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True if services are filtered, false by default.",
+      "subordinate": null
+    },
+    {
+      "name": "isKpiFilterEnabled",
+      "label": "isKpiFilterEnabled",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "True if kpis are filtered, false by default.",
+      "subordinate": null
+    },
+    {
+      "name": "serviceTilesSettings",
+      "label": "serviceTilesSettings",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "SeverityTilesSettingModel with number of kpi tiles and filter.",
+      "subordinate": null
+    },
+    {
+      "name": "view",
+      "label": "view",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if service analyzer view is standard or full screen. Standard is default.",
+      "subordinate": null
+    },
+    {
+      "name": "isDefault",
+      "label": "isDefault",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "True if it is the default (standard) service analyzer, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "titleSize",
+      "label": "titleSize",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "medium\\|large\\], large by default.",
+      "subordinate": null
+    },
+    {
+      "name": "searchType",
+      "label": "searchType",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "maxseverity\\] \\[aggregate\\|maxseverity\\] aggregate shows the most recent service value and the max severity is service value unless there is an entity value with worst severity.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}
