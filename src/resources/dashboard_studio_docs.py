@@ -13,8 +13,8 @@ from fastmcp import Context
 from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
 from src.resources.dashboard_studio_content import (
-    DashboardStudioContentError,
     CHEATSHEET_SOURCE_PATH,
+    DashboardStudioContentError,
     load_cheatsheet_markdown,
 )
 
