@@ -80,10 +80,14 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"docs/reference/dashboard_studio_cheatsheet.md" = "src/bundled_docs/dashboard_studio_cheatsheet.md"
+
 [tool.hatch.build.targets.sdist]
 include = [
 "/src",
 "/tests",
+"/docs/reference/dashboard_studio_cheatsheet.md",
 "/pyproject.toml",
 "/README.md"
 ]

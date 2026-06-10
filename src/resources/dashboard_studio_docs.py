@@ -5,7 +5,6 @@ Provides curated Dashboard Studio (9.4) documentation for LLM-assisted dashboard
 """
 
 import logging
-from pathlib import Path
 
 import httpx
 from bs4 import BeautifulSoup
@@ -13,6 +12,11 @@ from fastmcp import Context
 
 from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
+from src.resources.dashboard_studio_content import (
+    DashboardStudioContentError,
+    CHEATSHEET_SOURCE_PATH,
+    load_cheatsheet_markdown,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +56,7 @@ DASHBOARD_STUDIO_TOPICS = {
     "framework": {
         "name": "Dashboard Framework Introduction",
         "description": "Introduction to Dashboard Framework concepts and architecture",
-        "url": "https://splunkui.splunk.com/Packages/dashboard-docs/Introduction",
+        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.4/introduction-to-splunk-dashboard-studio/create-a-dashboard-in-dashboard-studio",
         "tags": ["framework", "introduction", "concepts"],
     },
 }
@@ -95,29 +99,22 @@ class DashboardStudioDocsResource(BaseResource):
         return await self._fetch_external_content(topic_info)
 
     async def _load_file_content(self, filename: str) -> str:
-        """Load content from a file in docs/reference."""
+        """Load bundled or repo-local Dashboard Studio reference content."""
+        if filename != "dashboard_studio_cheatsheet.md":
+            raise DashboardStudioContentError(
+                f"Unknown local Dashboard Studio document '{filename}'. "
+                f"Edit cheatsheet content in {CHEATSHEET_SOURCE_PATH}."
+            )
+
         try:
-            file_path = Path(__file__).parent.parent.parent / "docs" / "reference" / filename
-
-            if not file_path.exists():
-                return f"""# Dashboard Studio Documentation Not Found
-
-The documentation file was not found at: {file_path}
-
-Please ensure the file exists in the docs/reference directory.
-"""
-
-            content = file_path.read_text(encoding="utf-8")
-            return content
-
+            return load_cheatsheet_markdown()
+        except DashboardStudioContentError:
+            raise
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error loading Dashboard Studio documentation file %s: %s", filename, e)
-            return f"""# Error Loading Documentation
-
-Failed to load Dashboard Studio documentation: {str(e)}
-
-Please check the file path and permissions.
-"""
+            raise DashboardStudioContentError(
+                f"Failed to load Dashboard Studio cheatsheet from {CHEATSHEET_SOURCE_PATH}: {e}"
+            ) from e
 
     async def _fetch_external_content(self, topic_info: dict) -> str:
         """Fetch and format external documentation content."""
@@ -180,7 +177,16 @@ Please check the file path and permissions.
                     lines = [line.strip() for line in content_text.split("\n") if line.strip()]
                     formatted_content = "\n\n".join(lines)
                 else:
-                    formatted_content = "Content extraction failed - no main content found."
+                    raise DashboardStudioContentError(
+                        f"No readable documentation content found at {url}. "
+                        "Use dashboard-studio://cheatsheet for the local reference."
+                    )
+
+                if len(formatted_content.strip()) < 100:
+                    raise DashboardStudioContentError(
+                        f"Documentation at {url} returned insufficient content after parsing. "
+                        "Use dashboard-studio://cheatsheet for the local reference."
+                    )
 
                 return f"""# {name}
 
@@ -206,58 +212,19 @@ Please check the file path and permissions.
 **Note**: This content was fetched from Splunk's official documentation. For a comprehensive local reference, see: `dashboard-studio://cheatsheet`
 """
 
+        except DashboardStudioContentError:
+            raise
         except httpx.HTTPError as e:
             logger.error("Failed to fetch Dashboard Studio docs from %s: %s", url, e)
-            return f"""# {name}
-
-**Topic**: `{self.topic}`
-**Description**: {description}
-**Tags**: {tags}
-
-## Error Fetching Documentation
-
-Failed to retrieve documentation from: {url}
-
-**Error**: {str(e)}
-
-Please check:
-- Network connectivity
-- URL availability
-- Firewall settings
-
-For offline reference, use: `dashboard-studio://cheatsheet`
-
-## Related Topics
-
-{self._get_related_topics()}
-
----
-
-**Official URL**: {url}
-"""
+            raise DashboardStudioContentError(
+                f"Failed to retrieve documentation from {url}: {e}. "
+                "Use dashboard-studio://cheatsheet for the local reference."
+            ) from e
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error processing Dashboard Studio docs for %s: %s", self.topic, e)
-            return f"""# {name}
-
-**Topic**: `{self.topic}`
-**Description**: {description}
-
-## Error Processing Documentation
-
-An error occurred while processing the documentation.
-
-**Error**: {str(e)}
-
-For offline reference, use: `dashboard-studio://cheatsheet`
-
-## Related Topics
-
-{self._get_related_topics()}
-
----
-
-**Official URL**: {url}
-"""
+            raise DashboardStudioContentError(
+                f"Failed to process documentation for topic '{self.topic}': {e}"
+            ) from e
 
     def _get_related_topics(self) -> str:
         """Get formatted list of related topics."""
