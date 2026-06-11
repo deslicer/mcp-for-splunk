@@ -1,0 +1,222 @@
+{
+  "slug": "event_management_state",
+  "title": "Event Management State",
+  "kind": "object",
+  "description": "The `event_management_state` object stores user settings for custom saved views of Episode Review. For instructions to save custom views through the UI, see [Save a custom view of Episode Review](https://help.splunk.com/?resourceId=ITSI_EA_CustomizeEpisode) in the _User Manual_.",
+  "object_type": "event_management_state",
+  "interface": "/event_management_interface",
+  "endpoint": "/event_management_interface/event_management_state",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The unique ID for Episode Review view in the KV store.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A user-defined name for the custom episode review.",
+      "subordinate": null
+    },
+    {
+      "name": "earliest",
+      "label": "earliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The earliest time for the main search in the Episode Review custom view.",
+      "subordinate": null
+    },
+    {
+      "name": "latest",
+      "label": "latest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The latest time for the main search in the Episode Review custom view.",
+      "subordinate": null
+    },
+    {
+      "name": "fetchLimit",
+      "label": "fetchLimit",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "The maximum number of notable events to fetch in a single request.",
+      "subordinate": null
+    },
+    {
+      "name": "sortField",
+      "label": "sortField",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The field in the data (column in Episode Review) to sort notable events by.",
+      "subordinate": null
+    },
+    {
+      "name": "sortDirection",
+      "label": "sortDirection",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Whether to sort notable events in ascending or descending order.",
+      "subordinate": null
+    },
+    {
+      "name": "arbitrarySearch",
+      "label": "arbitrarySearch",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The Splunk search string used to filter raw notable events.",
+      "subordinate": null
+    },
+    {
+      "name": "filterCollection",
+      "label": "filterCollection",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "A set of filters that represent the Episode Review page filters.",
+      "subordinate": null
+    },
+    {
+      "name": "viewingOption",
+      "label": "viewingOption",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Whether to display notable events as standard or prominent mode in Episode Review.",
+      "subordinate": null
+    },
+    {
+      "name": "eventDeduplication",
+      "label": "eventDeduplication",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true, episode view is turned on. Otherwise individual notable events are displayed.",
+      "subordinate": null
+    },
+    {
+      "name": "columnsShown",
+      "label": "columnsShown",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "A list of fields in the data (columns in Episode Review) to display.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

@@ -69,7 +69,10 @@ class CreateKpiBaseSearch(BaseITSITool):
             "Create a new KPI base search. `payload` must follow the ITSI "
             "`kpi_base_search` schema (`title`, `base_search`, `metrics`, "
             "`entity_id_fields`, `entity_alias_filtering_fields`, "
-            "`alert_period`, ...). Returns the new `_key`."
+            "`alert_period`, ...). Call itsi_get_object_schema('kpi_base_search') "
+            "for the full schema + examples and itsi_validate_object_payload to "
+            "check it first. The payload is validated before submission. Returns "
+            "the new `_key`."
         ),
         category="kpi",
         tags=("itsi", "kpi", "base-search", "create"),
@@ -78,8 +81,8 @@ class CreateKpiBaseSearch(BaseITSITool):
     async def execute(
         self, mcp_ctx: Context, ctx: ITSICallContext, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        if not isinstance(payload, dict) or not payload.get("title"):
-            return error_response("payload.title is required to create a KPI base search")
+        if not isinstance(payload, dict):
+            return error_response("`payload` must be a JSON object")
         result = await ops.create_object(ctx, _OBJECT_TYPE, payload)
         return success_response(kpi_base_search=result)
 
@@ -89,7 +92,9 @@ class UpdateKpiBaseSearch(BaseITSITool):
         name="itsi_update_kpi_base_search",
         description=(
             "Update an existing KPI base search by `_key`. Defaults to a "
-            "partial update; set `is_partial=False` for a full overwrite."
+            "partial update; set `is_partial=False` for a full overwrite. The "
+            "payload is validated against the kpi_base_search schema before "
+            "submission."
         ),
         category="kpi",
         tags=("itsi", "kpi", "base-search", "update"),

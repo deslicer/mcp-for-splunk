@@ -1,0 +1,446 @@
+{
+  "slug": "service_template_kpi",
+  "title": "Service Template KPI",
+  "kind": "subordinate",
+  "description": "KPI is the data structure that drives the monitoring of service metrics. KPI objects for service templates differ slightly from KPI objects for services. For example, service template KPIs can only use base searches, not ad hoc searches or searches based on data models. You can't enable anomaly detection for service template KPIs. KPI objects, `kpis`, for service templates are defined and contained within the `base_service_template` object type data structure.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [
+    "kpi_threshold_settings",
+    "time_variate_thresholds_specification",
+    "anomaly_detection_algorithm_settings"
+  ],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique ID for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined name for the KPI",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined description for the KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "type",
+      "label": "type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "kpi_primary.",
+      "subordinate": null
+    },
+    {
+      "name": "kpi_threshold_template_id",
+      "label": "kpi_threshold_template_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined ID for the KPI. Used to refer to KPIs within a KPI template in ITSI modules. This uniquely identifies a KPI template in ITSI.",
+      "subordinate": null
+    },
+    {
+      "name": "is_service_entity_filter",
+      "label": "is_service_entity_filter",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true a filter is used on the search based on the entities included in the service.",
+      "subordinate": null
+    },
+    {
+      "name": "datamode",
+      "label": "datamode",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The data model to use for search generation if this is a data model type search.",
+      "subordinate": null
+    },
+    {
+      "name": "datamodel_filter",
+      "label": "datamodel_filter",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "ITSI generated clauses for user-defined filters on top of the data model fields. Used in the KPI search to filter events required by this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_field",
+      "label": "threshold_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-specified field on which statistical operations are performed and whose value determines KPI health.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_statop",
+      "label": "entity_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, mean, and so on) used to combine data for alert_values on a per entity basis (used if entity_breakdown is true).",
+      "subordinate": null
+    },
+    {
+      "name": "aggregate_statop",
+      "label": "aggregate_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, median, stdev, and so on) used to combine data for the aggregate alert_value (used for all KPI).",
+      "subordinate": null
+    },
+    {
+      "name": "urgency",
+      "label": "urgency",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "User-assigned importance value for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "unit",
+      "label": "unit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined units for the values in threshold field.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_id_fields",
+      "label": "entity_id_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Fields from this KPI's search events that will be mapped to the alias fields defined in entities for the service containing this KPI. This field enables the KPI search to tie the aliases of entities to the fields from the KPI events in identifying entities at search time.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_alias_filtering_fields",
+      "label": "entity_alias_filtering_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Subset of aliases from all entities included in the service containing this KPI, to restrict this KPI to only the subset of entities matching via the subset of aliases. Helps filter entities for this KPI among the ones selected in the service containing this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "cron_schedule",
+      "label": "cron_schedule",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The cron schedule that determines the frequency of this KPI search.",
+      "subordinate": null
+    },
+    {
+      "name": "base_search",
+      "label": "base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "KPI search defined by user for this KPI. All generated searches for the KPI are based on this search.",
+      "subordinate": null
+    },
+    {
+      "name": "kpi_base_search",
+      "label": "kpi_base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A basic search generated for the KPI search.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_on",
+      "label": "alert_on",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Specified if the threshold type for this KPI is \"Per Entity\" or \"Aggregate\" or \"Both\". Possible values: aggregate, entities, both.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_period",
+      "label": "alert_period",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User specified interval to run the KPI search in minutes.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_lag",
+      "label": "alert_lag",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Contains the number of seconds of lag to apply to the alert search. The maximum is 30 minutes (1800 seconds).",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert_earliest",
+      "label": "search_alert_earliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time to look for events every time KPI search runs. This determines how far back each time window is during KPI search runs.",
+      "subordinate": null
+    },
+    {
+      "name": "tz_offset",
+      "label": "tz_offset",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "ISO time zone offset. Note: Do not change this value.",
+      "subordinate": null
+    },
+    {
+      "name": "time_variate_thresholds_specification_custom",
+      "label": "time_variate_thresholds_specification_custom",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true, thresholds for alerts are pulled from time_variate_thresholds_specification.",
+      "subordinate": null
+    },
+    {
+      "name": "adaptive_thresholds_is_enabled",
+      "label": "adaptive_thresholds_is_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if adaptive threshold is enabled for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "adaptive_thresholding_training_window",
+      "label": "adaptive_thresholding_training_window",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for the Adaptive Threshold training algorithm to run over (latest time is always 'now') (e.g. '-7d')",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity",
+      "label": "gap_severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity level assigned for data gaps (info, normal, low, medium, high, critical, or unknown)",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_color",
+      "label": "gap_severity_color",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity color assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_color_light",
+      "label": "gap_severity_color_light",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity color assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_value",
+      "label": "gap_severity_value",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity value assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_thresholds",
+      "label": "entity_thresholds",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined thresholding levels for \"Per Entity\" threshold type. For more information, see KPI Threshold Setting.",
+      "subordinate": "kpi_threshold_settings"
+    },
+    {
+      "name": "aggregate_thresholds",
+      "label": "aggregate_thresholds",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined thresholding levels for \"Aggregate\" threshold type. For more information, see KPI Threshold Setting.",
+      "subordinate": "kpi_threshold_settings"
+    },
+    {
+      "name": "enabled",
+      "label": "enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If set to 1, KPI is enabled. If absent or not set to 1, KPI is disabled. On upgrade KPI is flagged as enabled. Field is read-only.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_breakdown_id_field",
+      "label": "entity_breakdown_id_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "KPI search events are split by the alias field defined in entities for the service containing this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

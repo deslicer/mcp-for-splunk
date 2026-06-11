@@ -1,9 +1,33 @@
 name: Docker
 
+# Builds + pushes the mcp-server-for-splunk image to GHCR.
+#
+# Triggers:
+#   * push tags `v*.*.*`         — manual / ad-hoc tag pushes
+#   * workflow_dispatch          — maintainer-initiated rebuilds
+#   * workflow_call              — fanned out from release-please.yml on merge
+#
+# NOTE: release-please creates the `v*.*.*` tag using the default GITHUB_TOKEN,
+# and GitHub does not start new workflow runs from GITHUB_TOKEN-created events.
+# So the `push: tags` trigger never fires for automated releases — that's why
+# release-please.yml calls this workflow directly via `workflow_call`.
+
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag the image with (e.g. 1.2.3). Leave empty to use the git ref."
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to tag the image with (e.g. 1.2.3)."
+        required: true
+        type: string
 
 jobs:
   docker:
@@ -27,6 +51,14 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
+          # `value=${{ inputs.version }}` is honoured on workflow_call /
+          # workflow_dispatch; on a `push: tags` run inputs.version is empty so
+          # metadata-action falls back to the git tag.
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=ref,event=tag
+            type=raw,value=v${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       - name: Build and push
         uses: docker/build-push-action@v7

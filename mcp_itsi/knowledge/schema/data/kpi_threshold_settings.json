@@ -1,0 +1,224 @@
+{
+  "slug": "kpi_threshold_settings",
+  "title": "KPI Threshold Settings",
+  "kind": "subordinate",
+  "description": "KPI Threshold Settings define the thresholds that a KPI uses to compute health status information. KPI Threshold Settings also contain information for rendering KPI threshold graphs.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [
+    "kpi_threshold_levels"
+  ],
+  "attributes": [
+    {
+      "name": "gaugeMin",
+      "label": "gaugeMin",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Minimum value for the threshold gauge specified by user.",
+      "subordinate": null
+    },
+    {
+      "name": "gaugeMax",
+      "label": "gaugeMax",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Maximum value for the threshold gauge specified by user.",
+      "subordinate": null
+    },
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used to compute the thresholds for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "baseSeverityValue",
+      "label": "baseSeverityValue",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Value for base threshold level.",
+      "subordinate": null
+    },
+    {
+      "name": "baseSeverityColor",
+      "label": "baseSeverityColor",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity color assigned for the base threshold level.",
+      "subordinate": null
+    },
+    {
+      "name": "baseSeverityColorLight",
+      "label": "baseSeverityColorLight",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity light color assigned for the base threshold level.",
+      "subordinate": null
+    },
+    {
+      "name": "baseSeverityLabel",
+      "label": "baseSeverityLabel",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity label assigned for the base threshold level, including info, warning, critical, etc.",
+      "subordinate": null
+    },
+    {
+      "name": "metricField",
+      "label": "metricField",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Thresholding field from the search.",
+      "subordinate": null
+    },
+    {
+      "name": "renderBoundaryMin",
+      "label": "renderBoundaryMin",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Lower bound value to use to render the graph for the thresholds.",
+      "subordinate": null
+    },
+    {
+      "name": "renderBoundaryMax",
+      "label": "renderBoundaryMax",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Upper bound value to use to render the graph for the thresholds.",
+      "subordinate": null
+    },
+    {
+      "name": "isMaxStatic",
+      "label": "isMaxStatic",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True when maximum threshold value is a static value, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "isMinStatic",
+      "label": "isMinStatic",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True when min threshold value is a static value, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

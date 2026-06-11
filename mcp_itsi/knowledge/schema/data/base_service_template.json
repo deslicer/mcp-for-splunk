@@ -1,0 +1,245 @@
+{
+  "slug": "base_service_template",
+  "title": "Service Template",
+  "kind": "object",
+  "description": "ITSI service templates help you manage shared content for similar services. Services linked to a service template receive content from the service template, such as KPIs and entity rules. You must create a service template from an existing service. The `base_service_template` object contains KPI definitions, entity rules, and any linked services.",
+  "object_type": "base_service_template",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/base_service_template",
+  "subordinate_objects": [
+    "entity_rules",
+    "service_template_kpi"
+  ],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique identifier for this service template.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User defined description for the service template.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Title of this service template.",
+      "subordinate": null
+    },
+    {
+      "name": "kpis",
+      "label": "kpis",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of KPI descriptions for this service template.",
+      "subordinate": "service_template_kpi"
+    },
+    {
+      "name": "entity_rules",
+      "label": "entity_rules",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of rules describing entities referenced by this service template.",
+      "subordinate": "entity_rules"
+    },
+    {
+      "name": "service_id",
+      "label": "service_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "_key value of the service this service template is generated from.",
+      "subordinate": null
+    },
+    {
+      "name": "sec_grp",
+      "label": "sec_grp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The team the service template belongs to. Service templates can only belong to default_itsi_security_group (Global team).",
+      "subordinate": null
+    },
+    {
+      "name": "linked_services",
+      "label": "linked_services",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Array of services linked to this service template. if the user does not have access to all linked services, the linked_services field only contains the services they have read access to.",
+      "subordinate": null
+    },
+    {
+      "name": "total_linked_services",
+      "label": "total_linked_services",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "The number of services linked to this service template.",
+      "subordinate": null
+    },
+    {
+      "name": "last_sync_error",
+      "label": "last_sync_error",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Error message if the last sync operation failed.",
+      "subordinate": null
+    },
+    {
+      "name": "sync_status",
+      "label": "sync_status",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Sync status of service template: \"synced\", \"sync_scheduled\", \"syncing\", \"sync failed\".",
+      "subordinate": null
+    },
+    {
+      "name": "scheduled_time",
+      "label": "scheduled_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The time to push service template changes to linked services if \"sync later\" is selected rather than \"sync now\".",
+      "subordinate": null
+    },
+    {
+      "name": "scheduled_job",
+      "label": "scheduled_job",
+      "type": "object",
+      "type_raw": "Dict",
+      "required": false,
+      "read_only": false,
+      "description": "Sync job detail if \"sync later\" is selected rather than \"sync now\".",
+      "subordinate": null
+    },
+    {
+      "name": "template_tags",
+      "label": "template_tags",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "The service tags contained within the template.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

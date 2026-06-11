@@ -1,0 +1,172 @@
+{
+  "slug": "entity_type_vital_metrics",
+  "title": "Entity Type Vital Metrics",
+  "kind": "subordinate",
+  "description": "`vital_metrics` are a basic unit of configuration for an entity type. Vital metrics are statistical calculations based on SPL searches that represent the overall health of entities of that type.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "metric_name",
+      "label": "metric_name",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The title of the vital metric. When creating vital metrics, it's a best practice to include the aggregation method and the name of the metric being calculated. For example, `Average CPU usage`.",
+      "subordinate": null
+    },
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The search that computes the vital metric. The search must specify the following fields: - `val` for the value of the metric. - `_time` because the UI attempts to render changes over time. You can achieve this by adding `span={time}` to your search. - Fields as described in the `split_by_fields` configuration of this vital metric. For example, your search should be split by `host,region` if the `split_by_fields` configuration is \\[ \"host\", \"region\" \\].",
+      "subordinate": null
+    },
+    {
+      "name": "split_by_fields",
+      "label": "split_by_fields",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "The fields that the `search` configuration is split on. Make sure the value matches the split by fields in the actual search. For example: search = \"..... by host, region\" split_by_fields = \\[\"host\", \"region\"\\]",
+      "subordinate": null
+    },
+    {
+      "name": "matching_entity_fields",
+      "label": "matching_entity_fields",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Specifies the aliases of an entity to use to match with the fields specified by `split_by_fields` in the search result. The order of values should match the order of split_by_fields and the mapping is 1 to 1, so they must be of the same length. For example: split_by_fields = \\[\"InstanceId\", \"region\"\\] matching_entity_fields = \\[\"instance_id, zone\"\\] Note: You can only use entity aliases for this field, not informational fields",
+      "subordinate": null
+    },
+    {
+      "name": "is_key",
+      "label": "is_key",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates if the vital metric specified is a key metric. A key metric calculates the distribution of entities associated with the entity type to indicate the overall health of the entity type. The key metric is rendered as a histogram in the Infrastructure Overview. Only one vital metric can have `is_key` set to `true`.",
+      "subordinate": null
+    },
+    {
+      "name": "unit",
+      "label": "unit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The unit of the vital metric. For example, `KB/s`.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_rule",
+      "label": "alert_rule",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "Displays vital metric alert threshold information. The following parameters are displayed: - `suppress_time`: suppress the alert until this time - `cron_schedule`: frequency of alert search - `is_enabled`: if alert is enabled - `critical_threshold`: range of values that indicate critical severity level - `warning_threshold`: range of values that indicate warning severity level - `info_threshold`: range of values that indicate info severity level - `entity_filter`: filter entities based on the field dimensions For example: entity_filter: \\[{\"field\":\"os\", \"value\":\"Ubuntu\", \"field_type\":\"info\"}\\]",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

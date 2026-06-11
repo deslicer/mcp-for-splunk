@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.6.5](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.4...v0.6.5) (2026-06-02)
+
+
+### Features
+
+* **itsi:** schema-aware tooling + write-path validation ([#156](https://github.com/deslicer/mcp-for-splunk/issues/156)) ([e5ad9bc](https://github.com/deslicer/mcp-for-splunk/commit/e5ad9bc28ee0a622b1edee9949d3fb638db534e8))
+
+## [0.6.5](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.4...v0.6.5) (2026-06-02)
+
+
+### Features
+
+* **itsi:** schema-aware tooling + write-path validation ([#156](https://github.com/deslicer/mcp-for-splunk/issues/156)) ([e5ad9bc](https://github.com/deslicer/mcp-for-splunk/commit/e5ad9bc28ee0a622b1edee9949d3fb638db534e8))
+
+## [0.6.4](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.3...v0.6.4) (2026-06-01)
+
+
+### Dependencies
+
+* **deps-dev:** update bandit requirement from &gt;=1.7.0 to &gt;=1.9.4 ([#144](https://github.com/deslicer/mcp-for-splunk/issues/144)) ([21ab6d6](https://github.com/deslicer/mcp-for-splunk/commit/21ab6d66a7f750e38ebd5d49627a10b6dac20c77))
+* **deps-dev:** update mypy requirement from &gt;=1.0.0 to &gt;=2.1.0 ([#139](https://github.com/deslicer/mcp-for-splunk/issues/139)) ([15e87c7](https://github.com/deslicer/mcp-for-splunk/commit/15e87c7f5325013776ab28dd1bb02524e7812bbb))
+* **deps-dev:** update pytest-cov requirement from &gt;=4.0.0 to &gt;=7.1.0 ([#138](https://github.com/deslicer/mcp-for-splunk/issues/138)) ([7b6a4f5](https://github.com/deslicer/mcp-for-splunk/commit/7b6a4f5bd148fe90a66ca1dfbc98a01461086a46))
+* **deps-dev:** update ruff requirement from &gt;=0.1.0 to &gt;=0.15.15 ([#142](https://github.com/deslicer/mcp-for-splunk/issues/142)) ([50e1503](https://github.com/deslicer/mcp-for-splunk/commit/50e15039a96de1451faaba949714c5679b4ef524))
+* **deps-dev:** update safety requirement from &gt;=2.3.0 to &gt;=3.8.1 ([#146](https://github.com/deslicer/mcp-for-splunk/issues/146)) ([6fb646e](https://github.com/deslicer/mcp-for-splunk/commit/6fb646ed75a27c9e4f68e0d2a651ee185788e6d3))
+* **deps-dev:** update sentry-sdk requirement from &gt;=2.0.0 to &gt;=2.61.1 ([#145](https://github.com/deslicer/mcp-for-splunk/issues/145)) ([7482c20](https://github.com/deslicer/mcp-for-splunk/commit/7482c20f84ae426e59165aec01366f13d1287397))
+* **deps:** update openinference-instrumentation-mcp requirement ([#140](https://github.com/deslicer/mcp-for-splunk/issues/140)) ([1cbc4e8](https://github.com/deslicer/mcp-for-splunk/commit/1cbc4e892ecd6cee3b4cac0edb2a5ade32bff57f))
+* **deps:** update uvicorn requirement from &gt;=0.32.0 to &gt;=0.48.0 ([#141](https://github.com/deslicer/mcp-for-splunk/issues/141)) ([3bf6e7e](https://github.com/deslicer/mcp-for-splunk/commit/3bf6e7e3be1d96abcb70c9c221c5b950a4a96419))
+
 ## [0.6.3](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.2...v0.6.3) (2026-05-30)
 
 

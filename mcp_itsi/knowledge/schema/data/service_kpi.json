@@ -1,0 +1,702 @@
+{
+  "slug": "service_kpi",
+  "title": "Service KPI",
+  "kind": "subordinate",
+  "description": "KPI is the data structure that drives the monitoring of service metrics. Each KPI object contains specific information, including a user-configured base search, from which ITSI generates the search that monitors a metric. KPI objects also contain information on how to apply thresholds that determine the metric severity level. KPI objects (`kpis`) are defined and contained within the `service` object type data structure.",
+  "object_type": null,
+  "interface": null,
+  "endpoint": null,
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique ID for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined name for the KPI",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined description for the KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "type",
+      "label": "type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "kpi_primary",
+      "subordinate": null
+    },
+    {
+      "name": "kpi_threshold_template_id",
+      "label": "kpi_threshold_template_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined ID for the KPI. Used to refer to KPIs within a KPI template in modules. This uniquely identifies a KPI template in ITSI.",
+      "subordinate": null
+    },
+    {
+      "name": "isadhoc",
+      "label": "isadhoc",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true the search is split on entities and thresholds are computed for both entity and aggregate.",
+      "subordinate": null
+    },
+    {
+      "name": "is_service_entity_filter",
+      "label": "is_service_entity_filter",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true a filter is used on the search based on the entities included in the service.",
+      "subordinate": null
+    },
+    {
+      "name": "datamode",
+      "label": "datamode",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The data model to use for search generation if this is a data model type search.",
+      "subordinate": null
+    },
+    {
+      "name": "datamodel_filter",
+      "label": "datamodel_filter",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "ITSI generated clauses for user-defined filters on top of the data model fields. Used in the KPI search to filter events required by this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_field",
+      "label": "threshold_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-specified field on which statistical operations are performed and whose value determines KPI health.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_statop",
+      "label": "entity_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, mean, and so on) used to combine data for alert_values on a per entity basis (used if entity_breakdown is true).",
+      "subordinate": null
+    },
+    {
+      "name": "aggregate_statop",
+      "label": "aggregate_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, median, stdev, and so on) used to combine data for the aggregate alert_value (used for all KPI).",
+      "subordinate": null
+    },
+    {
+      "name": "urgency",
+      "label": "urgency",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "User-assigned importance value for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "unit",
+      "label": "unit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined units for the values in threshold field.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_id_fields",
+      "label": "entity_id_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Fields from this KPI's search events that will be mapped to the alias fields defined in entities for the service containing this KPI. This field enables the KPI search to tie the aliases of entities to the fields from the KPI events in identifying entities at search time.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_alias_filtering_fields",
+      "label": "entity_alias_filtering_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Subset of aliases from all entities included in the service containing this KPI, to restrict this KPI to only the subset of entities matching via the subset of aliases. Helps filter entities for this KPI among the ones selected in the service containing this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "cron_schedule",
+      "label": "cron_schedule",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The cron schedule that determines the frequency of this KPI search.",
+      "subordinate": null
+    },
+    {
+      "name": "base_search",
+      "label": "base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "KPI search defined by user for this KPI. All generated searches for the KPI are based on this search.",
+      "subordinate": null
+    },
+    {
+      "name": "kpi_base_search",
+      "label": "kpi_base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "A basic search generated for the KPI search.",
+      "subordinate": null
+    },
+    {
+      "name": "search",
+      "label": "search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search for this KPI for base statistics on the threshold field.",
+      "subordinate": null
+    },
+    {
+      "name": "search_entities",
+      "label": "search_entities",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search for this KPI for base statistics on the threshold field to use for \"Per Entity\" threshold type.",
+      "subordinate": null
+    },
+    {
+      "name": "search_aggregate",
+      "label": "search_aggregate",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search for this KPI for base statistics on the threshold field to use for \"Aggregate\" or \"Both\" threshold type.",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_series",
+      "label": "search_time_series",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used primarily to show preview information in the KPI configuration page.",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_series_entities",
+      "label": "search_time_series_entities",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used primarily to show preview information for \"Per Entity\" threshold type in the KPI configuration page",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_series_aggregate",
+      "label": "search_time_series_aggregate",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used primarily to show preview information for \"Aggregate\" or \"Both\" threshold type in the KPI configuration page.",
+      "subordinate": null
+    },
+    {
+      "name": "search_time_compare",
+      "label": "search_time_compare",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used specifically by glass table.",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert",
+      "label": "search_alert",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search used for alerting based on KPI threshold. This is the search that runs on schedule via the saved search for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert_entities",
+      "label": "search_alert_entities",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Generated search to use for alerting based on KPI threshold for \"Per Entity\" threshold type.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_on",
+      "label": "alert_on",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Specified if the threshold type for this KPI is \"Per Entity\" or \"Aggregate\" or \"Both\". Possible values: aggregate, entities, both.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_period",
+      "label": "alert_period",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User specified interval to run the KPI search in minutes.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_lag",
+      "label": "alert_lag",
+      "type": "integer",
+      "type_raw": "Integer",
+      "required": false,
+      "read_only": false,
+      "description": "Contains the number of seconds of lag to apply to the alert search. The maximum value is 30 minutes (1800 seconds).",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert_earliest",
+      "label": "search_alert_earliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time to look for events every time KPI search runs. This determines how far back each time window is during KPI search runs.",
+      "subordinate": null
+    },
+    {
+      "name": "tz_offset",
+      "label": "tz_offset",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "ISO time zone offset. Note: Do not change this value.",
+      "subordinate": null
+    },
+    {
+      "name": "time_variate_thresholds",
+      "label": "time_variate_thresholds",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true, thresholds for alerts are pulled from time_variate_thresholds_specification.",
+      "subordinate": null
+    },
+    {
+      "name": "time_variate_thresholds_specification",
+      "label": "time_variate_thresholds_specification",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "Data structure for time variate threshold specs.",
+      "subordinate": "time_variate_thresholds_specification"
+    },
+    {
+      "name": "backfill_enabled",
+      "label": "backfill_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates if backfill has been enabled for this KPI",
+      "subordinate": null
+    },
+    {
+      "name": "backfill_earliest_time",
+      "label": "backfill_earliest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Requested earliest time for backfill (relative time offset). Should be in the format `-Xd`, where 'd' means the time is in days, 'X' is number of days to backfill, and '-' means the date is in the past.",
+      "subordinate": null
+    },
+    {
+      "name": "adaptive_thresholds_is_enabled",
+      "label": "adaptive_thresholds_is_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if adaptive threshold is enabled for this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "adaptive_thresholding_training_window",
+      "label": "adaptive_thresholding_training_window",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for the Adaptive Threshold training algorithm to run over (latest time is always 'now') (e.g. '-7d')",
+      "subordinate": null
+    },
+    {
+      "name": "anomaly_detection_is_enabled",
+      "label": "anomaly_detection_is_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if trending anomaly detection is enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "cohesive_anomaly_detection_is_enabled",
+      "label": "cohesive_anomaly_detection_is_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if cohesive anomaly detection is enabled.",
+      "subordinate": null
+    },
+    {
+      "name": "anomaly_detection_alerting_enabled",
+      "label": "anomaly_detection_alerting_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if anomaly detection will alert for anomalies.",
+      "subordinate": null
+    },
+    {
+      "name": "anomaly_detection_training_window",
+      "label": "anomaly_detection_training_window",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for the training algorithm to run over (latest time is always 'now') (e.g. '-7d').",
+      "subordinate": null
+    },
+    {
+      "name": "trending_ad",
+      "label": "trending_ad",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "Data structure for trending anomaly detection algorithm settings. See [Anomaly Detection Algorithm Settings](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema#id_4278bd48_f68a_48ce_8396_b710dc0c3eb2--en__Anomaly_Detection_Algorithm_Settings).",
+      "subordinate": "anomaly_detection_algorithm_settings"
+    },
+    {
+      "name": "cohesive_ad",
+      "label": "cohesive_ad",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "Data structure for cohesive anomaly detection algorithm settings. See [Anomaly Detection Algorithm Settings](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-schema/itsi-rest-api-schema#id_4278bd48_f68a_48ce_8396_b710dc0c3eb2--en__Anomaly_Detection_Algorithm_Settings).",
+      "subordinate": "anomaly_detection_algorithm_settings"
+    },
+    {
+      "name": "gap_severity",
+      "label": "gap_severity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity level assigned for data gaps (info, normal, low, medium, high, critical, or unknown)",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_color",
+      "label": "gap_severity_color",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity color assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_color_light",
+      "label": "gap_severity_color_light",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity color assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "gap_severity_value",
+      "label": "gap_severity_value",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Severity value assigned for data gaps.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_thresholds",
+      "label": "entity_thresholds",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined thresholding levels for \"Per Entity\" threshold type. For more information, see KPI Threshold Setting.",
+      "subordinate": "kpi_threshold_settings"
+    },
+    {
+      "name": "aggregate_thresholds",
+      "label": "aggregate_thresholds",
+      "type": "array",
+      "type_raw": "Objects",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined thresholding levels for \"Aggregate\" threshold type. For more information, see KPI Threshold Setting.",
+      "subordinate": "kpi_threshold_settings"
+    },
+    {
+      "name": "enabled",
+      "label": "enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If set to 1, KPI is enabled. If absent or not set to 1, KPI is disabled. On upgrade KPI is flagged as enabled. Field is read-only.",
+      "subordinate": null
+    },
+    {
+      "name": "base_service_template_id",
+      "label": "base_service_template_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The key of service template object if the KPI is inherited from a service template.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_breakdown_id_field",
+      "label": "entity_breakdown_id_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "KPI search events are split by the alias field defined in entities for the service containing this KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "aggregate_outlier_detection_enabled",
+      "label": "aggregate_outlier_detection_enabled",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Indicates if outlier exclusion is turned on for KPI.",
+      "subordinate": null
+    },
+    {
+      "name": "outlier_detection_algo",
+      "label": "outlier_detection_algo",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Determines the outlier detection algorithm.",
+      "subordinate": null
+    },
+    {
+      "name": "outlier_detection_sensitivity",
+      "label": "outlier_detection_sensitivity",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The trigger threshold of the algorithm. For the standard deviation, this is the number of standard deviations. For interquartile range and mean absolute deviation, this is the sensitivity value.",
+      "subordinate": null
+    },
+    {
+      "name": "recommendation_start_date",
+      "label": "recommendation_start_date",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The date that a KPI threshold recommendation will be applied.",
+      "subordinate": null
+    },
+    {
+      "name": "recommendation_training_window",
+      "label": "recommendation_training_window",
+      "type": "string",
+      "type_raw": "The period of time analyzed to generate threshold recommendations with machine learning.",
+      "required": false,
+      "read_only": false,
+      "description": "String",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_direction",
+      "label": "threshold_direction",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if your KPI should stay above or below a specific value, or constrained to a specific range.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Name of the object type.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

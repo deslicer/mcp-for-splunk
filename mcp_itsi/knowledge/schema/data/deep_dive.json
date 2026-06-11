@@ -1,0 +1,194 @@
+{
+  "slug": "deep_dive",
+  "title": "Deep Dive",
+  "kind": "object",
+  "description": "ITSI deep dives are investigative tools that help you identify and troubleshoot issues in your IT environment. You can use deep dives to view KPI search results over time, zoom-in on KPI metrics and log events, and visually correlate root cause. You can add different types of lanes to a deep dive view, including KPI lanes, which let you view KPI metrics in detail. You can also add lanes to view ad hoc and data model searches. `deep_dive` objects contain all of the elements required to render deep dive lanes.",
+  "object_type": "deep_dive",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/deep_dive",
+  "subordinate_objects": [
+    "deep_dive_lane_setting"
+  ],
+  "attributes": [
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Auto-generated unique identifier for this deep dive.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined description for this deep dive.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Name of the deep dive.",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "deep_dive",
+      "subordinate": null
+    },
+    {
+      "name": "earliest_time",
+      "label": "earliest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time for all of the searches in this deep dive.",
+      "subordinate": null
+    },
+    {
+      "name": "latest_time",
+      "label": "latest_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Latest time for all of the searches in this deep dive.",
+      "subordinate": null
+    },
+    {
+      "name": "focus_id",
+      "label": "focus_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The service id of the service in focus.",
+      "subordinate": null
+    },
+    {
+      "name": "topology_id",
+      "label": "topology_id",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Define the service to be put in focus in the deep dive topology view. If none exists then the focus_id is set as the topology_id. view sidebar",
+      "subordinate": null
+    },
+    {
+      "name": "lane_settings_collection",
+      "label": "lane_settings_collection",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "<Array of lane settings specifying each lane's configuration. See Deep Dive Lane Settings.",
+      "subordinate": "deep_dive_lane_setting"
+    },
+    {
+      "name": "is_named",
+      "label": "is_named",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "True when the deep dive is saved, false otherwise.",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Sourcetype initiating modification. Has value `manual` for user-initiated modifications. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Splunk user `nobody`.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "User who performed the most recent operation on this object.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

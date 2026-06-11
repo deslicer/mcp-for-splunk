@@ -5,6 +5,7 @@ Tool for retrieving data from Splunk KV Store collections.
 from typing import Any
 
 from fastmcp import Context
+from splunklib import client as spl_client
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
@@ -56,22 +57,18 @@ class GetKvstoreData(BaseTool):
         self.logger.info(f"Retrieving data from KV Store collection: {collection}")
         await ctx.info(f"Retrieving data from KV Store collection: {collection}")
 
+        original_namespace = getattr(service, "namespace", None)
+        if app:
+            service.namespace = spl_client.namespace(app=app, owner="nobody", sharing="app")
+
         try:
-            # Get the collection from the appropriate app context
-            if app:
-                kvstore = service.kvstore[app]
-            else:
-                kvstore = service.kvstore
+            collection_obj = service.kvstore[collection]
 
-            collection_obj = kvstore[collection]
-
-            # Retrieve data with optional query filter
             if query:
                 documents = collection_obj.data.query(**query)
             else:
                 documents = collection_obj.data.query()
 
-            # Convert to list for response
             doc_list = list(documents)
 
             await ctx.info(f"Retrieved {len(doc_list)} documents from collection {collection}")
@@ -81,3 +78,5 @@ class GetKvstoreData(BaseTool):
             self.logger.error(f"Failed to retrieve KV Store data: {str(e)}")
             await ctx.error(f"Failed to retrieve KV Store data: {str(e)}")
             return self.format_error_response(str(e))
+        finally:
+            service.namespace = original_namespace

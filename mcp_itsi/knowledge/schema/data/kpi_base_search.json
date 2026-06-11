@@ -1,0 +1,332 @@
+{
+  "slug": "kpi_base_search",
+  "title": "KPI Base Search",
+  "kind": "object",
+  "description": "Searches that can be aggregated together to reduce overall search load. KPI Base Searches include the core attributes of a KPI for search generation. `kpi_base_search` objects are contained within the KPI (`kpis`) object data structure.",
+  "object_type": "kpi_base_search",
+  "interface": "/itoa_interface",
+  "endpoint": "/itoa_interface/kpi_base_search",
+  "subordinate_objects": [],
+  "attributes": [
+    {
+      "name": "entity_alias_filtering_fields",
+      "label": "entity_alias_filtering_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The fields to filter on. See KPI definition.",
+      "subordinate": null
+    },
+    {
+      "name": "_version",
+      "label": "_version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "ITSI version number of this KPI base search.",
+      "subordinate": null
+    },
+    {
+      "name": "description",
+      "label": "description",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "General description for this KPI base search.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_source",
+      "label": "mod_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Source of the last modification.",
+      "subordinate": null
+    },
+    {
+      "name": "mod_time",
+      "label": "mod_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The time of the last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "is_service_entity_filter",
+      "label": "is_service_entity_filter",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "If true a filter is used on the search based on the entities included in the service.",
+      "subordinate": null
+    },
+    {
+      "name": "actions",
+      "label": "actions",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "",
+      "subordinate": null
+    },
+    {
+      "name": "object_type",
+      "label": "object_type",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "kpi_base_search",
+      "subordinate": null
+    },
+    {
+      "name": "is_entity_breakdown",
+      "label": "is_entity_breakdown",
+      "type": "boolean",
+      "type_raw": "Boolean",
+      "required": false,
+      "read_only": false,
+      "description": "Determines if search breaks down by entities.",
+      "subordinate": null
+    },
+    {
+      "name": "_owner",
+      "label": "_owner",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "KV store owner.",
+      "subordinate": null
+    },
+    {
+      "name": "source_itsi_da",
+      "label": "source_itsi_da",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Source of DA used for this search. See KPI Threshold Templates.",
+      "subordinate": null
+    },
+    {
+      "name": "metrics",
+      "label": "metrics",
+      "type": "array",
+      "type_raw": "Array",
+      "required": false,
+      "read_only": false,
+      "description": "Set of statistical operations performed on threshold field.",
+      "subordinate": null
+    },
+    {
+      "name": "aggregate_statop",
+      "label": "aggregate_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, median, stdev, and so on) used to combine data for the aggregate alert_value (used for all KPI).",
+      "subordinate": null
+    },
+    {
+      "name": "unit",
+      "label": "unit",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User-defined units for the values in threshold field.",
+      "subordinate": null
+    },
+    {
+      "name": "title",
+      "label": "title",
+      "type": "string",
+      "type_raw": "String",
+      "required": true,
+      "read_only": false,
+      "description": "Name of this metric",
+      "subordinate": null
+    },
+    {
+      "name": "_key",
+      "label": "_key",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Internal identifier.",
+      "subordinate": null
+    },
+    {
+      "name": "threshold_field",
+      "label": "threshold_field",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The field on which the statistical operation runs.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_statop",
+      "label": "entity_statop",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Statistical operation (avg, max, mean, and so on) used to combine data for alert_values on a per entity basis (used if is_entity_breakdown is true).",
+      "subordinate": null
+    },
+    {
+      "name": "search_alert_earliest",
+      "label": "search_alert_earliest",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Earliest time to look for events every time KPI search runs. This determines how far back each time window is during KPI search runs.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_period",
+      "label": "alert_period",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "User specified interval to run the KPI search in minutes.",
+      "subordinate": null
+    },
+    {
+      "name": "alert_lag",
+      "label": "alert_lag",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Contains the number of seconds of lag to apply to the alert search, max is 30 minutes (1800 seconds).",
+      "subordinate": null
+    },
+    {
+      "name": "base_search",
+      "label": "base_search",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "KPI search defined by user for this KPI. All generated searches for the KPI are based on this search.",
+      "subordinate": null
+    },
+    {
+      "name": "entity_id_fields",
+      "label": "entity_id_fields",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "Fields from this KPI's search events that will be mapped to the alias fields defined in entities for the service containing this KPI. This field enables the KPI search to tie the aliases of entities to the fields from the KPI events in identifying entities at search time.",
+      "subordinate": null
+    },
+    {
+      "name": "identifying_name",
+      "label": "identifying_name",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Internal only",
+      "subordinate": null
+    },
+    {
+      "name": "mod_timestamp",
+      "label": "mod_timestamp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp of last modification based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "acl",
+      "label": "acl",
+      "type": "object",
+      "type_raw": "Object",
+      "required": false,
+      "read_only": true,
+      "description": "Access control blob.",
+      "subordinate": null
+    },
+    {
+      "name": "_user",
+      "label": "_user",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Like owner, but different.",
+      "subordinate": null
+    },
+    {
+      "name": "sec_grp",
+      "label": "sec_grp",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": false,
+      "description": "The team the object belongs to. This object can only belong to default_itsi_security_group (Global team).",
+      "subordinate": null
+    },
+    {
+      "name": "create_by",
+      "label": "create_by",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The user who created this object.",
+      "subordinate": null
+    },
+    {
+      "name": "create_source",
+      "label": "create_source",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The sourcetype initiating create. Has value `manual` for user-initiated creates. For internal use only.",
+      "subordinate": null
+    },
+    {
+      "name": "create_time",
+      "label": "create_time",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "Timestamp at the time of creation based on UTC time zone.",
+      "subordinate": null
+    },
+    {
+      "name": "version",
+      "label": "version",
+      "type": "string",
+      "type_raw": "String",
+      "required": false,
+      "read_only": true,
+      "description": "The version of the object. Currently the same as the ITSI app version.",
+      "subordinate": null
+    }
+  ]
+}

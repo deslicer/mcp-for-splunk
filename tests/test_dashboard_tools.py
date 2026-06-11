@@ -340,6 +340,62 @@ class TestCreateDashboard:
         assert '<dashboard version="2" theme="dark">' in stored
 
     @pytest.mark.asyncio
+    async def test_studio_wrapper_theme_auto_from_ui_settings(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        result = await tool.execute(
+            mock_context,
+            name="studio_theme_auto",
+            definition={
+                "title": "Auto Theme",
+                "uiSettings": {"theme": "dark"},
+                "dataSources": {},
+                "visualizations": {},
+            },
+            dashboard_type="studio",
+        )
+        assert result.get("status") == "success"
+        assert result.get("theme") == "dark"
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_theme_auto"]["content"]["eai:data"]
+        assert '<dashboard version="2" theme="dark">' in stored
+
+    @pytest.mark.asyncio
+    async def test_studio_wrapper_theme_auto_default_dark(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        result = await tool.execute(
+            mock_context,
+            name="studio_theme_auto_default",
+            definition={
+                "title": "No Theme In JSON",
+                "dataSources": {},
+                "visualizations": {},
+            },
+            dashboard_type="studio",
+        )
+        assert result.get("status") == "success"
+        assert result.get("theme") == "dark"
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["studio_theme_auto_default"]["content"]["eai:data"]
+        assert '<dashboard version="2" theme="dark">' in stored
+
+    @pytest.mark.asyncio
+    async def test_create_stores_label_and_description_from_initial_post(self, mock_context):
+        tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
+        result = await tool.execute(
+            mock_context,
+            name="single_post_metadata",
+            definition={"title": "One POST", "dataSources": {}, "visualizations": {}},
+            label="One POST Label",
+            description="Created in one request",
+        )
+        assert result.get("status") == "success"
+        assert result.get("definition_size_bytes", 0) > 0
+        service = mock_context.request_context.lifespan_context.service
+        stored = service._dashboards["single_post_metadata"]["content"]["eai:data"]
+        assert "<label>One POST Label</label>" in stored
+        assert "<description>Created in one request</description>" in stored
+
+    @pytest.mark.asyncio
     async def test_studio_wrapper_invalid_theme(self, mock_context):
         tool = CreateDashboard("create_dashboard", "Create a Splunk dashboard")
         result = await tool.execute(
