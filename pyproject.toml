@@ -1,6 +1,6 @@
 [project]
 name = "mcp-server-for-splunk"
-version = "0.6.5"
+version = "0.7.0"
 description = "MCP server for Splunk"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,15 +17,15 @@ classifiers = [
 "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-"mcp[cli]>=1.27.0",
-"fastmcp>=3.2.4,<4",
+"mcp[cli]>=1.27.2",
+"fastmcp>=3.4.2,<4",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.2",
 "httpx>=0.28.1",
-"beautifulsoup4>=4.12.0",
-"uvicorn>=0.48.0",
+"beautifulsoup4>=4.15.0",
+"uvicorn>=0.49.0",
 "wsproto>=1.3.2",
-"openai>=1.0.0",
+"openai>=2.41.1",
 "openai-agents>=0.1.0",
 ]
 license = { file = "LICENSE" }
@@ -80,10 +80,14 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"docs/reference/dashboard_studio_cheatsheet.md" = "src/bundled_docs/dashboard_studio_cheatsheet.md"
+
 [tool.hatch.build.targets.sdist]
 include = [
 "/src",
 "/tests",
+"/docs/reference/dashboard_studio_cheatsheet.md",
 "/pyproject.toml",
 "/README.md"
 ]
