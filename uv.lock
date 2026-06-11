@@ -1495,7 +1495,7 @@ cli = [
 
 [[package]]
 name = "mcp-itsi-server"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "packaging/mcp-itsi-server" }
 dependencies = [
     { name = "fastmcp" },
@@ -1512,7 +1512,7 @@ requires-dist = [
 
 [[package]]
 name = "mcp-server-for-splunk"
-version = "0.6.3"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
