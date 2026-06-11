@@ -5,6 +5,11 @@ Tests for Dashboard Studio documentation resources.
 import pytest
 
 from src.core.registry import resource_registry
+from src.resources.dashboard_studio_content import (
+    CHEATSHEET_SOURCE_PATH,
+    cheatsheet_edit_path,
+    load_cheatsheet_markdown,
+)
 from src.resources.dashboard_studio_docs import (
     DASHBOARD_STUDIO_TOPICS,
     DashboardStudioDiscoveryResource,
@@ -135,6 +140,20 @@ class TestDashboardStudioResources:
 
         # Verify cheatsheet has a file reference
         assert "file" in DASHBOARD_STUDIO_TOPICS["cheatsheet"]
+
+    def test_cheatsheet_source_path(self):
+        """Test cheatsheet source location points at docs/reference."""
+        assert CHEATSHEET_SOURCE_PATH == "docs/reference/dashboard_studio_cheatsheet.md"
+        assert cheatsheet_edit_path().name == "dashboard_studio_cheatsheet.md"
+        assert cheatsheet_edit_path().parent.name == "reference"
+
+    @pytest.mark.asyncio
+    async def test_load_cheatsheet_markdown(self):
+        """Test cheatsheet loader returns substantive content."""
+        content = load_cheatsheet_markdown()
+
+        assert "Dashboard Studio" in content
+        assert len(content) > 1000
 
     def test_dynamic_resource_creation(self):
         """Test creating resources for different topics."""
