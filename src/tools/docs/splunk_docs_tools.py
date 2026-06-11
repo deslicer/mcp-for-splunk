@@ -13,6 +13,7 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
+from src.resources.dashboard_studio_content import DashboardStudioContentError
 from src.resources.dashboard_studio_docs import (
     DASHBOARD_STUDIO_TOPICS,
     DashboardStudioDiscoveryResource,
@@ -1702,6 +1703,10 @@ class GetStudioTopic(BaseTool):
                 }
             )
 
+        except DashboardStudioContentError as e:
+            error_msg = f"Failed to retrieve Dashboard Studio topic '{topic}': {e}"
+            self.logger.error(error_msg)
+            return self.format_error_response(error_msg)
         except Exception as e:
             error_msg = f"Failed to retrieve Dashboard Studio topic '{topic}': {str(e)}"
             self.logger.error(error_msg)
