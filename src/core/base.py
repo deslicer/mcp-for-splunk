@@ -9,7 +9,11 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from fastmcp import Context
+from fastmcp.server.dependencies import get_http_headers
 from splunklib import client
+
+from src.core.shared_context import http_headers_context
+from src.core.utils import extract_client_config_from_headers
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +181,75 @@ class BaseTool(ABC):
 
         return service
 
+    def _resolve_client_config_sync(self, ctx: Context) -> dict[str, Any] | None:
+        """
+        Resolve client configuration synchronously from available sources.
+
+        Mirrors the priority order of ``get_client_config_from_context`` using
+        sync-accessible sources only.
+        """
+        # Priority 1: HTTP request state (set by middleware per request)
+        try:
+            if (
+                hasattr(ctx, "request_context")
+                and hasattr(ctx.request_context, "request")
+                and hasattr(ctx.request_context.request, "state")
+                and hasattr(ctx.request_context.request.state, "client_config")
+            ):
+                client_config = ctx.request_context.request.state.client_config
+                if client_config:
+                    self.logger.info(
+                        "Using client config from request state (keys=%s)",
+                        list(client_config.keys()),
+                    )
+                    return client_config
+        except Exception as e:
+            self.logger.debug("Failed to get client config from request state: %s", e)
+
+        # Priority 2: HTTP headers (FastMCP runtime dependencies)
+        try:
+            headers = get_http_headers(include_all=True)
+            if headers:
+                client_config = extract_client_config_from_headers(headers)
+                if client_config:
+                    self.logger.info(
+                        "Using client config from HTTP headers (keys=%s)",
+                        list(client_config.keys()),
+                    )
+                    return client_config
+        except Exception as e:
+            self.logger.debug("Failed to get client config from HTTP headers: %s", e)
+
+        # Priority 3: ContextVar headers (set by middleware)
+        try:
+            headers = http_headers_context.get()
+            if headers:
+                client_config = extract_client_config_from_headers(headers)
+                if client_config:
+                    self.logger.info(
+                        "Using client config from http_headers_context (keys=%s)",
+                        list(client_config.keys()),
+                    )
+                    return client_config
+        except Exception as e:
+            self.logger.debug("Failed to get client config from http_headers_context: %s", e)
+
+        # Priority 4: Lifespan context (client environment)
+        try:
+            splunk_ctx = self._get_splunk_context(ctx)
+            if splunk_ctx:
+                if hasattr(splunk_ctx, "client_config") and splunk_ctx.client_config:
+                    self.logger.info("Using client config from lifespan context")
+                    return splunk_ctx.client_config
+                if isinstance(splunk_ctx, dict) and splunk_ctx.get("client_config"):
+                    self.logger.info("Using client config from lifespan context dict")
+                    return splunk_ctx["client_config"]
+        except Exception as e:
+            self.logger.debug("Failed to get client config from lifespan context: %s", e)
+
+        self.logger.debug("No client config found in any sync source")
+        return None
+
     def check_splunk_available(self, ctx: Context) -> tuple[bool, client.Service | None, str]:
         """
         Check if Splunk is available and return status.
@@ -184,39 +257,19 @@ class BaseTool(ABC):
         Returns:
             Tuple of (is_available, service, error_message)
         """
-        # Get splunk context from available sources
         splunk_ctx = self._get_splunk_context(ctx)
 
-        # First, prefer per-request client configuration (HTTP headers / client env)
-        try:
-            client_config = None
-            # From HTTP request state (preferred for HTTP transport)
-            if (
-                hasattr(ctx.request_context, "request")
-                and hasattr(ctx.request_context.request, "state")
-                and hasattr(ctx.request_context.request.state, "client_config")
-            ):
-                client_config = ctx.request_context.request.state.client_config
-            # Or from context client_config (handle both dict and object)
-            elif splunk_ctx:
-                if hasattr(splunk_ctx, "client_config"):
-                    client_config = splunk_ctx.client_config
-                elif isinstance(splunk_ctx, dict) and "client_config" in splunk_ctx:
-                    client_config = splunk_ctx["client_config"]
+        client_config = self._resolve_client_config_sync(ctx)
+        if client_config:
+            try:
+                from src.client.splunk_client import get_splunk_service
 
-            if client_config:
-                try:
-                    from src.client.splunk_client import get_splunk_service
-
-                    service = get_splunk_service(client_config)
-                    return True, service, ""
-                except Exception as e:
-                    # Fall back to server default if client-config connection fails
-                    logger.warning(
-                        f"Client-config Splunk connection failed in availability check: {e}"
-                    )
-        except Exception:  # nosec B110
-            pass  # Intentionally suppressed: header/env extraction is best-effort fallback
+                service = get_splunk_service(client_config)
+                return True, service, ""
+            except Exception as e:
+                logger.warning(
+                    "Client-config Splunk connection failed in availability check: %s", e
+                )
 
         # Fallback: use server default service established at startup
         # Handle both SplunkContext objects and dict formats
