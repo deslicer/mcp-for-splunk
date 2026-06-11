@@ -44,7 +44,7 @@ mcp-server = "src.cli.build_and_run:main"
 dev = [
 "pytest>=9.0.3",
 "pytest-asyncio>=1.4.0",
-"black>=23.0.0",
+"black>=26.5.1",
 "mypy>=2.1.0",
 "ruff>=0.15.15",
 "pre-commit>=4.6.0"
@@ -52,7 +52,7 @@ dev = [
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
 # distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
 itsi = [
-"mcp-itsi-server>=0.1.0",
+"mcp-itsi-server>=0.1.2",
 ]
 test = [
 "pytest>=9.0.3",
@@ -106,7 +106,7 @@ dev-dependencies = [
 "pytest>=9.0.3",
 "pytest-asyncio>=1.4.0",
 "pytest-cov>=7.1.0",
-"black>=23.0.0",
+"black>=26.5.1",
 "ruff>=0.15.15",
 "mypy>=2.1.0",
 "pre-commit>=4.6.0",
