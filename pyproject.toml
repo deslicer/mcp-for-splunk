@@ -52,7 +52,7 @@ dev = [
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
 # distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
 itsi = [
-"mcp-itsi-server>=0.1.0",
+"mcp-itsi-server>=0.1.2",
 ]
 test = [
 "pytest>=9.0.3",
