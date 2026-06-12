@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.7](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.6...v0.6.7) (2026-06-12)
+
+
+### Bug Fixes
+
+* **docker:** copy cheatsheet before uv sync ([#179](https://github.com/deslicer/mcp-for-splunk/issues/179)) ([65adce5](https://github.com/deslicer/mcp-for-splunk/commit/65adce52f1cbe84726d5a7a17894071ebfdf2c2a))
+
 ## [0.6.6](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.5...v0.6.6) (2026-06-12)
 
 
