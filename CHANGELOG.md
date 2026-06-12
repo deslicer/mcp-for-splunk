@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.6](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.5...v0.6.6) (2026-06-12)
+
+
+### Bug Fixes
+
+* resolve Splunk client config from headers in availability check ([#178](https://github.com/deslicer/mcp-for-splunk/issues/178)) ([5abe7c8](https://github.com/deslicer/mcp-for-splunk/commit/5abe7c8e7985ac606a1e8ab88f51679d80296ce3))
+
+
+### Dependencies
+
+* **deps-dev:** update black requirement from &gt;=23.0.0 to &gt;=26.5.1 ([#160](https://github.com/deslicer/mcp-for-splunk/issues/160)) ([d199f5c](https://github.com/deslicer/mcp-for-splunk/commit/d199f5c4c3eaf8dffc47bd22fb197a4567be01d6))
+* **deps-dev:** update mcp-itsi-server requirement from &gt;=0.1.0 to &gt;=0.1.2 ([#167](https://github.com/deslicer/mcp-for-splunk/issues/167)) ([cd5445f](https://github.com/deslicer/mcp-for-splunk/commit/cd5445f0499ba60a849781804fcb08b86a35057b))
+* **deps-dev:** update pytest-asyncio requirement from &gt;=1.3.0 to &gt;=1.4.0 ([#162](https://github.com/deslicer/mcp-for-splunk/issues/162)) ([11b5488](https://github.com/deslicer/mcp-for-splunk/commit/11b548883493292802d0e1e806f8b6fe47db9ab9))
+* **deps:** update beautifulsoup4 requirement from &gt;=4.12.0 to &gt;=4.15.0 ([#171](https://github.com/deslicer/mcp-for-splunk/issues/171)) ([d575ce0](https://github.com/deslicer/mcp-for-splunk/commit/d575ce0bff06fb9c87b1f8feaf64f79b39f89920))
+* **deps:** update fastmcp requirement from &lt;4,&gt;=3.2.4 to &gt;=3.4.2,&lt;4 ([#173](https://github.com/deslicer/mcp-for-splunk/issues/173)) ([3598f0e](https://github.com/deslicer/mcp-for-splunk/commit/3598f0e0f1e363dcf9f00cbfbfa2f062209d452f))
+* **deps:** update mcp requirement from &gt;=1.27.0 to &gt;=1.27.2 ([#168](https://github.com/deslicer/mcp-for-splunk/issues/168)) ([0d47bb9](https://github.com/deslicer/mcp-for-splunk/commit/0d47bb9ae5108eab8f51e1bd7a767f39918eeed6))
+* **deps:** update openai requirement from &gt;=1.0.0 to &gt;=2.41.1 ([#174](https://github.com/deslicer/mcp-for-splunk/issues/174)) ([bec05ad](https://github.com/deslicer/mcp-for-splunk/commit/bec05ad14364aa3817b81e7ace3f9367b1871179))
+* **deps:** update uvicorn requirement from &gt;=0.48.0 to &gt;=0.49.0 ([#170](https://github.com/deslicer/mcp-for-splunk/issues/170)) ([bba519a](https://github.com/deslicer/mcp-for-splunk/commit/bba519a698fb8c7178df1ecc1ea9de4e046286a2))
+
 ## [0.6.5](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.4...v0.6.5) (2026-06-02)
 
 
