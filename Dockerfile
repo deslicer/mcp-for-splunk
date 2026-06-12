@@ -37,6 +37,7 @@ COPY LICENSE ./
 # `uv sync` time so the workspace graph resolves and the wheel can build.
 COPY packaging/ ./packaging/
 COPY mcp_itsi/ ./mcp_itsi/
+COPY docs/reference/dashboard_studio_cheatsheet.md ./docs/reference/dashboard_studio_cheatsheet.md
 
 # Install Python dependencies, including the [itsi] extra so the plugin
 # entry point (mcp_splunk.plugins.itsi) is registered inside the container.
