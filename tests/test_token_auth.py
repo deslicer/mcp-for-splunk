@@ -75,6 +75,37 @@ class TestModularClientTokenAuth:
         assert "password" not in kwargs
         assert "username" not in kwargs
 
+    @patch("src.client.splunk_client.client.connect")
+    def test_get_splunk_service_forwards_lb_cookies_after_basic_auth(self, mock_connect):
+        from src.client.splunk_client import get_splunk_service
+
+        captured_messages = []
+
+        class FakeHttp:
+            def __init__(self):
+                self._cookies = {"AWSALB": "route-a", "AWSALBTG": "target-a"}
+
+            def request(self, url, message, **kwargs):
+                captured_messages.append(message)
+                return {"status": 200, "headers": [], "body": b""}
+
+        class FakeService:
+            def __init__(self):
+                self.http = FakeHttp()
+
+        mock_connect.return_value = FakeService()
+
+        with patch.dict(os.environ, {}, clear=True):
+            service = get_splunk_service({
+                "splunk_host": "splunk.example.com",
+                "splunk_username": "admin",
+                "splunk_password": "password",
+            })
+
+        service.http.request("https://splunk.example.com:8089/services/server/info", {"headers": []})
+
+        assert ("Cookie", "AWSALB=route-a; AWSALBTG=target-a") in captured_messages[0]["headers"]
+
     def test_get_splunk_service_requires_some_credential(self):
         from src.client.splunk_client import get_splunk_service
 
