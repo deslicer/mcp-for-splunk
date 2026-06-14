@@ -64,7 +64,7 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
                 try:
                     client_config[config_key] = int(header_value)
                 except (ValueError, TypeError):
-                    logger.warning("Invalid non-numeric splunk_port header: %s", header_value)
+                    logger.warning("Invalid non-numeric Splunk port header ignored")
                     continue
             elif config_key == "splunk_verify_ssl":
                 client_config[config_key] = header_value.lower() == "true"
