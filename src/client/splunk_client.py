@@ -103,6 +103,33 @@ def _has_basic_auth(splunk_config: dict[str, Any]) -> bool:
     return bool(splunk_config.get("username")) and bool(splunk_config.get("password"))
 
 
+def _enable_cookie_forwarding(service: client.Service) -> None:
+    """Forward cookies captured by splunklib on later REST calls.
+
+    Splunk's SDK stores Set-Cookie values in ``service.http._cookies`` but does
+    not add them to subsequent requests. Load-balanced Splunk management
+    endpoints rely on those cookies for target stickiness after login.
+    """
+
+    http = getattr(service, "http", None)
+    if http is None or not hasattr(http, "request"):
+        return
+
+    original_request = http.request
+
+    def request_with_cookies(url: str, message: dict[str, Any], **kwargs: Any) -> Any:
+        cookies = getattr(http, "_cookies", {}) or {}
+        if cookies:
+            headers = list(message.get("headers") or [])
+            has_cookie_header = any(key.lower() == "cookie" for key, _ in headers)
+            if not has_cookie_header:
+                cookie_header = "; ".join(f"{key}={value}" for key, value in cookies.items())
+                message = {**message, "headers": [*headers, ("Cookie", cookie_header)]}
+        return original_request(url, message, **kwargs)
+
+    http.request = request_with_cookies
+
+
 def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Service:
     """
     Create and return a Splunk service connection.
@@ -151,6 +178,7 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
 
     try:
         service = client.connect(**splunk_config)
+        _enable_cookie_forwarding(service)
         logger.info("Successfully connected to Splunk")
         return service
     except Exception as e:
