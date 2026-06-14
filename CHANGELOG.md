@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.7](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.6...v0.6.7) (2026-06-14)
+
+
+### Features
+
+* decode UTF-8 Splunk credentials from Base64 MCP headers ([#181](https://github.com/deslicer/mcp-for-splunk/issues/181)) ([6db0b03](https://github.com/deslicer/mcp-for-splunk/commit/6db0b03c4502fac90c1a5ee1a3c27cbf1d81ae15))
+
+
+### Bug Fixes
+
+* **docker:** copy cheatsheet before uv sync ([#179](https://github.com/deslicer/mcp-for-splunk/issues/179)) ([65adce5](https://github.com/deslicer/mcp-for-splunk/commit/65adce52f1cbe84726d5a7a17894071ebfdf2c2a))
+* forward Splunk load balancer cookies ([#182](https://github.com/deslicer/mcp-for-splunk/issues/182)) ([3ac6614](https://github.com/deslicer/mcp-for-splunk/commit/3ac66148e0823eec3b96834021eb4292d81c066a))
+
 ## [0.6.6](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.5...v0.6.6) (2026-06-12)
 
 
