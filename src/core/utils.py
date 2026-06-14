@@ -93,12 +93,12 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
     return client_config if client_config else None
 
 
-def _decode_utf8_base64_header(value: str, header_name: str) -> str | None:
+def _decode_utf8_base64_header(value: str, _header_name: str) -> str | None:
     """Decode a UTF-8 credential header without logging the secret value."""
     try:
         return base64.b64decode(value, validate=True).decode("utf-8")
     except (ValueError, UnicodeDecodeError):
-        logger.warning("Invalid base64 credential header ignored: %s", header_name)
+        logger.warning("Invalid encoded Splunk header ignored")
         return None
 
 
