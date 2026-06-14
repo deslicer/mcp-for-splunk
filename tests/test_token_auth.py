@@ -7,6 +7,7 @@ extraction utility (`src/core/utils.py`), the enhanced extractor
 `src/core/client_identity.py`.
 """
 
+import base64
 import os
 from unittest.mock import patch
 
@@ -144,6 +145,21 @@ class TestHeaderExtractionForTokens:
             })
 
         assert cfg[_SPLUNK_TOK] == "preferred"
+
+    def test_base64_username_password_headers_are_decoded(self):
+        from src.core.utils import extract_client_config_from_headers
+
+        username = "admin€"
+        password = "€89#$:(^{])[ekj#ad"
+        cfg = extract_client_config_from_headers({
+            "X-Splunk-Host": "splunk.example.com",
+            "X-Splunk-Username-Base64": base64.b64encode(username.encode("utf-8")).decode("ascii"),
+            "X-Splunk-Password-Base64": base64.b64encode(password.encode("utf-8")).decode("ascii"),
+        })
+
+        assert cfg is not None
+        assert cfg["splunk_username"] == username
+        assert cfg["splunk_password"] == password
 
 
 # ---------------------------------------------------------------------------
