@@ -4,6 +4,7 @@ Common utilities for the MCP Splunk server core framework.
 Provides shared utility functions used across tools, resources, and prompts.
 """
 
+import base64
 import logging
 from typing import Any
 
@@ -70,6 +71,17 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
             else:
                 client_config[config_key] = header_value
 
+    base64_header_mapping = {  # nosec B105 - config key names, not passwords
+        "X-Splunk-Username-Base64": "splunk_username",
+        "X-Splunk-Password-Base64": "splunk_password",
+    }
+    for header_name, config_key in base64_header_mapping.items():
+        header_value = headers.get(header_name) or headers.get(header_name.lower())
+        if header_value:
+            decoded_value = _decode_utf8_base64_header(header_value, header_name)
+            if decoded_value is not None:
+                client_config[config_key] = decoded_value
+
     # Fall back to a standard ``Authorization: Bearer <token>`` header for the
     # Splunk bearer token. We only do this when MCP server-level auth is
     # disabled to avoid mistaking an MCP auth JWT for a Splunk credential.
@@ -79,6 +91,15 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
             client_config[_splunk_t] = splunk_from_auth_header
 
     return client_config if client_config else None
+
+
+def _decode_utf8_base64_header(value: str, header_name: str) -> str | None:
+    """Decode a UTF-8 credential header without logging the secret value."""
+    try:
+        return base64.b64decode(value, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        logger.warning("Invalid base64 credential header ignored: %s", header_name)
+        return None
 
 
 def _mcp_auth_disabled() -> bool:
