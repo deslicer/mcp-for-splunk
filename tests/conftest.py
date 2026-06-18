@@ -10,6 +10,11 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+# Keep Splunk connection retries fast in tests — real backoff delays cause CI timeouts
+# when server module init attempts a live connection in degraded mode.
+os.environ.setdefault("SPLUNK_CONNECT_RETRY_COUNT", "1")
+os.environ.setdefault("SPLUNK_CONNECT_RETRY_BASE_DELAY", "0")
+
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
