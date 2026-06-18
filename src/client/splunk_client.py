@@ -6,6 +6,7 @@ Provides connection utilities for Splunk Enterprise/Cloud instances.
 
 import logging
 import os
+import time
 from typing import Any
 
 from dotenv import load_dotenv
@@ -130,6 +131,59 @@ def _enable_cookie_forwarding(service: client.Service) -> None:
     http.request = request_with_cookies
 
 
+def _get_connect_retry_settings() -> tuple[int, float]:
+    """Return retry count and base delay (seconds) from environment."""
+    retry_count = int(os.getenv("SPLUNK_CONNECT_RETRY_COUNT", "3"))
+    base_delay = float(os.getenv("SPLUNK_CONNECT_RETRY_BASE_DELAY", "2"))
+    return max(retry_count, 1), max(base_delay, 0.0)
+
+
+def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client.Service:
+    """Connect to Splunk with exponential backoff for transient failures."""
+    retry_count, base_delay = _get_connect_retry_settings()
+    last_exception: Exception | None = None
+
+    for attempt in range(retry_count):
+        try:
+            if attempt > 0:
+                delay = base_delay * (2 ** (attempt - 1))
+                logger.info(
+                    "Retrying Splunk connection in %.1fs (attempt %d/%d)",
+                    delay,
+                    attempt + 1,
+                    retry_count,
+                )
+                time.sleep(delay)
+
+            service = client.connect(**splunk_config)
+            _enable_cookie_forwarding(service)
+            if attempt > 0:
+                logger.info(
+                    "Successfully connected to Splunk on attempt %d/%d",
+                    attempt + 1,
+                    retry_count,
+                )
+            else:
+                logger.info("Successfully connected to Splunk")
+            return service
+        except Exception as e:
+            last_exception = e
+            logger.warning(
+                "Splunk connection attempt %d/%d failed (%s auth): %s",
+                attempt + 1,
+                retry_count,
+                auth_mode,
+                e,
+            )
+
+    logger.error(
+        "Failed to connect to Splunk after %d attempts: %s",
+        retry_count,
+        last_exception,
+    )
+    raise last_exception  # type: ignore[misc]
+
+
 def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Service:
     """
     Create and return a Splunk service connection.
@@ -176,14 +230,7 @@ def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Se
         auth_mode,
     )
 
-    try:
-        service = client.connect(**splunk_config)
-        _enable_cookie_forwarding(service)
-        logger.info("Successfully connected to Splunk")
-        return service
-    except Exception as e:
-        logger.error(f"Failed to connect to Splunk: {str(e)}")
-        raise
+    return _connect_with_retry(splunk_config, auth_mode)
 
 
 def get_splunk_service_safe(client_config: dict[str, Any] | None = None) -> client.Service | None:
