@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from importlib.metadata import entry_points
 
+from dotenv import load_dotenv
 from fastmcp import Context, FastMCP
 from fastmcp.server.dependencies import get_http_headers, get_http_request
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -40,6 +41,10 @@ if _sentry_enabled:
 project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Load .env before reading MCP_SPLUNK_* or MCP_LOG_LEVEL from the environment.
+# stdio launches often rely on a cwd .env file rather than client-supplied env vars.
+load_dotenv()
 
 # Create logs directory at project root if it doesn't exist
 log_dir = os.path.join(project_root, "logs")
