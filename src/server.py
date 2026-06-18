@@ -29,6 +29,7 @@ from starlette.responses import JSONResponse
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
 from src.core.sentry import init_sentry
+from src.core.session_disconnect_middleware import SessionDisconnectMiddleware
 from src.core.shared_context import http_headers_context
 from src.core.utils import extract_client_config_from_headers
 from src.routes import setup_health_routes
@@ -802,6 +803,7 @@ class ClientConfigMiddleware(Middleware):
 
 # Add the middleware to the server
 mcp.add_middleware(ClientConfigMiddleware())
+mcp.add_middleware(SessionDisconnectMiddleware())
 
 # Add Sentry MCP middleware if enabled
 if _sentry_enabled:

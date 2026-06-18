@@ -9,6 +9,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from .config import _sentry_initialized
 from .context import add_breadcrumb, set_mcp_context
+from src.core.session_disconnect import is_session_disconnect_error
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +75,15 @@ class SentryMCPMiddleware(Middleware):
                 except Exception as e:
                     duration_ms = (time.perf_counter() - start_time) * 1000
                     span.set_data("mcp.duration_ms", round(duration_ms, 2))
-                    span.set_data("mcp.status", "error")
-                    span.set_data("mcp.error.type", type(e).__name__)
-                    span.set_data("mcp.error.message", str(e)[:500])
-                    span.set_status("internal_error")
-
-                    sentry_sdk.capture_exception(e)
+                    if is_session_disconnect_error(e):
+                        span.set_data("mcp.status", "client_disconnect")
+                        span.set_status("cancelled")
+                    else:
+                        span.set_data("mcp.status", "error")
+                        span.set_data("mcp.error.type", type(e).__name__)
+                        span.set_data("mcp.error.message", str(e)[:500])
+                        span.set_status("internal_error")
+                        sentry_sdk.capture_exception(e)
                     raise
 
         except ImportError:
