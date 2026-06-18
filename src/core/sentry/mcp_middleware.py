@@ -7,9 +7,10 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from src.core.session_disconnect import is_session_disconnect_error
+
 from .config import _sentry_initialized
 from .context import add_breadcrumb, set_mcp_context
-from src.core.session_disconnect import is_session_disconnect_error
 
 logger = logging.getLogger(__name__)
 

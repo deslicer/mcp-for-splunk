@@ -4,12 +4,13 @@ import logging
 from contextlib import contextmanager
 from typing import Any
 
+from src.core.session_disconnect import is_session_disconnect_error
+
 from .config import (
     _sentry_initialized,
     mcp_request_id,
     mcp_session_id,
 )
-from src.core.session_disconnect import is_session_disconnect_error
 
 logger = logging.getLogger(__name__)
 
