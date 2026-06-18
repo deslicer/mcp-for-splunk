@@ -4,6 +4,8 @@ import logging
 from contextlib import contextmanager
 from typing import Any
 
+from src.core.session_disconnect import is_session_disconnect_error
+
 from .config import (
     _sentry_initialized,
     mcp_request_id,
@@ -83,6 +85,10 @@ def capture_mcp_error(
     Use this to manually capture exceptions with rich MCP metadata.
     """
     if not _sentry_initialized:
+        return
+
+    if is_session_disconnect_error(error):
+        logger.debug("Skipping Sentry capture for client disconnect: %s", error)
         return
 
     try:
