@@ -27,6 +27,14 @@ from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
 from src.core.loader import ComponentLoader
+from src.core.otel import (
+    OtelJsonFormatter,
+    OtelToolSpanMiddleware,
+    init_otel,
+    instrument_httpx,
+    instrument_starlette,
+    is_otel_enabled,
+)
 from src.core.sentry import init_sentry
 from src.core.shared_context import http_headers_context
 from src.core.utils import extract_client_config_from_headers
@@ -106,6 +114,32 @@ def _record_factory(*args, **kwargs):
 
 
 logging.setLogRecordFactory(_record_factory)
+
+
+# ------------------------------
+# OpenTelemetry (optional distributed tracing)
+# ------------------------------
+# Activates only when the [otel] extra is installed and
+# OTEL_EXPORTER_OTLP_ENDPOINT is set. When enabled, log records gain trace IDs
+# and are re-formatted as JSON so logs can be correlated with traces.
+# _otel_enabled reflects a *successful* init_otel(), so downstream middleware
+# and instrumentation never run against a half-initialized provider.
+_otel_enabled = False
+if is_otel_enabled():
+    try:
+        if init_otel() is not None:
+            _otel_enabled = True
+            _json_formatter = OtelJsonFormatter()
+            for _handler in logging.getLogger().handlers:
+                _handler.setFormatter(_json_formatter)
+            logger.info("OpenTelemetry tracing and JSON logging enabled")
+        else:
+            logger.warning(
+                "OTEL_EXPORTER_OTLP_ENDPOINT is set but OpenTelemetry "
+                "initialization failed; tracing disabled"
+            )
+    except Exception as _otel_err:  # nosec B110 - tracing is best-effort
+        logger.warning("OpenTelemetry setup failed: %s", _otel_err)
 
 
 # ------------------------------
@@ -806,6 +840,14 @@ if _sentry_enabled:
     except Exception as e:
         logger.warning("Failed to add Sentry MCP middleware: %s", e)
 
+# Add OpenTelemetry per-tool span middleware if enabled
+if _otel_enabled:
+    try:
+        mcp.add_middleware(OtelToolSpanMiddleware())
+        logger.info("OpenTelemetry tool span middleware added")
+    except Exception as e:
+        logger.warning("Failed to add OpenTelemetry MCP middleware: %s", e)
+
 
 # Health check endpoint for Docker using custom route (recommended pattern)
 @mcp.custom_route("/health", methods=["GET"])
@@ -1161,6 +1203,15 @@ def create_root_app(server: FastMCP) -> Starlette:
     # Parent Starlette application that applies middleware to the initial HTTP handshake
     root_app = Starlette(lifespan=mcp_app.lifespan)
     root_app.add_middleware(HeaderCaptureMiddleware)
+
+    # Instrument the app for OpenTelemetry: extract the W3C traceparent on
+    # incoming requests (server spans) and emit httpx client child spans.
+    if _otel_enabled:
+        try:
+            instrument_starlette(root_app)
+            instrument_httpx()
+        except Exception as _otel_err:
+            logger.warning("Failed to apply OpenTelemetry instrumentation: %s", _otel_err)
 
     # Add Sentry HTTP middleware if enabled (must be added after HeaderCaptureMiddleware)
     if _sentry_enabled:

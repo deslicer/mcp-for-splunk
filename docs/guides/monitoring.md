@@ -39,6 +39,12 @@ This guide outlines monitoring and observability practices for the MCP Server fo
 - Alert on sustained error rates, timeouts, or connection failures
 - Alert on high latency (e.g., P95 > 5s) and resource saturation
 
+## Distributed Tracing
+
+- Enable OpenTelemetry tracing to join end-to-end traces in any OTel-compatible backend
+- See the [OpenTelemetry Tracing guide](otel-tracing.md) for setup
+- Errors and performance can also be tracked with [Sentry](sentry-monitoring.md)
+
 ## References
 
 - Deployment: `docs/guides/deployment/`
