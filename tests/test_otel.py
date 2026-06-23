@@ -229,6 +229,49 @@ class TestOtelToolSpanMiddleware:
         assert spans[0].attributes.get("mcp.tool.name") == "get_indexes"
 
     @pytest.mark.asyncio
+    async def test_exception_event_is_redacted(self):
+        pytest.importorskip("opentelemetry.sdk")
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+
+        from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
+
+        exporter = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(exporter))
+        middleware = OtelToolSpanMiddleware(tracer_provider=provider)
+
+        class FakeContext:
+            method = "tools/call"
+            params = {"name": "do_thing", "arguments": {}}
+            session_id = None
+
+        async def call_next(_ctx):
+            raise ValueError("X-Splunk-Token: super-secret-value")
+
+        with pytest.raises(ValueError):
+            await middleware.on_request(FakeContext(), call_next)
+
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1
+        span = spans[0]
+
+        # Status description must not carry the raw secret.
+        assert "super-secret-value" not in (span.status.description or "")
+        assert "***" in (span.status.description or "")
+
+        # Exception event message + stacktrace must be redacted.
+        blob = json.dumps(
+            {event.name: dict(event.attributes) for event in span.events}
+        )
+        assert "exception" in blob
+        assert "super-secret-value" not in blob
+        assert "***" in blob
+
+    @pytest.mark.asyncio
     async def test_non_tool_method_is_passthrough(self):
         pytest.importorskip("opentelemetry.sdk")
         from opentelemetry.sdk.trace import TracerProvider

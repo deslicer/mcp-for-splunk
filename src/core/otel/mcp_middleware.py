@@ -9,11 +9,17 @@ NOT attached to spans to honor the credential deny-list.
 from __future__ import annotations
 
 import logging
+import traceback
 from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from .logging import redact_sensitive
+
 logger = logging.getLogger(__name__)
+
+_MAX_EXC_MESSAGE = 500
+_MAX_EXC_STACKTRACE = 8000
 
 _TRACER_NAME = "mcp-for-splunk"
 
@@ -48,8 +54,14 @@ class OtelToolSpanMiddleware(Middleware):
             return await call_next(context)
 
         tracer = self._get_tracer()
+        # Disable the SDK's automatic exception recording: it would attach the
+        # raw, unredacted message + stacktrace on context-manager exit. We record
+        # a credential-masked exception event ourselves instead.
         with tracer.start_as_current_span(
-            f"mcp.tool.{tool_name}", kind=SpanKind.INTERNAL
+            f"mcp.tool.{tool_name}",
+            kind=SpanKind.INTERNAL,
+            record_exception=False,
+            set_status_on_exception=False,
         ) as span:
             span.set_attribute("mcp.tool.name", tool_name)
             if session_id:
@@ -60,8 +72,10 @@ class OtelToolSpanMiddleware(Middleware):
                 span.set_status(Status(StatusCode.OK))
                 return result
             except Exception as exc:
-                span.record_exception(exc)
-                span.set_status(Status(StatusCode.ERROR, str(exc)[:200]))
+                _record_redacted_exception(span, exc)
+                span.set_status(
+                    Status(StatusCode.ERROR, redact_sensitive(str(exc))[:200])
+                )
                 raise
 
     @staticmethod
@@ -72,3 +86,22 @@ class OtelToolSpanMiddleware(Middleware):
             if name:
                 return str(name)
         return "unknown"
+
+
+def _record_redacted_exception(span: Any, exc: BaseException) -> None:
+    """Record an exception event on the span with credentials masked.
+
+    Mirrors the JSON-log credential deny-list so exception messages and stack
+    traces exported to the OTLP backend cannot leak tokens/passwords. We emit a
+    sanitized ``exception`` event instead of ``span.record_exception`` (which
+    would attach the raw message + traceback verbatim).
+    """
+    stacktrace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    span.add_event(
+        "exception",
+        attributes={
+            "exception.type": type(exc).__qualname__,
+            "exception.message": redact_sensitive(str(exc))[:_MAX_EXC_MESSAGE],
+            "exception.stacktrace": redact_sensitive(stacktrace)[:_MAX_EXC_STACKTRACE],
+        },
+    )
