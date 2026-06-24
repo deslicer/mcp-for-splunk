@@ -19,6 +19,10 @@ classifiers = [
 dependencies = [
 "mcp[cli]>=1.28.0",
 "fastmcp>=3.4.2,<4",
+# fastmcp 3.4.2's server docstring parser imports the `griffe` package directly
+# (utilities/docstring_parsing.py) even though it only declares `griffelib`.
+# Declare griffe explicitly so server support works regardless of transitive deps.
+"griffe>=1.15.0",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.2",
 "httpx>=0.28.1",
@@ -26,7 +30,7 @@ dependencies = [
 "uvicorn>=0.49.0",
 "wsproto>=1.3.2",
 "openai>=2.43.0",
-"openai-agents>=0.1.0",
+"openai-agents>=0.17.6",
 ]
 license = { file = "LICENSE" }
 urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
@@ -63,7 +67,11 @@ test = [
 security = [
 "bandit>=1.9.4",
 "safety>=3.8.1",
-"semgrep>=1.0.0"
+# semgrep >=1.140 hard-pins `mcp==1.23.3`, which conflicts with our
+# `mcp[cli]>=1.28.0` runtime requirement and makes the environment
+# unresolvable. CI runs semgrep standalone (`pip install semgrep` in its own
+# isolated job), so this capped version only serves local convenience scans.
+"semgrep>=1.0.0,<1.140"
 ]
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)
