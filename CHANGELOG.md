@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
+
+
+### Features
+
+* **observability:** optional OpenTelemetry tracing support ([#204](https://github.com/deslicer/mcp-for-splunk/issues/204)) ([a07ae44](https://github.com/deslicer/mcp-for-splunk/commit/a07ae447724fe687d2c4b86d59bf1123d9f46bc7))
+
+
+### Bug Fixes
+
+* add exponential backoff retry for Splunk connections ([8bd0701](https://github.com/deslicer/mcp-for-splunk/commit/8bd07019b5e5794337002b856a549f5d7beceb73)), closes [#189](https://github.com/deslicer/mcp-for-splunk/issues/189)
+* add exponential backoff retry for Splunk connections ([#189](https://github.com/deslicer/mcp-for-splunk/issues/189)) ([c47226f](https://github.com/deslicer/mcp-for-splunk/commit/c47226f765b1c590ef9f5114d56ba18c53f6d70c))
+* handle MCP client disconnects without Sentry noise ([bbde7af](https://github.com/deslicer/mcp-for-splunk/commit/bbde7af78b486a5ce4783482a8fee4a9f10d263f)), closes [#188](https://github.com/deslicer/mcp-for-splunk/issues/188)
+* handle MCP client disconnects without Sentry noise ([#188](https://github.com/deslicer/mcp-for-splunk/issues/188)) ([544684f](https://github.com/deslicer/mcp-for-splunk/commit/544684fcb60bfeb3a009889549ee59ecebe9775d))
+* load .env before MCP client config extraction ([#169](https://github.com/deslicer/mcp-for-splunk/issues/169)) ([c1d60e4](https://github.com/deslicer/mcp-for-splunk/commit/c1d60e4711ce67dd11f833a8c801ae8c25cb1383))
+* load .env before reading MCP client config at startup ([ad678a4](https://github.com/deslicer/mcp-for-splunk/commit/ad678a455afbec37e20a09580b8d7de44fda582f)), closes [#169](https://github.com/deslicer/mcp-for-splunk/issues/169)
+
+
+### Dependencies
+
+* **deps-dev:** update pytest requirement from &gt;=9.0.3 to &gt;=9.1.1 ([#197](https://github.com/deslicer/mcp-for-splunk/issues/197)) ([7a72890](https://github.com/deslicer/mcp-for-splunk/commit/7a72890412f7108bc51be0959dd18925300c21f5))
+* **deps-dev:** update ruff requirement from &gt;=0.15.15 to &gt;=0.15.18 ([#199](https://github.com/deslicer/mcp-for-splunk/issues/199)) ([484ed6e](https://github.com/deslicer/mcp-for-splunk/commit/484ed6e7514c7cabab52e342845c56be26fd4cd0))
+* **deps-dev:** update sentry-sdk requirement from &gt;=2.61.1 to &gt;=2.63.0 ([#195](https://github.com/deslicer/mcp-for-splunk/issues/195)) ([f9ce2d6](https://github.com/deslicer/mcp-for-splunk/commit/f9ce2d6db4310e81728204133bfb341aa270cee9))
+* **deps:** update mcp requirement from &gt;=1.27.2 to &gt;=1.28.0 ([#201](https://github.com/deslicer/mcp-for-splunk/issues/201)) ([bc72c84](https://github.com/deslicer/mcp-for-splunk/commit/bc72c841c0cfec437289da3d278caa9741a264e8))
+* **deps:** update openai requirement from &gt;=2.41.1 to &gt;=2.43.0 ([#198](https://github.com/deslicer/mcp-for-splunk/issues/198)) ([aceac3d](https://github.com/deslicer/mcp-for-splunk/commit/aceac3d57a8572b9ef23805b0869f6acf36df0c1))
+* fix blocked Dependabot PRs ([#196](https://github.com/deslicer/mcp-for-splunk/issues/196) openai-agents/griffe, [#200](https://github.com/deslicer/mcp-for-splunk/issues/200) semgrep) ([#205](https://github.com/deslicer/mcp-for-splunk/issues/205)) ([6ce700b](https://github.com/deslicer/mcp-for-splunk/commit/6ce700bb910a40a148bc9d6523e7874d4da1f0c8))
+
 ## [0.6.7](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.6...v0.6.7) (2026-06-14)
 
 
