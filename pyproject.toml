@@ -67,11 +67,11 @@ test = [
 security = [
 "bandit>=1.9.4",
 "safety>=3.8.1",
-# semgrep >=1.140 hard-pins `mcp==1.23.3`, which conflicts with our
-# `mcp[cli]>=1.28.0` runtime requirement and makes the environment
-# unresolvable. CI runs semgrep standalone (`pip install semgrep` in its own
-# isolated job), so this capped version only serves local convenience scans.
-"semgrep>=1.0.0,<1.140"
+# semgrep >=1.137 hard-pins `mcp` (==1.12.2 on 1.137-1.139, ==1.23.3 later),
+# which conflicts with our `mcp[cli]>=1.28.0` runtime requirement and makes the
+# environment unresolvable. CI runs semgrep standalone (`pip install semgrep` in
+# its own isolated job), so this capped version only serves local convenience scans.
+"semgrep>=1.0.0,<1.137"
 ]
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)

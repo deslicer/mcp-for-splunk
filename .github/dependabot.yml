@@ -20,11 +20,11 @@ updates:
       include: "scope"
     versioning-strategy: increase
     ignore:
-      # semgrep >=1.140 hard-pins `mcp==1.23.3`, conflicting with our
-      # `mcp[cli]>=1.28.0` runtime requirement. semgrep runs standalone in CI,
-      # so we keep it capped (<1.140) in the [security] extra. Ignore newer bumps.
+      # semgrep >=1.137 hard-pins `mcp` (==1.12.2 on 1.137-1.139, ==1.23.3 later),
+      # conflicting with our `mcp[cli]>=1.28.0` runtime requirement. semgrep runs
+      # standalone in CI, so we keep it capped (<1.137) in the [security] extra.
       - dependency-name: "semgrep"
-        versions: [">=1.140.0"]
+        versions: [">=1.137.0"]
     groups:
       development-dependencies:
         patterns:
