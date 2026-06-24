@@ -103,6 +103,33 @@ def test_extract_request_config_authorization_bearer_when_mcp_auth_disabled(monk
     assert cfg.splunk_token == "hdr-token"
 
 
+def test_extract_request_config_ignores_local_db_authorization_bearer_when_mcp_auth_disabled(
+    monkeypatch,
+):
+    monkeypatch.setenv("MCP_AUTH_DISABLED", "true")
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    cfg = extract_request_config(
+        {
+            "X-Splunk-Username": "admin",
+            "X-Splunk-Password": "password",
+            "Authorization": "Bearer local-db-session-token",
+        },
+        settings,
+    )
+    assert cfg.splunk_token is None
+    assert cfg.splunk_username == "admin"
+    assert cfg.has_credentials() is True
+
+
+def test_extract_request_config_rejects_local_db_authorization_only_when_mcp_auth_disabled(
+    monkeypatch,
+):
+    monkeypatch.setenv("MCP_AUTH_DISABLED", "true")
+    settings = ITSIServerSettings(default_splunk_host="so1")
+    with pytest.raises(ValueError, match="No Splunk credentials"):
+        extract_request_config({"Authorization": "Bearer local-db-session-token"}, settings)
+
+
 def test_extract_request_config_ignores_authorization_bearer_when_mcp_auth_enabled(monkeypatch):
     monkeypatch.delenv("MCP_AUTH_DISABLED", raising=False)
     settings = ITSIServerSettings(default_splunk_host="so1")
