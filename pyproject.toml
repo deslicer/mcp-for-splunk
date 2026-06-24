@@ -42,7 +42,7 @@ mcp-server = "src.cli.build_and_run:main"
 
 [project.optional-dependencies]
 dev = [
-"pytest>=9.0.3",
+"pytest>=9.1.1",
 "pytest-asyncio>=1.4.0",
 "black>=26.5.1",
 "mypy>=2.1.0",
@@ -55,7 +55,7 @@ itsi = [
 "mcp-itsi-server>=0.1.2",
 ]
 test = [
-"pytest>=9.0.3",
+"pytest>=9.1.1",
 "pytest-asyncio>=1.4.0",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
@@ -113,7 +113,7 @@ mcp-itsi-server = { workspace = true }
 
 [tool.uv]
 dev-dependencies = [
-"pytest>=9.0.3",
+"pytest>=9.1.1",
 "pytest-asyncio>=1.4.0",
 "pytest-cov>=7.1.0",
 "black>=26.5.1",
