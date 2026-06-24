@@ -85,9 +85,10 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
     # Fall back to a standard ``Authorization: Bearer <token>`` header for the
     # Splunk bearer token. We only do this when MCP server-level auth is
     # disabled to avoid mistaking an MCP auth JWT for a Splunk credential.
+    # Enterprise DAI session tokens (``local-db-*``) must never be mapped here.
     if _splunk_t not in client_config and _mcp_auth_disabled():
         splunk_from_auth_header = _extract_bearer_token(headers)
-        if splunk_from_auth_header:
+        if splunk_from_auth_header and not _is_dai_session_bearer(splunk_from_auth_header):
             client_config[_splunk_t] = splunk_from_auth_header
 
     return client_config if client_config else None
@@ -107,6 +108,11 @@ def _mcp_auth_disabled() -> bool:
     import os
 
     return (os.getenv("MCP_AUTH_DISABLED") or "false").strip().lower() == "true"
+
+
+def _is_dai_session_bearer(token: str) -> bool:
+    """Return True when the bearer value is a Deslicer AI enterprise session token."""
+    return token.startswith("local-db-")
 
 
 def _extract_bearer_token(headers: dict) -> str | None:

@@ -165,6 +165,22 @@ class TestHeaderExtractionForTokens:
         assert cfg is not None
         assert _SPLUNK_TOK not in cfg
 
+    def test_authorization_local_db_bearer_ignored_when_mcp_auth_disabled(self):
+        from src.core.utils import extract_client_config_from_headers
+
+        with patch.dict(os.environ, {"MCP_AUTH_DISABLED": "true"}, clear=False):
+            cfg = extract_client_config_from_headers({
+                "X-Splunk-Host": "splunk.example.com",
+                "X-Splunk-Username": "admin",
+                "X-Splunk-Password": "password",
+                "Authorization": "Bearer local-db-session-token",
+            })
+
+        assert cfg is not None
+        assert _SPLUNK_TOK not in cfg
+        assert cfg["splunk_username"] == "admin"
+        assert cfg["splunk_password"] == "password"
+
     def test_explicit_splunk_token_header_wins_over_authorization(self):
         from src.core.utils import extract_client_config_from_headers
 

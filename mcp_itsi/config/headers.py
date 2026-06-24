@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from mcp_itsi.config.settings import ITSIServerSettings
+from src.core.utils import _is_dai_session_bearer
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +136,9 @@ def extract_request_config(
     )
     splunk_token = bearer_from_headers or settings.default_splunk_token
     if not splunk_token and _mcp_auth_disabled():
-        splunk_token = _extract_bearer_from_authorization(headers)
+        bearer_from_auth = _extract_bearer_from_authorization(headers)
+        if bearer_from_auth and not _is_dai_session_bearer(bearer_from_auth):
+            splunk_token = bearer_from_auth
 
     session_from_headers = _ci_get(headers, "X-Splunk-Session-Token")
     splunk_session_token = (
