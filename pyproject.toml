@@ -22,7 +22,7 @@ dependencies = [
 # fastmcp 3.4.2's server docstring parser imports the `griffe` package directly
 # (utilities/docstring_parsing.py) even though it only declares `griffelib`.
 # Declare griffe explicitly so server support works regardless of transitive deps.
-"griffe>=1.15.0",
+"griffe>=2.1.0",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.2",
 "httpx>=0.28.1",
