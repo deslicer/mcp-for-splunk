@@ -87,7 +87,7 @@ otel = [
 "opentelemetry-sdk>=1.42.1",
 "opentelemetry-exporter-otlp-proto-http>=1.41.1",
 "opentelemetry-instrumentation-starlette>=0.62b0",
-"opentelemetry-instrumentation-httpx>=0.63b1",
+"opentelemetry-instrumentation-httpx>=0.64b0",
 "opentelemetry-instrumentation-logging>=0.62b0",
 ]
 
