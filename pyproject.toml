@@ -83,7 +83,7 @@ sentry = [
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 otel = [
-"opentelemetry-api>=1.41.1",
+"opentelemetry-api>=1.43.0",
 "opentelemetry-sdk>=1.42.1",
 "opentelemetry-exporter-otlp-proto-http>=1.41.1",
 "opentelemetry-instrumentation-starlette>=0.62b0",
