@@ -13,7 +13,7 @@ from fastmcp import Context
 from ..core.base import BaseResource, ResourceMetadata
 from ..core.client_identity import get_client_manager
 from ..core.enhanced_config_extractor import EnhancedConfigExtractor
-from ..core.utils import filter_customer_indexes
+from ..core.utils import entity_acl, filter_customer_indexes
 
 logger = logging.getLogger(__name__)
 
@@ -1018,7 +1018,7 @@ class SplunkIndexesResource(BaseResource):
                     "thawed_path": index.content.get("thawedPath", ""),
                     "disabled": self._convert_splunk_boolean(index.content.get("disabled"), False),
                     "splunk_server": index.content.get("splunk_server", ""),
-                    "eai_acl": index.content.get("eai:acl", {}),
+                    "eai_acl": entity_acl(index),
                     "current_db_size_mb": index.content.get("currentDBSizeMB", 0),
                     "max_total_data_size_mb": index.content.get("maxTotalDataSizeMB", 0),
                     "total_event_count": index.content.get("totalEventCount", 0),
@@ -1155,8 +1155,8 @@ class SplunkSavedSearchesResource(BaseResource):
                         saved_search.content.get("disabled"), False
                     ),
                     "description": saved_search.content.get("description", ""),
-                    "owner": saved_search.content.get("eai:acl", {}).get("owner", ""),
-                    "app": saved_search.content.get("eai:acl", {}).get("app", ""),
+                    "owner": entity_acl(saved_search).get("owner", ""),
+                    "app": entity_acl(saved_search).get("app", ""),
                     # "sharing": saved_search.content.get("eai:acl", {}).get("sharing", ""),
                     # "permissions": {
                     #     "read": saved_search.content.get("eai:acl", {}).get("perms", {}).get("read", []),

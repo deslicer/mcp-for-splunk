@@ -267,6 +267,37 @@ def log_tool_execution(tool_name: str, **kwargs):
         logger.debug(f"Tool parameters: {kwargs}")
 
 
+def entity_acl(entity: Any) -> dict[str, Any]:
+    """
+    Return the ACL (eai:acl) record for a splunklib Entity.
+
+    splunklib parses ``eai:acl`` out of the Atom response into the entity's
+    ``access`` record — it is NOT present in ``entity.content``. Reads like
+    ``entity.content.get("eai:acl", {})`` therefore always return ``{}`` on a
+    live service, which silently disables app/owner/sharing filtering and
+    permission reporting.
+
+    Prefers ``entity.access`` (a dict-like Record on real entities); falls
+    back to ``content["eai:acl"]`` for test fakes or pre-parsed payloads
+    that stash the ACL in content.
+
+    Args:
+        entity: A splunklib Entity (or compatible fake)
+
+    Returns:
+        The ACL as a dict-like mapping; empty dict if unavailable.
+    """
+    access = getattr(entity, "access", None)
+    if isinstance(access, dict):
+        return access
+    content = getattr(entity, "content", None)
+    if isinstance(content, dict):
+        acl = content.get("eai:acl")
+        if isinstance(acl, dict):
+            return acl
+    return {}
+
+
 def filter_customer_indexes(indexes):
     """
     Filter out internal Splunk indexes from the collection to improve performance
