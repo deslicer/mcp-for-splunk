@@ -105,6 +105,7 @@ tags = ["credential"]
 paths = [
     '''env\.example''',
     '''\.md$''',
+    '''llms\.txt$''',  # Agent header examples; placeholders only
     '''tests/''',
     '''conftest\.py$''',
     '''test.*\.py$''',

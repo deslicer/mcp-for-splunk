@@ -212,6 +212,8 @@ Both modes share the **same per-request `X-Splunk-*` headers** as the parent ser
 | **[Getting Started](docs/getting-started/)** | Complete setup guide with prerequisites | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[HTTP Client Modes](docs/guides/configuration/http-client-modes.md)** | Sessionless vs session-scoped HTTP clients | Developers | 10 min |
+| **[llms.txt](llms.txt)** | LLM-oriented guide for *using* the MCP server | Agents | 5 min |
+| **[AGENTS.md](AGENTS.md)** | Instructions for coding agents working in this repo | Contributors / agents | 5 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
 | **[Workflows Guide](docs/guides/workflows/README.md)** | Discover, author, and validate workflow JSON | Developers | 10 min |
 | **[API Reference](docs/reference/tools.md)** | Tool documentation | Integrators | Reference |

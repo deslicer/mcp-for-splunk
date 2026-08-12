@@ -1,0 +1,82 @@
+# MCP Server for Splunk
+
+> Model Context Protocol server that lets LLM agents query and administer Splunk Enterprise/Cloud (search, indexes, saved searches, apps, KV store, docs resources) over Streamable HTTP or stdio. Optional ITSI plugin adds `itsi_*` tools.
+
+This file orients agents that **use** a running server. For agents that **edit this repo**, see `AGENTS.md`.
+
+## Connect (HTTP)
+
+Endpoint: `http(s)://HOST:PORT/mcp` (local default often `http://localhost:8003/mcp`).
+
+Prefer a real MCP client (FastMCP Client, Cursor, Claude Desktop, MCP Inspector). Send Splunk credentials as headers on each request.
+
+### Sessionless (default)
+
+Server: `MCP_STATELESS_HTTP=true`, `MCP_JSON_RESPONSE=true`.
+
+```http
+X-Splunk-Host: splunk.example.com
+X-Splunk-Port: 8089
+X-Splunk-Scheme: https
+X-Splunk-Verify-SSL: true
+X-Splunk-Token: <token>
+```
+
+Omit `X-Session-ID` / `MCP-Session-ID` unless you want session-scoped caching.
+
+### Session-scoped
+
+Add a stable session key when using password auth or sticky IDE sessions:
+
+```http
+X-Session-ID: ide-session-abc123
+X-Splunk-Host: splunk.example.com
+X-Splunk-Username: analyst
+X-Splunk-Password: <pass>
+X-Splunk-Scheme: https
+X-Splunk-Verify-SSL: true
+```
+
+### Toolset filter (optional)
+
+```http
+X-MCP-Toolsets: splunk
+X-MCP-Toolsets: itsi
+X-MCP-Toolsets: splunk,itsi
+X-MCP-Toolsets: all
+```
+
+Default without header is usually `splunk` only (`MCP_DEFAULT_TOOLSETS`).
+
+## Golden path for Splunk work
+
+1. `get_splunk_health` — confirm connectivity.
+2. Discover: `list_indexes`, `list_sources`, `list_sourcetypes`, `get_metadata`.
+3. Search: `run_oneshot_search` for small results; `run_splunk_search` + `get_search_job_info` for longer jobs.
+4. Saved searches / alerts: `list_saved_searches` (supports app-scoped alerts), then `get_saved_search_details` / `execute_saved_search`.
+5. Docs resources: `discover_splunk_docs`, `get_splunk_cheat_sheet`, CIM/studio helpers — use when unsure about SPL or configs.
+6. Workflows: `list_workflows` / `workflow_builder` / `workflow_requirements` discover and validate JSON playbooks. There is **no** built-in OpenAI `workflow_runner`; orchestrate externally.
+
+## Important rules
+
+- Prefer bearer tokens (`X-Splunk-Token`) over passwords.
+- TLS verification defaults to **true**; set `X-Splunk-Verify-SSL: false` only for lab/self-signed.
+- Do not invent SPL indexes or saved-search names — list first.
+- Mutating tools (`create_*`, `delete_*`, `manage_apps`, `create_config`) need explicit user intent.
+- For ITSI objects, switch to the ITSI guide and always work schema-first.
+
+## Docs map
+
+- [HTTP client modes](docs/guides/configuration/http-client-modes.md): sessionless vs session-scoped
+- [Client configuration](docs/guides/configuration/client_configuration.md): full header/env matrix + toolsets
+- [Tools reference](docs/reference/tools.md): tool catalog
+- [Workflows](docs/guides/workflows/README.md): JSON workflow discovery (no OpenAI runner)
+- [ITSI llms.txt](mcp_itsi/llms.txt): ITSI schema-first CRUD
+- [ITSI getting started](docs/guides/itsi/getting-started.md): run plugin or standalone ITSI server
+- [AGENTS.md](AGENTS.md): repo contribution / coding-agent instructions
+
+## Optional
+
+- Live probes: `scripts/test_sessionless_http.py`, `scripts/test_live_mcp_client.py`
+- Session troubleshooting: `docs/SESSION_MANAGEMENT.md`
+- Contrib tools: `contrib/README.md`

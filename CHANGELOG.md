@@ -13,6 +13,7 @@
 * Dual-era client config cache: prefer `X-Session-ID`, fall back to `MCP-Session-Id`, then config fingerprint
 * Default Streamable HTTP to sessionless (`MCP_STATELESS_HTTP` / `MCP_JSON_RESPONSE` true)
 * Docs for sessionless vs session-scoped HTTP clients (`docs/guides/configuration/http-client-modes.md`)
+* Add root `llms.txt` (MCP usage for LLM agents) and `AGENTS.md` (coding-agent repo guide)
 
 ### Bug Fixes
 
