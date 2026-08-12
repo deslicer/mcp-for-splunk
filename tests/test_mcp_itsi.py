@@ -45,6 +45,7 @@ def test_load_settings_returns_defaults(monkeypatch):
         "ITSI_API_VERSION",
         "MCP_STATELESS_HTTP",
         "MCP_JSON_RESPONSE",
+        "SPLUNK_VERIFY_SSL",
     ):
         monkeypatch.delenv(key, raising=False)
     s = load_settings()
@@ -52,6 +53,7 @@ def test_load_settings_returns_defaults(monkeypatch):
     assert s.transport == "http"
     assert s.default_itsi_app == "SA-ITOA"
     assert s.default_itsi_user_ns == "nobody"
+    assert s.default_splunk_verify_ssl is True
 
 
 def test_extract_request_config_uses_headers():

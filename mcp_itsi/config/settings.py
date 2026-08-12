@@ -54,7 +54,7 @@ class ITSIServerSettings:
     default_splunk_password: str | None = None
     default_splunk_token: str | None = None
     default_splunk_session_token: str | None = None
-    default_splunk_verify_ssl: bool = False
+    default_splunk_verify_ssl: bool = True
 
     default_itsi_app: str = "SA-ITOA"
     default_itsi_user_ns: str = "nobody"
@@ -92,7 +92,7 @@ def load_settings() -> ITSIServerSettings:
         default_splunk_session_token=os.getenv("SPLUNK_SESSION_TOKEN")
         or os.getenv("MCP_SPLUNK_SESSION_TOKEN")
         or None,
-        default_splunk_verify_ssl=_bool(os.getenv("SPLUNK_VERIFY_SSL"), False),
+        default_splunk_verify_ssl=_bool(os.getenv("SPLUNK_VERIFY_SSL"), True),
         default_itsi_app=os.getenv("ITSI_APP", "SA-ITOA"),
         default_itsi_user_ns=os.getenv("ITSI_USER_NS", "nobody"),
         default_itsi_version=os.getenv("ITSI_API_VERSION", "vLatest"),

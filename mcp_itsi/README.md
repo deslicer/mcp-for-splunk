@@ -185,7 +185,7 @@ All variables have safe defaults; everything below is optional.
 | `SPLUNK_USERNAME` / `SPLUNK_PASSWORD` | — | Default basic-auth credentials. |
 | `SPLUNK_TOKEN` / `MCP_SPLUNK_TOKEN` | — | Default bearer token. |
 | `SPLUNK_SESSION_TOKEN` / `MCP_SPLUNK_SESSION_TOKEN` | — | Default splunkd session token. |
-| `SPLUNK_VERIFY_SSL` | `false` | Default TLS verification. |
+| `SPLUNK_VERIFY_SSL` | `true` | Default TLS verification. Set `false` for lab/self-signed certs. |
 
 ## Capabilities at a glance
 

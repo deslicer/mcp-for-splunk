@@ -53,7 +53,8 @@ SPLUNK_HOST=<splunk-host>
 SPLUNK_PORT=8089
 SPLUNK_USERNAME=<user>
 SPLUNK_PASSWORD=<pass>
-SPLUNK_VERIFY_SSL=false           # set to true in production with a valid cert
+# Defaults to true; set false only for lab/self-signed certs
+SPLUNK_VERIFY_SSL=false
 
 # Optional ITSI namespace overrides (defaults shown)
 ITSI_APP=SA-ITOA

@@ -18,7 +18,7 @@ def test_env_vars():
 
     optional_vars = {
         "SPLUNK_PORT": "Splunk management port (default: 8089)",
-        "SPLUNK_VERIFY_SSL": "Verify SSL certificates (default: false)",
+        "SPLUNK_VERIFY_SSL": "Verify SSL certificates (default: true)",
         "MCP_HOT_RELOAD": "Enable hot reload (development)",
         "MCP_SERVER_MODE": "Server mode (docker/local)",
         "MCP_STATELESS_HTTP": "Stateless HTTP for handshake-era clients (default: true)",
