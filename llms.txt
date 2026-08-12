@@ -19,7 +19,7 @@ X-Splunk-Host: splunk.example.com
 X-Splunk-Port: 8089
 X-Splunk-Scheme: https
 X-Splunk-Verify-SSL: true
-X-Splunk-Token: <splunk-access-token>
+X-Splunk-Token: <token>
 ```
 
 Omit `X-Session-ID` / `MCP-Session-ID` unless you want session-scoped caching.
@@ -32,7 +32,7 @@ Add a stable session key when using password auth or sticky IDE sessions:
 X-Session-ID: ide-session-abc123
 X-Splunk-Host: splunk.example.com
 X-Splunk-Username: analyst
-X-Splunk-Password: <password>
+X-Splunk-Password: <pass>
 X-Splunk-Scheme: https
 X-Splunk-Verify-SSL: true
 ```
