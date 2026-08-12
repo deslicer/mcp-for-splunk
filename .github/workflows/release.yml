@@ -88,10 +88,10 @@ jobs:
       PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
 
       - name: Install Python 3.10 via uv
         run: uv python install 3.10
@@ -102,7 +102,7 @@ jobs:
       # Trusted publishing path (no token configured — uses GitHub OIDC).
       - name: Publish mcp-server-for-splunk to PyPI (trusted publishing)
         if: env.PYPI_TOKEN == ''
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist-parent
           skip-existing: true
@@ -110,7 +110,7 @@ jobs:
       # Token publishing path (back-compat with the existing PYPI_API_TOKEN secret).
       - name: Publish mcp-server-for-splunk to PyPI (token)
         if: env.PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           password: ${{ env.PYPI_TOKEN }}
           packages-dir: dist-parent
@@ -118,7 +118,7 @@ jobs:
 
       - name: Create / update GitHub Release (mcp-server-for-splunk)
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/mcp-server-for-splunk-v')
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           generate_release_notes: true
           files: |
@@ -139,10 +139,10 @@ jobs:
       PYPI_TOKEN: ${{ secrets.PYPI_ITSI_API_TOKEN || secrets.PYPI_API_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
 
       - name: Install Python 3.10 via uv
         run: uv python install 3.10
@@ -152,14 +152,14 @@ jobs:
 
       - name: Publish mcp-itsi-server to PyPI (trusted publishing)
         if: env.PYPI_TOKEN == ''
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist-itsi
           skip-existing: true
 
       - name: Publish mcp-itsi-server to PyPI (token)
         if: env.PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           password: ${{ env.PYPI_TOKEN }}
           packages-dir: dist-itsi
@@ -167,7 +167,7 @@ jobs:
 
       - name: Create / update GitHub Release (mcp-itsi-server)
         if: startsWith(github.ref, 'refs/tags/mcp-itsi-server-v')
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           generate_release_notes: true
           files: |

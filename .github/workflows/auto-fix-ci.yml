@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   attempt-fix:
-    uses: deslicer/deslicer-code-harness/.github/workflows/core_auto_fix_ci.yml@v1
+    uses: deslicer/deslicer-code-harness/.github/workflows/core_auto_fix_ci.yml@30a1f1dc2f34e0bd0ab3ac6999a718f0a18a565f # v1
     with:
       model: gpt-5.2
       push_to_pr_branch: true
