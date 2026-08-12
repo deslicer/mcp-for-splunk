@@ -753,12 +753,17 @@ class ClientConfigMiddleware(Middleware):
                     await context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
                         await context.fastmcp_context.set_state("session_id", effective_session)
+                    _redact_keys = {
+                        "splunk_password",
+                        "splunk_token",
+                        "splunk_session_token",
+                    }
                     logger.info(
                         "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
                         effective_session,
                         {
-                            k: v if k not in ["splunk_password"] else "***"
+                            k: ("***" if k in _redact_keys else v)
                             for k, v in client_config.items()
                         },
                     )
