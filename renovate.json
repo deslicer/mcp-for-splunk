@@ -26,15 +26,10 @@
     "enabled": true,
     "labels": ["security", "priority-high"],
     "groupName": "Security Updates",
-    "schedule": ["at any time"]
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
   },
   "packageRules": [
-    {
-      "description": "Security updates bypass minimum release age",
-      "matchDatasources": ["pypi", "github-actions", "docker"],
-      "vulnerabilityAlerts": true,
-      "minimumReleaseAge": null
-    },
     {
       "description": "Group all Python development dependencies",
       "matchPackagePatterns": ["^pytest", "^black", "^ruff", "^mypy", "^pre-commit"],
