@@ -211,6 +211,7 @@ Both modes share the **same per-request `X-Splunk-*` headers** as the parent ser
 | **[🤖 AI-Powered Troubleshooting](docs/guides/workflows/README.md)** | **Intelligent workflows powered by the workflow tools** | **All users** | **5 min** |
 | **[Getting Started](docs/getting-started/)** | Complete setup guide with prerequisites | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
+| **[HTTP Client Modes](docs/guides/configuration/http-client-modes.md)** | Sessionless vs session-scoped HTTP clients | Developers | 10 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
 | **[Workflows Guide](docs/guides/workflows/README.md)** | Discover, author, and validate workflow JSON | Developers | 10 min |
 | **[API Reference](docs/reference/tools.md)** | Tool documentation | Integrators | Reference |
@@ -323,36 +324,38 @@ The companion `mcp_itsi` server (standalone or plugin — see [🛡️ ITSI MCP 
 
 ## Client Specified Tenant ##
 
+Sessionless bearer-token (default HTTP mode) and session-scoped examples:
+
 ```json
 {
-    "mcpServers": {
-      "splunk-in-docker": {
-        "url": "http://localhost:8002/mcp/",
-        "headers": {
-          "X-Splunk-Host": "so1",
-          "X-Splunk-Port": "8089",
-          "X-Splunk-Username": "admin",
-          "X-Splunk-Password": "Chang3d!",
-          "X-Splunk-Scheme": "http",
-          "X-Splunk-Verify-SSL": "false",
-          "X-Session-ID": "splunk-in-docker-session"
-        }
+  "mcpServers": {
+    "splunk-sessionless": {
+      "url": "http://localhost:8003/mcp/",
+      "headers": {
+        "X-Splunk-Host": "myorg.splunkcloud.com",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Token": "eyJraWQiOiJzcGx1bmsuc2VjcmV0...",
+        "X-Splunk-Scheme": "https",
+        "X-Splunk-Verify-SSL": "true"
+      }
     },
-        "splunk-cloud-instance": {
-        "url": "http://localhost:8002/mcp/",
-        "headers": {
-          "X-Splunk-Host": "myorg.splunkcloud.com",
-          "X-Splunk-Port": "8089",
-          "X-Splunk-Username": "admin@myorg.com",
-          "X-Splunk-Password": "Chang3d!Cloud",
-          "X-Splunk-Scheme": "https",
-          "X-Splunk-Verify-SSL": "true",
-          "X-Session-ID": "splunk-cloud-session"
-        }
+    "splunk-in-docker": {
+      "url": "http://localhost:8003/mcp/",
+      "headers": {
+        "X-Splunk-Host": "so1",
+        "X-Splunk-Port": "8089",
+        "X-Splunk-Username": "admin",
+        "X-Splunk-Password": "Chang3d!",
+        "X-Splunk-Scheme": "http",
+        "X-Splunk-Verify-SSL": "false",
+        "X-Session-ID": "splunk-in-docker-session"
+      }
     }
   }
 }
 ```
+
+See [HTTP Client Connection Modes](docs/guides/configuration/http-client-modes.md) for both approaches.
 
 <a name="google-agent-development-kit"></a>
 
@@ -419,12 +422,12 @@ uv run validate-tools
 - **Startup Time**: ~10 seconds
 - **Resource Usage**: Minimal (single Python process)
 - **Best For**: Development, testing, stdio-based AI clients
-- **HTTP Defaults**: Local runs enable `MCP_STATELESS_HTTP=true` and `MCP_JSON_RESPONSE=true` by default for compatibility with Official MCP clients (no sticky sessions; JSON over SSE).
+- **HTTP Defaults**: Local runs enable `MCP_STATELESS_HTTP=true` and `MCP_JSON_RESPONSE=true` by default for Official MCP clients (no sticky sessions; JSON over SSE).
   - Endpoint: `http://localhost:8003/mcp/`
-  - Required client headers:
-    - `Accept: application/json, text/event-stream`
-    - `MCP-Session-ID: <uuid>` (preferred; `X-Session-ID` optional)
-    - `X-Splunk-*` headers (host, port, username, password, scheme, verify-ssl) or set via `.env`
+  - Client headers: `Accept: application/json, text/event-stream` plus `X-Splunk-*` (prefer `X-Splunk-Token`; or username/password)
+  - Sessionless (default): omit `X-Session-ID` / `MCP-Session-ID`
+  - Session-scoped: send a stable `X-Session-ID` when you want cached config across requests
+  - Details: [HTTP Client Connection Modes](docs/guides/configuration/http-client-modes.md)
 
 <a name="production-docker"></a>
 
