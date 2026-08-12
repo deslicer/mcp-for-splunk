@@ -326,18 +326,24 @@ jobs:
 
       - name: Create security summary
         run: |
-          echo "# Security Scan Summary" > security-summary.md
-          echo "" >> security-summary.md
-          echo "## Scan Results" >> security-summary.md
-          echo "" >> security-summary.md
-          echo "- Bandit (Python SAST): ${{ needs.bandit-scan.result }}" >> security-summary.md
-          echo "- Semgrep (Multi-language SAST): ${{ needs.semgrep-scan.result }}" >> security-summary.md
-          echo "- Trivy (Vulnerability scanner): ${{ needs.trivy-scan.result }}" >> security-summary.md
-          echo "- Gitleaks (Secret detection): ${{ needs.gitleaks-scan.result }}" >> security-summary.md
-          echo "- CodeQL (Advanced analysis): ${{ needs.codeql-analysis.result }}" >> security-summary.md
+          {
+            echo "# Security Scan Summary"
+            echo ""
+            echo "## Scan Results"
+            echo ""
+            echo "- Bandit (Python SAST): ${{ needs.bandit-scan.result }}"
+            echo "- Semgrep (Multi-language SAST): ${{ needs.semgrep-scan.result }}"
+            echo "- Trivy (Vulnerability scanner): ${{ needs.trivy-scan.result }}"
+            echo "- Gitleaks (Secret detection): ${{ needs.gitleaks-scan.result }}"
+            echo "- CodeQL (Advanced analysis): ${{ needs.codeql-analysis.result }}"
+          } | tee security-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+      # Fork PRs get a read-only GITHUB_TOKEN, so commenting always 403s there.
+      # Keep the job green and rely on the Actions job summary / artifact instead.
       - name: Comment PR with summary
-        if: github.event_name == 'pull_request'
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v9
         with:
           script: |
