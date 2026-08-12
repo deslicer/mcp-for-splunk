@@ -106,8 +106,6 @@ class ClientConfigCacheKeyResolver:
             parts.append("bearer:" + _fingerprint(auth_bearer))
         elif auth_session:
             parts.append("session:" + _fingerprint(auth_session))
-        else:
-            return None
 
         digest = hashlib.sha256("|".join(sorted(parts)).encode()).hexdigest()
         return f"cfg_{digest[:16]}"
