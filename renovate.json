@@ -11,6 +11,8 @@
   ],
   "labels": ["dependencies", "renovate"],
   "enabledManagers": ["pip_requirements", "pip-compile", "poetry", "uv", "github-actions", "dockerfile"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
   "platformAutomerge": false,
   "automerge": false,
   "automergeType": "pr",
@@ -27,6 +29,12 @@
     "schedule": ["at any time"]
   },
   "packageRules": [
+    {
+      "description": "Security updates bypass minimum release age",
+      "matchDatasources": ["pypi", "github-actions", "docker"],
+      "vulnerabilityAlerts": true,
+      "minimumReleaseAge": null
+    },
     {
       "description": "Group all Python development dependencies",
       "matchPackagePatterns": ["^pytest", "^black", "^ruff", "^mypy", "^pre-commit"],
