@@ -17,6 +17,7 @@ import importlib
 
 import pytest
 from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
 
 from src.core.toolset_filter import ToolsetFilterMiddleware
 
@@ -105,7 +106,7 @@ async def test_call_blocked_tool_raises(monkeypatch, host: FastMCP):
     """Calling a tool whose toolset is disabled must raise an error to the client."""
     monkeypatch.setenv("MCP_DEFAULT_TOOLSETS", "splunk")
     async with Client(host) as client:
-        with pytest.raises(Exception):
+        with pytest.raises(ToolError):
             await client.call_tool("itsi_list_entities", {})
 
 
