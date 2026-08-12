@@ -98,10 +98,10 @@ multiple modes of operation to accommodate different workflow development needs.
 
 ## Outputs
 - Structured results including validation summaries, templates, or processed workflow data
-- Ready-to-execute workflows that can be run with `workflow_runner` or the dynamic agent
+- Ready-to-validate workflow JSON for discovery via `list_workflows`
 
 Perfect for workflow contributors who need guided assistance in creating well-structured,
-validated workflows that integrate seamlessly with the dynamic troubleshoot agent.""",
+validated workflows for contrib or core catalogs.""",
         category="workflows",
     )
 
@@ -203,7 +203,7 @@ validated workflows that integrate seamlessly with the dynamic troubleshoot agen
                     "compatible_with_runner": True,
                 },
                 "usage_instructions": {
-                    "workflow_runner": f"Use workflow_id='{workflow.get('workflow_id', 'unknown')}' with the workflow_runner tool",
+                    "list_workflows": f"Discover workflow_id='{workflow.get('workflow_id', 'unknown')}' after saving under contrib/workflows/",
                     "dynamic_troubleshoot": f"Use workflow_type='{workflow.get('workflow_id', 'unknown')}' with dynamic_troubleshoot_agent",
                     "file_save": "Save this workflow as JSON in contrib/workflows/category/ directory",
                 },
@@ -488,7 +488,7 @@ You are performing additional analysis as part of the workflow.
             "create_kvstore_collection": "Create new KV Store collections",
             # Workflow Tools
             "list_workflows": "List available workflows",
-            "workflow_runner": "Execute workflows by ID",
+            "list_workflows": "Discover workflow IDs (core + contrib)",
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
         }

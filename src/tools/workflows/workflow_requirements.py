@@ -260,27 +260,21 @@ for creating custom diagnostic workflows.""",
                 },
                 "integration_information": {
                     "workflow_execution": {
-                        "usage": "Execute workflows via the workflow_runner tool by workflow_id",
+                        "usage": "Discover and validate workflows; agent execution (workflow_runner) was removed",
                         "example": {
-                            "tool": "workflow_runner",
+                            "tool": "list_workflows",
                             "params": {
-                                "workflow_id": "your_workflow_id",
-                                "earliest_time": "-24h",
-                                "latest_time": "now",
-                                "focus_index": "optional-index",
-                                "complexity_level": "moderate",
+                                "format_type": "summary",
                             },
                         },
                         "discovery": "Use list_workflows tool to list available workflow IDs (core and contrib)",
-                        "loading": "WorkflowManager loads JSON workflows from src/tools/workflows/core/ and contrib/workflows/ during startup",
+                        "loading": "WorkflowCatalog loads JSON workflows from src/tools/workflows/core/ and contrib/workflows/",
                     },
                     "execution_flow": [
-                        "1. User calls list_workflows to discover workflow IDs (optional)",
-                        "2. User invokes workflow_runner with workflow_id and context parameters",
-                        "3. WorkflowManager returns the registered WorkflowDefinition",
-                        "4. ParallelWorkflowExecutor executes tasks in dependency-aware phases",
-                        "5. Optional summarization synthesizes results",
-                        "6. Structured results are returned to the caller",
+                        "1. User calls list_workflows to discover workflow IDs",
+                        "2. User authors or validates JSON with workflow_builder",
+                        "3. WorkflowCatalog returns the registered WorkflowDefinition metadata",
+                        "4. External orchestrators (MCP client/agent) execute tasks using listed tools",
                     ],
                 },
                 "best_practices": {
@@ -431,7 +425,7 @@ for creating custom diagnostic workflows.""",
                     "jsonschema": "python -c \"import json,sys,jsonschema; d=json.load(open('your_workflow.json')); s=<SCHEMA_JSON>; jsonschema.validate(d,s)\"",
                     "loader_validation": "python -c \"from contrib.workflows.loaders import WorkflowLoader; import sys; l=WorkflowLoader('contrib/workflows'); l.validate_workflow_file('your_workflow.json'); print('valid')\"",
                 },
-                "integration_usage": "Use 'list_workflows' to discover IDs, then run via 'workflow_runner' with workflow_id",
+                "integration_usage": "Use 'list_workflows' to discover IDs, then author/validate with 'workflow_builder'",
                 "file_location": "contrib/workflows/<category>/your_workflow.json",
             }
         }
@@ -576,7 +570,7 @@ for creating custom diagnostic workflows.""",
             "create_kvstore_collection": "Create new KV Store collections",
             # Workflow Tools
             "list_workflows": "List available workflows",
-            "workflow_runner": "Execute workflows by ID",
+            "list_workflows": "Discover workflow IDs (core + contrib)",
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
         }

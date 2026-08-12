@@ -11,7 +11,7 @@ import re  # Added for regex in _validate_task
 from pathlib import Path
 from typing import Any
 
-from src.tools.workflows.shared.workflow_manager import TaskDefinition, WorkflowDefinition
+from src.tools.workflows.shared.definitions import TaskDefinition, WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 

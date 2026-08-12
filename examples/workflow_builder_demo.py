@@ -149,7 +149,7 @@ You are checking for privilege escalation attempts.
 
             if result1["integration_ready"]:
                 print("\n💡 Usage Instructions:")
-                print(f"   - Workflow Runner: {result1['usage_instructions']['workflow_runner']}")
+                print(f"   - List Workflows: {result1['usage_instructions'].get('list_workflows')}")
                 print(
                     f"   - Dynamic Troubleshoot: {result1['usage_instructions']['dynamic_troubleshoot']}"
                 )
@@ -461,22 +461,16 @@ if result['integration_ready']:
             "description": "Process and validate a complete workflow definition",
         },
         {
-            "title": "Use with Workflow Runner",
+            "title": "Discover after saving",
             "code": """
-# After processing with workflow builder, use with workflow runner
-from src.tools.workflows.workflow_runner import WorkflowRunnerTool
+# After processing with workflow builder, save JSON under contrib/workflows/
+# then rediscover with list_workflows (built-in agent runner was removed)
+from src.tools.workflows.list_workflows import ListWorkflowsTool
 
-workflow_runner = WorkflowRunnerTool("workflow_runner", "workflows")
-
-# Execute the processed workflow
-result = await workflow_runner.execute(
-    ctx=ctx,
-    workflow_id="my_custom_workflow",  # Use the workflow_id from processed workflow
-    problem_description="Test execution",
-    complexity_level="moderate"
-)
+list_workflows = ListWorkflowsTool("list_workflows", "workflows")
+result = await list_workflows.execute(ctx=ctx, format_type="summary")
             """,
-            "description": "Execute a processed workflow using the workflow runner",
+            "description": "Rediscover a processed workflow via list_workflows",
         },
         {
             "title": "Validate Multiple Tool Categories",

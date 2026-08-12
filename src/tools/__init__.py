@@ -62,12 +62,9 @@ __all__ = [
     "GetSPLReference",
     "GetTroubleshootingGuide",
     "GetAdminGuide",
-    # Workflow tools
-    "WorkflowRunnerTool",
+    # Workflow tools (JSON discovery/builder; OpenAI execution removed)
     "GetExecutedWorkflowsTool",
     "ListWorkflowsTool",
     "WorkflowBuilderTool",
     "WorkflowRequirementsTool",
-    "create_summarization_tool",
-    "SummarizationTool",
 ]

@@ -282,7 +282,7 @@ def _tool_plan(state: LiveTestState) -> list[tuple[str, dict[str, Any] | None]]:
         ),
         ("manage_apps", None),  # skipped – mutates app state
         ("create_config", None),  # skipped – writes conf files
-        ("workflow_runner", None),  # skipped unless OPENAI_API_KEY set
+        ("list_workflows", {"format_type": "summary"}),
     ]
 
 
@@ -309,30 +309,12 @@ async def main() -> int:
     runs: list[ToolRun] = []
     for tool_name, args in _tool_plan(state):
         if args is None:
-            if tool_name == "workflow_runner":
-                api_key = os.environ.get("OPENAI_API_KEY", "")
-                if api_key and "your_ope" not in api_key.lower() and api_key.startswith("sk-"):
-                    args = {
-                        "workflow_id": "missing_data_troubleshooting",
-                        "problem_description": "Live MCP smoke test",
-                        "focus_index": "_internal",
-                    }
-                else:
-                    runs.append(
-                        ToolRun(
-                            tool_name,
-                            "SKIP",
-                            "skipped (requires valid OPENAI_API_KEY for agent execution)",
-                        )
-                    )
-                    continue
-            else:
-                reason = {
-                    "manage_apps": "skipped (mutates app state on live instance)",
-                    "create_config": "skipped (writes configuration files)",
-                }.get(tool_name, "skipped")
-                runs.append(ToolRun(tool_name, "SKIP", reason))
-                continue
+            reason = {
+                "manage_apps": "skipped (mutates app state on live instance)",
+                "create_config": "skipped (writes configuration files)",
+            }.get(tool_name, "skipped")
+            runs.append(ToolRun(tool_name, "SKIP", reason))
+            continue
 
         if tool_name == "get_search_job_info":
             if not state.search_job_id:

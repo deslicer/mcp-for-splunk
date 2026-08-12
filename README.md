@@ -158,34 +158,26 @@ uv run mcp-server --test --detailed
 
 <a name="ai-powered-troubleshooting-new"></a>
 
-### 🤖 **AI-Powered Troubleshooting** (NEW!)
+### 🤖 **Workflow Discovery & Authoring**
 
-Transform your Splunk troubleshooting from manual procedures to intelligent, automated workflows using the MCP server endpoints:
+Discover and validate Splunk troubleshooting workflow definitions (JSON) without a built-in agent runner:
 
 ```python
-# Discover and execute intelligent troubleshooting workflows
+# Discover available troubleshooting workflows
 result = await list_workflows.execute(ctx, format_type="summary")
 # Returns: missing_data_troubleshooting, performance_analysis, custom_workflows...
 
-# Run AI-powered troubleshooting with a single command
-result = await workflow_runner.execute(
+# Author or validate a workflow definition
+result = await workflow_builder.execute(
     ctx=ctx,
-    workflow_id="missing_data_troubleshooting",
-    earliest_time="-24h",
-    latest_time="now",
-    focus_index="main"
+    mode="validate",
+    workflow_data={"workflow_id": "my_check", "tasks": [...]},
 )
-# → Parallel execution, expert analysis, actionable recommendations
 ```
 
-**🚀 Key Benefits:**
+OpenAI-based `workflow_runner` execution was removed in favor of FastMCP 4 / MCP SDK v2. Workflow JSON definitions remain available for discovery, validation, and external orchestration.
 
-- **🧠 Natural Language Interface**: "Troubleshoot missing data" → automated workflow execution
-- **⚡ Parallel Processing**: Multiple diagnostic tasks run simultaneously for faster resolution
-- **🔧 Custom Workflows**: Build organization-specific troubleshooting procedures
-- **📊 Intelligent Analysis**: AI agents follow proven Splunk best practices
-
-**[📖 Read the Complete AI Workflows Guide →](docs/guides/workflows/README.md)** for detailed examples, workflow creation, and advanced troubleshooting techniques.
+**[📖 Workflows Guide →](docs/guides/workflows/README.md)** for creation, templates, and contrib workflows.
 
 <a name="itsi-mcp-server-new"></a>
 
@@ -220,7 +212,7 @@ Both modes share the **same per-request `X-Splunk-*` headers** as the parent ser
 | **[Getting Started](docs/getting-started/)** | Complete setup guide with prerequisites | New users | 15 min |
 | **[Integration Guide](docs/guides/integration/)** | Connect AI clients | Developers | 30 min |
 | **[Deployment Guide](docs/guides/deployment/)** | Production deployment | DevOps | 45 min |
-| **[Workflows Guide](docs/guides/workflows/README.md)** | Create and run workflows (OpenAI env vars) | Developers | 10 min |
+| **[Workflows Guide](docs/guides/workflows/README.md)** | Discover, author, and validate workflow JSON | Developers | 10 min |
 | **[API Reference](docs/reference/tools.md)** | Tool documentation | Integrators | Reference |
 | **[Resources Reference](docs/reference/resources.md)** | **Access CIM data models and Splunk docs** | **All users** | **Reference** |
 | **[Contributing](docs/contrib/contributing.md)** | Add your own tools | Contributors | 60 min |
@@ -237,11 +229,11 @@ Both modes share the **same per-request `X-Splunk-*` headers** as the parent ser
 
 <a name="ai-workflows--specialists-new"></a>
 
-### 🤖 **AI Workflows & Specialists** (NEW!)
+### 🤖 **Workflow Tools**
 
 - **`list_workflows`**: Discover available troubleshooting workflows (core + contrib)
-- **`workflow_runner`**: Execute any workflow with full parameter control and progress tracking
-- **`workflow_builder`**: Create custom troubleshooting procedures for your organization
+- **`workflow_builder`**: Create, edit, and validate workflow JSON definitions
+- **`workflow_requirements`**: Schema and authoring guidance for workflow contributors
 - **Built-in Workflows**: Missing data troubleshooting, performance analysis, and more
 - **[📖 Complete Workflow Guide →](docs/guides/workflows/README.md)**
 
