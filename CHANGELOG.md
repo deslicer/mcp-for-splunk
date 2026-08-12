@@ -20,6 +20,7 @@
 ### Dependencies
 
 * Drop `openai` / `openai-agents`; pull security upgrades via lockfile (cryptography, soupsieve, nltk, etc.)
+* Bump OpenTelemetry floors to 1.43+/0.64b+ and ruff to ≥0.15.20 (Phase 2 Dependabot sweep)
 
 ## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
 

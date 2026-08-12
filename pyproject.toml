@@ -45,7 +45,7 @@ dev = [
 "pytest-asyncio>=1.4.0",
 "black>=26.5.1",
 "mypy>=2.1.0",
-"ruff>=0.15.19",
+"ruff>=0.15.20",
 "pre-commit>=4.6.0"
 ]
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
@@ -77,12 +77,12 @@ sentry = [
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 otel = [
-"opentelemetry-api>=1.41.1",
-"opentelemetry-sdk>=1.42.1",
-"opentelemetry-exporter-otlp-proto-http>=1.41.1",
-"opentelemetry-instrumentation-starlette>=0.62b0",
-"opentelemetry-instrumentation-httpx>=0.63b1",
-"opentelemetry-instrumentation-logging>=0.62b0",
+"opentelemetry-api>=1.43.0",
+"opentelemetry-sdk>=1.43.0",
+"opentelemetry-exporter-otlp-proto-http>=1.43.0",
+"opentelemetry-instrumentation-starlette>=0.64b0",
+"opentelemetry-instrumentation-httpx>=0.64b0",
+"opentelemetry-instrumentation-logging>=0.64b0",
 ]
 
 [build-system]
@@ -120,7 +120,7 @@ dev-dependencies = [
 "pytest-asyncio>=1.4.0",
 "pytest-cov>=7.1.0",
 "black>=26.5.1",
-"ruff>=0.15.19",
+"ruff>=0.15.20",
 "mypy>=2.1.0",
 "pre-commit>=4.6.0",
 "watchdog>=6.0.0",
