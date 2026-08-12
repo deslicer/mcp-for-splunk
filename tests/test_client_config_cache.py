@@ -50,31 +50,47 @@ def test_resolve_uses_mcp_session_id_param_when_headers_lack_session() -> None:
     assert resolver.resolve(headers, mcp_session_id="handshake-sess") == "handshake-sess"
 
 
-def test_resolve_falls_back_to_credential_fingerprint() -> None:
+def test_resolve_falls_back_to_bearer_fingerprint() -> None:
     resolver = ClientConfigCacheKeyResolver()
     headers = {
         "X-Splunk-Host": "so1",
         "X-Splunk-Username": "admin",
-        "X-Splunk-Password": "secret",
+        "X-Splunk-Token": "splunk-bearer-value",
     }
-    pw_fp = hashlib.sha256(b"secret").hexdigest()[:16]
+    bearer_fp = hashlib.sha256(b"splunk-bearer-value").hexdigest()[:16]
     parts = sorted(
         [
             "host:so1",
             "user:admin",
-            f"basic:{pw_fp}",
+            f"bearer:{bearer_fp}",
         ]
     )
     expected = "cfg_" + hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
     assert resolver.resolve(headers, mcp_session_id=None) == expected
 
 
-def test_resolve_different_passwords_do_not_collide() -> None:
+def test_resolve_different_bearers_do_not_collide() -> None:
     resolver = ClientConfigCacheKeyResolver()
     base = {"X-Splunk-Host": "so1", "X-Splunk-Username": "admin"}
-    key_a = resolver.resolve({**base, "X-Splunk-Password": "a"}, None)
-    key_b = resolver.resolve({**base, "X-Splunk-Password": "b"}, None)
+    key_a = resolver.resolve({**base, "X-Splunk-Token": "token-a"}, None)
+    key_b = resolver.resolve({**base, "X-Splunk-Token": "token-b"}, None)
     assert key_a and key_b and key_a != key_b
+
+
+def test_resolve_skips_cache_for_password_only_identity() -> None:
+    """Basic-auth headers alone must not produce an identity cache key."""
+    resolver = ClientConfigCacheKeyResolver()
+    assert (
+        resolver.resolve(
+            {
+                "X-Splunk-Host": "so1",
+                "X-Splunk-Username": "admin",
+                "X-Splunk-Password": "secret",
+            },
+            mcp_session_id=None,
+        )
+        is None
+    )
 
 
 def test_resolve_skips_cache_without_credential_material() -> None:
