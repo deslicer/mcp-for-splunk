@@ -84,6 +84,22 @@ Dependabot PRs that only edit `pyproject.toml` floors without `uv.lock` are inco
   `SPLUNK_VERIFY_SSL=false` explicitly.
 - Avoid adding `openai` / `openai-agents` back to the default install.
 
+### Dependency cooldowns
+
+Normal resolution waits ~7 days before adopting newly published versions
+(`exclude-newer` in `pyproject.toml`, Renovate `minimumReleaseAge`, Dependabot
+`cooldown`). For an emergency CVE lock bump:
+
+```bash
+uv lock --exclude-newer 2099-01-01 --upgrade-package <package>
+uv lock --check
+```
+
+If the package must stay exempt from the global cooldown, add it under
+`[tool.uv].exclude-newer-package` (see existing security/pin opt-outs).
+Renovate vulnerability alerts bypass `minimumReleaseAge` via a dedicated
+`packageRules` entry.
+
 ## Git / PR habits
 
 - Do not push to `main` or force-push shared branches unless the user asks.
