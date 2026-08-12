@@ -69,4 +69,31 @@ open http://localhost:6274  # MCP Inspector web interface
 3. Click "Connect" button at the bottom
 4. Test tools and resources interactively
 
+## Live Splunk smoke (MCP client path)
+
+Prefer these scripts when validating against a real Splunk instance. They use a FastMCP `Client` (or tool registry with live service) and read credentials from the environment — never hard-code secrets.
+
+```bash
+# Token auth (preferred) or username/password
+export SPLUNK_HOST=your.splunk.host
+export SPLUNK_PORT=8089
+export SPLUNK_SCHEME=https
+export SPLUNK_VERIFY_SSL=false
+export SPLUNK_TOKEN=...            # or SPLUNK_USERNAME + SPLUNK_PASSWORD
+
+# Broad tool smoke (direct tool registry)
+uv run python scripts/test_live_splunk_tools.py
+
+# Full suite through a real FastMCP Client (tools + resources + prompts)
+export SAVED_SEARCH_NAME="test alert"
+uv run python scripts/test_live_mcp_client.py
+
+# Saved-search focused client path
+uv run python scripts/test_saved_searches_mcp_client.py
+```
+
+`list_saved_searches` enumerates across apps (`servicesNS/-/-`). Pass `app` / `owner` when calling `get_saved_search_details` or `execute_saved_search` for alerts that live outside the `search` app.
+
+`user_agent_info` is skipped on the in-memory client (no HTTP request). `manage_apps`, `create_config`, and `sentry_test` are skipped by default.
+
 

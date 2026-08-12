@@ -5,8 +5,8 @@ Live Splunk tool smoke test.
 Exercises registered MCP tools against a real Splunk instance. Credentials must
 be supplied via environment variables (never hard-coded):
 
-  SPLUNK_HOST, SPLUNK_PORT, SPLUNK_USERNAME, SPLUNK_PASSWORD,
-  SPLUNK_SCHEME, SPLUNK_VERIFY_SSL
+  SPLUNK_HOST, SPLUNK_PORT, SPLUNK_SCHEME, SPLUNK_VERIFY_SSL
+  and either SPLUNK_TOKEN (preferred) or SPLUNK_USERNAME + SPLUNK_PASSWORD
 """
 
 from __future__ import annotations
@@ -41,20 +41,27 @@ def _splunk_env_config() -> dict[str, Any]:
     if not host:
         raise SystemExit("SPLUNK_HOST is required")
 
+    token = os.environ.get("SPLUNK_TOKEN", "").strip()
     password = os.environ.get("SPLUNK_PASSWORD")
     username = os.environ.get("SPLUNK_USERNAME")
-    if not username or not password:
-        raise SystemExit("SPLUNK_USERNAME and SPLUNK_PASSWORD are required")
+    if not token and (not username or not password):
+        raise SystemExit(
+            "Provide SPLUNK_TOKEN, or both SPLUNK_USERNAME and SPLUNK_PASSWORD"
+        )
 
-    return {
+    config: dict[str, Any] = {
         "splunk_host": host,
         "splunk_port": int(os.environ.get("SPLUNK_PORT", "8089")),
-        "splunk_username": username,
-        "splunk_password": password,
         "splunk_scheme": os.environ.get("SPLUNK_SCHEME", "https"),
         "splunk_verify_ssl": os.environ.get("SPLUNK_VERIFY_SSL", "false").lower()
         in ("true", "1", "yes"),
     }
+    if token:
+        config["splunk_token"] = token
+    else:
+        config["splunk_username"] = username
+        config["splunk_password"] = password
+    return config
 
 
 class LiveSplunkContext:
@@ -282,7 +289,6 @@ def _tool_plan(state: LiveTestState) -> list[tuple[str, dict[str, Any] | None]]:
         ),
         ("manage_apps", None),  # skipped – mutates app state
         ("create_config", None),  # skipped – writes conf files
-        ("list_workflows", {"format_type": "summary"}),
     ]
 
 
@@ -333,11 +339,19 @@ async def main() -> int:
     passed = [r for r in runs if r.outcome == "PASS"]
     failed = [r for r in runs if r.outcome == "FAIL"]
     skipped = [r for r in runs if r.outcome == "SKIP"]
+    missing = [r for r in runs if r.outcome == "MISSING"]
+    planned = {name for name, _ in _tool_plan(state)}
+    registered = {meta.name for meta in tool_registry.list_tools()}
+    unplanned = sorted(registered - planned)
 
     print("\n" + "=" * 72)
     print("LIVE SPLUNK TOOL TEST SUMMARY")
     print("=" * 72)
-    print(f"PASS: {len(passed)}  FAIL: {len(failed)}  SKIP: {len(skipped)}  TOTAL: {len(runs)}")
+    print(
+        f"PASS: {len(passed)}  FAIL: {len(failed)}  SKIP: {len(skipped)}  "
+        f"MISSING: {len(missing)}  TOTAL: {len(runs)}"
+    )
+    print(f"Registered tools: {len(registered)}  Covered by plan: {len(planned & registered)}")
     print("-" * 72)
 
     for run in runs:
@@ -347,8 +361,13 @@ async def main() -> int:
             line += f" — {run.detail}"
         print(line)
 
-    if failed:
-        print("\nFailed tools need attention before merge.")
+    if unplanned:
+        print("\nRegistered tools not in this smoke plan:")
+        for name in unplanned:
+            print(f"  - {name}")
+
+    if failed or missing:
+        print("\nFailed/missing tools need attention before merge.")
         return 1
 
     print("\nAll executed tools passed.")

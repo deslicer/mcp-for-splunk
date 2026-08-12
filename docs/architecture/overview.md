@@ -48,9 +48,9 @@ mcp-server-for-splunk/
 │  │  ├─ search/ oneshot_search.py job_search.py saved_search_tools.py
 │  │  └─ workflows/
 │  │     ├─ core/*.json
-│  │     ├─ shared/ dynamic_agent.py parallel_executor.py workflow_manager.py retry.py tools.py
-│  │     ├─ list_workflows.py workflow_builder.py workflow_runner.py summarization_tool.py workflow_requirements.py
-│  │     └─ core/*.json
+│  │     ├─ shared/ definitions.py workflow_catalog.py executed_store.py
+│  │     ├─ list_workflows.py workflow_builder.py workflow_requirements.py
+│  │     └─ get_executed_workflows.py
 │  └─ prompts/
 └─ contrib/
 ```
@@ -83,12 +83,13 @@ See the **Tools Reference**: [../reference/tools.md](../reference/tools.md)
 
 ## Workflows subsystem
 
-- **Definitions**: JSON workflows under `src/tools/workflows/core/` and contrib workflows.
-- **Execution**: `workflow_runner.py` with `shared/parallel_executor.py`, retry/backoff, summarization, and dynamic agent integration.
+- **Definitions**: JSON workflows under `src/tools/workflows/core/` and `contrib/workflows/`.
+- **Discovery/authoring**: `list_workflows`, `workflow_builder`, `workflow_requirements`.
+- **Execution**: built-in OpenAI `workflow_runner` was removed; orchestrate tools from your MCP client.
 
 Read more:
+- [../guides/workflows/README.md](../guides/workflows/README.md)
 - [../guides/workflows/workflows-overview.md](../guides/workflows/workflows-overview.md)
-- [../guides/workflows/workflow_runner_guide.md](../guides/workflows/workflow_runner_guide.md)
 
 ## Request flow (simplified)
 

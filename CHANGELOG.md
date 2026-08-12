@@ -12,6 +12,10 @@
 * Dual-era client config cache: prefer `X-Session-ID`, fall back to `MCP-Session-Id`, then config fingerprint
 * Default Streamable HTTP to sessionless (`MCP_STATELESS_HTTP` / `MCP_JSON_RESPONSE` true)
 
+### Bug Fixes
+
+* `list_saved_searches` / saved-search ACL: enumerate `servicesNS/-/-` and read ownership from entity `access` so app-scoped alerts (e.g. `deslicer_ai_insights`) are discoverable
+
 ### Dependencies
 
 * Drop `openai` / `openai-agents`; pull security upgrades via lockfile (cryptography, soupsieve, nltk, etc.)

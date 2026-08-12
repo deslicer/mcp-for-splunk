@@ -47,8 +47,7 @@ git checkout dev1666
 ```
 
 ### Option 2 - Docker Solution - Optional
-*This warning shall be ignored at this time*
-  - WARN[0000] The "OPENAI_API_KEY" variable is not set. Defaulting to a blank string.
+
 ```bash
 # Ensure that Docker Desktop is started on your laptop
 docker ps
@@ -183,48 +182,21 @@ For Splunk tools, verify your `.env` connection settings. If you see connection 
 
 ---
 
-## Part 3 — (Extra) Create and run a workflow (🚀)
+## Part 3 — (Extra) Author a workflow definition (🚀)
 
-Use the workflow utilities to list workflows, generate a template, include your tool, validate it, and execute the workflow in MCP Inspector.
-
-### Before you start
-
-Workflows use AI models and require an OpenAI key.
-
-```bash
-# In your .env (add now if you skipped earlier)
-OPENAI_API_KEY=sk-...
-```
+Use the workflow tools to list workflows, generate a template, include your tool, and validate JSON in MCP Inspector. Built-in OpenAI `workflow_runner` execution was removed — orchestrate task tools from your MCP client.
 
 ### A. Discover available workflows (📚)
-
-Use the `list_workflows` tool to see core and contrib workflows.
-
-```python
-from fastmcp import Context
-from src.tools.workflows.list_workflows import create_list_workflows_tool
-
-# Assume you have an async FastMCP Context named ctx
-lister = create_list_workflows_tool()
-result = await lister.execute(ctx, format_type="summary")
-print(result)
-```
 
 In MCP Inspector:
 
 - Select tool: `list_workflows`
 - Params: `{ "format_type": "summary" }`
-- Run and note `workflow_id` values you can execute
+- Run and note `workflow_id` values
 
 ### B. Get workflow requirements and schema (🔎)
 
-```python
-from src.tools.workflows.workflow_requirements import WorkflowRequirementsTool
-
-req = WorkflowRequirementsTool("workflow_requirements", "workflows")
-schema = await req.execute(ctx, format_type="schema")
-quick = await req.execute(ctx, format_type="quick")
-```
+- `workflow_requirements` → `{ "format_type": "quick" }` or `{ "format_type": "schema" }`
 
 Key takeaways:
 
@@ -232,85 +204,24 @@ Key takeaways:
 - Tasks include `task_id`, `name`, `description`, `instructions`
 - Optional fields: `required_tools`, `dependencies`, `context_requirements`
 
-### C. Generate a workflow template and include your tool (🧪)
+### C. Generate and validate a template (🧪)
 
-```python
-from src.tools.workflows.workflow_builder import WorkflowBuilderTool
+- `workflow_builder` → `{ "mode": "template", "template_type": "minimal" }`
+- Edit the JSON (`workflow_id`, `required_tools`, task instructions)
+- Validate with `workflow_builder` → `{ "mode": "validate", "workflow_data": <your JSON> }`
+- Save under `contrib/workflows/<category>/<workflow_id>.json`
+- Re-run `list_workflows` to confirm discovery
 
-builder = WorkflowBuilderTool("workflow_builder", "workflows")
-tmpl = await builder.execute(ctx, mode="template", template_type="minimal")
-
-template = tmpl["result"]["template"]
-template["workflow_id"] = "custom_health_check"
-template["name"] = "Custom Health Check"
-template["description"] = "Basic Splunk health verification"
-
-# Reference your tool so it’s available to tasks
-template["required_tools"] = ["hello_world"]  # replace with your tool name
-
-# Validate the workflow structure
-validation = await builder.execute(ctx, mode="validate", workflow_data=template)
-assert validation["status"] == "success"
-```
-
-Save it to `contrib/workflows/examples/custom_health_check.json`:
-
-```python
-import json, pathlib
-pathlib.Path("contrib/workflows/examples").mkdir(parents=True, exist_ok=True)
-with open("contrib/workflows/examples/custom_health_check.json", "w") as f:
-    json.dump(template, f, indent=2)
-```
-
-Re-run discovery to see it listed:
-
-```python
-await lister.execute(ctx, format_type="summary")
-```
-
-### D. Run your workflow (end-to-end)
-
-Use `workflow_runner` to execute by `workflow_id` with time and focus context.
-
-```python
-from src.tools.workflows.workflow_runner import WorkflowRunnerTool
-
-runner = WorkflowRunnerTool("workflow_runner", "workflows")
-result = await runner.execute(
-    ctx=ctx,
-    workflow_id="custom_health_check",  # or your chosen template id
-    problem_description="Validate Splunk health for last 24h",
-    earliest_time="-24h",
-    latest_time="now",
-    complexity_level="moderate",
-    enable_summarization=True,
-)
-
-print(result["status"])               # expected: "success" or "completed"
-print(result.get("workflow_name"))     # human-readable name
-```
-
-Tips:
-
-- Set `focus_index`, `focus_host`, or `focus_sourcetype` to scope analysis
-- Keep `enable_summarization=True` for executive summaries
-
-### E. MCP Inspector track (no-code)
-
-You can do Part 2 entirely in MCP Inspector:
+### D. MCP Inspector track (no-code)
 
 - `workflow_requirements` → `{ "format_type": "quick" }`
-- `workflow_builder` → `{ "mode": "template", "template_type": "minimal" }`
-- Copy the template JSON, edit fields, then validate with `workflow_builder` → `{ "mode": "validate", "workflow_data": <your JSON> }`
-- Save the JSON under `contrib/workflows/<category>/<workflow_id>.json`
-- `list_workflows` → confirm presence
-- `workflow_runner` → set parameters and execute
+- `workflow_builder` → template / validate
+- Call the Splunk tools referenced by your tasks directly (for example `get_splunk_health`, `run_oneshot_search`)
 
 ---
 
 ## Troubleshooting
 
-- Missing OpenAI credentials (for workflows): set `OPENAI_API_KEY` in `.env`
 - Splunk connection errors: verify Splunk host/creds or use the Docker Splunk
 - Workflow not discovered: ensure file path is `contrib/workflows/<category>/<id>.json` and JSON is valid
 - Tool not discovered: confirm it lives under `contrib/tools/<category>/` and defines a `BaseTool` subclass with `METADATA`
@@ -323,4 +234,4 @@ You can do Part 2 entirely in MCP Inspector:
 - Build domain-specific workflows for your org (security, data quality, performance)
 - Contribute your workflows and tools via PRs
 
-Related docs: [Workflows Guide](../guides/workflows/README.md), [Workflow Runner Guide](../guides/workflows/workflow_runner_guide.md), [Agent Tracing (legacy)](../guides/workflows/agent-tracing-guide.md), [Tool Development Guide](../contrib/tool_development.md), [Contrib Guide](../contrib/contributing.md).
+Related docs: [Workflows Guide](../guides/workflows/README.md), [Tool Development Guide](../contrib/tool_development.md), [Contrib Guide](../contrib/contributing.md).

@@ -1,35 +1,14 @@
-# Deprecated: Handoff-Based Troubleshooting
+# Handoff-Based Troubleshooting (removed)
 
-This legacy document described a handoff-based agent orchestration approach. The current system consolidates on the workflow tools for creating, validating, discovering, and executing workflows.
+## Status
 
-Use these instead:
+Handoff-based OpenAI agent troubleshooting via `workflow_runner` was **removed**.
 
-- `workflow_requirements` — schema, validation rules, best practices
-- `workflow_builder` — create/edit/validate/process workflows (with templates)
-- `list_workflows` — discover core and contrib workflows
-- `workflow_runner` — execute workflows by ID with progress and optional summarization
+Use workflow JSON discovery/authoring tools and run diagnostic Splunk tools from your MCP client:
 
-Quick execution example:
+- `list_workflows`
+- `workflow_builder`
+- `run_oneshot_search` / `run_splunk_search`
+- `list_indexes`, `get_metadata`, and related admin tools
 
-```python
-from src.tools.workflows.workflow_runner import WorkflowRunnerTool
-
-runner = WorkflowRunnerTool("workflow_runner", "workflows")
-await runner.execute(
-    ctx=ctx,
-    workflow_id="performance_analysis",
-    earliest_time="-24h",
-    latest_time="now"
-)
-```
-
-Prerequisites (set in `.env`):
-
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o
-OPENAI_TEMPERATURE=0.7
-OPENAI_MAX_TOKENS=4000
-```
-
-See `workflows-overview.md`, `README.md` (this folder), and `workflow_runner_guide.md` for the current guidance.
+See [Workflows Guide](README.md).
