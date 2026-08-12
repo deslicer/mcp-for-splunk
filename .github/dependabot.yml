@@ -11,6 +11,8 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "America/New_York"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -50,6 +52,8 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "America/New_York"
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "github-actions"
@@ -65,6 +69,8 @@ updates:
       day: "tuesday"
       time: "09:00"
       timezone: "America/New_York"
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "docker"

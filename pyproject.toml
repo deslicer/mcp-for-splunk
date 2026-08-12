@@ -114,6 +114,11 @@ members = ["packaging/mcp-itsi-server"]
 mcp-itsi-server = { workspace = true }
 
 [tool.uv]
+# Ignore package versions published in the last 7 days (supply-chain cooldown).
+# Emergency CVE path: uv lock --exclude-newer 2099-01-01 --upgrade-package <pkg>
+# Opt out exact pins and recently cleared CVE/security bumps so `uv lock --check`
+# does not regress them while they are still inside the cooldown window.
+exclude-newer = "7 days"
 constraint-dependencies = ["fastmcp-slim==4.0.0b2"]
 dev-dependencies = [
 "pytest>=9.1.1",
@@ -129,6 +134,18 @@ dev-dependencies = [
 "safety>=3.8.1",
 "mcp-itsi-server",
 ]
+
+[tool.uv.exclude-newer-package]
+fastmcp = false
+fastmcp-slim = false
+httpcore2 = false
+httpx2 = false
+"httpx2-jsfetch" = false
+nltk = false
+pydantic-settings = false
+ruff = false
+soupsieve = false
+starlette = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"

@@ -11,6 +11,8 @@
   ],
   "labels": ["dependencies", "renovate"],
   "enabledManagers": ["pip_requirements", "pip-compile", "poetry", "uv", "github-actions", "dockerfile"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
   "platformAutomerge": false,
   "automerge": false,
   "automergeType": "pr",
@@ -24,7 +26,8 @@
     "enabled": true,
     "labels": ["security", "priority-high"],
     "groupName": "Security Updates",
-    "schedule": ["at any time"]
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
   },
   "packageRules": [
     {
