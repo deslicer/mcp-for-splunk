@@ -6,6 +6,7 @@
 
 * Remove OpenAI Agents `workflow_runner` execution path (Option C); workflow JSON discovery/authoring tools remain
 * Upgrade runtime to FastMCP `4.0.0b2` / MCP Python SDK v2 (protocol `2026-07-28`)
+* Default ITSI/Splunk TLS verification to **true** (`SPLUNK_VERIFY_SSL`); set `false` explicitly for lab/self-signed certs
 
 ### Features
 

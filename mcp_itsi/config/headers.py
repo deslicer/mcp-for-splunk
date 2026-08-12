@@ -33,7 +33,7 @@ class ITSIRequestConfig:
     splunk_password: str | None = None
     splunk_token: str | None = None
     splunk_session_token: str | None = None
-    verify_ssl: bool = False
+    verify_ssl: bool = True
 
     itsi_app: str = "SA-ITOA"
     user_ns: str = "nobody"

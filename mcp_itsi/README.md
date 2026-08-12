@@ -118,7 +118,7 @@ Send the same `X-Splunk-*` headers the parent project accepts. Optional `X-ITSI-
 | `X-Splunk-Host` | splunkd host (or set `SPLUNK_HOST` in env). |
 | `X-Splunk-Port` | splunkd management port, default `8089`. |
 | `X-Splunk-Scheme` | `https` (default) or `http`. |
-| `X-Splunk-Verify-SSL` | `true` / `false`, default `false`. |
+| `X-Splunk-Verify-SSL` | `true` / `false`, default `true`. Set `false` for lab/self-signed certs. |
 | `X-Splunk-Username` + `X-Splunk-Password` | Basic auth pair. |
 | `X-Splunk-Token` | Splunk bearer / access token (preferred). |
 | `auth_token` / `X-Auth-Token` / `X-Splunk-Auth-Token` | Aliases for the bearer header (some clients send these names). |
@@ -185,7 +185,7 @@ All variables have safe defaults; everything below is optional.
 | `SPLUNK_USERNAME` / `SPLUNK_PASSWORD` | — | Default basic-auth credentials. |
 | `SPLUNK_TOKEN` / `MCP_SPLUNK_TOKEN` | — | Default bearer token. |
 | `SPLUNK_SESSION_TOKEN` / `MCP_SPLUNK_SESSION_TOKEN` | — | Default splunkd session token. |
-| `SPLUNK_VERIFY_SSL` | `false` | Default TLS verification. |
+| `SPLUNK_VERIFY_SSL` | `true` | Default TLS verification. Set `false` for lab/self-signed certs. |
 
 ## Capabilities at a glance
 
