@@ -65,10 +65,15 @@ class TestMCPClientIntegration:
             assert result[0].text == "OK"
 
     async def test_fastmcp_client_ping(self, fastmcp_client):
-        """Test ping functionality"""
+        """Test connectivity; ping exists only on pre-2026-07-28 protocol eras."""
         async with fastmcp_client as client:
-            # Should not raise an exception
-            await client.ping()
+            protocol = getattr(client.session, "protocol_version", None)
+            if protocol == "2026-07-28":
+                # Spec 2026-07-28 is sessionless and dropped ping; list_tools is the probe.
+                tools = await client.list_tools()
+                assert len(tools) > 0
+            else:
+                await client.ping()
 
 
 @pytest.mark.integration

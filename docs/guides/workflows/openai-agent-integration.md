@@ -1,34 +1,9 @@
-## Deprecated: Legacy OpenAI Agent Integration
+# OpenAI Agent Integration (removed)
 
-This document described a legacy agent-centric integration that is no longer the recommended path.
+## Status
 
-Use the workflow tools instead:
+Built-in OpenAI Agents integration (`workflow_runner`, dynamic agent, summarization) was **removed** in the FastMCP 4 Option C upgrade.
 
-- `workflow_requirements`: schema, validation rules, best practices
-- `workflow_builder`: create/edit/validate/process workflows
-- `list_workflows`: discover core and contrib workflows
-- `workflow_runner`: execute a workflow by ID
+Workflow JSON discovery and authoring remain available. Orchestrate Splunk tools from your MCP client or external agent runtime.
 
-Quick start:
-
-```python
-from src.tools.workflows.list_workflows import create_list_workflows_tool
-from src.tools.workflows.workflow_runner import WorkflowRunnerTool
-
-lister = create_list_workflows_tool()
-await lister.execute(ctx, format_type="summary")
-
-runner = WorkflowRunnerTool("workflow_runner", "workflows")
-await runner.execute(ctx, workflow_id="missing_data_troubleshooting", earliest_time="-24h", latest_time="now")
-```
-
-Prerequisites (set in `.env`):
-
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o
-OPENAI_TEMPERATURE=0.7
-OPENAI_MAX_TOKENS=4000
-```
-
-For a consolidated overview, see `workflows-overview.md` and `README.md` in this folder.
+See [Workflows Guide](README.md).

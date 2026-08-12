@@ -45,6 +45,7 @@ Practical guides for common tasks and scenarios.
 |-------|-------------|------|----------|
 | **[Integration](guides/integration/)** | Connect AI clients to MCP server | 30 min | Developers |
 | **[Configuration](guides/configuration/)** | Configuration options and patterns | 20 min | Operators |
+| **[HTTP Client Modes](guides/configuration/http-client-modes.md)** | Sessionless vs session-scoped Streamable HTTP | 10 min | Developers / Operators |
 | **[Deployment](guides/deployment/)** | Production deployment strategies | 45 min | DevOps |
 | **[Security](guides/security.md)** | Security best practices | 30 min | Security teams |
 | **[Testing](guides/TESTING.md)** | Testing and validation | 15 min | Developers |

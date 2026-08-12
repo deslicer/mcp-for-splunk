@@ -13,21 +13,9 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 
-from .shared.config import AgentConfig
-from .shared.tools import SplunkToolRegistry
-from .shared.workflow_manager import WorkflowManager
+from .shared.workflow_catalog import WorkflowCatalog
 
 logger = logging.getLogger(__name__)
-
-# Import contrib workflow loader
-try:
-    from contrib.workflows.loaders import WorkflowLoader
-
-    CONTRIB_LOADER_AVAILABLE = True
-except ImportError:
-    CONTRIB_LOADER_AVAILABLE = False
-    WorkflowLoader = None
-    logger.warning("Contrib workflow loader not available")
 
 
 class ListWorkflowsTool(BaseTool):
@@ -228,152 +216,87 @@ workflow for specific Splunk problems.""",
             await ctx.error(error_msg)
             return self.format_error_response(error_msg)
 
-    async def _discover_core_workflows(self, ctx: Context) -> dict[str, Any]:
-        """Discover core (built-in) workflows from WorkflowManager."""
-        try:
-            # Create a minimal config for WorkflowManager
-            config = AgentConfig(
-                api_key="dummy",  # Not needed for workflow discovery
-                model="gpt-4o",
-                temperature=0.7,
-                max_tokens=4000,
-            )
-
-            # Create tool registry (also not needed for workflow discovery)
-            tool_registry = SplunkToolRegistry()
-
-            # Create WorkflowManager to get built-in workflows
-            workflow_manager = WorkflowManager(config, tool_registry)
-
-            # Get all workflows from the manager
-            workflows = workflow_manager.list_workflows()
-
-            core_workflows = {}
-            for workflow in workflows:
-                core_workflows[workflow.workflow_id] = {
-                    "workflow_id": workflow.workflow_id,
-                    "name": workflow.name,
-                    "description": workflow.description,
-                    "source": "core",
-                    "category": self._determine_workflow_category(
-                        workflow.workflow_id, workflow.name
-                    ),
-                    "task_count": len(workflow.tasks),
-                    "has_dependencies": any(task.dependencies for task in workflow.tasks),
-                    "default_context": workflow.default_context or {},
-                    "tasks": [
-                        {
-                            "task_id": task.task_id,
-                            "name": task.name,
-                            "description": task.description,
-                            "required_tools": task.required_tools,
-                            "dependencies": task.dependencies,
-                            "context_requirements": task.context_requirements,
-                        }
-                        for task in workflow.tasks
-                    ],
-                    "validation_status": "valid",  # Core workflows are always valid
-                    "file_path": "built-in",
+    def _workflow_entry(
+        self, workflow, *, source: str, category: str, file_path: str, validation_status: str
+    ) -> dict[str, Any]:
+        return {
+            "workflow_id": workflow.workflow_id,
+            "name": workflow.name,
+            "description": workflow.description,
+            "source": source,
+            "category": category,
+            "task_count": len(workflow.tasks),
+            "has_dependencies": any(task.dependencies for task in workflow.tasks),
+            "default_context": workflow.default_context or {},
+            "tasks": [
+                {
+                    "task_id": task.task_id,
+                    "name": task.name,
+                    "description": task.description,
+                    "required_tools": task.required_tools,
+                    "dependencies": task.dependencies,
+                    "context_requirements": task.context_requirements,
                 }
+                for task in workflow.tasks
+            ],
+            "validation_status": validation_status,
+            "file_path": file_path,
+            "execution_note": "OpenAI workflow_runner execution was removed; definitions remain for discovery/validation.",
+        }
 
-            logger.info(f"Discovered {len(core_workflows)} core workflows")
+    async def _discover_core_workflows(self, ctx: Context) -> dict[str, Any]:
+        """Discover core (built-in) workflows from JSON under core/."""
+        try:
+            catalog = WorkflowCatalog()
+            catalog.load_directory("src/tools/workflows/core")
+            core_workflows = {
+                workflow.workflow_id: self._workflow_entry(
+                    workflow,
+                    source="core",
+                    category=self._determine_workflow_category(workflow.workflow_id, workflow.name),
+                    file_path="src/tools/workflows/core",
+                    validation_status="valid",
+                )
+                for workflow in catalog.list_workflows()
+            }
+            logger.info("Discovered %s core workflows", len(core_workflows))
             return core_workflows
-
         except Exception as e:
             logger.error(f"Error discovering core workflows: {e}", exc_info=True)
             raise
 
     async def _discover_contrib_workflows(self, ctx: Context) -> dict[str, Any]:
-        """Discover contrib (user-contributed) workflows from contrib/workflows/."""
-        if not CONTRIB_LOADER_AVAILABLE:
-            logger.warning("Contrib workflow loader not available")
-            return {}
-
+        """Discover contrib workflows from contrib/workflows/ JSON files."""
         try:
-            # Create workflow loader
-            loader = WorkflowLoader("contrib/workflows")
-
-            # Load all workflows
-            workflows = loader.load_all_workflows()
-
-            # Get loading report for validation info
-            loading_report = loader.get_loading_report()
-
+            catalog = WorkflowCatalog()
+            catalog.load_directory("contrib/workflows")
             contrib_workflows = {}
-            for workflow_id, workflow in workflows.items():
-                # Determine file path and category from loader
-                file_path = "unknown"
+            root = Path("contrib/workflows")
+            for workflow in catalog.list_workflows():
+                file_path = "contrib/workflows"
                 category = "custom"
-
-                # Try to determine category from file structure
-                workflow_files = loader.discover_workflows()
-                for file in workflow_files:
+                for path in root.rglob("*.json"):
                     try:
-                        with open(file) as f:
-                            data = json.load(f)
-                            if data.get("workflow_id") == workflow_id:
-                                file_path = str(file)
-                                # Extract category from path
-                                path_parts = Path(file).parts
-                                if len(path_parts) >= 3 and path_parts[-3] == "workflows":
-                                    category = path_parts[-2]  # Directory name
-                                break
-                    except Exception:  # nosec B112
-                        continue  # Skip unreadable workflow files
-
-                # Only include workflows that are actually from contrib directory
-                # Check if the file path is in the contrib/workflows directory
-                if "contrib/workflows" in file_path or file_path.startswith("contrib/workflows"):
-                    contrib_workflows[workflow_id] = {
-                        "workflow_id": workflow.workflow_id,
-                        "name": workflow.name,
-                        "description": workflow.description,
-                        "source": "contrib",
-                        "category": category,
-                        "task_count": len(workflow.tasks),
-                        "has_dependencies": any(task.dependencies for task in workflow.tasks),
-                        "default_context": workflow.default_context or {},
-                        "tasks": [
-                            {
-                                "task_id": task.task_id,
-                                "name": task.name,
-                                "description": task.description,
-                                "required_tools": task.required_tools,
-                                "dependencies": task.dependencies,
-                                "context_requirements": task.context_requirements,
-                            }
-                            for task in workflow.tasks
-                        ],
-                        "validation_status": "valid",  # Successfully loaded workflows are valid
-                        "file_path": file_path,
-                    }
-
-            # Add information about any failed workflows (only contrib ones)
-            for error in loading_report.get("errors", []):
-                error_file = error["file"]
-                # Only include errors from contrib directory
-                if "contrib/workflows" in error_file or error_file.startswith("contrib/workflows"):
-                    error_workflow_id = f"error_{Path(error_file).stem}"
-                    contrib_workflows[error_workflow_id] = {
-                        "workflow_id": error_workflow_id,
-                        "name": f"Failed: {Path(error_file).name}",
-                        "description": f"Workflow failed to load: {error['error']}",
-                        "source": "contrib",
-                        "category": "error",
-                        "task_count": 0,
-                        "has_dependencies": False,
-                        "default_context": {},
-                        "tasks": [],
-                        "validation_status": "error",
-                        "validation_error": error["error"],
-                        "file_path": error_file,
-                    }
-
-            logger.info(
-                f"Discovered {len(contrib_workflows)} valid contrib workflows, {len([e for e in loading_report.get('errors', []) if 'contrib/workflows' in e.get('file', '')])} errors"
-            )
+                        data = json.loads(path.read_text(encoding="utf-8"))
+                    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+                        logger.debug("Skipping unreadable workflow file %s: %s", path, exc)
+                        continue
+                    if data.get("workflow_id") != workflow.workflow_id:
+                        continue
+                    file_path = str(path)
+                    path_parts = path.parts
+                    if len(path_parts) >= 3 and path_parts[-3] == "workflows":
+                        category = path_parts[-2]
+                    break
+                contrib_workflows[workflow.workflow_id] = self._workflow_entry(
+                    workflow,
+                    source="contrib",
+                    category=category,
+                    file_path=file_path,
+                    validation_status="valid",
+                )
+            logger.info("Discovered %s contrib workflows", len(contrib_workflows))
             return contrib_workflows
-
         except Exception as e:
             logger.error(f"Error discovering contrib workflows: {e}", exc_info=True)
             raise

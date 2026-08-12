@@ -108,8 +108,8 @@ Output: minimal JSON template with one task and validation notes
 ### Steps
 1. List existing workflows with `list_workflows` (filters optional).
 2. Fetch requirements via `workflow_requirements` (schema or detailed).
-3. Build with `workflow_builder` in template/process mode.
-4. Run with `workflow_runner` and validate outputs.
+3. Build with `workflow_builder` in template/process/validate mode.
+4. Persist JSON under contrib/workflows and rediscover with `list_workflows`.
 
 ### Examples
 ```python
@@ -119,13 +119,14 @@ template = await workflow_builder.execute(ctx=ctx, mode="template", template_typ
 processed = await workflow_builder.execute(ctx=ctx, mode="process", workflow_data=your_workflow_json)
 ```
 ```python
-result = await workflow_runner.execute(ctx=ctx, workflow_id="your_workflow_id", earliest_time="-24h", latest_time="now")
+validated = await workflow_builder.execute(ctx=ctx, mode="validate", workflow_data=your_workflow_json)
 ```
 
 ### Tips
 - Use parallel tasks for independent analysis.
 - Include `focus_index` or `focus_host` when applicable.
 - Optimize SPL for performance.
+- Built-in agent execution (`workflow_runner`) was removed; orchestrate tasks externally if needed.
 """
 
         return {"role": "assistant", "content": [{"type": "text", "text": content}]}
@@ -140,7 +141,7 @@ class ToolUsagePrompt(BasePrompt):
         arguments=[
             {
                 "name": "tool_name",
-                "description": "Name of the tool (e.g., workflow_runner)",
+                "description": "Name of the tool (e.g., list_workflows)",
                 "required": True,
                 "type": "string",
             },

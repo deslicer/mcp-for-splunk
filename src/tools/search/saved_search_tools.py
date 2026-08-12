@@ -15,30 +15,10 @@ from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution, sanitize_search_query
-
-
-def _acl_field(content: dict[str, Any], field: str) -> str | None:
-    acl = content.get("eai:acl")
-    if not isinstance(acl, dict):
-        return None
-    value = acl.get(field)
-    return str(value) if value is not None else None
-
-
-def _matches_app_owner(
-    content: dict[str, Any],
-    app: str | None,
-    owner: str | None,
-) -> bool:
-    if app:
-        acl_app = _acl_field(content, "app")
-        if acl_app is not None and acl_app != app:
-            return False
-    if owner:
-        acl_owner = _acl_field(content, "owner")
-        if acl_owner is not None and acl_owner != owner:
-            return False
-    return True
+from src.tools.search.saved_search_acl import (
+    get_saved_search_acl,
+    matches_app_owner,
+)
 
 
 def _find_saved_search(
@@ -54,6 +34,10 @@ def _find_saved_search(
         namespaces.append(
             spl_client.namespace(app=app, owner=owner or "nobody", sharing="app")
         )
+        if owner:
+            namespaces.append(
+                spl_client.namespace(app=app, owner=owner, sharing="user")
+            )
 
     for try_owner in dict.fromkeys([owner, "admin", "nobody"]):
         if try_owner:
@@ -66,7 +50,15 @@ def _find_saved_search(
             )
             namespaces.append(spl_client.namespace(owner=try_owner, sharing="user"))
 
-    namespaces.extend([spl_client.namespace(sharing="global"), original_namespace, None])
+    # Wildcard NS/-/- catches app-scoped searches missed by the default session NS.
+    namespaces.extend(
+        [
+            spl_client.namespace(owner="-", app="-"),
+            spl_client.namespace(sharing="global"),
+            original_namespace,
+            None,
+        ]
+    )
 
     seen: set[str] = set()
     try:
@@ -81,15 +73,15 @@ def _find_saved_search(
 
             try:
                 candidate = service.saved_searches[name]
-                if _matches_app_owner(candidate.content, app, owner):
+                if matches_app_owner(get_saved_search_acl(candidate), app, owner):
                     return candidate
             except KeyError:
                 # Direct lookup misses names outside the current namespace; keep scanning.
                 pass
 
             for saved_search in service.saved_searches:
-                if saved_search.name == name and _matches_app_owner(
-                    saved_search.content, app, owner
+                if saved_search.name == name and matches_app_owner(
+                    get_saved_search_acl(saved_search), app, owner
                 ):
                     return saved_search
     finally:
@@ -126,8 +118,8 @@ def _namespace_for_saved_search_create(
 def _apply_saved_search_namespace(service: Any, saved_search: Any) -> Any:
     """Set service namespace to match a located saved search entity."""
     original_namespace = getattr(service, "namespace", None)
-    acl = saved_search.content.get("eai:acl")
-    if isinstance(acl, dict) and any(acl.get(key) for key in ("app", "owner", "sharing")):
+    acl = get_saved_search_acl(saved_search)
+    if any(acl.get(key) for key in ("app", "owner", "sharing")):
         service.namespace = _namespace_for_saved_search_acl(acl)
     else:
         create_owner = getattr(service, "username", None) or "admin"
@@ -193,22 +185,27 @@ class ListSavedSearches(BaseTool):
             await ctx.error(f"List saved searches failed: {error_msg}")
             return self.format_error_response(error_msg, saved_searches=[], total_count=0)
 
+        original_namespace = getattr(service, "namespace", None)
         try:
             await ctx.info("Retrieving saved searches list")
             saved_searches_list = []
             total_count = 0
 
+            # Enumerate across all apps/owners; default session NS omits many alerts.
+            service.namespace = spl_client.namespace(owner="-", app="-")
+
             for saved_search in service.saved_searches:
                 total_count += 1
+                acl = get_saved_search_acl(saved_search)
+                perms = acl.get("perms") if isinstance(acl.get("perms"), dict) else {}
 
-                # Extract saved search metadata
                 search_info = {
                     "name": saved_search.name,
                     "search": saved_search.content.get("search", ""),
                     "description": saved_search.content.get("description", ""),
-                    "owner": saved_search.content.get("eai:acl", {}).get("owner", ""),
-                    "app": saved_search.content.get("eai:acl", {}).get("app", ""),
-                    "sharing": saved_search.content.get("eai:acl", {}).get("sharing", ""),
+                    "owner": acl.get("owner", "") or "",
+                    "app": acl.get("app", "") or "",
+                    "sharing": acl.get("sharing", "") or "",
                     "disabled": self._convert_splunk_boolean(
                         saved_search.content.get("disabled"), False
                     ),
@@ -224,16 +221,11 @@ class ListSavedSearches(BaseTool):
                     "latest_time": saved_search.content.get("dispatch.latest_time", ""),
                     "updated": saved_search.content.get("updated", ""),
                     "permissions": {
-                        "read": saved_search.content.get("eai:acl", {})
-                        .get("perms", {})
-                        .get("read", []),
-                        "write": saved_search.content.get("eai:acl", {})
-                        .get("perms", {})
-                        .get("write", []),
+                        "read": perms.get("read", []),
+                        "write": perms.get("write", []),
                     },
                 }
 
-                # Apply filters
                 if owner and search_info["owner"] != owner:
                     continue
                 if app and search_info["app"] != app:
@@ -245,7 +237,6 @@ class ListSavedSearches(BaseTool):
 
                 saved_searches_list.append(search_info)
 
-            # Sort by name for consistent output
             saved_searches_list.sort(key=lambda x: x["name"])
 
             return self.format_success_response(
@@ -266,6 +257,8 @@ class ListSavedSearches(BaseTool):
             self.logger.error(f"Failed to list saved searches: {str(e)}")
             await ctx.error(f"Failed to list saved searches: {str(e)}")
             return self.format_error_response(str(e), saved_searches=[], total_count=0)
+        finally:
+            service.namespace = original_namespace
 
     def _convert_splunk_boolean(self, value, default=False):
         """Convert Splunk boolean values to Python booleans"""
@@ -934,8 +927,9 @@ class DeleteSavedSearch(BaseTool):
             was_scheduled = self._convert_splunk_boolean(
                 saved_search.content.get("is_scheduled"), False
             )
-            search_app = saved_search.content.get("eai:acl", {}).get("app", "")
-            search_owner = saved_search.content.get("eai:acl", {}).get("owner", "")
+            acl = get_saved_search_acl(saved_search)
+            search_app = acl.get("app", "") or ""
+            search_owner = acl.get("owner", "") or ""
 
             await ctx.info(
                 f"Deleting saved search '{name}' (app: {search_app}, owner: {search_owner})"
@@ -1052,7 +1046,8 @@ class GetSavedSearchDetails(BaseTool):
                 return self.format_error_response(error_msg, name=name)
 
             content = saved_search.content
-            acl = content.get("eai:acl", {})
+            acl = get_saved_search_acl(saved_search)
+            perms = acl.get("perms") if isinstance(acl.get("perms"), dict) else {}
 
             # Build comprehensive details
             details = {
@@ -1093,8 +1088,8 @@ class GetSavedSearchDetails(BaseTool):
                     "can_write": acl.get("can_write", ""),
                     "can_share_app": acl.get("can_share_app", ""),
                     "can_share_global": acl.get("can_share_global", ""),
-                    "read_permissions": acl.get("perms", {}).get("read", []),
-                    "write_permissions": acl.get("perms", {}).get("write", []),
+                    "read_permissions": perms.get("read", []),
+                    "write_permissions": perms.get("write", []),
                 },
                 "actions": {
                     "email": {
@@ -1143,11 +1138,11 @@ class GetSavedSearchDetails(BaseTool):
                     },
                 },
                 "metadata": {
-                    "created": content.get("eai:acl", {}).get("created", ""),
+                    "created": acl.get("created", ""),
                     "updated": content.get("updated", ""),
-                    "author": content.get("eai:acl", {}).get("author", ""),
+                    "author": acl.get("author", "") or acl.get("owner", ""),
                     "splunk_server": content.get("splunk_server", ""),
-                    "version": content.get("eai:acl", {}).get("version", ""),
+                    "version": acl.get("version", ""),
                 },
             }
 

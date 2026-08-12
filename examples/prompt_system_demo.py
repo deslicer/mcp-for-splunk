@@ -59,7 +59,7 @@ async def demo_prompt_system():
     for name, args in [
         ("mcp_overview", {"detail_level": "basic"}),
         ("workflow_creation_guide", {"workflow_type": "performance", "complexity": "simple"}),
-        ("tool_usage_guide", {"tool_name": "workflow_runner"}),
+        ("tool_usage_guide", {"tool_name": "list_workflows"}),
     ]:
         print(f"\n   📋 Prompt: {name}")
         prompt_instance = prompt_registry.get_prompt(name)

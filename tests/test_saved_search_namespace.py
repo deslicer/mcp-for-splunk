@@ -34,9 +34,8 @@ def test_apply_saved_search_namespace_uses_acl():
     service = Mock()
     service.namespace = None
     saved_search = Mock()
-    saved_search.content = {
-        "eai:acl": {"app": "search", "owner": "admin", "sharing": "app"}
-    }
+    saved_search.access = {"app": "search", "owner": "admin", "sharing": "app"}
+    saved_search.content = {}
 
     original = _apply_saved_search_namespace(service, saved_search)
 
@@ -50,6 +49,7 @@ def test_apply_saved_search_namespace_fallback_for_empty_acl():
     service.namespace = spl_client.namespace(sharing="global")
     service.username = "admin"
     saved_search = Mock()
+    saved_search.access = {}
     saved_search.content = {"eai:acl": {}}
 
     original = _apply_saved_search_namespace(service, saved_search)

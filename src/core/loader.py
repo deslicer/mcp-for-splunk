@@ -76,7 +76,7 @@ class ToolLoader:
             "src.tools.workflows.workflow_requirements",
             "src.tools.workflows.workflow_builder",
             "src.tools.workflows.list_workflows",
-            "src.tools.workflows.workflow_runner",
+            "src.tools.workflows.get_executed_workflows",
         ]
 
         reloaded_count = 0

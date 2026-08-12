@@ -262,15 +262,12 @@ SPLUNK_VERIFY_SSL=false
 
 ### Multi-tenant Configuration
 
-For connecting different AI clients to different Splunk instances:
+Different AI clients can target different Splunk instances with per-request
+`X-Splunk-*` headers. Prefer sessionless bearer tokens for HTTP, or send a
+stable `X-Session-ID` when you want session-scoped caching.
 
-```bash
-# Using HTTP headers
-curl -H "X-Splunk-Host: prod-splunk.company.com" \
-     -H "X-Splunk-Username: prod-user" \
-     -H "X-Splunk-Password: prod-password" \
-     http://localhost:8001/mcp/
-```
+See [HTTP Client Connection Modes](../guides/configuration/http-client-modes.md)
+and [Client Configuration](../guides/configuration/client_configuration.md).
 
 ## 🚨 Troubleshooting
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Breaking Changes
+
+* Remove OpenAI Agents `workflow_runner` execution path (Option C); workflow JSON discovery/authoring tools remain
+* Upgrade runtime to FastMCP `4.0.0b2` / MCP Python SDK v2 (protocol `2026-07-28`)
+
+### Features
+
+* Dual-era client config cache: prefer `X-Session-ID`, fall back to `MCP-Session-Id`, then config fingerprint
+* Default Streamable HTTP to sessionless (`MCP_STATELESS_HTTP` / `MCP_JSON_RESPONSE` true)
+* Docs for sessionless vs session-scoped HTTP clients (`docs/guides/configuration/http-client-modes.md`)
+
+### Bug Fixes
+
+* `list_saved_searches` / saved-search ACL: enumerate `servicesNS/-/-` and read ownership from entity `access` so app-scoped alerts (e.g. `deslicer_ai_insights`) are discoverable
+
+### Dependencies
+
+* Drop `openai` / `openai-agents`; pull security upgrades via lockfile (cryptography, soupsieve, nltk, etc.)
+
 ## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
 
 

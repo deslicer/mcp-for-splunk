@@ -27,6 +27,11 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from src.core.base import SplunkContext
+from src.core.client_config_cache import (
+    ClientConfigCache,
+    ClientConfigCacheKeyResolver,
+    normalize_header_token,
+)
 from src.core.loader import ComponentLoader
 from src.core.otel import (
     OtelJsonFormatter,
@@ -98,9 +103,10 @@ try:
 except Exception:  # nosec B110
     pass  # Intentionally suppressed: warning filter is optional, not critical
 
-# Global cache to persist client config per session across Streamable HTTP requests
-# Keyed by a caller-provided "X-Session-ID" header value
-HEADER_CLIENT_CONFIG_CACHE: dict[str, dict] = {}
+# Dual-era cache: X-Session-ID → MCP-Session-ID (legacy) → Splunk identity hash.
+# Modern 2026-07-28 connections may have no MCP-Session-ID.
+HEADER_CLIENT_CONFIG_CACHE = ClientConfigCache()
+_CACHE_KEY_RESOLVER = ClientConfigCacheKeyResolver()
 
 # Session correlation for logs
 current_session_id: ContextVar[str] = ContextVar("current_session_id", default="-")
@@ -149,37 +155,16 @@ if is_otel_enabled():
 
 
 # ------------------------------
-# Session Header Normalization
+# Session / client-config cache keys (dual-era)
 # ------------------------------
 def _normalize_session_id(value: str | None) -> str | None:
-    """
-    Normalize session header values that may be duplicated as 'id, id'.
-    Returns the first non-empty token stripped, or None if not available.
-    """
-    if not value:
-        return None
-    # Some clients send 'uuid, uuid' in MCP-Session-ID; take the first
-    if "," in value:
-        for tok in value.split(","):
-            tok = tok.strip()
-            if tok:
-                return tok
-        return None
-    v = value.strip()
-    return v if v else None
+    """Normalize comma-duplicated session header values to one token."""
+    return normalize_header_token(value)
 
 
 def _extract_session_id_from_headers(headers: dict) -> str | None:
-    """
-    Derive a session id from known header names, normalized to a single token.
-    Priority: MCP-Session-ID (any case) then X-Session-ID (any case).
-    """
-    mcp_sid = headers.get("MCP-Session-ID") or headers.get("mcp-session-id")
-    sid = _normalize_session_id(mcp_sid)
-    if sid:
-        return sid
-    x_sid = headers.get("X-Session-ID") or headers.get("x-session-id")
-    return _normalize_session_id(x_sid)
+    """Resolve a dual-era cache key from headers (X-Session-ID preferred)."""
+    return _CACHE_KEY_RESOLVER.resolve(headers, mcp_session_id=None)
 
 
 # ------------------------------
@@ -326,13 +311,12 @@ class HeaderCaptureMiddleware(BaseHTTPMiddleware):
                         list(client_config.keys()),
                     )
 
-                    # Persist per-session for subsequent Streamable HTTP requests
+                    # Persist for subsequent Streamable HTTP requests (dual-era key)
                     session_key = _extract_session_id_from_headers(headers)
-                    # Always cache under provided session id if available
                     if session_key:
-                        HEADER_CLIENT_CONFIG_CACHE[session_key] = client_config
+                        HEADER_CLIENT_CONFIG_CACHE.set(session_key, client_config)
                         logger.debug(
-                            "HeaderCaptureMiddleware: cached client_config for session %s (keys=%s)",
+                            "HeaderCaptureMiddleware: cached client_config for key %s (keys=%s)",
                             session_key,
                             list(client_config.keys()),
                         )
@@ -611,12 +595,12 @@ else:
                 "Auth provider missing. Set MCP_AUTH_DISABLED=true to explicitly disable auth."
             )
 
-# In HTTP mode behind a load balancer (e.g., Traefik) without guaranteed session
-# stickiness, FastMCP's session-bound Streamable HTTP can return 400s when
-# subsequent requests for a session are routed to different backend instances.
-# Allow an opt-in stateless HTTP mode for development to relax session coupling.
-STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "false").strip().lower() == "true"
-JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "false").strip().lower() == "true"
+# Handshake-era (pre-2026-07-28) Streamable HTTP can require sticky sessions.
+# Modern era is sessionless; MCP_STATELESS_HTTP still relaxes handshake-era coupling.
+# Default true so LB deployments work with both eras unless explicitly disabled.
+STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "true").strip().lower() == "true"
+JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "true").strip().lower() == "true"
+HOST_ORIGIN_PROTECTION = os.getenv("FASTMCP_HTTP_HOST_ORIGIN_PROTECTION", "auto")
 
 mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, lifespan=splunk_lifespan)
 
@@ -720,9 +704,9 @@ class ClientConfigMiddleware(Middleware):
         try:
             headers = http_headers_context.get({})
 
-            # Derive a stable per-session cache key
-            session_key = getattr(context, "session_id", None) or _extract_session_id_from_headers(
-                headers
+            # Dual-era cache key (X-Session-ID → MCP-Session-ID → Splunk identity)
+            session_key = _CACHE_KEY_RESOLVER.resolve(
+                headers, mcp_session_id=getattr(context, "session_id", None)
             )
 
             if headers:
@@ -731,32 +715,29 @@ class ClientConfigMiddleware(Middleware):
                     list(headers.keys()),
                 )
 
-                # Extract client config from headers
                 client_config = extract_client_config_from_headers(headers)
 
                 if client_config:
                     logger.info(
-                        "ClientConfigMiddleware: extracted client_config from headers (keys=%s, session_key=%s)",
+                        "ClientConfigMiddleware: extracted client_config from headers (keys=%s, cache_key=%s)",
                         list(client_config.keys()),
                         session_key,
                     )
-
-                    # Cache the config for this session (avoid cross-session leakage)
                     if session_key:
                         self.client_config_cache[session_key] = client_config
+                        HEADER_CLIENT_CONFIG_CACHE.set(session_key, client_config)
                 else:
                     logger.debug("No Splunk headers found in HTTP request")
             else:
                 logger.debug("No HTTP headers found in context variable")
 
-            # If we didn't extract config from headers, check per-session cache only (no global fallback)
             if not client_config and session_key:
                 client_config = self.client_config_cache.get(
                     session_key
                 ) or HEADER_CLIENT_CONFIG_CACHE.get(session_key)
                 if client_config:
                     logger.info(
-                        "ClientConfigMiddleware: using cached client_config for session %s",
+                        "ClientConfigMiddleware: using cached client_config for key %s",
                         session_key,
                     )
 
@@ -772,12 +753,17 @@ class ClientConfigMiddleware(Middleware):
                     await context.fastmcp_context.set_state("client_config", client_config)
                     if effective_session:
                         await context.fastmcp_context.set_state("session_id", effective_session)
+                    _redact_keys = {
+                        "splunk_password",
+                        "splunk_token",
+                        "splunk_session_token",
+                    }
                     logger.info(
                         "ClientConfigMiddleware: wrote client_config to context state (keys=%s, session=%s, config=%s)",
                         list(client_config.keys()),
                         effective_session,
                         {
-                            k: v if k not in ["splunk_password"] else "***"
+                            k: ("***" if k in _redact_keys else v)
                             for k, v in client_config.items()
                         },
                     )
@@ -805,19 +791,19 @@ class ClientConfigMiddleware(Middleware):
             if isinstance(getattr(context, "method", None), str):
                 if context.method in ("session/terminate", "session/end", "session/close"):
                     headers = headers if isinstance(headers, dict) else {}
-                    session_key = getattr(
-                        context, "session_id", None
-                    ) or _extract_session_id_from_headers(headers)
+                    session_key = _CACHE_KEY_RESOLVER.resolve(
+                        headers, mcp_session_id=getattr(context, "session_id", None)
+                    )
                     if session_key and session_key in self.client_config_cache:
                         self.client_config_cache.pop(session_key, None)
                         logger.info(
-                            "ClientConfigMiddleware: cleared cached client_config for session %s",
+                            "ClientConfigMiddleware: cleared cached client_config for key %s",
                             session_key,
                         )
                     if session_key and session_key in HEADER_CLIENT_CONFIG_CACHE:
-                        HEADER_CLIENT_CONFIG_CACHE.pop(session_key, None)
+                        HEADER_CLIENT_CONFIG_CACHE.clear(session_key)
                         logger.info(
-                            "ClientConfigMiddleware: cleared global cached client_config for session %s",
+                            "ClientConfigMiddleware: cleared global cached client_config for key %s",
                             session_key,
                         )
         except Exception:  # nosec B110
@@ -1198,14 +1184,22 @@ def create_root_app(server: FastMCP) -> Starlette:
     - Loads plugins once with both `mcp` and `root_app` available
     - Mounts the MCP app at "/"
     """
-    # Build the MCP Starlette app with the /mcp path
-    # In FastMCP 3.x, stateless_http/json_response are set at the transport/app level
-    mcp_app = server.http_app(
-        path="/mcp",
-        transport="http",
-        stateless_http=STATELESS_HTTP,
-        json_response=JSON_RESPONSE,
-    )
+    # Build the MCP Starlette app with the /mcp path (FastMCP 4 / SDK v2).
+    http_app_kwargs: dict = {
+        "path": "/mcp",
+        "transport": "http",
+        "stateless_http": STATELESS_HTTP,
+        "json_response": JSON_RESPONSE,
+    }
+    # Host/Origin DNS-rebinding protection (FastMCP 4); "auto" is valid.
+    try:
+        protection: bool | str = HOST_ORIGIN_PROTECTION
+        if isinstance(protection, str) and protection.lower() in {"true", "false"}:
+            protection = protection.lower() == "true"
+        http_app_kwargs["host_origin_protection"] = protection
+    except Exception:  # nosec B110
+        pass
+    mcp_app = server.http_app(**http_app_kwargs)
 
     # Parent Starlette application that applies middleware to the initial HTTP handshake
     root_app = Starlette(lifespan=mcp_app.lifespan)
