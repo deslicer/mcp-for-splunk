@@ -68,11 +68,53 @@ class ClientConfigCacheKeyResolver:
         return self._identity_hash_key(headers)
 
     def _identity_hash_key(self, headers: dict) -> str | None:
+        """Hash host + credential fingerprint; skip cache without auth material.
+
+        Host+username alone is unsafe: two callers sharing the same user with
+        different passwords/tokens would collide and reuse cached secrets.
+        """
         host = extract_header(headers, "X-Splunk-Host", "x-splunk-host")
-        username = extract_header(headers, "X-Splunk-Username", "x-splunk-username")
-        if not host or not username:
+        if not host:
             return None
-        digest = hashlib.sha256(f"{host}:{username}".encode("utf-8")).hexdigest()
+
+        username = extract_header(headers, "X-Splunk-Username", "x-splunk-username")
+        password = extract_header(
+            headers,
+            "X-Splunk-Password",
+            "x-splunk-password",
+            "X-Splunk-Password-Base64",
+            "x-splunk-password-base64",
+        )
+        bearer = extract_header(headers, "X-Splunk-Token", "x-splunk-token")
+        session = extract_header(
+            headers, "X-Splunk-Session-Token", "x-splunk-session-token"
+        )
+        if not (password or bearer or session):
+            return None
+
+        parts = [f"host:{host.lower()}"]
+        port = extract_header(headers, "X-Splunk-Port", "x-splunk-port")
+        if port:
+            parts.append(f"port:{port}")
+        scheme = extract_header(headers, "X-Splunk-Scheme", "x-splunk-scheme")
+        if scheme:
+            parts.append(f"scheme:{scheme.lower()}")
+        if username:
+            parts.append(f"user:{username.lower()}")
+        if bearer:
+            parts.append(
+                "bearer:" + hashlib.sha256(bearer.encode()).hexdigest()[:16]
+            )
+        elif session:
+            parts.append(
+                "session:" + hashlib.sha256(session.encode()).hexdigest()[:16]
+            )
+        else:
+            parts.append(
+                "basic:" + hashlib.sha256(password.encode()).hexdigest()[:16]
+            )
+
+        digest = hashlib.sha256("|".join(sorted(parts)).encode()).hexdigest()
         return f"cfg_{digest[:16]}"
 
 

@@ -50,20 +50,44 @@ def test_resolve_uses_mcp_session_id_param_when_headers_lack_session() -> None:
     assert resolver.resolve(headers, mcp_session_id="handshake-sess") == "handshake-sess"
 
 
-def test_resolve_falls_back_to_identity_hash() -> None:
+def test_resolve_falls_back_to_credential_fingerprint() -> None:
     resolver = ClientConfigCacheKeyResolver()
     headers = {
         "X-Splunk-Host": "so1",
         "X-Splunk-Username": "admin",
+        "X-Splunk-Password": "secret",
     }
-    expected = "cfg_" + hashlib.sha256(b"so1:admin").hexdigest()[:16]
+    pw_fp = hashlib.sha256(b"secret").hexdigest()[:16]
+    parts = sorted(
+        [
+            "host:so1",
+            "user:admin",
+            f"basic:{pw_fp}",
+        ]
+    )
+    expected = "cfg_" + hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
     assert resolver.resolve(headers, mcp_session_id=None) == expected
 
 
-def test_resolve_returns_none_without_stable_identity() -> None:
+def test_resolve_different_passwords_do_not_collide() -> None:
+    resolver = ClientConfigCacheKeyResolver()
+    base = {"X-Splunk-Host": "so1", "X-Splunk-Username": "admin"}
+    key_a = resolver.resolve({**base, "X-Splunk-Password": "a"}, None)
+    key_b = resolver.resolve({**base, "X-Splunk-Password": "b"}, None)
+    assert key_a and key_b and key_a != key_b
+
+
+def test_resolve_skips_cache_without_credential_material() -> None:
     resolver = ClientConfigCacheKeyResolver()
     assert resolver.resolve({}, mcp_session_id=None) is None
     assert resolver.resolve({"X-Splunk-Host": "so1"}, mcp_session_id=None) is None
+    assert (
+        resolver.resolve(
+            {"X-Splunk-Host": "so1", "X-Splunk-Username": "admin"},
+            mcp_session_id=None,
+        )
+        is None
+    )
 
 
 def test_client_config_cache_get_set_clear() -> None:

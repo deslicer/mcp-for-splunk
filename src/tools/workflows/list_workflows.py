@@ -278,7 +278,8 @@ workflow for specific Splunk problems.""",
                 for path in root.rglob("*.json"):
                     try:
                         data = json.loads(path.read_text(encoding="utf-8"))
-                    except Exception:
+                    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+                        logger.debug("Skipping unreadable workflow file %s: %s", path, exc)
                         continue
                     if data.get("workflow_id") != workflow.workflow_id:
                         continue

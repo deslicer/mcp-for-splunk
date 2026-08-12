@@ -569,8 +569,9 @@ for creating custom diagnostic workflows.""",
             "list_kvstore_collections": "List all KV Store collections",
             "create_kvstore_collection": "Create new KV Store collections",
             # Workflow Tools
-            "list_workflows": "List available workflows",
             "list_workflows": "Discover workflow IDs (core + contrib)",
+            "workflow_builder": "Create, edit, and validate workflow JSON",
+            "workflow_requirements": "Schema and authoring guidance for workflows",
             # Utility Tools
             "report_specialist_progress": "Report progress during task execution",
         }
