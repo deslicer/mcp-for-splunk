@@ -26,6 +26,7 @@
 * Upgrade `pydantic-settings` and `python-multipart` for remaining lockfile CVEs
 * Add 7-day dependency cooldowns (uv `exclude-newer`, Renovate `minimumReleaseAge`, Dependabot `cooldown`)
 * Pin GitHub Actions workflow `uses:` refs to full commit SHAs (mutable-tag hygiene)
+* Raise floors for uvicorn, ruff, mypy, pre-commit, and OpenTelemetry extras (Dependabot lock sweep)
 
 ## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
 
