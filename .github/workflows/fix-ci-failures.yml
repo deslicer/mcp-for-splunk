@@ -23,7 +23,14 @@ jobs:
 
             - name: Install Cursor CLI
               run: |
-                  curl https://cursor.com/install -fsS | bash
+                  set -euo pipefail
+                  install_script="${RUNNER_TEMP}/cursor-install.sh"
+                  curl -fsSL https://cursor.com/install -o "${install_script}"
+                  # Basic integrity checks (Cursor does not publish a stable checksum for this URL).
+                  test -s "${install_script}"
+                  head -n 1 "${install_script}" | grep -qE '^#!'
+                  bash "${install_script}"
+                  rm -f "${install_script}"
                   echo "$HOME/.cursor/bin" >> $GITHUB_PATH
 
             - name: Configure git identity

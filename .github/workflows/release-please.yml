@@ -41,7 +41,9 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       package: parent
-    secrets: inherit
+    secrets:
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      PYPI_ITSI_API_TOKEN: ${{ secrets.PYPI_ITSI_API_TOKEN }}
 
   build-publish-itsi:
     needs: release-please
@@ -49,15 +51,17 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       package: itsi
-    secrets: inherit
+    secrets:
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      PYPI_ITSI_API_TOKEN: ${{ secrets.PYPI_ITSI_API_TOKEN }}
 
   # Docker image tracks the parent package (tagged `v*.*.*`). The tag created
   # by release-please can't trigger docker.yml's `push: tags` event, so we fan
-  # out to it directly here on merge.
+  # out to it directly here on merge. docker.yml only needs GITHUB_TOKEN
+  # (available by default) — do not pass secrets: inherit.
   build-docker-parent:
     needs: release-please
     if: needs.release-please.outputs.parent_released == 'true'
     uses: ./.github/workflows/docker.yml
     with:
       version: ${{ needs.release-please.outputs.parent_version }}
-    secrets: inherit

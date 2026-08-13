@@ -116,6 +116,7 @@ paths = [
     '''mcp_itsi/config/''',
     '''src/core/security/''',
     '''src/core/client_config_cache\.py$''',  # Header-name lookups only; no secret values
+    '''src/splunk_client\.py$''',  # Env-var lookups / splunklib kwargs; no secret values
     '''src/splunk_connector\.py$''',
     '''\.github/workflows/''',
 ]

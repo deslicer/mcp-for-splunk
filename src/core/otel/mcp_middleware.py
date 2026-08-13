@@ -8,7 +8,7 @@ NOT attached to spans to honor the credential deny-list.
 
 from __future__ import annotations
 
-import logging
+import logging as stdlib_logging
 import traceback
 from typing import Any
 
@@ -16,7 +16,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from .logging import redact_sensitive
 
-logger = logging.getLogger(__name__)
+logger = stdlib_logging.getLogger(__name__)
 
 _MAX_EXC_MESSAGE = 500
 _MAX_EXC_STACKTRACE = 8000
@@ -33,11 +33,11 @@ class OtelToolSpanMiddleware(Middleware):
         logger.info("OtelToolSpanMiddleware initialized")
 
     def _get_tracer(self) -> Any:
-        from opentelemetry import trace
+        from opentelemetry.trace import get_tracer
 
         if self._tracer_provider is not None:
             return self._tracer_provider.get_tracer(_TRACER_NAME)
-        return trace.get_tracer(_TRACER_NAME)
+        return get_tracer(_TRACER_NAME)
 
     async def on_request(self, context: MiddlewareContext, call_next):
         """Create a tool span for ``tools/call``; pass through other methods."""

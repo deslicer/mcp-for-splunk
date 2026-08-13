@@ -18,6 +18,7 @@
 ### Bug Fixes
 
 * `list_saved_searches` / saved-search ACL: enumerate `servicesNS/-/-` and read ownership from entity `access` so app-scoped alerts (e.g. `deslicer_ai_insights`) are discoverable
+* Honor `SPLUNK_VERIFY_SSL` in `src/splunk_client.py` (default **true**; was hardcoded false)
 
 ### Dependencies
 
@@ -26,6 +27,8 @@
 * Upgrade `pydantic-settings` and `python-multipart` for remaining lockfile CVEs
 * Add 7-day dependency cooldowns (uv `exclude-newer`, Renovate `minimumReleaseAge`, Dependabot `cooldown`)
 * Pin GitHub Actions workflow `uses:` refs to full commit SHAs (mutable-tag hygiene)
+* Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
+* Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
 ## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
 
