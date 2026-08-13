@@ -72,7 +72,9 @@ class TestMCPServerCore:
         info = json.loads(content_text)
 
         assert info["name"] == "MCP Server for Splunk"
-        assert info["version"] == "2.0.0"
+        assert info["version"]
+        assert info["version"] != "2.0.0"
+        assert info["session_mode"] in {"sessionless", "session"}
         assert info["transport"] == "http"
         assert "tools" in info["capabilities"]
         assert "resources" in info["capabilities"]
@@ -895,6 +897,7 @@ class TestServerConfiguration:
 
         assert info["name"] == "MCP Server for Splunk"
         assert info["transport"] == "http"
+        assert info["session_mode"] in {"sessionless", "session"}
         assert "tools" in info["capabilities"]
         assert "resources" in info["capabilities"]
         assert "prompts" in info["capabilities"]

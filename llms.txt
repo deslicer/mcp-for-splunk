@@ -10,6 +10,8 @@ Endpoint: `http(s)://HOST:PORT/mcp` (local default often `http://localhost:8003/
 
 Prefer a real MCP client (FastMCP Client, Cursor, Claude Desktop, MCP Inspector). Send Splunk credentials as headers on each request.
 
+Before connecting, `GET /health` (same origin as `/mcp`, strip `/mcp`). Use `http.session_mode` or the `X-MCP-Session-Mode` header. `sessionless` means omit session ids. `session` or a missing `http` block means send a stable `X-Session-ID`. Do not infer this from package version alone (published 0.6.8 is handshake-era).
+
 ### Sessionless (default)
 
 Server: `MCP_STATELESS_HTTP=true`, `MCP_JSON_RESPONSE=true`.
