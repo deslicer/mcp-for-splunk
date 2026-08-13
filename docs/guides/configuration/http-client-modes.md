@@ -15,6 +15,53 @@ stable session key for config caching and sticky routing.
 Use a real MCP client library (FastMCP Client, Cursor, Claude Desktop, MCP
 Inspector). Prefer bearer tokens (`X-Splunk-Token`) over passwords for HTTP.
 
+## Discover session mode (Deslicer AI and other clients)
+
+Do **not** infer sessionless from package version alone. Published **0.6.8** is
+handshake-era; unreleased main also reported 0.6.8 after FastMCP 4.
+
+Probe `GET /health` on the same origin as `/mcp` (strip a trailing `/mcp`).
+Read the explicit flag, then fall back to session-scoped if anything is missing.
+
+```http
+GET /health HTTP/1.1
+```
+
+```json
+{
+  "status": "healthy",
+  "server": {
+    "name": "MCP Server for Splunk",
+    "version": "0.6.9",
+    "session_mode": "sessionless"
+  },
+  "http": {
+    "stateless": true,
+    "json_response": true,
+    "session_mode": "sessionless",
+    "client_api": 1
+  }
+}
+```
+
+Response headers (also present on `/mcp`):
+
+```http
+X-MCP-Server-Version: 0.6.9
+X-MCP-Session-Mode: sessionless
+```
+
+Client rule:
+
+1. If `http.session_mode` or `X-MCP-Session-Mode` is `sessionless`, omit session ids.
+2. If the value is `session` (operator set `MCP_STATELESS_HTTP=false`), send a stable `X-Session-ID`.
+3. If `/health` has no `http` block (older images), send a session id.
+4. If `/health` is unreachable, try sessionless first; on `Missing session ID`, retry with a session id.
+
+The MCP resource `info://server` carries the same `version` and `session_mode`
+after the client has already connected. Use `/health` to choose the mode
+**before** `initialize`.
+
 ## Sessionless mode (default)
 
 Local and Docker runs enable sessionless HTTP by default. The server does not

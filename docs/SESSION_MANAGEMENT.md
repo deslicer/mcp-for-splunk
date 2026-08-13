@@ -10,6 +10,10 @@ Streamable HTTP supports two client styles with this server:
 For copy-paste client configs, see
 **[HTTP Client Connection Modes](guides/configuration/http-client-modes.md)**.
 
+HTTP clients should `GET /health` and read `http.session_mode` (or
+`X-MCP-Session-Mode`) before `initialize`. `sessionless` means omit session
+ids. Missing fields mean an older server — send a stable `X-Session-ID`.
+
 ## Prefer a real MCP client
 
 Use FastMCP Client, Cursor, Claude Desktop, or MCP Inspector. They perform the

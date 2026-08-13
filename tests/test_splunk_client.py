@@ -111,7 +111,47 @@ class TestEnvironmentVariableHandling:
             call_args = mock_service_class.call_args[1]
             assert call_args["host"] == "localhost"  # Default host
             assert call_args["port"] == 8089  # Default port
-            assert call_args["verify"] is False  # Default SSL verification
+            assert call_args["verify"] is True  # Default SSL verification
+
+
+class TestSslVerification:
+    """TLS verify flag from SPLUNK_VERIFY_SSL."""
+
+    @patch("src.splunk_client.client.Service")
+    def test_verify_ssl_defaults_true(self, mock_service_class):
+        mock_service = Mock()
+        mock_service.login = Mock()
+        mock_service.info = {"version": "9.0.0"}
+        mock_service_class.return_value = mock_service
+
+        with patch.dict(
+            os.environ,
+            {"SPLUNK_USERNAME": "admin", "SPLUNK_PASSWORD": "password"},
+            clear=True,
+        ):
+            get_splunk_service()
+
+        assert mock_service_class.call_args[1]["verify"] is True
+
+    @patch("src.splunk_client.client.Service")
+    def test_verify_ssl_opt_out(self, mock_service_class):
+        mock_service = Mock()
+        mock_service.login = Mock()
+        mock_service.info = {"version": "9.0.0"}
+        mock_service_class.return_value = mock_service
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPLUNK_USERNAME": "admin",
+                "SPLUNK_PASSWORD": "password",
+                "SPLUNK_VERIFY_SSL": "false",
+            },
+            clear=True,
+        ):
+            get_splunk_service()
+
+        assert mock_service_class.call_args[1]["verify"] is False
 
 
 class TestTokenAuthentication:

@@ -254,9 +254,18 @@ Discover what your server supports via `/health`:
 ```json
 {
   "available_toolsets": ["itsi", "splunk"],
-  "loaded_plugins": [{"name": "itsi"}]
+  "loaded_plugins": [{"name": "itsi"}],
+  "server": {"version": "0.6.9", "session_mode": "sessionless"},
+  "http": {
+    "stateless": true,
+    "json_response": true,
+    "session_mode": "sessionless",
+    "client_api": 1
+  }
 }
 ```
+
+`http.session_mode` (and `X-MCP-Session-Mode`) tell HTTP clients whether to omit session ids. See [HTTP Client Connection Modes](http-client-modes.md#discover-session-mode-deslicer-ai-and-other-clients).
 
 ### Cursor IDE / Claude Desktop
 
