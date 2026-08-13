@@ -54,3 +54,35 @@ def test_health_api_handles_missing_loaded_plugins_attribute():
     body = resp.json()
     assert body.get("loaded_plugins") == []
     assert body.get("available_toolsets") == ["splunk"]
+
+
+def test_health_api_advertises_sessionless_http_by_default():
+    mcp = FastMCP(name="HealthTestSessionMode")
+    client = TestClient(_build_app(mcp))
+    resp = client.get("/health")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    http_block = body.get("http") or {}
+    assert http_block.get("session_mode") == "sessionless"
+    assert http_block.get("stateless") is True
+    assert http_block.get("json_response") is True
+    assert http_block.get("client_api") == 1
+    assert body.get("server", {}).get("version")
+    assert body["server"]["version"] != "unknown"
+    assert body["server"].get("session_mode") == "sessionless"
+    assert resp.headers.get("X-MCP-Session-Mode") == "sessionless"
+    assert resp.headers.get("X-MCP-Server-Version") == body["server"]["version"]
+
+
+def test_health_api_advertises_session_mode_when_stateless_disabled(monkeypatch):
+    monkeypatch.setenv("MCP_STATELESS_HTTP", "false")
+    mcp = FastMCP(name="HealthTestStateful")
+    client = TestClient(_build_app(mcp))
+    resp = client.get("/health")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["http"]["session_mode"] == "session"
+    assert body["http"]["stateless"] is False
+    assert resp.headers.get("X-MCP-Session-Mode") == "session"

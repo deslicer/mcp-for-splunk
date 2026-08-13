@@ -6,16 +6,13 @@ component loading, and Splunk connectivity.
 """
 
 import logging
-import os
 import time
 
-try:  # Python 3.11+
-    import tomllib  # type: ignore[attr-defined]
-except Exception:  # Python 3.10 fallback
-    import tomli as tomllib  # type: ignore[no-redef]
 from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse
+
+from src.core.http_session_mode import HttpSessionModeAdvertiser, resolve_package_version
 
 from .templates import load_css, load_template, render_template
 
@@ -23,16 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_version() -> str:
-    """Get version from pyproject.toml"""
-    try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        pyproject_path = os.path.join(project_root, "pyproject.toml")
-        with open(pyproject_path, "rb") as f:
-            pyproject_data = tomllib.load(f)
-            return pyproject_data.get("project", {}).get("version", "unknown")
-    except Exception as e:
-        logger.debug(f"Could not read version from pyproject.toml: {e}")
-        return "unknown"  # fallback
+    """Return the MCP server package version for health pages and JSON."""
+    return resolve_package_version()
 
 
 def get_component_counts(mcp_server: FastMCP) -> tuple[int, int, int]:
@@ -253,19 +242,28 @@ def setup_health_routes(mcp: FastMCP):
                 {"splunk"} | {p["name"] for p in loaded_plugins if "name" in p}
             )
 
+            advertiser = HttpSessionModeAdvertiser.from_env()
+            http_block = advertiser.as_health_http_block()
+            server_info_data["session_mode"] = advertiser.session_mode
+
             return JSONResponse(
                 {
                     "status": "healthy",
                     "server": server_info_data,
+                    "http": http_block,
                     "splunk_connection": splunk_status,
                     "splunk_info": splunk_info,
                     "loaded_plugins": loaded_plugins,
                     "available_toolsets": available_toolsets,
                     "timestamp": time.time(),
-                }
+                },
+                headers=advertiser.as_response_headers(),
             )
         except Exception as e:
             logger.error(f"Error in health_api: {e}")
+            advertiser = HttpSessionModeAdvertiser.from_env()
             return JSONResponse(
-                {"status": "error", "error": str(e), "timestamp": time.time()}, status_code=500
+                {"status": "error", "error": str(e), "timestamp": time.time()},
+                status_code=500,
+                headers=advertiser.as_response_headers(),
             )

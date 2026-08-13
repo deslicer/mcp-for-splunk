@@ -152,6 +152,13 @@ values:
 ```json
 {
   "available_toolsets": ["itsi", "splunk"],
-  "loaded_plugins": [{"name": "itsi"}]
+  "loaded_plugins": [{"name": "itsi"}],
+  "http": {
+    "session_mode": "sessionless",
+    "stateless": true,
+    "client_api": 1
+  }
 }
 ```
+
+`http.session_mode` is the client signal for sessionless vs session-scoped HTTP. See [HTTP Client Connection Modes](configuration/http-client-modes.md).

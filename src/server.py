@@ -32,6 +32,8 @@ from src.core.client_config_cache import (
     ClientConfigCacheKeyResolver,
     normalize_header_token,
 )
+from src.core.http_session_mode import HttpSessionModeAdvertiser
+from src.core.http_session_mode_middleware import HttpSessionModeHeaderMiddleware
 from src.core.loader import ComponentLoader
 from src.core.otel import (
     OtelJsonFormatter,
@@ -601,8 +603,14 @@ else:
 STATELESS_HTTP = os.getenv("MCP_STATELESS_HTTP", "true").strip().lower() == "true"
 JSON_RESPONSE = os.getenv("MCP_JSON_RESPONSE", "true").strip().lower() == "true"
 HOST_ORIGIN_PROTECTION = os.getenv("FASTMCP_HTTP_HOST_ORIGIN_PROTECTION", "auto")
+HTTP_SESSION_MODE = HttpSessionModeAdvertiser.from_env()
 
-mcp = FastMCP(name="MCP Server for Splunk", auth=auth_verifier, lifespan=splunk_lifespan)
+mcp = FastMCP(
+    name="MCP Server for Splunk",
+    version=HTTP_SESSION_MODE.version,
+    auth=auth_verifier,
+    lifespan=splunk_lifespan,
+)
 
 # Import and setup health routes
 setup_health_routes(mcp)
@@ -842,13 +850,6 @@ if _otel_enabled:
         logger.warning("Failed to add OpenTelemetry MCP middleware: %s", e)
 
 
-# Health check endpoint for Docker using custom route (recommended pattern)
-@mcp.custom_route("/health", methods=["GET"])
-async def health_check(request) -> JSONResponse:
-    """Health check endpoint for Docker and load balancers"""
-    return JSONResponse({"status": "OK", "service": "MCP for Splunk"})
-
-
 # Sentry test endpoint for verifying integration
 @mcp.custom_route("/sentry-test", methods=["GET"])
 async def sentry_test_endpoint(request) -> JSONResponse:
@@ -935,14 +936,16 @@ def health_check_resource() -> str:
 @mcp.resource("info://server")
 def server_info() -> str:
     """Server information and capabilities"""
-    return json.dumps({
+    advertiser = HttpSessionModeAdvertiser.from_env()
+    payload = {
         "name": "MCP Server for Splunk",
-        "version": "2.0.0",
         "transport": "http",
         "capabilities": ["tools", "resources", "prompts"],
         "description": "Modular MCP Server providing Splunk integration",
         "status": "running",
-    })
+    }
+    payload.update(advertiser.as_server_info_fields())
+    return json.dumps(payload)
 
 
 # Hot reload endpoint for development
@@ -1204,6 +1207,7 @@ def create_root_app(server: FastMCP) -> Starlette:
     # Parent Starlette application that applies middleware to the initial HTTP handshake
     root_app = Starlette(lifespan=mcp_app.lifespan)
     root_app.add_middleware(HeaderCaptureMiddleware)
+    root_app.add_middleware(HttpSessionModeHeaderMiddleware, advertiser=HTTP_SESSION_MODE)
 
     # Instrument the app for OpenTelemetry: extract the W3C traceparent on
     # incoming requests (server spans) and emit httpx client child spans.
