@@ -36,6 +36,7 @@
       "matchManagers": ["pip_requirements", "pip-compile", "poetry", "uv"],
       "groupName": "Python dev dependencies",
       "labels": ["dependencies", "dev"],
+      "minimumReleaseAge": "7 days",
       "automerge": true,
       "automergeType": "branch"
     },
@@ -45,6 +46,7 @@
       "matchManagers": ["pip_requirements", "pip-compile", "poetry", "uv"],
       "groupName": "Security scanning tools",
       "labels": ["dependencies", "security"],
+      "minimumReleaseAge": "7 days",
       "automerge": true,
       "automergeType": "branch"
     },
@@ -53,6 +55,7 @@
       "matchPackagePatterns": ["^mcp", "^fastmcp"],
       "groupName": "MCP dependencies",
       "labels": ["dependencies", "core"],
+      "minimumReleaseAge": "7 days",
       "prPriority": 10,
       "automerge": false
     },
@@ -60,6 +63,7 @@
       "description": "Splunk SDK - careful updates",
       "matchPackageNames": ["splunk-sdk"],
       "labels": ["dependencies", "core", "splunk"],
+      "minimumReleaseAge": "7 days",
       "prPriority": 10,
       "automerge": false
     },
@@ -68,6 +72,7 @@
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "labels": ["dependencies", "ci"],
+      "minimumReleaseAge": "7 days",
       "automerge": true,
       "automergeType": "branch"
     },
@@ -76,12 +81,14 @@
       "matchManagers": ["dockerfile"],
       "groupName": "Docker dependencies",
       "labels": ["dependencies", "docker"],
+      "minimumReleaseAge": "7 days",
       "automerge": false
     },
     {
       "description": "Major version updates - require approval",
       "matchUpdateTypes": ["major"],
       "labels": ["dependencies", "breaking-change"],
+      "minimumReleaseAge": "7 days",
       "prPriority": -1,
       "automerge": false,
       "reviewersFromCodeOwners": true
@@ -89,6 +96,7 @@
     {
       "description": "Pin actions by commit SHA",
       "matchManagers": ["github-actions"],
+      "minimumReleaseAge": "7 days",
       "pinDigests": true
     }
   ],
