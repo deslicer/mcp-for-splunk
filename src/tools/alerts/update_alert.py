@@ -99,6 +99,17 @@ class UpdateAlert(AlertContextMixin, BaseTool):
                 )
             mapper = AlertActionSettings()
             parsed_actions = mapper.parse_actions(actions) if actions is not None else None
+            if parsed_actions is not None and not parsed_actions:
+                if actions_mode == "override":
+                    return await self.fail(
+                        ctx,
+                        "actions_mode=override requires a non-empty actions list. "
+                        "Omit actions to leave them unchanged, or use patch with "
+                        "enabled=false to disable one action.",
+                        name=name,
+                        updated=False,
+                    )
+                parsed_actions = None
             unknown = await self.unknown_actions_message(ctx, service, parsed_actions)
             if unknown:
                 return await self.fail(ctx, unknown, name=name, updated=False)

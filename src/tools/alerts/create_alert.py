@@ -1,5 +1,6 @@
 """Create a Splunk alert (scheduled saved search with trigger and actions)."""
 
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from fastmcp import Context
@@ -17,6 +18,15 @@ from src.tools.alerts.alert_tool_context import AlertContextMixin
 from src.tools.search.saved_search_acl import get_saved_search_acl
 
 SharingLevel = Literal["user", "app", "global"]
+
+
+@dataclass(frozen=True)
+class CreatedAlertNamespace:
+    """Result of creating a saved search in a Splunk namespace."""
+
+    app: str
+    owner: str
+    error: str | None = None
 
 
 class CreateAlert(AlertContextMixin, BaseTool):
@@ -148,13 +158,6 @@ class CreateAlert(AlertContextMixin, BaseTool):
         **kwargs: Any,
     ) -> dict[str, Any]:
         name = kwargs["name"]
-        try:
-            if service.saved_searches[name]:
-                return await self.fail(
-                    ctx, f"Alert '{name}' already exists", name=name, created=False
-                )
-        except KeyError:
-            pass
         mapper = AlertActionSettings()
         config = create_alert_config(
             search=kwargs["search"],
@@ -175,9 +178,12 @@ class CreateAlert(AlertContextMixin, BaseTool):
         config.update(action_fields)
         await ctx.info(f"Creating alert '{name}'")
         await self.notify_progress(ctx, 50, 100, f"Submitting alert '{name}'")
-        target_app, create_owner = self._create_in_namespace(
+        created = self._create_in_namespace(
             service, name, config, kwargs["app"], kwargs["sharing"]
         )
+        if created.error:
+            return await self.fail(ctx, created.error, name=name, created=False)
+        target_app, create_owner = created.app, created.owner
         saved_search = find_alert_saved_search(
             service, name, app=target_app, owner=create_owner if kwargs["sharing"] == "user" else None
         )
@@ -217,7 +223,7 @@ class CreateAlert(AlertContextMixin, BaseTool):
         config: dict[str, str],
         app: str | None,
         sharing: SharingLevel,
-    ) -> tuple[str, str]:
+    ) -> CreatedAlertNamespace:
         original_namespace = getattr(service, "namespace", None)
         create_owner = getattr(service, "username", None) or "admin"
         target_app = (app or default_alert_app()).strip()
@@ -225,7 +231,17 @@ class CreateAlert(AlertContextMixin, BaseTool):
             service.namespace = namespace_for_create(
                 app=target_app, owner=create_owner, sharing=sharing
             )
-            service.saved_searches.create(name, **config)
+            try:
+                service.saved_searches[name]
+            except KeyError:
+                # Splunklib raises KeyError when this name is unused in the
+                # create namespace. Continue with create.
+                service.saved_searches.create(name, **config)
+                return CreatedAlertNamespace(app=target_app, owner=create_owner)
+            return CreatedAlertNamespace(
+                app=target_app,
+                owner=create_owner,
+                error=f"Alert '{name}' already exists",
+            )
         finally:
             service.namespace = original_namespace
-        return target_app, create_owner

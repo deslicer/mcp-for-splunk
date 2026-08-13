@@ -40,8 +40,10 @@ class AlertContextMixin:
         try:
             missing = catalog.unknown_actions(service, requested)
         except Exception as exc:
-            await ctx.warning(f"Skipping alert-action catalog validation: {exc}")
-            return None
+            return (
+                f"Could not validate alert actions ({exc}). "
+                "Retry list_alert_actions, or omit actions for a track-only alert."
+            )
         if not missing:
             return None
         available = ", ".join(sorted(catalog.names(service)))
