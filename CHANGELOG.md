@@ -27,6 +27,7 @@
 * Upgrade `pydantic-settings` and `python-multipart` for remaining lockfile CVEs
 * Add 7-day dependency cooldowns (uv `exclude-newer`, Renovate `minimumReleaseAge`, Dependabot `cooldown`)
 * Pin GitHub Actions workflow `uses:` refs to full commit SHAs (mutable-tag hygiene)
+* Raise floors for uvicorn, ruff, mypy, pre-commit, and OpenTelemetry extras (Dependabot lock sweep)
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
