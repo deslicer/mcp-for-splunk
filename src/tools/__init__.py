@@ -41,6 +41,10 @@ __all__ = [
     "ToolDescriptionEnhancer",
     # Alerts tools
     "ListTriggeredAlerts",
+    "ListAlertActions",
+    "CreateAlert",
+    "UpdateAlert",
+    "DeleteAlert",
     # KV Store tools
     "ListKvstoreCollections",
     "GetKvstoreData",
