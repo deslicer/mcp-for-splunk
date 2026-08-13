@@ -34,6 +34,13 @@ on:
         description: "Which package to build (parent | itsi)."
         required: true
         type: string
+    secrets:
+      PYPI_API_TOKEN:
+        description: "Optional PyPI token for mcp-server-for-splunk (OIDC if unset)."
+        required: false
+      PYPI_ITSI_API_TOKEN:
+        description: "Optional PyPI token for mcp-itsi-server (falls back to PYPI_API_TOKEN)."
+        required: false
 
 jobs:
   detect:
