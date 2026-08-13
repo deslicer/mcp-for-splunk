@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.1.2...mcp-itsi-server-v0.1.3) (2026-08-13)
+
+
+### Features
+
+* FastMCP 4 Option C upgrade (phase 0+1) ([#235](https://github.com/deslicer/mcp-for-splunk/issues/235)) ([a9385f0](https://github.com/deslicer/mcp-for-splunk/commit/a9385f0ef4f1fb636ac1917876f8c237c76c9380))
+
 ## [0.1.2](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.1.1...mcp-itsi-server-v0.1.2) (2026-06-02)
 
 
