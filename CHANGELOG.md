@@ -31,6 +31,36 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.6.9](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.8...v0.6.9) (2026-08-13)
+
+
+### Features
+
+* advertise HTTP session mode for client discovery ([#257](https://github.com/deslicer/mcp-for-splunk/issues/257)) ([c19defa](https://github.com/deslicer/mcp-for-splunk/commit/c19defa0a7e8d2b54b70b698f6a316f1129b2eda))
+* FastMCP 4 Option C upgrade (phase 0+1) ([#235](https://github.com/deslicer/mcp-for-splunk/issues/235)) ([a9385f0](https://github.com/deslicer/mcp-for-splunk/commit/a9385f0ef4f1fb636ac1917876f8c237c76c9380))
+
+
+### Bug Fixes
+
+* **auth:** ignore DAI local-db bearer when MCP auth disabled ([#218](https://github.com/deslicer/mcp-for-splunk/issues/218)) ([81c8180](https://github.com/deslicer/mcp-for-splunk/commit/81c8180a5a7854807592a76c6c563ae8e51e212a))
+* clear remaining [#233](https://github.com/deslicer/mcp-for-splunk/issues/233) secrets/curl/TLS hygiene ([#255](https://github.com/deslicer/mcp-for-splunk/issues/255)) ([147d6bf](https://github.com/deslicer/mcp-for-splunk/commit/147d6bf3e02d7a0bce8a1aa742b42e8296359b8e))
+* default ITSI Splunk TLS verification to true ([#240](https://github.com/deslicer/mcp-for-splunk/issues/240)) ([8882bba](https://github.com/deslicer/mcp-for-splunk/commit/8882bba9eb7a8e53302ac12589e1187873c33c3f))
+* read entity ACL from .access record — content['eai:acl'] is always empty on live services ([#229](https://github.com/deslicer/mcp-for-splunk/issues/229)) ([7b02a8c](https://github.com/deslicer/mcp-for-splunk/commit/7b02a8c4337fe453c67d4afca3489008d1ab25d0))
+
+
+### Dependencies
+
+* **deps-dev:** update opentelemetry-instrumentation-httpx requirement ([#207](https://github.com/deslicer/mcp-for-splunk/issues/207)) ([52be36f](https://github.com/deslicer/mcp-for-splunk/commit/52be36f6110609d5a3872e86d3aae97c542c53dc))
+* **deps-dev:** update opentelemetry-sdk requirement ([#208](https://github.com/deslicer/mcp-for-splunk/issues/208)) ([6462ac8](https://github.com/deslicer/mcp-for-splunk/commit/6462ac843213c5449f3410af147d5c2fb947278a))
+* **deps-dev:** update ruff requirement from &gt;=0.15.18 to &gt;=0.15.19 ([#210](https://github.com/deslicer/mcp-for-splunk/issues/210)) ([28bb1ae](https://github.com/deslicer/mcp-for-splunk/commit/28bb1ae736679a1401ecd6acbaa8143452d2d15b))
+* **deps:** update griffe requirement from &gt;=1.15.0 to &gt;=2.1.0 ([#213](https://github.com/deslicer/mcp-for-splunk/issues/213)) ([2890f23](https://github.com/deslicer/mcp-for-splunk/commit/2890f2375c2fd4c72e6e850192dbd098886da4a6))
+* **deps:** update openai-agents requirement from &gt;=0.17.6 to &gt;=0.17.7 ([#216](https://github.com/deslicer/mcp-for-splunk/issues/216)) ([9618249](https://github.com/deslicer/mcp-for-splunk/commit/96182496ecd6bbb2470597c508da35321072f7c3))
+
+
+### Documentation
+
+* add AGENTS.md and llms.txt for AI agents ([#241](https://github.com/deslicer/mcp-for-splunk/issues/241)) ([cda892b](https://github.com/deslicer/mcp-for-splunk/commit/cda892bdc40132a6a4f664f29adc2f0ad68f85e3))
+
 ## [0.6.8](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.7...v0.6.8) (2026-06-24)
 
 
