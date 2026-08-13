@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -21,7 +23,7 @@ class HttpSessionModeHeaderMiddleware(BaseHTTPMiddleware):
         self._advertiser = advertiser or HttpSessionModeAdvertiser.from_env()
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        response = await call_next(request)
+        response = cast(Response, await call_next(request))
         for header_name, header_value in self._advertiser.as_response_headers().items():
             response.headers[header_name] = header_value
         return response

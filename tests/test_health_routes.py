@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastmcp import FastMCP
 from starlette.testclient import TestClient
 
+from src.core.http_session_mode import HttpSessionModeAdvertiser
 from src.routes.health import setup_health_routes
 
 
@@ -86,3 +87,23 @@ def test_health_api_advertises_session_mode_when_stateless_disabled(monkeypatch)
     assert body["http"]["session_mode"] == "session"
     assert body["http"]["stateless"] is False
     assert resp.headers.get("X-MCP-Session-Mode") == "session"
+
+
+def test_health_api_uses_injected_advertiser_not_live_env(monkeypatch):
+    monkeypatch.setenv("MCP_STATELESS_HTTP", "true")
+    mcp = FastMCP(name="HealthTestInjectedAdvertiser")
+    advertiser = HttpSessionModeAdvertiser(
+        version="9.9.9-test",
+        stateless_http=False,
+        json_response=True,
+    )
+    setup_health_routes(mcp, advertiser=advertiser)
+    client = TestClient(mcp.http_app())
+    resp = client.get("/health")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["http"]["session_mode"] == "session"
+    assert body["server"]["version"] == "9.9.9-test"
+    assert resp.headers.get("X-MCP-Session-Mode") == "session"
+    assert resp.headers.get("X-MCP-Server-Version") == "9.9.9-test"

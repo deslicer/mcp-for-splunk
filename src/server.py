@@ -613,7 +613,7 @@ mcp = FastMCP(
 )
 
 # Import and setup health routes
-setup_health_routes(mcp)
+setup_health_routes(mcp, advertiser=HTTP_SESSION_MODE)
 
 # NOTE: Plugins are loaded once after the Starlette app is created so plugins can
 # register both MCP-level and HTTP-level integrations in a single call.
@@ -936,7 +936,6 @@ def health_check_resource() -> str:
 @mcp.resource("info://server")
 def server_info() -> str:
     """Server information and capabilities"""
-    advertiser = HttpSessionModeAdvertiser.from_env()
     payload = {
         "name": "MCP Server for Splunk",
         "transport": "http",
@@ -944,7 +943,7 @@ def server_info() -> str:
         "description": "Modular MCP Server providing Splunk integration",
         "status": "running",
     }
-    payload.update(advertiser.as_server_info_fields())
+    payload.update(HTTP_SESSION_MODE.as_server_info_fields())
     return json.dumps(payload)
 
 

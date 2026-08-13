@@ -85,15 +85,22 @@ def get_splunk_status(mcp_server: FastMCP) -> tuple[str, str, str]:
     return splunk_status, splunk_server_name, splunk_version
 
 
-def setup_health_routes(mcp: FastMCP):
-    """Setup health routes for the MCP server"""
+def setup_health_routes(
+    mcp: FastMCP,
+    advertiser: HttpSessionModeAdvertiser | None = None,
+) -> None:
+    """Setup health routes for the MCP server.
+
+    ``advertiser`` should be the process snapshot used for Streamable HTTP
+    so ``/health`` cannot drift from runtime ``MCP_STATELESS_HTTP``.
+    """
+    http_mode = advertiser or HttpSessionModeAdvertiser.from_env()
 
     @mcp.custom_route("/", methods=["GET"])
     async def health_page(request: Request) -> HTMLResponse:
         """Server health page at root URL with real server data"""
         try:
-            # Get real version from pyproject.toml
-            version = get_version()
+            version = http_mode.version
 
             # Get component counts from stored results
             tools_count, resources_count, prompts_count = get_component_counts(mcp)
@@ -174,8 +181,7 @@ def setup_health_routes(mcp: FastMCP):
     async def health_api(request: Request) -> JSONResponse:
         """API endpoint for health checks with real data"""
         try:
-            # Get real version from pyproject.toml
-            version = get_version()
+            version = http_mode.version
 
             # Get component counts from stored results
             tools_count, resources_count, prompts_count = get_component_counts(mcp)
@@ -242,9 +248,8 @@ def setup_health_routes(mcp: FastMCP):
                 {"splunk"} | {p["name"] for p in loaded_plugins if "name" in p}
             )
 
-            advertiser = HttpSessionModeAdvertiser.from_env()
-            http_block = advertiser.as_health_http_block()
-            server_info_data["session_mode"] = advertiser.session_mode
+            http_block = http_mode.as_health_http_block()
+            server_info_data["session_mode"] = http_mode.session_mode
 
             return JSONResponse(
                 {
@@ -257,13 +262,12 @@ def setup_health_routes(mcp: FastMCP):
                     "available_toolsets": available_toolsets,
                     "timestamp": time.time(),
                 },
-                headers=advertiser.as_response_headers(),
+                headers=http_mode.as_response_headers(),
             )
         except Exception as e:
             logger.error(f"Error in health_api: {e}")
-            advertiser = HttpSessionModeAdvertiser.from_env()
             return JSONResponse(
                 {"status": "error", "error": str(e), "timestamp": time.time()},
                 status_code=500,
-                headers=advertiser.as_response_headers(),
+                headers=http_mode.as_response_headers(),
             )
