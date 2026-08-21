@@ -64,13 +64,13 @@ class TestSplunkSpecReferenceResource:
 
         # Test latest version
         minor, full = resource._parse_version_components("latest")
-        assert minor == "10.0"
-        assert full == "10.0.0"
+        assert minor == "10.2"
+        assert full == "10.2.0"
 
         # Test auto version
         minor, full = resource._parse_version_components("auto")
-        assert minor == "10.0"
-        assert full == "10.0.0"
+        assert minor == "10.2"
+        assert full == "10.2.0"
 
         # Test 9.4.0
         minor, full = resource._parse_version_components("9.4.0")
@@ -123,7 +123,7 @@ This is the documentation for alert_actions.conf.
                 mock_fetch.assert_called_once()
                 called_url = mock_fetch.call_args[0][0]
                 assert "/en/splunk-enterprise/administer/admin-manual/10.0/" in called_url
-                assert "10.0.0-configuration-file-reference" in called_url
+                assert "10.0.2-configuration-file-reference" in called_url
                 assert "alert_actions.conf" in called_url
 
     @pytest.mark.asyncio
@@ -145,7 +145,7 @@ This is the documentation for alert_actions.conf.
 
                 called_url = mock_fetch.call_args[0][0]
                 assert "/admin-manual/10.0/" in called_url
-                assert "10.0.0-configuration-file-reference" in called_url
+                assert "10.0.2-configuration-file-reference" in called_url
                 assert called_url.endswith("/props.conf")
                 mock_version.assert_not_called()
 
@@ -192,8 +192,7 @@ This is the documentation for alert_actions.conf.
             mock_version.return_value = "10.0"
 
             with patch.object(resource, "fetch_doc_content", new_callable=AsyncMock) as mock_fetch:
-                # Both calls return 404
-                mock_fetch.side_effect = [not_found_response, not_found_response]
+                mock_fetch.return_value = not_found_response
 
                 mock_ctx = AsyncMock()
                 content = await resource.get_content(mock_ctx)
@@ -202,7 +201,7 @@ This is the documentation for alert_actions.conf.
                 assert "# Configuration Spec Not Found" in content
                 assert "nonexistent.conf" in content
                 assert "Attempted URLs" in content
-                assert mock_fetch.call_count == 2
+                assert mock_fetch.call_count >= 2
 
     def test_url_construction_versions(self):
         """Test URL construction for different version formats."""

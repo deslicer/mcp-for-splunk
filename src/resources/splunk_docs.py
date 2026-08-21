@@ -5,65 +5,37 @@ Provides version-aware access to Splunk documentation, optimized for LLM consump
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 
 from fastmcp import Context
 
-try:
-    import httpx
-
-    HAS_HTTPX = True
-except ImportError:
-    HAS_HTTPX = False
-
 from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
+from src.resources.admin_topics import (
+    ADMIN_TOPICS,
+    build_admin_url,
+    build_admin_urls,
+    list_admin_topics,
+)
+from src.resources.docs_http import (
+    HAS_HTTPX,
+    DocumentationCache,
+    fetch_docs_url,
+    is_error_doc_content,
+)
+from src.resources.docs_versions import (
+    DEFAULT_DOC_VERSION,
+    SUPPORTED_DOC_VERSIONS,
+    build_spec_urls,
+    build_spl_urls,
+    build_troubleshooting_urls,
+    parse_requested_version,
+    version_mapping,
+)
 
 from .processors.html_processor import SplunkDocsProcessor
 
 logger = logging.getLogger(__name__)
-
-
-class DocumentationCache:
-    """Version-aware caching for Splunk documentation."""
-
-    def __init__(self, ttl_hours: int = 24):
-        self.cache: dict[str, dict[str, Any]] = {}
-        self.ttl_hours = ttl_hours
-
-    def cache_key(self, version: str, category: str, topic: str) -> str:
-        """Generate cache key for documentation."""
-        return f"docs_{version}_{category}_{topic}"
-
-    def is_expired(self, timestamp: datetime) -> bool:
-        """Check if cached item is expired."""
-        return datetime.now() - timestamp > timedelta(hours=self.ttl_hours)
-
-    async def get_or_fetch(self, version: str, category: str, topic: str, fetch_func) -> str:
-        """Get from cache or fetch if expired/missing."""
-        key = self.cache_key(version, category, topic)
-
-        if key in self.cache:
-            cached_item = self.cache[key]
-            if not self.is_expired(cached_item["timestamp"]):
-                logger.debug(f"Cache hit for {key}")
-                return cached_item["content"]
-
-        # Fetch fresh content
-        logger.debug(f"Cache miss for {key}, fetching")
-        content = await fetch_func()
-        self.cache[key] = {"content": content, "timestamp": datetime.now(), "version": version}
-
-        return content
-
-    def invalidate_version(self, version: str):
-        """Invalidate all cached docs for a specific version."""
-        keys_to_remove = [k for k in self.cache.keys() if k.startswith(f"docs_{version}_")]
-        for key in keys_to_remove:
-            del self.cache[key]
-        logger.info(f"Invalidated {len(keys_to_remove)} cache entries for version {version}")
-
 
 # Global documentation cache
 _doc_cache = DocumentationCache()
@@ -74,14 +46,7 @@ class SplunkDocsResource(BaseResource):
 
     # SPLUNK_DOCS_BASE = "https://docs.splunk.com"
     SPLUNK_HELP_BASE = "https://help.splunk.com"
-    VERSION_MAPPING = {
-        "10.0.0": "10.0",
-        "9.4.0": "9.4",
-        "9.3.0": "9.3",
-        "9.2.1": "9.2",
-        "9.1.0": "9.1",
-        "latest": "10.0",  # Current latest
-    }
+    VERSION_MAPPING = version_mapping()
 
     def __init__(self, uri: str, name: str, description: str, mime_type: str = "text/markdown"):
         super().__init__(uri, name, description, mime_type)
@@ -106,21 +71,22 @@ class SplunkDocsResource(BaseResource):
         return "latest"
 
     def normalize_version(self, version: str) -> str:
-        """Convert version to docs URL format."""
-        # Handle auto-detection
-        if version == "auto":
-            version = "latest"
+        """Convert version to major.minor docs format."""
+        return parse_requested_version(version)
 
-        # Extract major.minor from full version if needed
-        if version not in self.VERSION_MAPPING:
-            # Try to match major.minor (e.g., "9.3.1" -> "9.3.0")
-            parts = version.split(".")
-            if len(parts) >= 2:
-                major_minor = f"{parts[0]}.{parts[1]}.0"
-                if major_minor in self.VERSION_MAPPING:
-                    version = major_minor
-
-        return self.VERSION_MAPPING.get(version, self.VERSION_MAPPING["latest"])
+    async def fetch_first_doc(self, urls: list[str]) -> tuple[str, str]:
+        """Fetch the first live documentation URL and process its HTML."""
+        if not urls:
+            return await self.fetch_doc_content(""), ""
+        last_content = ""
+        last_url = urls[0]
+        for url in urls:
+            content = await self.fetch_doc_content(url)
+            last_content = content
+            last_url = url
+            if not is_error_doc_content(content):
+                return content, url
+        return last_content, last_url
 
     def format_version_for_help_url(self, version: str) -> str:
         """Convert version to help URL format.
@@ -146,27 +112,13 @@ pip install httpx
 **Time**: {datetime.now().isoformat()}
 """
 
-        try:
-            # Headers to bypass browser detection on help.splunk.com
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
+        result = await fetch_docs_url(url)
+        if result.ok:
+            logger.debug("Successfully fetched documentation from %s", result.final_url)
+            return self.processor.process_html(result.text, result.final_url)
 
-            async with httpx.AsyncClient(
-                timeout=30.0, headers=headers, follow_redirects=True
-            ) as client:
-                logger.debug(f"Fetching documentation from: {url}")
-                response = await client.get(url)
-                response.raise_for_status()
-
-                # Process HTML to LLM-friendly format
-                content = self.processor.process_html(response.text, url)
-                logger.debug(f"Successfully processed documentation from {url}")
-                return content
-
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return f"""# Documentation Not Found
+        if result.status_code == 404:
+            return f"""# Documentation Not Found
 
 The requested Splunk documentation was not found at this URL.
 
@@ -181,27 +133,15 @@ This may indicate:
 
 Please check the [Splunk Documentation](https://help.splunk.com) for the correct location.
 """
-            else:
-                return f"""# Documentation Error
+
+        return f"""# Documentation Error
 
 Failed to fetch documentation due to HTTP error.
 
 **URL**: {url}
-**Status**: {e.response.status_code}
-**Error**: {str(e)}
+**Status**: {result.status_code or "unavailable"}
+**Error**: {result.error or "request failed"}
 **Time**: {datetime.now().isoformat()}
-"""
-        except Exception as e:
-            logger.error(f"Error fetching documentation from {url}: {e}")
-            return f"""# Documentation Error
-
-Failed to fetch documentation due to an error.
-
-**URL**: {url}
-**Error**: {str(e)}
-**Time**: {datetime.now().isoformat()}
-
-Please check your internet connection and try again.
 """
 
 
@@ -337,11 +277,10 @@ class TroubleshootingResource(SplunkDocsResource):
 
         async def fetch_troubleshooting_docs():
             topic_info = self.TROUBLESHOOTING_TOPICS[self.topic]
-            help_version = self.format_version_for_help_url(self.version)
-
-            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/troubleshoot/{help_version}/{topic_info['url_path']}"
-
-            content = await self.fetch_doc_content(url)
+            urls = build_troubleshooting_urls(topic_info["url_path"], self.version)
+            content, url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
 
             result = f"""# Splunk Troubleshooting: {topic_info["title"]}
 
@@ -467,12 +406,10 @@ class SPLCommandResource(SplunkDocsResource):
         """Get documentation for specific SPL command."""
 
         async def fetch_command_docs():
-            norm_version = self.normalize_version(self.version)
-            # help.splunk.com uses lowercase command names and different URL structure
-            command_lower = self.command.lower()
-            url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/search/spl-search-reference/{norm_version}/search-commands/{command_lower}"
-
-            content = await self.fetch_doc_content(url)
+            urls = build_spl_urls(self.command, self.version)
+            content, url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
 
             # Add SPL-specific context
             return f"""# SPL Command: {self.command}
@@ -503,12 +440,7 @@ For more SPL commands, see the complete [SPL Reference](splunk-docs://{self.vers
 class AdminGuideResource(SplunkDocsResource):
     """Splunk administration documentation."""
 
-    TOPIC_PATHS = {
-        "indexes": (
-            "en/data-management/manage-splunk-enterprise-indexers/{version}/"
-            "manage-indexes/about-managing-indexes"
-        ),
-    }
+    TOPIC_PATHS = {key: info["path"] for key, info in ADMIN_TOPICS.items()}
 
     METADATA = ResourceMetadata(
         uri="splunk-docs://{version}/admin/{topic}",
@@ -535,14 +467,18 @@ class AdminGuideResource(SplunkDocsResource):
 
         async def fetch_admin_docs():
             help_version = self.format_version_for_help_url(self.version)
-            topic_url = self._build_topic_url(help_version)
+            urls = build_admin_urls(self.topic, self.version)
+            if not urls:
+                return self._unknown_topic_catalog(help_version)
 
-            content = await self.fetch_doc_content(topic_url)
-
+            content, topic_url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
             return f"""# Splunk Administration: {self.topic}
 
 **Version**: Splunk {self.version}
 **Category**: Administration Guide
+**Source URL**: {topic_url}
 
 {content}
 
@@ -550,20 +486,29 @@ class AdminGuideResource(SplunkDocsResource):
 
 This documentation covers administrative aspects of Splunk deployment and configuration.
 
-For related administration topics, see the complete [Admin Guide](splunk-docs://{self.version}/admin).
+For related administration topics, see `list_admin_topics`.
 """
 
         return await _doc_cache.get_or_fetch(self.version, "admin", self.topic, fetch_admin_docs)
 
-    def _build_topic_url(self, help_version: str) -> str:
-        """Build the current Splunk Help URL for an admin topic."""
-        topic_key = self.topic.replace("_", "-").lower()
-        topic_path = self.TOPIC_PATHS.get(topic_key)
+    def _build_topic_url(self, help_version: str) -> str | None:
+        """Build a verified Splunk Help URL, or None if the topic is not catalogued."""
+        return build_admin_url(self.topic, help_version)
 
-        if topic_path:
-            return f"{self.SPLUNK_HELP_BASE}/{topic_path.format(version=help_version)}"
-
-        return f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/{topic_key}"
+    def _unknown_topic_catalog(self, help_version: str) -> str:
+        """Return a stable catalog instead of guessing a 404 URL."""
+        lines = [
+            f"# Administration Topic Not Catalogued: {self.topic}",
+            "",
+            f"No verified help.splunk.com path exists for `{self.topic}` ",
+            f"on Splunk {help_version}. Use one of these live topics instead:",
+            "",
+        ]
+        for row in list_admin_topics():
+            lines.append(f"- `{row['topic']}` — {row['description']}")
+        lines.append("")
+        lines.append("Call `list_admin_topics` or `get_admin_guide(\"<topic>\")`.")
+        return "\n".join(lines)
 
 
 class SplunkSpecReferenceResource(SplunkDocsResource):
@@ -678,29 +623,12 @@ class SplunkSpecReferenceResource(SplunkDocsResource):
             # Version already detected above
             minor, full = self._parse_version_components(version)
             config = self._normalize_config_name(self.config)
+            urls = build_spec_urls(config, version)
+            content, used_url = await self.fetch_first_doc(urls)
 
-            # Primary URL pattern (most common)
-            primary_url = f"{self.SPLUNK_HELP_BASE}/en/splunk-enterprise/administer/admin-manual/{minor}/configuration-file-reference/{full}-configuration-file-reference/{config}"
-
-            # Fallback URL pattern (alternative IA structure)
-            fallback_url = f"{self.SPLUNK_HELP_BASE}/en/data-management/splunk-enterprise-admin-manual/{minor}/configuration-file-reference/{full}-configuration-file-reference/{config}"
-
-            # Try primary URL first
-            content = await self.fetch_doc_content(primary_url)
-            used_url = primary_url
-
-            # If primary fails with 404, try fallback
-            if content.startswith("# Documentation Not Found"):
-                logger.debug("Primary URL failed for %s, trying fallback: %s", config, fallback_url)
-                fallback_content = await self.fetch_doc_content(fallback_url)
-
-                # Use fallback if it succeeds
-                if not fallback_content.startswith("# Documentation Not Found"):
-                    content = fallback_content
-                    used_url = fallback_url
-                else:
-                    # Both failed - provide helpful error
-                    return f"""# Configuration Spec Not Found
+            if is_error_doc_content(content):
+                attempted = "\n".join(f"{i}. {url}" for i, url in enumerate(urls, start=1))
+                return f"""# Configuration Spec Not Found
 
 The requested Splunk configuration specification was not found.
 
@@ -709,8 +637,7 @@ The requested Splunk configuration specification was not found.
 **Time**: {datetime.now().isoformat()}
 
 **Attempted URLs**:
-1. Primary: {primary_url}
-2. Fallback: {fallback_url}
+{attempted}
 
 This may indicate:
 - The configuration file name is incorrect or has a typo
@@ -834,24 +761,7 @@ class DocumentationDiscoveryResource(SplunkDocsResource):
             "kvform",
         ]
 
-        # Common admin topics
-        admin_topics = [
-            "indexes",
-            "authentication",
-            "deployment",
-            "apps",
-            "users",
-            "roles",
-            "monitoring",
-            "performance",
-            "clustering",
-            "distributed-search",
-            "forwarders",
-            "inputs",
-            "outputs",
-            "licensing",
-            "security",
-        ]
+        admin_topics = [row["topic"] for row in list_admin_topics()]
 
         # All available troubleshooting topics
         troubleshooting_topics = list(TroubleshootingResource.TROUBLESHOOTING_TOPICS.keys())
@@ -955,8 +865,8 @@ Access configuration file specifications:
 
 ## Version Support
 
-**Supported Versions**: 9.1.0, 9.2.1, 9.3.0, 9.4.0, 10.0.0, latest
-**Default Version**: latest (currently 10.0.0)
+**Supported Versions**: {", ".join(SUPPORTED_DOC_VERSIONS)}, latest
+**Default Version**: latest (currently {DEFAULT_DOC_VERSION})
 **Auto-Detection**: Version automatically detected from your connected Splunk instance
 
 ### Examples

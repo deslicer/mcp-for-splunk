@@ -9,15 +9,9 @@ from datetime import datetime
 
 from fastmcp import Context
 
-try:
-    import httpx
-
-    HAS_HTTPX = True
-except ImportError:
-    HAS_HTTPX = False
-
 from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
+from src.resources.docs_http import HAS_HTTPX, fetch_docs_url, is_error_doc_content
 
 from .processors.html_processor import SplunkDocsProcessor
 from .splunk_docs import _doc_cache
@@ -55,6 +49,7 @@ class SplunkCIMResource(BaseResource):
             "use_case": "Use for application availability monitoring (deprecated in 6.0+)",
             "tags": ["application", "state"],
             "deprecated": True,
+            "live": False,
         },
         "authentication": {
             "name": "Authentication",
@@ -87,6 +82,7 @@ class SplunkCIMResource(BaseResource):
             "use_case": "Use for change tracking (deprecated in 6.0+)",
             "tags": ["change"],
             "deprecated": True,
+            "live": False,
         },
         "data-access": {
             "name": "Data Access",
@@ -108,7 +104,6 @@ class SplunkCIMResource(BaseResource):
             "name": "Data Loss Prevention",
             "description": "DLP incidents and policy violations",
             "url_slug": "data-loss-prevention",
-            "url_slug_alt": "dlp",
             "use_case": "Use for data leakage events, policy violations, sensitive data alerts",
             "tags": ["dlp"],
             "deprecated": False,
@@ -165,7 +160,6 @@ class SplunkCIMResource(BaseResource):
             "name": "Java Virtual Machines",
             "description": "JVM performance and operational metrics",
             "url_slug": "java-virtual-machines-jvm",
-            "url_slug_alt": "jvm",
             "use_case": "Use for JVM monitoring, garbage collection, thread metrics",
             "tags": ["jvm"],
             "deprecated": False,
@@ -182,7 +176,6 @@ class SplunkCIMResource(BaseResource):
             "name": "Network Resolution (DNS)",
             "description": "DNS queries and resolution events",
             "url_slug": "network-resolution-dns",
-            "url_slug_alt": "network-resolution",
             "use_case": "Use for DNS query logs, resolution failures, DHCP events",
             "tags": ["dns", "network", "resolution"],
             "deprecated": False,
@@ -215,7 +208,6 @@ class SplunkCIMResource(BaseResource):
             "name": "Splunk Audit Logs",
             "description": "Splunk internal audit events",
             "url_slug": "splunk-audit-logs",
-            "url_slug_alt": "splunk-audit",
             "use_case": "Use for Splunk configuration changes, user actions, system events",
             "tags": ["audit"],
             "deprecated": False,
@@ -294,25 +286,13 @@ pip install httpx
 **Time**: {datetime.now().isoformat()}
 """
 
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
+        result = await fetch_docs_url(url)
+        if result.ok:
+            logger.debug("Successfully processed CIM documentation from %s", result.final_url)
+            return self.processor.process_html(result.text, result.final_url)
 
-            async with httpx.AsyncClient(
-                timeout=30.0, headers=headers, follow_redirects=True
-            ) as client:
-                logger.debug("Fetching CIM documentation from: %s", url)
-                response = await client.get(url)
-                response.raise_for_status()
-
-                content = self.processor.process_html(response.text, url)
-                logger.debug("Successfully processed CIM documentation from %s", url)
-                return content
-
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return f"""# CIM Documentation Not Found
+        if result.status_code == 404:
+            return f"""# CIM Documentation Not Found
 
 The requested CIM data model documentation was not found.
 
@@ -329,27 +309,15 @@ Available data models: {", ".join(self.CIM_DATA_MODELS.keys())}
 
 Please check the [CIM Discovery Resource](splunk-cim://discovery) for available models.
 """
-            else:
-                return f"""# CIM Documentation Error
+
+        return f"""# CIM Documentation Error
 
 Failed to fetch CIM documentation due to HTTP error.
 
 **URL**: {url}
-**Status**: {e.response.status_code}
-**Error**: {str(e)}
+**Status**: {result.status_code or "unavailable"}
+**Error**: {result.error or "request failed"}
 **Time**: {datetime.now().isoformat()}
-"""
-        except Exception as e:
-            logger.error("Error fetching CIM documentation from %s: %s", url, str(e))
-            return f"""# CIM Documentation Error
-
-Failed to fetch CIM documentation due to an error.
-
-**URL**: {url}
-**Error**: {str(e)}
-**Time**: {datetime.now().isoformat()}
-
-Please check your internet connection and try again.
 """
 
 
@@ -699,17 +667,30 @@ class CIMDataModelResource(SplunkCIMResource):
             model_info = self.CIM_DATA_MODELS[self.model]
             norm_version = self.normalize_cim_version(self.version)
 
-            # Try primary URL slug first
-            url_slug = model_info["url_slug"]
-            url = self.format_cim_url(norm_version, url_slug)
-            content = await self.fetch_cim_content(url)
-
-            # If primary fails and there's an alternative slug, try it
-            if content.startswith("# CIM Documentation Not Found") and "url_slug_alt" in model_info:
-                alt_slug = model_info["url_slug_alt"]
-                logger.debug("Trying alternative URL slug: %s", alt_slug)
-                url = self.format_cim_url(norm_version, alt_slug)
+            if model_info.get("live", True) is False:
+                content = (
+                    f"# CIM Data Model Offline: {model_info['name']}\n\n"
+                    f"This model is deprecated and has no live help.splunk.com page "
+                    f"in CIM {norm_version}. Use an active model from "
+                    f"`list_cim_data_models` instead.\n"
+                )
+                url = self.format_cim_url(norm_version, model_info["url_slug"])
+            else:
+                url_slug = model_info["url_slug"]
+                url = self.format_cim_url(norm_version, url_slug)
                 content = await self.fetch_cim_content(url)
+
+                if (
+                    content.startswith("# CIM Documentation Not Found")
+                    and "url_slug_alt" in model_info
+                ):
+                    alt_slug = model_info["url_slug_alt"]
+                    logger.debug("Trying alternative URL slug: %s", alt_slug)
+                    url = self.format_cim_url(norm_version, alt_slug)
+                    content = await self.fetch_cim_content(url)
+
+            if is_error_doc_content(content):
+                return content
 
             # Build comprehensive documentation
             deprecation_notice = ""

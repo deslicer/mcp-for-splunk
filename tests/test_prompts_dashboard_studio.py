@@ -79,7 +79,11 @@ class TestDashboardStudioPrompts:
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for resource references
-        resource_refs = ["dashboard-studio://cheatsheet", "dashboard-studio://links", "cheatsheet"]
+        resource_refs = [
+            "dashboard-studio://cheatsheet",
+            "dashboard-studio://definition",
+            "cheatsheet",
+        ]
 
         matches = sum(1 for ref in resource_refs if ref in content)
         assert matches >= 1, "Builder prompt should reference Dashboard Studio resources"

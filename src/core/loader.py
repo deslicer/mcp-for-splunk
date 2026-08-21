@@ -554,7 +554,7 @@ Try using the discovery resource: `splunk-cim://discovery`
                 "dashboard-studio://{topic}", name="get_dashboard_studio_docs"
             )
             async def get_dashboard_studio_docs(topic: str) -> str:
-                """Get Dashboard Studio documentation for specific topic"""
+                """Get Dashboard Studio documentation for a topic (default 10.2)."""
                 try:
                     from ..resources.dashboard_studio_docs import create_dashboard_studio_resource
 
@@ -587,6 +587,27 @@ Available topics:
 
 **Example**: `dashboard-studio://cheatsheet`
 """
+
+            @self.mcp_server.resource(
+                "dashboard-studio://{version}/{topic}",
+                name="get_dashboard_studio_docs_versioned",
+            )
+            async def get_dashboard_studio_docs_versioned(version: str, topic: str) -> str:
+                """Get Dashboard Studio documentation for a specific Splunk version."""
+                try:
+                    from ..resources.dashboard_studio_docs import create_dashboard_studio_resource
+
+                    ctx = get_context()
+                    resource = create_dashboard_studio_resource(topic, version=version)
+                    return await resource.get_content(ctx)
+                except Exception as e:
+                    self.logger.error(
+                        f"Error getting Dashboard Studio docs for {topic} ({version}): {e}"
+                    )
+                    return (
+                        f"# Error: Dashboard Studio Documentation\n\n"
+                        f"Failed to retrieve `{topic}` for version `{version}`: {e}\n"
+                    )
 
             self.logger.info("✅ Dashboard Studio handler registered successfully")
 
@@ -627,6 +648,7 @@ Available topics:
                         "splunk-spec://{version}/{config}",
                         "splunk-cim://{version}/{model}",
                         "dashboard-studio://{topic}",
+                        "dashboard-studio://{version}/{topic}",
                     ]
                 ):
                     self.logger.debug(
@@ -695,7 +717,7 @@ Available topics:
         @self.mcp_server.resource(
             "dashboard-studio://{topic}",
             name="dashboard_studio_docs",
-            description="Dashboard Studio documentation (9.4) with multiple topics",
+            description="Dashboard Studio documentation (default 10.2) with multiple topics",
         )
         async def get_dashboard_studio_resource(
             topic: str,
