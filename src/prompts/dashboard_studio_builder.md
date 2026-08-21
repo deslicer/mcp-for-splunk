@@ -215,8 +215,8 @@ Before outputting, verify:
 
 ## Resources
 
-- **Cheatsheet**: `dashboard-studio://cheatsheet` (quick reference)
-- **Links**: `dashboard-studio://links` (canonical documentation URLs)
+- **Cheatsheet**: `dashboard-studio://cheatsheet` (bundled, always available)
+- **Definition**: `dashboard-studio://definition` (live Splunk Help schema)
 - **Tool**: Use `create_dashboard` with `dashboard_type="studio"` and this JSON as `definition`
 
 ---

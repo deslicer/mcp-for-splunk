@@ -13,11 +13,16 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.utils import log_tool_execution
+from src.resources.admin_topics import list_admin_topics
 from src.resources.dashboard_studio_content import DashboardStudioContentError
 from src.resources.dashboard_studio_docs import (
     DASHBOARD_STUDIO_TOPICS,
     DashboardStudioDiscoveryResource,
     DashboardStudioDocsResource,
+)
+from src.resources.docs_versions import (
+    DEFAULT_STUDIO_VERSION,
+    SUPPORTED_DOC_VERSIONS,
 )
 from src.resources.splunk_cim import (
     CIMDataModelResource,
@@ -32,6 +37,7 @@ from src.resources.splunk_docs import (
     SplunkSpecReferenceResource,
     TroubleshootingResource,
 )
+from src.resources.studio_topics import parse_studio_ref
 
 logger = logging.getLogger(__name__)
 
@@ -107,24 +113,7 @@ class ListAvailableTopics(BaseTool):
                     }
                 )
 
-            # Get admin topics
-            admin_topics = [
-                {"topic": "indexes", "description": "Index management and configuration"},
-                {"topic": "authentication", "description": "Authentication and user management"},
-                {"topic": "deployment", "description": "Deployment and installation guides"},
-                {"topic": "apps", "description": "Application management and configuration"},
-                {"topic": "users", "description": "User and role management"},
-                {"topic": "roles", "description": "Role-based access control"},
-                {"topic": "monitoring", "description": "System monitoring and health checks"},
-                {"topic": "performance", "description": "Performance tuning and optimization"},
-                {"topic": "clustering", "description": "Clustering and high availability"},
-                {"topic": "distributed-search", "description": "Distributed search configuration"},
-                {"topic": "forwarders", "description": "Universal and heavy forwarder setup"},
-                {"topic": "inputs", "description": "Data input configuration"},
-                {"topic": "outputs", "description": "Data output configuration"},
-                {"topic": "licensing", "description": "License management"},
-                {"topic": "security", "description": "Security configuration and best practices"},
-            ]
+            admin_topics = list_admin_topics()
 
             # Get common SPL commands
             spl_commands = [
@@ -181,7 +170,7 @@ class ListAvailableTopics(BaseTool):
 
             # Version information
             version_info = {
-                "supported_versions": ["9.4", "9.3", "9.2", "9.1", "9.0", "8.2", "latest"],
+                "supported_versions": [*SUPPORTED_DOC_VERSIONS, "latest"],
                 "default_version": "latest",
                 "auto_detection": "Available when connected to Splunk instance",
             }
@@ -448,23 +437,7 @@ class ListAdminTopics(BaseTool):
         log_tool_execution(self.name)
 
         try:
-            topics = [
-                {"topic": "indexes", "description": "Index management and configuration"},
-                {"topic": "authentication", "description": "Authentication and user management"},
-                {"topic": "deployment", "description": "Deployment and installation guides"},
-                {"topic": "apps", "description": "Application management and configuration"},
-                {"topic": "users", "description": "User and role management"},
-                {"topic": "roles", "description": "Role-based access control"},
-                {"topic": "monitoring", "description": "System monitoring and health checks"},
-                {"topic": "performance", "description": "Performance tuning and optimization"},
-                {"topic": "clustering", "description": "Clustering and high availability"},
-                {"topic": "distributed-search", "description": "Distributed search configuration"},
-                {"topic": "forwarders", "description": "Universal and heavy forwarder setup"},
-                {"topic": "inputs", "description": "Data input configuration"},
-                {"topic": "outputs", "description": "Data output configuration"},
-                {"topic": "licensing", "description": "License management"},
-                {"topic": "security", "description": "Security configuration and best practices"},
-            ]
+            topics = list_admin_topics()
 
             content = f"""# Available Admin Guide Topics
 
@@ -760,9 +733,9 @@ class GetSplunkDocumentation(BaseTool):
             if topic == "discovery":
                 resource = DashboardStudioDiscoveryResource()
                 return await resource.get_content(ctx)
-            else:
-                resource = DashboardStudioDocsResource(topic)
-                return await resource.get_content(ctx)
+            parsed_topic, parsed_version = parse_studio_ref(topic)
+            resource = DashboardStudioDocsResource(parsed_topic, parsed_version)
+            return await resource.get_content(ctx)
 
         # Config spec resources
         elif doc_uri.startswith("splunk-spec://"):
@@ -1670,22 +1643,32 @@ class GetStudioTopic(BaseTool):
             "Args:\n"
             "    topic (str): Documentation topic. Use list_dashboard_studio_topics() to see "
             "available topics. Examples: 'cheatsheet', 'definition', 'visualizations', "
-            "'configuration', 'datasources', 'framework'"
+            "'configuration', 'datasources', 'framework'\n"
+            "    version (str, optional): Splunk version for live Help pages. Default 10.2. "
+            f"Supported: {', '.join(SUPPORTED_DOC_VERSIONS)}"
         ),
         category="documentation",
         tags=["dashboard-studio", "documentation", "embedded-resource"],
         requires_connection=False,
     )
 
-    async def execute(self, ctx: Context, topic: str) -> dict[str, Any]:
+    async def execute(
+        self, ctx: Context, topic: str, version: str = DEFAULT_STUDIO_VERSION
+    ) -> dict[str, Any]:
         """Execute Dashboard Studio topic retrieval and return embedded resource."""
-        log_tool_execution(self.name, topic=topic)
+        log_tool_execution(self.name, topic=topic, version=version)
 
         try:
-            resource = DashboardStudioDocsResource(topic)
+            parsed_topic, embedded_version = parse_studio_ref(topic)
+            use_version = embedded_version if "/" in topic else version
+            resource = DashboardStudioDocsResource(parsed_topic, use_version)
             content = await resource.get_content(ctx)
 
-            uri = f"dashboard-studio://{topic}"
+            uri = (
+                f"dashboard-studio://{parsed_topic}"
+                if resource.version == DEFAULT_STUDIO_VERSION
+                else f"dashboard-studio://{resource.version}/{parsed_topic}"
+            )
 
             return self.format_success_response(
                 {

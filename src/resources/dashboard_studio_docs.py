@@ -1,12 +1,7 @@
-"""
-Dashboard Studio documentation resources for MCP server.
-
-Provides curated Dashboard Studio (9.4) documentation for LLM-assisted dashboard authoring.
-"""
+"""Dashboard Studio documentation resources. Live Help URLs default to 10.2."""
 
 import logging
 
-import httpx
 from bs4 import BeautifulSoup
 from fastmcp import Context
 
@@ -17,49 +12,15 @@ from src.resources.dashboard_studio_content import (
     DashboardStudioContentError,
     load_cheatsheet_markdown,
 )
+from src.resources.docs_http import fetch_first_ok
+from src.resources.docs_versions import DEFAULT_STUDIO_VERSION, parse_requested_version
+from src.resources.studio_topics import (
+    DASHBOARD_STUDIO_TOPICS,
+    build_studio_urls,
+    parse_studio_ref,
+)
 
 logger = logging.getLogger(__name__)
-
-
-# Dashboard Studio documentation topics mapping
-DASHBOARD_STUDIO_TOPICS = {
-    "cheatsheet": {
-        "name": "Dashboard Studio Cheatsheet",
-        "description": "Comprehensive cheatsheet with definition schema, examples, and best practices",
-        "file": "dashboard_studio_cheatsheet.md",
-        "tags": ["cheatsheet", "reference", "quick-reference"],
-    },
-    "definition": {
-        "name": "Dashboard Definition Structure",
-        "description": "Complete dashboard definition schema and required fields",
-        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.4/source-code-editor/what-is-a-dashboard-definition",
-        "tags": ["definition", "schema", "structure"],
-    },
-    "visualizations": {
-        "name": "Visualizations Guide",
-        "description": "Adding and formatting visualizations in Dashboard Studio",
-        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.4/visualizations/add-and-format-visualizations",
-        "tags": ["visualizations", "formatting", "configuration"],
-    },
-    "configuration": {
-        "name": "Visualization Configuration Options",
-        "description": "Complete reference of visualization configuration options",
-        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.4/configuration-options-reference/visualization-configuration-options",
-        "tags": ["configuration", "options", "reference"],
-    },
-    "datasources": {
-        "name": "Data Sources Guide",
-        "description": "Using ds.search, ds.savedSearch, and ds.chain data sources",
-        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.0/use-data-sources/create-search-based-visualizations-with-ds.search",
-        "tags": ["datasources", "search", "data"],
-    },
-    "framework": {
-        "name": "Dashboard Framework Introduction",
-        "description": "Introduction to Dashboard Framework concepts and architecture",
-        "url": "https://help.splunk.com/en/splunk-enterprise/create-dashboards-and-reports/dashboard-studio/9.4/introduction-to-splunk-dashboard-studio/create-a-dashboard-in-dashboard-studio",
-        "tags": ["framework", "introduction", "concepts"],
-    },
-}
 
 
 class DashboardStudioDocsResource(BaseResource):
@@ -68,17 +29,22 @@ class DashboardStudioDocsResource(BaseResource):
     METADATA = ResourceMetadata(
         uri="dashboard-studio://{topic}",
         name="dashboard_studio_docs",
-        description="Dashboard Studio documentation (9.4) with multiple topics",
+        description="Dashboard Studio documentation (default 10.2) with multiple topics",
         mime_type="text/markdown",
         category="reference",
         tags=["dashboard-studio", "dashboards", "visualization", "reference"],
     )
 
-    def __init__(self, topic: str):
+    def __init__(self, topic: str, version: str | None = None):
         self.topic = topic
+        self.version = parse_requested_version(version or DEFAULT_STUDIO_VERSION)
         topic_info = DASHBOARD_STUDIO_TOPICS.get(topic, {})
 
-        uri = f"dashboard-studio://{topic}"
+        uri = (
+            f"dashboard-studio://{topic}"
+            if self.version == DEFAULT_STUDIO_VERSION
+            else f"dashboard-studio://{self.version}/{topic}"
+        )
         name = topic_info.get("name", f"Dashboard Studio - {topic}")
         description = topic_info.get("description", f"Dashboard Studio documentation for {topic}")
 
@@ -118,79 +84,63 @@ class DashboardStudioDocsResource(BaseResource):
 
     async def _fetch_external_content(self, topic_info: dict) -> str:
         """Fetch and format external documentation content."""
-        url = topic_info.get("url", "")
+        urls = build_studio_urls(self.topic, self.version)
+        url = urls[0] if urls else topic_info.get("url", "")
         name = topic_info.get("name", self.topic)
         description = topic_info.get("description", "")
         tags = ", ".join(topic_info.get("tags", []))
 
         try:
-            # Use browser-like headers to avoid detection as a bot
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-            }
+            result = await fetch_first_ok(urls or [url])
+            if not result.ok:
+                raise DashboardStudioContentError(
+                    f"Failed to retrieve documentation from {url}: HTTP {result.status_code}. "
+                    "Use dashboard-studio://cheatsheet for the local reference."
+                )
+            url = result.final_url
+            soup = BeautifulSoup(result.text, "html.parser")
 
-            # Fetch the content from the URL
-            async with httpx.AsyncClient(
-                timeout=30.0, follow_redirects=True, headers=headers
-            ) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-
-                # Parse HTML content
-                soup = BeautifulSoup(response.text, "html.parser")
-
-                # Extract main content area (common patterns for Splunk docs)
-                main_content = None
-                for selector in [
-                    "main",
-                    "article",
-                    ".content",
-                    "#content",
-                    ".main-content",
-                    "[role='main']",
-                ]:
-                    main_content = soup.select_one(selector)
-                    if main_content:
-                        break
-
-                if not main_content:
-                    # Fallback to body if no main content found
-                    main_content = soup.find("body")
-
+            main_content = None
+            for selector in [
+                "main",
+                "article",
+                ".content",
+                "#content",
+                ".main-content",
+                "[role='main']",
+            ]:
+                main_content = soup.select_one(selector)
                 if main_content:
-                    # Remove unwanted elements
-                    for tag in main_content.select(
-                        "script, style, nav, header, footer, .navigation, .sidebar"
-                    ):
-                        tag.decompose()
+                    break
 
-                    # Extract text with basic formatting
-                    content_text = main_content.get_text(separator="\n", strip=True)
+            if not main_content:
+                main_content = soup.find("body")
 
-                    # Clean up excessive whitespace
-                    lines = [line.strip() for line in content_text.split("\n") if line.strip()]
-                    formatted_content = "\n\n".join(lines)
-                else:
-                    raise DashboardStudioContentError(
-                        f"No readable documentation content found at {url}. "
-                        "Use dashboard-studio://cheatsheet for the local reference."
-                    )
+            if main_content:
+                for tag in main_content.select(
+                    "script, style, nav, header, footer, .navigation, .sidebar"
+                ):
+                    tag.decompose()
 
-                if len(formatted_content.strip()) < 100:
-                    raise DashboardStudioContentError(
-                        f"Documentation at {url} returned insufficient content after parsing. "
-                        "Use dashboard-studio://cheatsheet for the local reference."
-                    )
+                content_text = main_content.get_text(separator="\n", strip=True)
+                lines = [line.strip() for line in content_text.split("\n") if line.strip()]
+                formatted_content = "\n\n".join(lines)
+            else:
+                raise DashboardStudioContentError(
+                    f"No readable documentation content found at {url}. "
+                    "Use dashboard-studio://cheatsheet for the local reference."
+                )
 
-                return f"""# {name}
+            if len(formatted_content.strip()) < 100:
+                raise DashboardStudioContentError(
+                    f"Documentation at {url} returned insufficient content after parsing. "
+                    "Use dashboard-studio://cheatsheet for the local reference."
+                )
+
+            return f"""# {name}
 
 **Topic**: `{self.topic}`
+**Version**: Splunk {self.version}
 **Description**: {description}
 **Tags**: {tags}
 **Source**: {url}
@@ -214,12 +164,6 @@ class DashboardStudioDocsResource(BaseResource):
 
         except DashboardStudioContentError:
             raise
-        except httpx.HTTPError as e:
-            logger.error("Failed to fetch Dashboard Studio docs from %s: %s", url, e)
-            raise DashboardStudioContentError(
-                f"Failed to retrieve documentation from {url}: {e}. "
-                "Use dashboard-studio://cheatsheet for the local reference."
-            ) from e
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error processing Dashboard Studio docs for %s: %s", self.topic, e)
             raise DashboardStudioContentError(
@@ -239,7 +183,7 @@ class DashboardStudioDocsResource(BaseResource):
         """Get index of all available Dashboard Studio topics."""
         return f"""# Dashboard Studio Documentation Index
 
-Available documentation topics for Splunk Dashboard Studio (version 9.4).
+Available documentation topics for Splunk Dashboard Studio (default {DEFAULT_STUDIO_VERSION}).
 
 ## Unknown Topic: {self.topic}
 
@@ -491,7 +435,7 @@ Use this URI whenever you need to:
 
 ---
 
-**Version**: Splunk Enterprise 9.4
+**Version**: Splunk {DEFAULT_STUDIO_VERSION} (default)
 **Framework**: Dashboard Studio (JSON-based)
 **REST Endpoint**: `/servicesNS/{{owner}}/{{app}}/data/ui/views`
 **Tool Integration**: `create_dashboard` with `dashboard_type="studio"`
@@ -508,28 +452,28 @@ Use this URI whenever you need to:
 
 
 # Factory function for creating Dashboard Studio resources
-def create_dashboard_studio_resource(topic: str) -> DashboardStudioDocsResource:
+def create_dashboard_studio_resource(
+    topic: str, version: str | None = None
+) -> DashboardStudioDocsResource:
     """Create a Dashboard Studio documentation resource for the specified topic.
 
     Args:
         topic: Topic name (e.g., 'cheatsheet', 'definition', 'visualizations')
+        version: Splunk version (default 10.2). Also accepts ``10.5/datasources``.
 
     Returns:
         DashboardStudioDocsResource instance
     """
-    return DashboardStudioDocsResource(topic)
+    parsed_topic, parsed_version = parse_studio_ref(topic)
+    return DashboardStudioDocsResource(parsed_topic, version or parsed_version)
 
 
-# Registry and factory functions
 def register_dashboard_studio_resources():
     """Register Dashboard Studio documentation resources with the resource registry."""
     try:
-        # Register the dynamic resource class with template URI
         resource_registry.register(
             DashboardStudioDocsResource, DashboardStudioDocsResource.METADATA
         )
-
-        # Register the static discovery resource
         resource_registry.register(
             DashboardStudioDiscoveryResource, DashboardStudioDiscoveryResource.METADATA
         )
@@ -544,5 +488,4 @@ def register_dashboard_studio_resources():
         logger.error("Failed to register Dashboard Studio resources: %s", e)
 
 
-# Auto-register resources when module is imported
 register_dashboard_studio_resources()
