@@ -31,6 +31,13 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.6.10](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.9...v0.6.10) (2026-08-21)
+
+
+### Bug Fixes
+
+* resolve Splunk Help docs to live versioned admin-manual URLs ([#267](https://github.com/deslicer/mcp-for-splunk/issues/267)) ([ceee756](https://github.com/deslicer/mcp-for-splunk/commit/ceee7560eba61bb933225085b0fb2cfa9c1b9f8d))
+
 ## [0.6.9](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.8...v0.6.9) (2026-08-13)
 
 
