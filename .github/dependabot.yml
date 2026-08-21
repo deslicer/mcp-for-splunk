@@ -60,6 +60,12 @@ updates:
     commit-message:
       prefix: "ci"
       include: "scope"
+    groups:
+      # init / analyze / upload-sarif must share one SHA. Split PRs fail
+      # CodeQL with "Loaded a configuration file for version X, but running Y".
+      github-codeql:
+        patterns:
+          - "github/codeql-action*"
 
   # Docker
   - package-ecosystem: "docker"
