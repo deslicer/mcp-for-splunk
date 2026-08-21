@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 DOC_ERROR_MARKERS = (
     "# Documentation Not Found",
     "# CIM Documentation Not Found",
+    "# CIM Documentation Error",
     "# Documentation Error",
     "# Documentation Unavailable",
     "# Configuration Spec Not Found",

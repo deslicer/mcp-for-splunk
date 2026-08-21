@@ -53,6 +53,7 @@ def test_error_markers_are_detected() -> None:
     """404-style markdown must not look like successful documentation."""
     assert is_error_doc_content("# Documentation Not Found\n\nmissing")
     assert is_error_doc_content("# CIM Documentation Not Found\n")
+    assert is_error_doc_content("# CIM Documentation Error\n")
     assert not is_error_doc_content("# SPL Command: stats\n\nUsage...")
 
 

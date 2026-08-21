@@ -11,7 +11,7 @@ from fastmcp import Context
 
 from src.core.base import BaseResource, ResourceMetadata
 from src.core.registry import resource_registry
-from src.resources.docs_http import HAS_HTTPX, fetch_docs_url
+from src.resources.docs_http import HAS_HTTPX, fetch_docs_url, is_error_doc_content
 
 from .processors.html_processor import SplunkDocsProcessor
 from .splunk_docs import _doc_cache
@@ -688,6 +688,9 @@ class CIMDataModelResource(SplunkCIMResource):
                     logger.debug("Trying alternative URL slug: %s", alt_slug)
                     url = self.format_cim_url(norm_version, alt_slug)
                     content = await self.fetch_cim_content(url)
+
+            if is_error_doc_content(content):
+                return content
 
             # Build comprehensive documentation
             deprecation_notice = ""
