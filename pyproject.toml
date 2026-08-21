@@ -72,7 +72,7 @@ docs = [
 ]
 # Optional Sentry monitoring
 sentry = [
-"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.67.1",
+"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.68.0",
 ]
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
