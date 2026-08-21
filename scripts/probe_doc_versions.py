@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.resources.admin_topics import ADMIN_TOPICS, build_admin_urls
+from src.resources.docs_http import is_soft_404_body
 from src.resources.docs_versions import (
     SUPPORTED_DOC_VERSIONS,
     build_spec_urls,
@@ -60,7 +61,7 @@ async def _one(client: httpx.AsyncClient, sem: asyncio.Semaphore, row: tuple) ->
                 last_status = response.status_code
                 last_url = url
                 last_final = str(response.url)
-                if response.status_code == 200:
+                if response.status_code == 200 and not is_soft_404_body(response.text):
                     return family, version, topic, url, 200, last_final
             except Exception as exc:  # pylint: disable=broad-except
                 last_status = f"ERR {exc}"

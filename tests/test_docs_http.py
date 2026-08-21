@@ -7,9 +7,46 @@ import pytest
 from src.resources.docs_http import (
     DocsFetchResult,
     DocumentationCache,
+    fetch_docs_url,
     fetch_first_ok,
     is_error_doc_content,
+    is_soft_404_body,
 )
+
+
+def test_soft_404_help_bodies_are_detected() -> None:
+    """help.splunk.com often returns HTTP 200 with a missing-page shell."""
+    assert is_soft_404_body("<html><title>Page not found</title></html>")
+    assert is_soft_404_body("The page you requested cannot be found.")
+    assert not is_soft_404_body("<html><h1>About users and roles</h1></html>")
+
+
+@pytest.mark.asyncio
+async def test_fetch_docs_url_rejects_soft_404(monkeypatch) -> None:
+    """A 200 Help shell must not be treated as a successful fetch."""
+
+    class _Response:
+        status_code = 200
+        text = "<html>Page not found</html>"
+        url = "https://help.splunk.com/missing"
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url: str):
+            return _Response()
+
+    monkeypatch.setattr("src.resources.docs_http.httpx.AsyncClient", _Client)
+    result = await fetch_docs_url("https://help.splunk.com/missing")
+    assert result.ok is False
+    assert result.error == "Help page looks like a soft 404"
 
 
 def test_error_markers_are_detected() -> None:

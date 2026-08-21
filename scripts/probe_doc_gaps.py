@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.resources.admin_topics import ADMIN_TOPICS, build_admin_urls
+from src.resources.docs_http import is_soft_404_body
 from src.resources.docs_versions import (
     SUPPORTED_DOC_VERSIONS,
     build_spec_urls,
@@ -143,19 +144,10 @@ UNCATALOGUED_CHAPTERS = (
     ("linux", "get-the-most-out-of-splunk-enterprise-on-linux"),
 )
 
-ERROR_MARKERS = (
-    "page not found",
-    "the page you requested cannot be found",
-    "we couldn't find that page",
-    "documentation not found",
-)
-
-
 def _looks_like_404(status: int, text: str) -> bool:
     if status != 200:
         return True
-    sample = text[:4000].lower()
-    return any(marker in sample for marker in ERROR_MARKERS)
+    return is_soft_404_body(text)
 
 
 def collect() -> list[tuple[str, str, str, list[str]]]:
@@ -249,7 +241,7 @@ async def main() -> int:
         print()
 
     print(f"{len(results) - fail} ok / {fail} failed / {len(results)} total")
-    return 0
+    return 1 if fail else 0
 
 
 if __name__ == "__main__":

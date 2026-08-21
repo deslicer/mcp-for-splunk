@@ -25,6 +25,13 @@ DOC_ERROR_MARKERS = (
     "# Configuration Spec Not Found",
 )
 
+HELP_SOFT_404_MARKERS = (
+    "page not found",
+    "the page you requested cannot be found",
+    "we couldn't find that page",
+    "documentation not found",
+)
+
 BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -37,6 +44,12 @@ def is_error_doc_content(content: str) -> bool:
     """Return True when content is a fetch failure, not live documentation."""
     heading = content.lstrip().splitlines()[0] if content.strip() else ""
     return heading in DOC_ERROR_MARKERS
+
+
+def is_soft_404_body(text: str) -> bool:
+    """Return True when a 200 Help body is a missing-page shell."""
+    sample = text[:4000].lower()
+    return any(marker in sample for marker in HELP_SOFT_404_MARKERS)
 
 
 @dataclass(frozen=True)
@@ -116,12 +129,14 @@ async def fetch_docs_url(url: str, timeout: float = 30.0) -> DocsFetchResult:
             timeout=timeout, headers=BROWSER_HEADERS, follow_redirects=True
         ) as client:
             response = await client.get(url)
+            soft_404 = response.status_code == 200 and is_soft_404_body(response.text)
             return DocsFetchResult(
                 url=url,
-                ok=response.status_code == 200,
+                ok=response.status_code == 200 and not soft_404,
                 status_code=response.status_code,
                 text=response.text,
                 final_url=str(response.url),
+                error="Help page looks like a soft 404" if soft_404 else None,
             )
     except httpx.HTTPError as exc:
         logger.error("Error fetching documentation from %s: %s", url, exc)
@@ -136,7 +151,7 @@ async def fetch_docs_url(url: str, timeout: float = 30.0) -> DocsFetchResult:
 
 
 async def fetch_first_ok(urls: list[str], timeout: float = 30.0) -> DocsFetchResult:
-    """Try URLs in order and return the first HTTP 200 response."""
+    """Try URLs in order and return the first live page (not a soft 404)."""
     last = DocsFetchResult(
         url=urls[0] if urls else "",
         ok=False,
