@@ -279,6 +279,8 @@ class TroubleshootingResource(SplunkDocsResource):
             topic_info = self.TROUBLESHOOTING_TOPICS[self.topic]
             urls = build_troubleshooting_urls(topic_info["url_path"], self.version)
             content, url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
 
             result = f"""# Splunk Troubleshooting: {topic_info["title"]}
 
@@ -406,6 +408,8 @@ class SPLCommandResource(SplunkDocsResource):
         async def fetch_command_docs():
             urls = build_spl_urls(self.command, self.version)
             content, url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
 
             # Add SPL-specific context
             return f"""# SPL Command: {self.command}
@@ -468,6 +472,8 @@ class AdminGuideResource(SplunkDocsResource):
                 return self._unknown_topic_catalog(help_version)
 
             content, topic_url = await self.fetch_first_doc(urls)
+            if is_error_doc_content(content):
+                return content
             return f"""# Splunk Administration: {self.topic}
 
 **Version**: Splunk {self.version}
@@ -620,7 +626,7 @@ class SplunkSpecReferenceResource(SplunkDocsResource):
             urls = build_spec_urls(config, version)
             content, used_url = await self.fetch_first_doc(urls)
 
-            if content.startswith("# Documentation Not Found"):
+            if is_error_doc_content(content):
                 attempted = "\n".join(f"{i}. {url}" for i, url in enumerate(urls, start=1))
                 return f"""# Configuration Spec Not Found
 
