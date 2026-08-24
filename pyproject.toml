@@ -21,7 +21,7 @@ dependencies = [
 # and constrain fastmcp-slim so uv does not open every transitive prerelease.
 "fastmcp==4.0.0b2",
 "splunk-sdk>=2.1.1",
-"python-dotenv>=1.2.2",
+"python-dotenv>=1.2.3",
 "httpx>=0.28.1",
 "beautifulsoup4>=4.15.0",
 "uvicorn>=0.52.1",
