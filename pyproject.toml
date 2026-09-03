@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
 # FastMCP 4 builds on MCP Python SDK v2 (protocol 2026-07-28). Pin the beta
 # and constrain fastmcp-slim so uv does not open every transitive prerelease.
-"fastmcp==4.0.0b2",
+"fastmcp==4.0.0b4",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.3",
 "httpx>=0.28.1",
@@ -119,7 +119,7 @@ mcp-itsi-server = { workspace = true }
 # Opt out exact pins and recently cleared CVE/security bumps so `uv lock --check`
 # does not regress them while they are still inside the cooldown window.
 exclude-newer = "7 days"
-constraint-dependencies = ["fastmcp-slim==4.0.0b2"]
+constraint-dependencies = ["fastmcp-slim==4.0.0b4"]
 dev-dependencies = [
 "pytest>=9.1.1",
 "pytest-asyncio>=1.4.0",
