@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
 # FastMCP 4 builds on MCP Python SDK v2 (protocol 2026-07-28). Pin the beta
 # and constrain fastmcp-slim so uv does not open every transitive prerelease.
-"fastmcp==4.0.0b4",
+"fastmcp==4.0.0b5",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.3",
 "httpx>=0.28.1",
