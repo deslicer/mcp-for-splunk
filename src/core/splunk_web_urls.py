@@ -32,20 +32,41 @@ def resolve_splunk_web_base(
     return f"http://{host}:{port}"
 
 
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_str(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
 def web_links_from_service(
     service: object,
     client_config: dict[str, Any] | None = None,
 ) -> "SplunkWebLinks":
-    config = client_config or {}
-    explicit = config.get("splunk_web_url")
-    web_port = config.get("splunk_web_port")
-    locale = config.get("splunk_web_locale") or "en-US"
+    config = client_config if isinstance(client_config, dict) else {}
+    explicit = _optional_str(config.get("splunk_web_url"))
+    locale = _optional_str(config.get("splunk_web_locale")) or "en-US"
+    host = getattr(service, "host", "localhost")
+    scheme = getattr(service, "scheme", "https")
+    if not isinstance(host, str) or not host:
+        host = "localhost"
+    if not isinstance(scheme, str) or not scheme:
+        scheme = "https"
     base = resolve_splunk_web_base(
         explicit_web_url=explicit,
-        management_host=getattr(service, "host", "localhost"),
-        management_scheme=getattr(service, "scheme", "https"),
-        management_port=getattr(service, "port", None),
-        web_port=int(web_port) if web_port is not None else None,
+        management_host=host,
+        management_scheme=scheme,
+        management_port=_optional_int(getattr(service, "port", None)),
+        web_port=_optional_int(config.get("splunk_web_port")),
     )
     return SplunkWebLinks(base_url=base, locale=locale)
 

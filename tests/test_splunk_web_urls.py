@@ -1,4 +1,10 @@
-from src.core.splunk_web_urls import SplunkWebLinks, resolve_splunk_web_base
+from unittest.mock import Mock
+
+from src.core.splunk_web_urls import (
+    SplunkWebLinks,
+    resolve_splunk_web_base,
+    web_links_from_service,
+)
 
 
 def test_explicit_url_wins_and_strips_slash() -> None:
@@ -63,3 +69,12 @@ def test_job_and_dashboard_paths() -> None:
     assert links.dashboard("search", "system_health") == (
         "https://splunk-b839c1.deslicer.io/en-US/app/search/system_health"
     )
+
+
+def test_web_links_ignore_non_dict_config() -> None:
+    service = Mock()
+    service.host = "so1"
+    service.scheme = "https"
+    service.port = 8089
+    links = web_links_from_service(service, Mock())
+    assert links.base_url == "https://so1"

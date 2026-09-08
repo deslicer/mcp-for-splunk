@@ -25,6 +25,9 @@ class TestJobInfoTool:
     @pytest.fixture
     def mock_service(self):
         service = Mock()
+        service.host = "splunk.example.com"
+        service.scheme = "https"
+        service.port = 8089
         service.jobs = {}
         return service
 
@@ -138,3 +141,35 @@ class TestJobInfoTool:
         assert result["status"] == "success"
         assert "raw_content" in result
         assert result["raw_content"]["dispatchState"] == "RUNNING"
+
+    async def test_job_info_includes_web_links(self, tool, mock_context, mock_service):
+        tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        tool.get_client_config_from_context = AsyncMock(
+            return_value={"splunk_web_url": "https://splunk-b839c1.deslicer.io"}
+        )
+
+        mock_job = Mock()
+        mock_job.content = {
+            "isFailed": "0",
+            "isDone": "1",
+            "messages": [],
+            "doneProgress": "1.0",
+        }
+        mock_job.refresh = Mock()
+        jobs = Mock()
+        jobs.__getitem__ = Mock(return_value=mock_job)
+        mock_service.jobs = jobs
+
+        result = await tool.execute(mock_context, job_id="sid_links")
+        assert result["status"] == "success"
+        assert result["job_id"] == "sid_links"
+        assert result["job_details_url"] == (
+            "https://splunk-b839c1.deslicer.io/en-US/app/search/"
+            "job_details_dashboard?form.sid=sid_links&tab=layout_1"
+        )
+        assert result["job_inspector_url"] == (
+            "https://splunk-b839c1.deslicer.io/en-US/manager/search/"
+            "job_inspector?sid=sid_links"
+        )
+        assert ":8089" not in result["job_details_url"]
+        assert ":8000" not in result["job_inspector_url"]

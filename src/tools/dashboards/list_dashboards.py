@@ -10,6 +10,7 @@ from fastmcp import Context
 from src.core.base import BaseTool, ToolMetadata
 from src.core.list_paging import PaginationError
 from src.core.splunk_rest_page import fetch_rest_collection_page
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 
 
@@ -63,7 +64,7 @@ class ListDashboards(BaseTool):
         Args:
             owner: Filter by owner (use 'me' for current user, default: nobody for all)
             app: Filter by app (default: - for all)
-            count: Maximum results (default: 50 for performance, 0 for all)
+            count: Page size 1-200 (default: 50)
             offset: Pagination offset
             search_filter: Optional search filter
             type_filter: Filter by dashboard type (classic/studio/any)
@@ -118,10 +119,8 @@ class ListDashboards(BaseTool):
                 offset=offset,
                 search_filter=combined_filter,
             )
-            splunk_host = service.host
-            web_port = 8000
-            web_scheme = "https"
-            web_base = f"{web_scheme}://{splunk_host}:{web_port}"
+            client_config = await self.get_client_config_from_context(ctx)
+            links = web_links_from_service(service, client_config)
             entries = page.entries
             dashboards = []
 
@@ -164,8 +163,7 @@ class ListDashboards(BaseTool):
                 if private_only and sharing != "user":
                     continue  # Skip non-private dashboards
 
-                # Build Splunk Web URL
-                web_url = f"{web_base}/en-US/app/{dashboard_app}/{dashboard_name}"
+                web_url = links.dashboard(dashboard_app, dashboard_name)
 
                 # Safely handle perms which could be None
                 perms = acl.get("perms") or {}

@@ -5,11 +5,13 @@ Tests the ListDashboards and GetDashboardDefinition tools.
 """
 
 import json
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from src.tools.dashboards.create_dashboard import CreateDashboard
+from src.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
+from src.tools.dashboards.list_dashboards import ListDashboards
 
 
 class TestListDashboards:
@@ -96,6 +98,8 @@ class TestListDashboards:
                     assert "label" in first_dashboard
                     assert "type" in first_dashboard
                     assert "web_url" in first_dashboard
+                    assert ":8089" not in first_dashboard["web_url"]
+                    assert ":8000" not in first_dashboard["web_url"]
                     # Type should be either 'classic' or 'studio'
                     assert first_dashboard["type"] in ["classic", "studio"]
 
@@ -223,6 +227,7 @@ class TestGetDashboardDefinition:
                 assert "type" in data
                 assert "definition" in data
                 assert "web_url" in data
+                assert ":8089" not in data["web_url"]
                 # Should be detected as classic
                 if data.get("type"):
                     assert data["type"] in ["classic", "studio"]
@@ -242,6 +247,7 @@ class TestGetDashboardDefinition:
                 assert "type" in data
                 assert "definition" in data
                 assert "web_url" in data
+                assert ":8089" not in data["web_url"]
                 # Studio dashboards should have JSON definition
                 if data.get("type") == "studio":
                     assert isinstance(data["definition"], dict)
@@ -492,3 +498,78 @@ class TestCreateDashboard:
                 assert data["name"] == "acl_demo"
                 # The mock service sets ACL; we simply assert success contract
                 assert "permissions" in data
+
+
+class TestDashboardWebUrls:
+    """Dashboard web_url uses the Splunk Web base, never management ports."""
+
+    _LIST_PAYLOAD = {
+        "entry": [
+            {
+                "name": "security_overview",
+                "id": "https://localhost:8089/servicesNS/nobody/search/data/ui/views/security_overview",
+                "content": {
+                    "label": "Security Overview",
+                    "description": "Security monitoring dashboard",
+                    "eai:data": "<dashboard><label>Security Overview</label></dashboard>",
+                    "updated": "2024-01-15T10:30:00",
+                    "version": "1.0",
+                },
+                "acl": {
+                    "app": "search",
+                    "owner": "nobody",
+                    "sharing": "global",
+                    "perms": {"read": ["*"], "write": ["admin"]},
+                },
+            }
+        ],
+        "paging": {"total": 1, "perPage": 0, "offset": 0},
+    }
+
+    async def test_list_honors_explicit_web_url(self):
+        service = Mock()
+        service.host = "mgmt.internal"
+        service.scheme = "https"
+        service.port = 8089
+        mock_response = Mock()
+        mock_response.body.read.return_value = json.dumps(self._LIST_PAYLOAD).encode("utf-8")
+        service.get.return_value = mock_response
+
+        tool = ListDashboards("list_dashboards", "list dashboards")
+        ctx = Mock()
+        ctx.info = AsyncMock()
+        ctx.error = AsyncMock()
+        tool.check_splunk_available = Mock(return_value=(True, service, None))
+        tool.get_client_config_from_context = AsyncMock(
+            return_value={"splunk_web_url": "https://splunk-b839c1.deslicer.io"}
+        )
+
+        result = await tool.execute(ctx)
+        assert result["status"] == "success"
+        urls = [item["web_url"] for item in result["dashboards"]]
+        assert urls[0] == (
+            "https://splunk-b839c1.deslicer.io/en-US/app/search/security_overview"
+        )
+        assert all(":8089" not in url and ":8000" not in url for url in urls)
+
+    async def test_get_definition_https_omits_web_port(self):
+        service = Mock()
+        service.host = "splunk.example.com"
+        service.scheme = "https"
+        service.port = 8089
+        mock_response = Mock()
+        mock_response.body.read.return_value = json.dumps(self._LIST_PAYLOAD).encode("utf-8")
+        service.get.return_value = mock_response
+
+        tool = GetDashboardDefinition("get_dashboard_definition", "get dashboard")
+        ctx = Mock()
+        ctx.info = AsyncMock()
+        ctx.error = AsyncMock()
+        tool.check_splunk_available = Mock(return_value=(True, service, None))
+        tool.get_client_config_from_context = AsyncMock(return_value={})
+
+        result = await tool.execute(ctx, name="security_overview")
+        assert result["status"] == "success"
+        assert result["web_url"] == "https://splunk.example.com/en-US/app/search/security_overview"
+        assert ":8000" not in result["web_url"]
+        assert ":8089" not in result["web_url"]

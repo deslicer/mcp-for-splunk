@@ -11,6 +11,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 from src.tools.search.job_message_parser import JobMessageParser
 
@@ -134,6 +135,9 @@ class GetSearchJobInfo(BaseTool):
                 response["timing"] = timing
             if include_raw_content:
                 response["raw_content"] = stats
+
+            client_config = await self.get_client_config_from_context(ctx)
+            response.update(web_links_from_service(service, client_config).job_links(job_id))
 
             return self.format_success_response(response)
 
