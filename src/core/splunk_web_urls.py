@@ -83,7 +83,7 @@ class SplunkWebLinks:
         encoded = quote(sid, safe="")
         return (
             f"{self.base_url}/{self.locale}/app/{quote(app)}/"
-            f"job_details_dashboard?form.sid={encoded}&tab=layout_1"
+            f"job_details_dashboard?form.sid={encoded}"
         )
 
     def job_inspector(self, sid: str, app: str = "search") -> str:

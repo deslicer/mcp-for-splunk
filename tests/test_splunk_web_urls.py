@@ -61,7 +61,7 @@ def test_job_and_dashboard_paths() -> None:
     sid = "scheduler__admin__search__RMD5ba17a0a9008ada7f_at_1788849600_3941"
     assert links.job_details(sid) == (
         "https://splunk-b839c1.deslicer.io/en-US/app/search/"
-        f"job_details_dashboard?form.sid={sid}&tab=layout_1"
+        f"job_details_dashboard?form.sid={sid}"
     )
     assert links.job_inspector(sid) == (
         f"https://splunk-b839c1.deslicer.io/en-US/manager/search/job_inspector?sid={sid}"

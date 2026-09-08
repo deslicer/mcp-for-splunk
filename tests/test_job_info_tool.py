@@ -165,7 +165,7 @@ class TestJobInfoTool:
         assert result["job_id"] == "sid_links"
         assert result["job_details_url"] == (
             "https://splunk-b839c1.deslicer.io/en-US/app/search/"
-            "job_details_dashboard?form.sid=sid_links&tab=layout_1"
+            "job_details_dashboard?form.sid=sid_links"
         )
         assert result["job_inspector_url"] == (
             "https://splunk-b839c1.deslicer.io/en-US/manager/search/"

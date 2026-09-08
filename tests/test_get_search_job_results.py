@@ -65,7 +65,7 @@ class TestGetSearchJobResults:
         assert result["job_id"] == mock_job.sid
         assert result["job_details_url"] == (
             "https://splunk-b839c1.deslicer.io/en-US/app/search/"
-            f"job_details_dashboard?form.sid={mock_job.sid}&tab=layout_1"
+            f"job_details_dashboard?form.sid={mock_job.sid}"
         )
         assert result["job_inspector_url"] == (
             "https://splunk-b839c1.deslicer.io/en-US/manager/search/"
