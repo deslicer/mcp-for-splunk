@@ -5,77 +5,60 @@ Tool for listing Splunk sourcetypes.
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_metadata_page import fetch_metadata_page
 from src.core.utils import log_tool_execution
 
 
 class ListSourcetypes(BaseTool):
     """
-    List all available sourcetypes from the configured Splunk instance using metadata command.
-    This tool returns a comprehensive list of sourcetypes present in your Splunk environment.
+    List sourcetypes from the configured Splunk instance using metadata.
     """
 
     METADATA = ToolMetadata(
         name="list_sourcetypes",
         description=(
-            "Discover and enumerate all available sourcetypes from the configured Splunk instance "
-            "using the metadata command. Sourcetypes define how Splunk interprets and processes "
-            "different types of data, controlling parsing rules, field extractions, and indexing "
-            "behavior. This tool returns a comprehensive list of sourcetypes present in your "
-            "Splunk environment, essential for data modeling and search optimization.\n\n"
-            "Use Cases:\n"
-            "- Data modeling and CIM compliance\n"
-            "- Understanding data variety and formats\n"
-            "- Troubleshooting parsing and extraction issues\n"
-            "- Planning data preprocessing and transformations\n"
-            "- Security analysis and event correlation\n"
-            "- Building comprehensive search queries\n\n"
-            "Response Format:\n"
-            "Returns a dictionary with 'status' field and 'data' containing:\n"
-            "- sourcetypes: Sorted array of all sourcetype identifiers\n"
-            "- count: Total number of unique sourcetypes discovered"
+            "Discover sourcetypes using the metadata command. Large environments are paged. "
+            "If has_more is true, call again with offset=next_offset.\n\n"
+            "Args:\n"
+            "    count (int, optional): Page size 1-100 (default 50)\n"
+            "    offset (int, optional): Result offset (default 0)\n"
+            "    index (str, optional): Limit to one index"
         ),
         category="metadata",
         tags=["sourcetypes", "metadata", "discovery"],
         requires_connection=True,
     )
 
-    async def execute(self, ctx: Context) -> dict[str, Any]:
-        """
-        List all sourcetypes.
-
-        Returns:
-            Dict containing list of sourcetypes and count
-        """
-        log_tool_execution("list_sourcetypes")
-
+    async def execute(
+        self,
+        ctx: Context,
+        count: int = 50,
+        offset: int = 0,
+        index: str | None = None,
+    ) -> dict[str, Any]:
+        log_tool_execution("list_sourcetypes", count=count, offset=offset, index=index)
         is_available, service, error_msg = self.check_splunk_available(ctx)
-
         if not is_available:
             return self.format_error_response(error_msg)
 
-        self.logger.info("Retrieving list of sourcetypes...")
-
         try:
-            # Use metadata command to retrieve sourcetypes
-            job = service.jobs.oneshot(
-                "| metadata type=sourcetypes index=_* index=* | table sourcetype",
-                output_mode="json",
+            page = fetch_metadata_page(
+                service,
+                metadata_type="sourcetypes",
+                field="sourcetype",
+                count=count,
+                offset=offset,
+                index=index,
             )
-
-            sourcetypes = []
-            for result in JSONResultsReader(job):
-                if isinstance(result, dict) and "sourcetype" in result:
-                    sourcetypes.append(result["sourcetype"])
-
-            self.logger.info(f"Retrieved {len(sourcetypes)} sourcetypes")
-            await ctx.info(f"Sourcetypes: {sourcetypes}")
-            return self.format_success_response(
-                {"sourcetypes": sorted(sourcetypes), "count": len(sourcetypes)}
-            )
-        except Exception as e:
-            self.logger.error(f"Failed to retrieve sourcetypes: {str(e)}")
-            await ctx.error(f"Failed to retrieve sourcetypes: {str(e)}")
+        except PaginationError as e:
             return self.format_error_response(str(e))
+        except Exception as e:
+            self.logger.error("Failed to retrieve sourcetypes: %s", e)
+            await ctx.error(f"Failed to retrieve sourcetypes: {e}")
+            return self.format_error_response(str(e))
+
+        await ctx.info(f"Returned {len(page.values)} sourcetypes (offset={offset})")
+        return self.format_success_response({"sourcetypes": page.values, **page.paging})
