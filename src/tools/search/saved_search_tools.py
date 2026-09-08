@@ -11,9 +11,10 @@ from typing import Any, Literal
 
 from fastmcp import Context
 from splunklib import client as spl_client
-from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.splunk_job_results_page import fetch_job_results_page
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.saved_search_acl import (
     get_saved_search_acl,
@@ -141,7 +142,8 @@ class ExecuteSavedSearch(BaseTool):
             "Run a saved search by name with optional time overrides and mode selection. Use this to "
             "execute existing reports/automations quickly. Choose 'oneshot' for immediate results or "
             "'job' for progress tracking and large result sets.\\n\\n"
-            "Outputs: results list (capped by max_results), mode used, timing, and job id (if job).\\n"
+            "Outputs: first result page, paging fields, job_id, and Splunk Web job links. "
+            "If has_more is true, call get_search_job_results with job_id and offset=next_offset.\\n"
             "Security: execution and results are constrained by the authenticated user's permissions."
         ),
         category="search",
@@ -265,38 +267,13 @@ class ExecuteSavedSearch(BaseTool):
     async def _execute_oneshot(
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
-        """Execute saved search in oneshot mode"""
+        """Execute saved search and keep the job for paging."""
         job = saved_search.dispatch(**dispatch_kwargs)
-
         while not job.is_done():
             job.refresh()
             await asyncio.sleep(0.1)
-
-        results = []
-        result_count = 0
-
-        reader = JSONResultsReader(
-            job.results(output_mode="json", count=max_results)
-        )
-        for result in reader:
-            if isinstance(result, dict):
-                results.append(result)
-                result_count += 1
-                if result_count >= max_results:
-                    break
-
-        duration = time.time() - start_time
-
-        return self.format_success_response(
-            {
-                "saved_search_name": saved_search.name,
-                "results": results,
-                "results_count": result_count,
-                "execution_mode": "oneshot",
-                "duration": round(duration, 3),
-                "search_query": saved_search.content.get("search", ""),
-                "dispatch_parameters": dispatch_kwargs,
-            }
+        return await self._paged_saved_search_response(
+            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "oneshot"
         )
 
     async def _execute_job(
@@ -314,43 +291,47 @@ class ExecuteSavedSearch(BaseTool):
             await asyncio.sleep(0.5)
             job.refresh()
 
-        # Get job statistics
-        stats = job.content
-
-        # Get results
-        results = []
-        result_count = 0
-
-        kwargs_paginate = {"count": max_results, "output_mode": "json"}
-        reader = JSONResultsReader(job.results(**kwargs_paginate))
-        for result in reader:
-            if isinstance(result, dict):
-                results.append(result)
-                result_count += 1
-                if result_count >= max_results:
-                    break
-
-        duration = time.time() - start_time
-
-        return self.format_success_response(
-            {
-                "saved_search_name": saved_search.name,
-                "job_id": job.sid,
-                "results": results,
-                "results_count": result_count,
-                "execution_mode": "job",
-                "scan_count": int(float(stats.get("scanCount", 0))),
-                "event_count": int(float(stats.get("eventCount", 0))),
-                "duration": round(duration, 3),
-                "search_query": saved_search.content.get("search", ""),
-                "dispatch_parameters": dispatch_kwargs,
-                "status": {
-                    "is_finalized": stats.get("isFinalized", "0") == "1",
-                    "is_failed": stats.get("isFailed", "0") == "1",
-                    "progress": 100,
-                },
-            }
+        return await self._paged_saved_search_response(
+            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "job"
         )
+
+    async def _paged_saved_search_response(
+        self,
+        ctx: Context,
+        saved_search: Any,
+        job: Any,
+        dispatch_kwargs: dict,
+        max_results: int,
+        start_time: float,
+        mode: str,
+    ) -> dict[str, Any]:
+        stats = job.content or {}
+        page = await asyncio.to_thread(fetch_job_results_page, job, count=max_results, offset=0)
+        client_config = await self.get_client_config_from_context(ctx)
+        service = getattr(saved_search, "service", None) or getattr(job, "service", None)
+        links = web_links_from_service(service, client_config) if service else None
+        payload = {
+            "saved_search_name": saved_search.name,
+            "results": page.results,
+            "results_count": page.paging["count"],
+            "execution_mode": mode,
+            "duration": round(time.time() - start_time, 3),
+            "search_query": saved_search.content.get("search", ""),
+            "dispatch_parameters": dispatch_kwargs,
+            "scan_count": int(float(stats.get("scanCount", 0) or 0)),
+            "event_count": int(float(stats.get("eventCount", 0) or 0)),
+            "status": {
+                "is_finalized": stats.get("isFinalized", "0") == "1",
+                "is_failed": stats.get("isFailed", "0") == "1",
+                "progress": 100,
+            },
+            **page.paging,
+        }
+        if links:
+            payload.update(links.job_links(job.sid))
+        else:
+            payload["job_id"] = job.sid
+        return self.format_success_response(payload)
 
     def _convert_splunk_boolean(self, value, default=False):
         """Convert Splunk boolean values to Python booleans"""

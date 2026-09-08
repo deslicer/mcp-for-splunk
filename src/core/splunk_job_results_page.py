@@ -5,7 +5,12 @@ from typing import Any
 
 from splunklib.results import JSONResultsReader, Message
 
-from src.core.list_paging import PaginationError, PaginationParams, build_paging, validate_pagination
+from src.core.list_paging import (
+    PaginationError,
+    PaginationParams,
+    build_paging,
+    validate_pagination,
+)
 
 SEARCH_PAGE_MAX = 100
 

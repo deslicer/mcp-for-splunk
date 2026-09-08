@@ -72,6 +72,7 @@ class ToolLoader:
             "src.tools.metadata.sourcetypes",
             "src.tools.search.oneshot_search",
             "src.tools.search.job_search",
+            "src.tools.search.job_results",
             "src.tools.search.saved_search_tools",
             "src.tools.search.list_saved_searches",
             "src.tools.workflows.workflow_requirements",

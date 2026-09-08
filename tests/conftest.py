@@ -50,9 +50,13 @@ class MockSplunkService:
         mock_job = Mock()
         mock_job.sid = "test_job_123"
         mock_job.is_done.return_value = True
+        self.host = "so1"
+        self.scheme = "https"
+        self.port = 8089
         mock_job.content = {
             "scanCount": "100",
             "eventCount": "10",
+            "resultCount": "2",
             "isDone": "1",
             "isFinalized": "1",
             "isFailed": "0",
@@ -788,15 +792,20 @@ def mock_splunk_get_service(mock_splunk_service):
         # Import tool classes and patch their get_splunk_service
         from src.tools.admin.apps import ListApps
         from src.tools.admin.users import ListUsers
+        from src.tools.dashboards.create_dashboard import CreateDashboard
+        from src.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
+        from src.tools.dashboards.list_dashboards import ListDashboards
         from src.tools.health.status import GetSplunkHealth
         from src.tools.kvstore.collections import ListKvstoreCollections
         from src.tools.kvstore.data import GetKvstoreData
         from src.tools.metadata.indexes import ListIndexes
         from src.tools.metadata.sources import ListSources
         from src.tools.metadata.sourcetypes import ListSourcetypes
+        from src.tools.search.job_info import GetSearchJobInfo
+        from src.tools.search.job_results import GetSearchJobResults
         from src.tools.search.job_search import JobSearch
-        from src.tools.search.oneshot_search import OneshotSearch
         from src.tools.search.list_saved_searches import ListSavedSearches
+        from src.tools.search.oneshot_search import OneshotSearch
         from src.tools.search.saved_search_tools import (
             CreateSavedSearch,
             DeleteSavedSearch,
@@ -809,6 +818,11 @@ def mock_splunk_get_service(mock_splunk_service):
             GetSplunkHealth,
             OneshotSearch,
             JobSearch,
+            GetSearchJobResults,
+            GetSearchJobInfo,
+            ListDashboards,
+            GetDashboardDefinition,
+            CreateDashboard,
             ListApps,
             ListUsers,
             ListIndexes,
