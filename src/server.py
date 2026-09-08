@@ -365,13 +365,16 @@ def extract_client_config_from_env() -> dict | None:
         "MCP_SPLUNK_SESSION_TOKEN": "splunk_session_token",
         "MCP_SPLUNK_SCHEME": "splunk_scheme",
         "MCP_SPLUNK_VERIFY_SSL": "splunk_verify_ssl",
+        "MCP_SPLUNK_WEB_URL": "splunk_web_url",
+        "MCP_SPLUNK_WEB_PORT": "splunk_web_port",
+        "MCP_SPLUNK_WEB_LOCALE": "splunk_web_locale",
     }
 
     for env_var, config_key in env_mapping.items():
         env_value = os.getenv(env_var)
         if env_value:
             # Handle type conversions
-            if config_key == "splunk_port":
+            if config_key in ("splunk_port", "splunk_web_port"):
                 client_config[config_key] = int(env_value)
             elif config_key == "splunk_verify_ssl":
                 client_config[config_key] = env_value.lower() == "true"
