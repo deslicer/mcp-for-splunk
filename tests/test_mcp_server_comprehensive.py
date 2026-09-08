@@ -201,6 +201,18 @@ class TestSearchTools:
             "src.tools.search.oneshot_search.OneshotSearch.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
+            mock_service.host = "so1"
+            mock_service.scheme = "https"
+            mock_service.port = 8089
+            mock_job = Mock()
+            mock_job.sid = "test_job_123"
+            mock_job.content = {
+                "isDone": "1",
+                "isFailed": "0",
+                "resultCount": str(len(mock_search_results)),
+            }
+            mock_job.results.return_value = mock_search_results
+            mock_service.jobs.create.return_value = mock_job
             mock_service.jobs.oneshot.return_value = mock_search_results
             # Mock as async method
             mock_get_service.return_value = AsyncMock(return_value=mock_service)()
@@ -251,7 +263,7 @@ class TestSearchTools:
     async def test_list_saved_searches(self, client):
         """Test listing saved searches."""
         with patch(
-            "src.tools.search.saved_search_tools.ListSavedSearches.get_splunk_service"
+            "src.tools.search.list_saved_searches.ListSavedSearches.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
             mock_saved_search = Mock()

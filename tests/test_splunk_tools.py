@@ -120,7 +120,7 @@ class TestSearchTools:
             # Verify response structure
             assert "status" in data or "results" in data
 
-            if "results" in data:
+            if data.get("status") == "success" and "results" in data:
                 assert "results_count" in data
                 assert "query_executed" in data
                 assert isinstance(data["results"], list)

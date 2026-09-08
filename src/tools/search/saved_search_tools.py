@@ -11,9 +11,10 @@ from typing import Any, Literal
 
 from fastmcp import Context
 from splunklib import client as spl_client
-from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.splunk_job_results_page import JOB_TTL_SECONDS, apply_job_ttl, fetch_job_results_page
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.saved_search_acl import (
     get_saved_search_acl,
@@ -129,148 +130,6 @@ def _apply_saved_search_namespace(service: Any, saved_search: Any) -> Any:
     return original_namespace
 
 
-class ListSavedSearches(BaseTool):
-    """
-    List saved searches available in the Splunk environment with filtering options.
-    Returns metadata about saved searches including ownership, scheduling, and permissions.
-    """
-
-    METADATA = ToolMetadata(
-        name="list_saved_searches",
-        description=(
-            "List saved searches with ownership, schedule, visibility, and permission metadata. "
-            "Use this to discover available reports/automations and to filter by owner/app/sharing. "
-            "Results reflect only saved searches the current user can access.\n\n"
-            "Args:\n"
-            "    owner (str, optional): Filter by owner name (optional)\n"
-            "    app (str, optional): Filter by application name (optional)\n"
-            "    sharing (str, optional): Filter by sharing level (optional)\n"
-            "    include_disabled (bool, optional): Include disabled saved searches (default: False)\n\n"
-        ),
-        category="search",
-        tags=["saved_searches", "list", "metadata"],
-        requires_connection=True,
-    )
-
-    async def execute(
-        self,
-        ctx: Context,
-        owner: str | None = None,
-        app: str | None = None,
-        sharing: Literal["user", "app", "global", "system"] | None = None,
-        include_disabled: bool = False,
-    ) -> dict[str, Any]:
-        """
-        List saved searches with optional filtering.
-
-        Args:
-            owner: Filter by owner name (optional)
-            app: Filter by application name (optional)
-            sharing: Filter by sharing level (optional)
-            include_disabled: Include disabled saved searches (default: False)
-
-        Returns:
-            Dict containing:
-                - saved_searches: List of saved search metadata
-                - total_count: Total number of saved searches found
-                - filtered_count: Number after applying filters
-
-        Example:
-            list_saved_searches(owner="admin", app="search", include_disabled=True)
-        """
-        log_tool_execution("list_saved_searches", owner=owner, app=app, sharing=sharing)
-
-        is_available, service, error_msg = self.check_splunk_available(ctx)
-        if not is_available:
-            await ctx.error(f"List saved searches failed: {error_msg}")
-            return self.format_error_response(error_msg, saved_searches=[], total_count=0)
-
-        original_namespace = getattr(service, "namespace", None)
-        try:
-            await ctx.info("Retrieving saved searches list")
-            saved_searches_list = []
-            total_count = 0
-
-            # Enumerate across all apps/owners; default session NS omits many alerts.
-            service.namespace = spl_client.namespace(owner="-", app="-")
-
-            for saved_search in service.saved_searches:
-                total_count += 1
-                acl = get_saved_search_acl(saved_search)
-                perms = acl.get("perms") if isinstance(acl.get("perms"), dict) else {}
-
-                search_info = {
-                    "name": saved_search.name,
-                    "search": saved_search.content.get("search", ""),
-                    "description": saved_search.content.get("description", ""),
-                    "owner": acl.get("owner", "") or "",
-                    "app": acl.get("app", "") or "",
-                    "sharing": acl.get("sharing", "") or "",
-                    "disabled": self._convert_splunk_boolean(
-                        saved_search.content.get("disabled"), False
-                    ),
-                    "is_scheduled": self._convert_splunk_boolean(
-                        saved_search.content.get("is_scheduled"), False
-                    ),
-                    "is_visible": self._convert_splunk_boolean(
-                        saved_search.content.get("is_visible"), True
-                    ),
-                    "cron_schedule": saved_search.content.get("cron_schedule", ""),
-                    "next_scheduled_time": saved_search.content.get("next_scheduled_time", ""),
-                    "earliest_time": saved_search.content.get("dispatch.earliest_time", ""),
-                    "latest_time": saved_search.content.get("dispatch.latest_time", ""),
-                    "updated": saved_search.content.get("updated", ""),
-                    "permissions": {
-                        "read": perms.get("read", []),
-                        "write": perms.get("write", []),
-                    },
-                }
-
-                if owner and search_info["owner"] != owner:
-                    continue
-                if app and search_info["app"] != app:
-                    continue
-                if sharing and search_info["sharing"] != sharing:
-                    continue
-                if not include_disabled and search_info["disabled"]:
-                    continue
-
-                saved_searches_list.append(search_info)
-
-            saved_searches_list.sort(key=lambda x: x["name"])
-
-            return self.format_success_response(
-                {
-                    "saved_searches": saved_searches_list,
-                    "total_count": total_count,
-                    "filtered_count": len(saved_searches_list),
-                    "filters_applied": {
-                        "owner": owner,
-                        "app": app,
-                        "sharing": sharing,
-                        "include_disabled": include_disabled,
-                    },
-                }
-            )
-
-        except Exception as e:
-            self.logger.error(f"Failed to list saved searches: {str(e)}")
-            await ctx.error(f"Failed to list saved searches: {str(e)}")
-            return self.format_error_response(str(e), saved_searches=[], total_count=0)
-        finally:
-            service.namespace = original_namespace
-
-    def _convert_splunk_boolean(self, value, default=False):
-        """Convert Splunk boolean values to Python booleans"""
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.lower() in ("1", "true", "yes", "on")
-        if isinstance(value, int | float):
-            return bool(value)
-        return default
-
-
 class ExecuteSavedSearch(BaseTool):
     """
     Execute a saved search by name with optional parameter overrides.
@@ -283,7 +142,8 @@ class ExecuteSavedSearch(BaseTool):
             "Run a saved search by name with optional time overrides and mode selection. Use this to "
             "execute existing reports/automations quickly. Choose 'oneshot' for immediate results or "
             "'job' for progress tracking and large result sets.\\n\\n"
-            "Outputs: results list (capped by max_results), mode used, timing, and job id (if job).\\n"
+            "Outputs: first result page, paging fields, job_id, and Splunk Web job links. "
+            "If has_more is true, call get_search_job_results with job_id and offset=next_offset.\\n"
             "Security: execution and results are constrained by the authenticated user's permissions."
         ),
         category="search",
@@ -407,38 +267,14 @@ class ExecuteSavedSearch(BaseTool):
     async def _execute_oneshot(
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
-        """Execute saved search in oneshot mode"""
+        """Execute saved search and keep the job for paging."""
         job = saved_search.dispatch(**dispatch_kwargs)
-
+        apply_job_ttl(job, JOB_TTL_SECONDS)
         while not job.is_done():
             job.refresh()
             await asyncio.sleep(0.1)
-
-        results = []
-        result_count = 0
-
-        reader = JSONResultsReader(
-            job.results(output_mode="json", count=max_results)
-        )
-        for result in reader:
-            if isinstance(result, dict):
-                results.append(result)
-                result_count += 1
-                if result_count >= max_results:
-                    break
-
-        duration = time.time() - start_time
-
-        return self.format_success_response(
-            {
-                "saved_search_name": saved_search.name,
-                "results": results,
-                "results_count": result_count,
-                "execution_mode": "oneshot",
-                "duration": round(duration, 3),
-                "search_query": saved_search.content.get("search", ""),
-                "dispatch_parameters": dispatch_kwargs,
-            }
+        return await self._paged_saved_search_response(
+            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "oneshot"
         )
 
     async def _execute_job(
@@ -446,6 +282,7 @@ class ExecuteSavedSearch(BaseTool):
     ) -> dict[str, Any]:
         """Execute saved search in job mode with progress tracking"""
         job = saved_search.dispatch(**dispatch_kwargs)
+        apply_job_ttl(job, JOB_TTL_SECONDS)
 
         # Wait for job completion with progress reporting
         while not job.is_done():
@@ -456,43 +293,47 @@ class ExecuteSavedSearch(BaseTool):
             await asyncio.sleep(0.5)
             job.refresh()
 
-        # Get job statistics
-        stats = job.content
-
-        # Get results
-        results = []
-        result_count = 0
-
-        kwargs_paginate = {"count": max_results, "output_mode": "json"}
-        reader = JSONResultsReader(job.results(**kwargs_paginate))
-        for result in reader:
-            if isinstance(result, dict):
-                results.append(result)
-                result_count += 1
-                if result_count >= max_results:
-                    break
-
-        duration = time.time() - start_time
-
-        return self.format_success_response(
-            {
-                "saved_search_name": saved_search.name,
-                "job_id": job.sid,
-                "results": results,
-                "results_count": result_count,
-                "execution_mode": "job",
-                "scan_count": int(float(stats.get("scanCount", 0))),
-                "event_count": int(float(stats.get("eventCount", 0))),
-                "duration": round(duration, 3),
-                "search_query": saved_search.content.get("search", ""),
-                "dispatch_parameters": dispatch_kwargs,
-                "status": {
-                    "is_finalized": stats.get("isFinalized", "0") == "1",
-                    "is_failed": stats.get("isFailed", "0") == "1",
-                    "progress": 100,
-                },
-            }
+        return await self._paged_saved_search_response(
+            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "job"
         )
+
+    async def _paged_saved_search_response(
+        self,
+        ctx: Context,
+        saved_search: Any,
+        job: Any,
+        dispatch_kwargs: dict,
+        max_results: int,
+        start_time: float,
+        mode: str,
+    ) -> dict[str, Any]:
+        stats = job.content or {}
+        page = await asyncio.to_thread(fetch_job_results_page, job, count=max_results, offset=0)
+        client_config = await self.get_client_config_from_context(ctx)
+        service = getattr(saved_search, "service", None) or getattr(job, "service", None)
+        links = web_links_from_service(service, client_config) if service else None
+        payload = {
+            "saved_search_name": saved_search.name,
+            "results": page.results,
+            "results_count": page.paging["count"],
+            "execution_mode": mode,
+            "duration": round(time.time() - start_time, 3),
+            "search_query": saved_search.content.get("search", ""),
+            "dispatch_parameters": dispatch_kwargs,
+            "scan_count": int(float(stats.get("scanCount", 0) or 0)),
+            "event_count": int(float(stats.get("eventCount", 0) or 0)),
+            "status": {
+                "is_finalized": stats.get("isFinalized", "0") == "1",
+                "is_failed": stats.get("isFailed", "0") == "1",
+                "progress": 100,
+            },
+            **page.paging,
+        }
+        if links:
+            payload.update(links.job_links(job.sid))
+        else:
+            payload["job_id"] = job.sid
+        return self.format_success_response(payload)
 
     def _convert_splunk_boolean(self, value, default=False):
         """Convert Splunk boolean values to Python booleans"""

@@ -21,6 +21,7 @@ __all__ = [
     # Search tools
     "OneshotSearch",
     "JobSearch",
+    "GetSearchJobResults",
     "ListSavedSearches",
     "ExecuteSavedSearch",
     "CreateSavedSearch",

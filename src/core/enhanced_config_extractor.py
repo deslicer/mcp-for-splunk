@@ -204,6 +204,9 @@ class EnhancedConfigExtractor:
                     "splunk_password": "splunk_password",
                     "splunk_scheme": "splunk_scheme",
                     "splunk_protocol": "splunk_scheme",
+                    "splunk_web_url": "splunk_web_url",
+                    "splunk_web_port": "splunk_web_port",
+                    "splunk_web_locale": "splunk_web_locale",
                 }
                 metadata_mapping[_splunk_t] = _splunk_t
                 metadata_mapping["splunk_bearer_" + _tok] = _splunk_t
@@ -530,6 +533,9 @@ class EnhancedConfigExtractor:
                 "SPLUNK_PASSWORD": "splunk_password",
                 "SPLUNK_SCHEME": "splunk_scheme",
                 "SPLUNK_VERIFY_SSL": "splunk_verify_ssl",
+                "SPLUNK_WEB_URL": "splunk_web_url",
+                "SPLUNK_WEB_PORT": "splunk_web_port",
+                "SPLUNK_WEB_LOCALE": "splunk_web_locale",
             }
             env_mapping["SPLUNK_" + _tok.upper()] = _splunk_t
             env_mapping["SPLUNK_SESSION_" + _tok.upper()] = "splunk_session_" + _tok
@@ -538,7 +544,7 @@ class EnhancedConfigExtractor:
                 env_value = os.getenv(env_var)
                 if env_value:
                     # Handle type conversions
-                    if config_key == "splunk_port":
+                    if config_key in ("splunk_port", "splunk_web_port"):
                         default_config[config_key] = int(env_value)
                     elif config_key == "splunk_verify_ssl":
                         default_config[config_key] = env_value.lower() in ("true", "1", "yes", "on")

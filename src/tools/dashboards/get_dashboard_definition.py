@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 
 
@@ -75,12 +76,8 @@ class GetDashboardDefinition(BaseTool):
                 "output_mode": "json",
             }
 
-            # Get Splunk Web base URL from service
-            splunk_host = service.host
-            # Use HTTPS by default for web UI (typically port 8000)
-            web_port = 8000  # Standard Splunk Web port
-            web_scheme = "https"
-            web_base = f"{web_scheme}://{splunk_host}:{web_port}"
+            client_config = await self.get_client_config_from_context(ctx)
+            links = web_links_from_service(service, client_config)
 
             # Call the REST endpoint for specific dashboard
             endpoint = f"/servicesNS/{owner}/{app}/data/ui/views/{name}"
@@ -127,9 +124,8 @@ class GetDashboardDefinition(BaseTool):
                         dashboard_type = "classic"
                         definition = eai_data
 
-            # Build Splunk Web URL
             dashboard_app = acl.get("app", app)
-            web_url = f"{web_base}/en-US/app/{dashboard_app}/{name}"
+            web_url = links.dashboard(dashboard_app, name)
 
             self.logger.info("Retrieved dashboard '%s' (type=%s)", name, dashboard_type)
             await ctx.info(f"Successfully retrieved dashboard '{name}' (type={dashboard_type})")

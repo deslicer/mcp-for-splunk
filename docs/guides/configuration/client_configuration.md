@@ -457,6 +457,37 @@ for customer_id, config in customer_configs.items():
         })
 ```
 
+## Splunk Web links
+
+Management API (`SPLUNK_HOST` + port `8089`) is not the UI.
+
+Set one of:
+
+- `SPLUNK_WEB_URL=https://splunk-b839c1.deslicer.io`
+- Header `X-Splunk-Web-Url: https://splunk-b839c1.deslicer.io`
+- Client env `MCP_SPLUNK_WEB_URL`
+
+Search tools return `job_id`, `job_details_url`, and `job_inspector_url`.
+Dashboard tools return `web_url` on that same base.
+
+Without an override, HTTPS management uses `https://{host}` (no port). HTTP management uses `http://{host}:8000`. Never use `:8089` for a browser link.
+
+Optional `SPLUNK_WEB_PORT` / `X-Splunk-Web-Port` only when the UI is not on 443 or 8000.
+
+## List and search pagination
+
+List and search tools return one page plus:
+
+- `count` — rows in this page
+- `offset` — starting index
+- `total_available` — Splunk total
+- `has_more` — more rows exist
+- `next_offset` — pass as `offset` on the next call
+
+Catalog lists default to 50 rows (max 200). Search results default to 50 (max 100). `count=0` is rejected.
+
+When a search returns `has_more`, call `get_search_job_results` with the same `job_id` and `offset=next_offset`. The job is kept so page 2 does not rerun SPL.
+
 ## 🔒 **Security Considerations**
 
 1. **Environment Variables** - Use MCP_SPLUNK_* variables for client-specific config

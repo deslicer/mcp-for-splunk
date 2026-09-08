@@ -50,9 +50,13 @@ class MockSplunkService:
         mock_job = Mock()
         mock_job.sid = "test_job_123"
         mock_job.is_done.return_value = True
+        self.host = "so1"
+        self.scheme = "https"
+        self.port = 8089
         mock_job.content = {
             "scanCount": "100",
             "eventCount": "10",
+            "resultCount": "2",
             "isDone": "1",
             "isFinalized": "1",
             "isFailed": "0",
@@ -367,9 +371,71 @@ class MockSplunkService:
             mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
             return mock_response
 
+        collection_entries = self._collection_entries_for_endpoint(endpoint)
+        if collection_entries is not None:
+            offset = int(kwargs.get("offset") or 0)
+            raw_count = kwargs.get("count")
+            count = int(raw_count) if raw_count not in (None, "") else len(collection_entries)
+            search = str(kwargs.get("search") or "")
+            filtered = [
+                entry
+                for entry in collection_entries
+                if self._entry_matches_search(entry, search)
+            ]
+            page = filtered[offset : offset + count]
+            payload = {
+                "entry": page,
+                "paging": {"total": len(filtered), "perPage": count, "offset": offset},
+            }
+            mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
+            return mock_response
+
         # Default empty JSON
         mock_response.body.read.return_value = json.dumps({}).encode("utf-8")
         return mock_response
+
+    def _collection_entries_for_endpoint(self, endpoint: str) -> list[dict] | None:
+        if endpoint.rstrip("/").endswith("/data/indexes"):
+            return [
+                {"name": idx.name, "content": {}, "acl": {}}
+                for idx in self.indexes
+            ]
+        if endpoint.rstrip("/").endswith("/apps/local"):
+            return [
+                {
+                    "name": app.name,
+                    "content": getattr(app, "content", {}),
+                    "acl": {},
+                }
+                for app in self.apps
+            ]
+        if endpoint.rstrip("/").endswith("/authentication/users"):
+            return [
+                {
+                    "name": user.name,
+                    "content": getattr(user, "content", {}),
+                    "acl": {},
+                }
+                for user in self.users
+            ]
+        if "/saved/searches" in endpoint:
+            return []
+        if "/storage/collections/config" in endpoint:
+            return []
+        if "/data/lookup-table-files" in endpoint or "/data/transforms/lookups" in endpoint:
+            return []
+        if "/data/ui/views" in endpoint:
+            return list(self._dashboards.values())
+        return None
+
+    @staticmethod
+    def _entry_matches_search(entry: dict, search: str) -> bool:
+        if not search:
+            return True
+        name = str(entry.get("name") or "")
+        if "NOT name=_*" in search and name.startswith("_"):
+            return False
+        return True
 
     def _setup_mock_configurations(self):
         """Set up mock configuration files with stanzas"""
@@ -726,20 +792,25 @@ def mock_splunk_get_service(mock_splunk_service):
         # Import tool classes and patch their get_splunk_service
         from src.tools.admin.apps import ListApps
         from src.tools.admin.users import ListUsers
+        from src.tools.dashboards.create_dashboard import CreateDashboard
+        from src.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
+        from src.tools.dashboards.list_dashboards import ListDashboards
         from src.tools.health.status import GetSplunkHealth
         from src.tools.kvstore.collections import ListKvstoreCollections
         from src.tools.kvstore.data import GetKvstoreData
         from src.tools.metadata.indexes import ListIndexes
         from src.tools.metadata.sources import ListSources
         from src.tools.metadata.sourcetypes import ListSourcetypes
+        from src.tools.search.job_info import GetSearchJobInfo
+        from src.tools.search.job_results import GetSearchJobResults
         from src.tools.search.job_search import JobSearch
+        from src.tools.search.list_saved_searches import ListSavedSearches
         from src.tools.search.oneshot_search import OneshotSearch
         from src.tools.search.saved_search_tools import (
             CreateSavedSearch,
             DeleteSavedSearch,
             ExecuteSavedSearch,
             GetSavedSearchDetails,
-            ListSavedSearches,
             UpdateSavedSearch,
         )
 
@@ -747,6 +818,11 @@ def mock_splunk_get_service(mock_splunk_service):
             GetSplunkHealth,
             OneshotSearch,
             JobSearch,
+            GetSearchJobResults,
+            GetSearchJobInfo,
+            ListDashboards,
+            GetDashboardDefinition,
+            CreateDashboard,
             ListApps,
             ListUsers,
             ListIndexes,

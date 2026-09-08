@@ -2,15 +2,24 @@
 Job-based search tool for complex Splunk searches with progress tracking.
 """
 
+import asyncio
 import time
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_job_results_page import (
+    JOB_TTL_SECONDS,
+    JobResultsError,
+    apply_job_ttl,
+    fetch_job_results_page,
+)
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.job_message_parser import JobMessageParser
+from src.tools.search.oneshot_search import _resolve_page_size
 
 
 class JobSearch(BaseTool):
@@ -27,8 +36,9 @@ class JobSearch(BaseTool):
             "long‑running queries (joins, transforms, large scans) where you need job status, scan/"
             "event counts, and reliable result retrieval. Prefer this over oneshot when the query may "
             "exceed ~30s or requires progress visibility.\n\n"
-            "Outputs: job id, results (JSON), counts, timing, and job status.\n"
-            "Security: results are constrained by the authenticated user's permissions."
+            "Outputs: job id, first result page, paging fields, and Splunk Web job links. "
+            "If has_more is true, call get_search_job_results with job_id and offset=next_offset.\n"
+            "Security: results are constrained by the authenticated user's permissions.\n\n"
             "Args:\n"
             "    query (str): The Splunk search query (SPL) to execute. Can be any valid SPL command"
             "                or pipeline. Supports complex searches with transforming commands, joins,"
@@ -40,6 +50,9 @@ class JobSearch(BaseTool):
             "    latest_time (str, optional): Search end time in Splunk time format."
             "                Examples: 'now', '-1h', '@d', '2023-01-01T23:59:59'"
             "                Default: 'now'"
+            "    count (int, optional): Page size 1-100 (default 50)\n"
+            "    max_results (int, optional): Deprecated alias for count\n"
+            "    offset (int, optional): Result offset (default 0)"
         ),
         category="search",
         tags=["search", "job", "tracking", "complex"],
@@ -47,7 +60,14 @@ class JobSearch(BaseTool):
     )
 
     async def execute(
-        self, ctx: Context, query: str, earliest_time: str = "-24h", latest_time: str = "now"
+        self,
+        ctx: Context,
+        query: str,
+        earliest_time: str = "-24h",
+        latest_time: str = "now",
+        count: int | None = None,
+        max_results: int | None = None,
+        offset: int = 0,
     ) -> dict[str, Any]:
         """
         Execute a Splunk search job with comprehensive progress tracking and statistics.
@@ -89,6 +109,7 @@ class JobSearch(BaseTool):
 
             # Create the search job
             job = service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
+            apply_job_ttl(job, JOB_TTL_SECONDS)
             await ctx.info(f"Search job created: {job.sid}")
 
             # Poll for completion
@@ -121,7 +142,7 @@ class JobSearch(BaseTool):
                     f"Scanned: {progress_dict['scan_progress']} events, "
                     f"Matched: {progress_dict['event_progress']} events"
                 )
-                time.sleep(2)
+                await asyncio.sleep(2)
 
             # Final check for job failure after completion
             await ctx.report_progress(progress=100, total=100)
@@ -135,39 +156,31 @@ class JobSearch(BaseTool):
                 await ctx.error(f"Search job {job.sid} failed: {error_detail}")
                 return self.format_error_response(f"Search job failed: {error_detail}")
 
-            # Get the results using JSONResultsReader with output_mode=json
-            results = []
-            result_count = 0
             await ctx.info(f"Getting results for search job: {job.sid}")
-
+            page_size = _resolve_page_size(count, max_results)
             try:
-                # Request results in JSON format and use JSONResultsReader
-                reader = JSONResultsReader(job.results(output_mode="json"))
-                for result in reader:
-                    if isinstance(result, dict):
-                        results.append(result)
-                        result_count += 1
-            except Exception as results_error:
-                self.logger.error(f"Error reading results for job {job.sid}: {str(results_error)}")
-                await ctx.error(f"Error reading search results: {str(results_error)}")
-                return self.format_error_response(
-                    f"Error reading search results: {str(results_error)}"
+                page = await asyncio.to_thread(
+                    fetch_job_results_page, job, count=page_size, offset=offset
                 )
+            except (PaginationError, JobResultsError) as results_error:
+                await ctx.error(f"Error reading search results: {results_error}")
+                return self.format_error_response(f"Error reading search results: {results_error}")
 
             # Get final job stats
             stats = job.content
             duration = time.time() - start_time
 
+            client_config = await self.get_client_config_from_context(ctx)
+            links = web_links_from_service(service, client_config)
             return self.format_success_response(
                 {
-                    "job_id": job.sid,
                     "is_done": True,
                     "scan_count": int(float(stats.get("scanCount", 0))),
                     "event_count": int(float(stats.get("eventCount", 0))),
-                    "results": results,
+                    "results": page.results,
                     "earliest_time": stats.get("earliestTime", ""),
                     "latest_time": stats.get("latestTime", ""),
-                    "results_count": result_count,
+                    "results_count": page.paging["count"],
                     "query_executed": query,
                     "duration": round(duration, 3),
                     "job_status": {
@@ -175,6 +188,8 @@ class JobSearch(BaseTool):
                         "is_finalized": stats.get("isFinalized", "0") == "1",
                         "is_failed": stats.get("isFailed", "0") == "1",
                     },
+                    **page.paging,
+                    **links.job_links(job.sid),
                 }
             )
 

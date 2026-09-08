@@ -5,72 +5,58 @@ Tool for listing Splunk data sources.
 from typing import Any
 
 from fastmcp import Context
-from splunklib.results import JSONResultsReader
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_metadata_page import fetch_metadata_page
 from src.core.utils import log_tool_execution
 
 
 class ListSources(BaseTool):
     """
-    List all available data sources from the configured Splunk instance using metadata command.
-    This tool provides a comprehensive inventory of data sources in your Splunk environment.
+    List data sources from the configured Splunk instance using metadata.
     """
 
     METADATA = ToolMetadata(
         name="list_sources",
         description=(
-            "Discover and enumerate all available data sources from the configured Splunk instance "
-            "using the metadata command. This tool provides a comprehensive inventory of data sources "
-            "across all indexes, helping with data discovery, troubleshooting, and understanding "
-            "the data landscape in your Splunk environment. Sources represent the origin points "
-            "of data such as log files, network streams, databases, and other data inputs.\n\n"
-            "Use Cases:\n"
-            "- Data discovery and cataloging\n"
-            "- Troubleshooting missing data sources\n"
-            "- Understanding data flow and origins\n"
-            "- Planning data retention and archival\n"
-            "- Security analysis and audit trails\n\n"
-            "Response Format:\n"
-            "Returns a dictionary with 'status' field and 'data' containing:\n"
-            "- sources: Sorted array of all data source paths/identifiers\n"
-            "- count: Total number of unique sources discovered"
+            "Discover data sources using the metadata command. Sources can be numerous; "
+            "results are paged. If has_more is true, call again with offset=next_offset.\n\n"
+            "Args:\n"
+            "    count (int, optional): Page size 1-100 (default 50)\n"
+            "    offset (int, optional): Result offset (default 0)\n"
+            "    index (str, optional): Limit to one index"
         ),
         category="metadata",
         tags=["sources", "metadata", "discovery"],
         requires_connection=True,
     )
 
-    async def execute(self, ctx: Context) -> dict[str, Any]:
-        """
-        List all data sources.
-
-        Returns:
-            Dict containing list of sources and count
-        """
-        log_tool_execution("list_sources")
-
+    async def execute(
+        self,
+        ctx: Context,
+        count: int = 50,
+        offset: int = 0,
+        index: str | None = None,
+    ) -> dict[str, Any]:
+        log_tool_execution("list_sources", count=count, offset=offset, index=index)
         is_available, service, error_msg = self.check_splunk_available(ctx)
-
         if not is_available:
             return self.format_error_response(error_msg)
 
-        self.logger.info("Retrieving list of sources...")
-
         try:
-            # Use metadata command to retrieve sources
-            job = service.jobs.oneshot(
-                "| metadata type=sources index=_* index=* | table source",
-                output_mode="json",
+            page = fetch_metadata_page(
+                service,
+                metadata_type="sources",
+                field="source",
+                count=count,
+                offset=offset,
+                index=index,
             )
-
-            sources = []
-            for result in JSONResultsReader(job):
-                if isinstance(result, dict) and "source" in result:
-                    sources.append(result["source"])
-
-            self.logger.info(f"Retrieved {len(sources)} sources")
-            return self.format_success_response({"sources": sorted(sources), "count": len(sources)})
-        except Exception as e:
-            self.logger.error(f"Failed to retrieve sources: {str(e)}")
+        except PaginationError as e:
             return self.format_error_response(str(e))
+        except Exception as e:
+            self.logger.error("Failed to retrieve sources: %s", e)
+            return self.format_error_response(str(e))
+
+        return self.format_success_response({"sources": page.values, **page.paging})

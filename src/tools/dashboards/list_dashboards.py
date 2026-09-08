@@ -8,6 +8,9 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_rest_page import fetch_rest_collection_page
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 
 
@@ -29,7 +32,7 @@ class ListDashboards(BaseTool):
             "    owner (str, optional): Filter by owner. Use 'me' for current user's dashboards, "
             "'nobody' for shared dashboards, or a specific username. Default: 'nobody'\n"
             "    app (str, optional): Filter by app context. Default: '-' (all apps)\n"
-            "    count (int, optional): Max results to return. 0=all, default: 50 for performance\n"
+            "    count (int, optional): Page size 1-200 (default 50). If has_more, use offset=next_offset\n"
             "    offset (int, optional): Result offset for pagination. Default: 0\n"
             "    search_filter (str, optional): Filter results (e.g., 'name=*security*')\n"
             "    type_filter (str, optional): Filter by type: 'classic', 'studio', or 'any'. Default: 'any'\n"
@@ -61,7 +64,7 @@ class ListDashboards(BaseTool):
         Args:
             owner: Filter by owner (use 'me' for current user, default: nobody for all)
             app: Filter by app (default: - for all)
-            count: Maximum results (default: 50 for performance, 0 for all)
+            count: Page size 1-200 (default: 50)
             offset: Pagination offset
             search_filter: Optional search filter
             type_filter: Filter by dashboard type (classic/studio/any)
@@ -107,37 +110,18 @@ class ListDashboards(BaseTool):
 
             await ctx.info(f"Retrieving dashboards from Splunk (owner={owner}, app={app})")
 
-            # Build request parameters
-            params = {
-                "output_mode": "json",
-                "count": count,
-                "offset": offset,
-            }
-
-            # Filter for dashboards only
             base_filter = "isDashboard=1"
-            if search_filter:
-                params["search"] = f"{base_filter} {search_filter}"
-            else:
-                params["search"] = base_filter
-
-            # Get Splunk Web base URL from service
-            splunk_host = service.host
-            # Use HTTPS by default for web UI (typically port 8000)
-            web_port = 8000  # Standard Splunk Web port
-            web_scheme = "https"
-            web_base = f"{web_scheme}://{splunk_host}:{web_port}"
-
-            # Call the REST endpoint
-            endpoint = f"/servicesNS/{owner}/{app}/data/ui/views"
-            response = service.get(endpoint, **params)
-
-            # Parse JSON response
-            response_body = response.body.read()
-            data = json.loads(response_body)
-
-            # Extract and format entries
-            entries = data.get("entry", [])
+            combined_filter = f"{base_filter} {search_filter}".strip() if search_filter else base_filter
+            page = fetch_rest_collection_page(
+                service,
+                f"/servicesNS/{owner}/{app}/data/ui/views",
+                count=count,
+                offset=offset,
+                search_filter=combined_filter,
+            )
+            client_config = await self.get_client_config_from_context(ctx)
+            links = web_links_from_service(service, client_config)
+            entries = page.entries
             dashboards = []
 
             for entry in entries:
@@ -179,8 +163,7 @@ class ListDashboards(BaseTool):
                 if private_only and sharing != "user":
                     continue  # Skip non-private dashboards
 
-                # Build Splunk Web URL
-                web_url = f"{web_base}/en-US/app/{dashboard_app}/{dashboard_name}"
+                web_url = links.dashboard(dashboard_app, dashboard_name)
 
                 # Safely handle perms which could be None
                 perms = acl.get("perms") or {}
@@ -210,15 +193,16 @@ class ListDashboards(BaseTool):
             return self.format_success_response(
                 {
                     "dashboards": dashboards,
-                    "count": len(dashboards),
-                    "total_available": data.get("paging", {}).get("total", len(dashboards)),
-                    "offset": offset,
+                    **page.paging,
                     "type_filter": type_filter,
                     "private_only": private_only,
                     "owner_filter": owner,
                 }
             )
 
+        except PaginationError as e:
+            await ctx.error(str(e))
+            return self.format_error_response(str(e))
         except Exception as e:  # pylint: disable=broad-except
             self.logger.error("Failed to list dashboards: %s", str(e), exc_info=True)
             await ctx.error(f"Failed to list dashboards: {str(e)}")

@@ -2,12 +2,13 @@
 List lookup definitions (transforms) from Splunk.
 """
 
-import json
 from typing import Any
 
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
 
@@ -29,7 +30,7 @@ class ListLookupDefinitions(BaseTool):
             "Args:\n"
             "    owner (str, optional): Filter by owner. Default: 'nobody' (all users)\n"
             "    app (str, optional): Filter by app context. Default: '-' (all apps)\n"
-            "    count (int, optional): Max results to return. 0=all, default: 50 for performance\n"
+            "    count (int, optional): Page size 1-200 (default 50). If has_more, use offset=next_offset\n"
             "    offset (int, optional): Result offset for pagination. Default: 0\n"
             "    search_filter (str, optional): Filter results (e.g., 'filename=*.csv')"
         ),
@@ -78,30 +79,16 @@ class ListLookupDefinitions(BaseTool):
 
         try:
             await ctx.info(f"Retrieving lookup definitions from Splunk (owner={owner}, app={app})")
-
-            # Build request parameters
-            params = {
-                "output_mode": "json",
-                "count": count,
-                "offset": offset,
-            }
-
-            if search_filter:
-                params["search"] = search_filter
-
-            # Call the REST endpoint
-            endpoint = f"/servicesNS/{owner}/{app}/data/transforms/lookups"
-            response = service.get(endpoint, **params)
-
-            # Parse JSON response
-            response_body = response.body.read()
-            data = json.loads(response_body)
-
-            # Extract and format entries
-            entries = data.get("entry", [])
+            page = fetch_rest_collection_page(
+                service,
+                f"/servicesNS/{owner}/{app}/data/transforms/lookups",
+                count=count,
+                offset=offset,
+                search_filter=search_filter,
+            )
             definitions = []
 
-            for entry in entries:
+            for entry in page.entries:
                 content = entry.get("content", {})
                 acl = entry.get("acl", {})
 
@@ -135,12 +122,13 @@ class ListLookupDefinitions(BaseTool):
             return self.format_success_response(
                 {
                     "lookup_definitions": definitions,
-                    "count": len(definitions),
-                    "total_available": data.get("paging", {}).get("total", len(definitions)),
-                    "offset": offset,
+                    **page.paging,
                 }
             )
 
+        except PaginationError as e:
+            await ctx.error(str(e))
+            return self.format_error_response(str(e))
         except Exception as e:  # pylint: disable=broad-except
             self.logger.error("Failed to list lookup definitions: %s", str(e), exc_info=True)
             await ctx.error(f"Failed to list lookup definitions: {str(e)}")

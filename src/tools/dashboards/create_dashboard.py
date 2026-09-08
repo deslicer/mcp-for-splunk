@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 from src.tools.dashboards.studio_wrapper import (
     DashboardDefinitionPreparer,
@@ -174,10 +175,8 @@ class CreateDashboard(BaseTool):
                 + ")"
             )
 
-            splunk_host = getattr(service, "host", "localhost")
-            web_scheme = getattr(service, "scheme", "https")
-            web_port = 443 if web_scheme == "https" else 8000
-            web_base = f"{web_scheme}://{splunk_host}:{web_port}"
+            client_config = await self.get_client_config_from_context(ctx)
+            links = web_links_from_service(service, client_config)
 
             endpoint = f"/servicesNS/{owner}/{app}/data/ui/views"
             create_payload = self._build_create_payload(name, prepared)
@@ -248,7 +247,7 @@ class CreateDashboard(BaseTool):
             content = (entry or {}).get("content", {})
             acl = (entry or {}).get("acl", {})
             dashboard_app = acl.get("app", app)
-            web_url = f"{web_base}/en-US/app/{dashboard_app}/{name}"
+            web_url = links.dashboard(dashboard_app, name)
 
             await ctx.info(
                 f"Dashboard '{name}' {'created' if created else 'updated'} (type={resolved_type})"

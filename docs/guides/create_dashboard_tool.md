@@ -204,10 +204,12 @@ result = await create_dashboard.execute(
         "read": ["*"],
         "write": ["admin", "power"]
     },
-    "web_url": "https://splunk:8000/en-US/app/search/system_health",
+    "web_url": "https://splunk-b839c1.deslicer.io/en-US/app/search/system_health",
     "id": "https://splunk:8089/servicesNS/nobody/search/data/ui/views/system_health"
 }
 ```
+
+`web_url` uses `SPLUNK_WEB_URL` / `X-Splunk-Web-Url` when set. Otherwise HTTPS hosts omit the port (`https://splunk.example.com/...`) and local HTTP uses `:8000` (`http://so1:8000/...`). Management port `8089` is never used.
 
 ### Error Response
 

@@ -53,6 +53,9 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
         "X-Splunk-Password": "splunk_password",
         "X-Splunk-Scheme": "splunk_scheme",
         "X-Splunk-Verify-SSL": "splunk_verify_ssl",
+        "X-Splunk-Web-Url": "splunk_web_url",
+        "X-Splunk-Web-Port": "splunk_web_port",
+        "X-Splunk-Web-Locale": "splunk_web_locale",
         _hdr_bearer: _splunk_t,
         _hdr_session: _splunk_session_t,
     }
@@ -60,7 +63,7 @@ def extract_client_config_from_headers(headers: dict) -> dict | None:
     for header_name, config_key in header_mapping.items():
         header_value = headers.get(header_name) or headers.get(header_name.lower())
         if header_value:
-            if config_key == "splunk_port":
+            if config_key in ("splunk_port", "splunk_web_port"):
                 try:
                     client_config[config_key] = int(header_value)
                 except (ValueError, TypeError):
