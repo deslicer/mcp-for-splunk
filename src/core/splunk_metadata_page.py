@@ -6,7 +6,12 @@ from typing import Any, Literal
 
 from splunklib.results import JSONResultsReader
 
-from src.core.list_paging import PaginationError, PaginationParams, build_paging, validate_pagination
+from src.core.list_paging import (
+    PaginationError,
+    PaginationParams,
+    build_paging,
+    validate_pagination,
+)
 
 _INDEX_NAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_\-]*$")
 MetadataType = Literal["sources", "sourcetypes", "hosts"]

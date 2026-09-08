@@ -16,7 +16,7 @@ List CSV lookup table files available in Splunk.
 {
     "owner": "nobody",      # Optional: Filter by owner (default: nobody)
     "app": "-",             # Optional: Filter by app (default: - for all)
-    "count": 0,             # Optional: Max results, 0=all (default: 0)
+    "count": 50,            # Optional: Page size 1-200 (default: 50)
     "offset": 0,            # Optional: Pagination offset (default: 0)
     "search_filter": ""     # Optional: Filter like 'name=*geo*'
 }
@@ -82,7 +82,7 @@ List lookup definitions (transforms) configured in Splunk.
 {
     "owner": "nobody",
     "app": "-",
-    "count": 0,
+    "count": 50,
     "offset": 0,
     "search_filter": ""
 }
@@ -150,7 +150,7 @@ List dashboards in Splunk (both Simple XML and Dashboard Studio).
 {
     "owner": "nobody",
     "app": "-",
-    "count": 0,
+    "count": 50,
     "offset": 0,
     "search_filter": "",           # Optional: Filter like 'name=*security*'
     "type_filter": "any"           # Optional: 'classic', 'studio', or 'any'
@@ -177,7 +177,7 @@ List dashboards in Splunk (both Simple XML and Dashboard Studio).
                 "read": ["*"],
                 "write": ["admin"]
             },
-            "web_url": "https://splunk:8000/en-US/app/search/security_overview",
+            "web_url": "https://splunk-b839c1.deslicer.io/en-US/app/search/security_overview",
             "id": "https://splunk:8089/servicesNS/nobody/search/data/ui/views/security_overview"
         },
         {
@@ -194,7 +194,7 @@ List dashboards in Splunk (both Simple XML and Dashboard Studio).
                 "read": ["admin", "power"],
                 "write": ["admin"]
             },
-            "web_url": "https://splunk:8000/en-US/app/myapp/performance_dashboard",
+            "web_url": "https://splunk-b839c1.deslicer.io/en-US/app/myapp/performance_dashboard",
             "id": "https://splunk:8089/servicesNS/admin/myapp/data/ui/views/performance_dashboard"
         }
     ],
@@ -258,7 +258,7 @@ Get the raw definition of a specific dashboard (Simple XML or Dashboard Studio J
         "read": ["*"],
         "write": ["admin"]
     },
-    "web_url": "https://splunk:8000/en-US/app/search/security_overview",
+    "web_url": "https://splunk-b839c1.deslicer.io/en-US/app/search/security_overview",
     "id": "https://splunk:8089/servicesNS/nobody/search/data/ui/views/security_overview"
 }
 ```
@@ -301,7 +301,7 @@ Get the raw definition of a specific dashboard (Simple XML or Dashboard Studio J
         "read": ["admin", "power"],
         "write": ["admin"]
     },
-    "web_url": "https://splunk:8000/en-US/app/myapp/performance_dashboard",
+    "web_url": "https://splunk-b839c1.deslicer.io/en-US/app/myapp/performance_dashboard",
     "id": "https://splunk:8089/servicesNS/admin/myapp/data/ui/views/performance_dashboard"
 }
 ```
@@ -364,7 +364,7 @@ get_dashboard_definition with:
    ```
 
 4. **Open in Splunk Web:**
-   Use the `web_url` from the response
+   Use the `web_url` from the response. Set `SPLUNK_WEB_URL` (or `X-Splunk-Web-Url`) so Cloud/HTTPS hosts do not get a guessed `:8000` port. Local HTTP still uses `http://{host}:8000`.
 
 ---
 
@@ -385,17 +385,19 @@ All tools respect Splunk's role-based access control (RBAC):
 
 ## Pagination
 
-For large environments, use pagination:
+List tools return one page. Default `count` is 50 (max 200). `count=0` is rejected.
+
+When `has_more` is true, call again with `offset=next_offset`.
 
 ```python
-# Get first 100 lookups
-list_lookup_files with count: 100, offset: 0
+# First page
+list_lookup_files with count: 50, offset: 0
 
-# Get next 100
-list_lookup_files with count: 100, offset: 100
+# Next page
+list_lookup_files with count: 50, offset: 50
 ```
 
-Set `count: 0` to retrieve all results (default).
+Responses include `count`, `offset`, `total_available`, `has_more`, and `next_offset`.
 
 ---
 
