@@ -230,7 +230,7 @@ imports:
   JSONResultsReader: splunklib.results.JSONResultsReader
   ListAdminTopics: splunk_docs_tools.ListAdminTopics
   ListAvailableTopics: splunk_docs_tools.ListAvailableTopics
-  ListSavedSearches: saved_search_tools.ListSavedSearches
+  ListSavedSearches: list_saved_searches.ListSavedSearches
   ListSPLCommands: splunk_docs_tools.ListSPLCommands
   ListTroubleshootingTopics: splunk_docs_tools.ListTroubleshootingTopics
   ListWorkflowsTool: list_workflows.ListWorkflowsTool

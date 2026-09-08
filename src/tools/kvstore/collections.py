@@ -9,6 +9,8 @@ from splunklib import client as spl_client
 from splunklib.binding import HTTPError
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
 
@@ -87,14 +89,22 @@ class ListKvstoreCollections(BaseTool):
             "Outputs: array of collections with name, fields, accelerated_fields, replicated; and total count.\n"
             "Security: results are constrained by the authenticated user's permissions."
             "Args:\n"
-            "    app (str, optional): Optional app name to filter collections\n\n"
+            "    app (str, optional): Optional app name to filter collections\n"
+            "    count (int, optional): Page size 1-200 (default 50)\n"
+            "    offset (int, optional): Result offset (default 0)\n\n"
         ),
         category="kvstore",
         tags=["kvstore", "collections", "storage"],
         requires_connection=True,
     )
 
-    async def execute(self, ctx: Context, app: str | None = None) -> dict[str, Any]:
+    async def execute(
+        self,
+        ctx: Context,
+        app: str | None = None,
+        count: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
         """
         List KV Store collections, optionally filtered by app.
 
@@ -104,53 +114,47 @@ class ListKvstoreCollections(BaseTool):
         Returns:
             Dict containing collections and their properties
         """
-        log_tool_execution("list_kvstore_collections", app=app)
+        log_tool_execution("list_kvstore_collections", app=app, count=count, offset=offset)
 
         is_available, service, error_msg = self.check_splunk_available(ctx)
 
         if not is_available:
             return self.format_error_response(error_msg)
 
-        self.logger.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
+        ns_app = app or "-"
         await ctx.info(f"Retrieving KV Store collections for app: {app if app else 'all apps'}")
-
         try:
-            collections = []
-            original_namespace = getattr(service, "namespace", None)
-            if app:
-                service.namespace = spl_client.namespace(app=app, owner="nobody", sharing="app")
-
-            try:
-                kvstore = service.kvstore
-                for collection in kvstore:
-                    # Derive fields from either 'fields' dict or 'field.<name>' entries
-                    content = collection.content or {}
-                    fields_dict = content.get("fields")
-                    if not fields_dict:
-                        fp = {
-                            k.split(".", 1)[1]: v
-                            for k, v in content.items()
-                            if isinstance(k, str) and k.startswith("field.")
-                        }
-                        fields_dict = fp if fp else {}
-                    collections.append(
-                        {
-                            "name": collection.name,
-                            "fields": fields_dict,
-                            "accelerated_fields": content.get("accelerated_fields", {}),
-                            "replicated": content.get("replicated", False),
-                        }
-                    )
-            finally:
-                service.namespace = original_namespace
-
-            await ctx.info(f"Found {len(collections)} collections")
-            return self.format_success_response(
-                {"count": len(collections), "collections": collections}
+            page = fetch_rest_collection_page(
+                service,
+                f"/servicesNS/nobody/{ns_app}/storage/collections/config",
+                count=count,
+                offset=offset,
             )
+            collections = []
+            for entry in page.entries:
+                content = entry.get("content") or {}
+                fields_dict = content.get("fields")
+                if not fields_dict:
+                    fields_dict = {
+                        key.split(".", 1)[1]: value
+                        for key, value in content.items()
+                        if isinstance(key, str) and key.startswith("field.")
+                    }
+                collections.append(
+                    {
+                        "name": entry.get("name"),
+                        "fields": fields_dict or {},
+                        "accelerated_fields": content.get("accelerated_fields", {}),
+                        "replicated": content.get("replicated", False),
+                    }
+                )
+            await ctx.info(f"Returned {len(collections)} collections (offset={offset})")
+            return self.format_success_response({"collections": collections, **page.paging})
+        except PaginationError as e:
+            return self.format_error_response(str(e))
         except Exception as e:
-            self.logger.error(f"Failed to list KV Store collections: {str(e)}")
-            await ctx.error(f"Failed to list KV Store collections: {str(e)}")
+            self.logger.error("Failed to list KV Store collections: %s", e)
+            await ctx.error(f"Failed to list KV Store collections: {e}")
             return self.format_error_response(str(e))
 
 

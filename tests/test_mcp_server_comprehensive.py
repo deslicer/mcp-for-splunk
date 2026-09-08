@@ -251,7 +251,7 @@ class TestSearchTools:
     async def test_list_saved_searches(self, client):
         """Test listing saved searches."""
         with patch(
-            "src.tools.search.saved_search_tools.ListSavedSearches.get_splunk_service"
+            "src.tools.search.list_saved_searches.ListSavedSearches.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
             mock_saved_search = Mock()

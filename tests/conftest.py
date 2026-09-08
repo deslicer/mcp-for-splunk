@@ -796,12 +796,12 @@ def mock_splunk_get_service(mock_splunk_service):
         from src.tools.metadata.sourcetypes import ListSourcetypes
         from src.tools.search.job_search import JobSearch
         from src.tools.search.oneshot_search import OneshotSearch
+        from src.tools.search.list_saved_searches import ListSavedSearches
         from src.tools.search.saved_search_tools import (
             CreateSavedSearch,
             DeleteSavedSearch,
             ExecuteSavedSearch,
             GetSavedSearchDetails,
-            ListSavedSearches,
             UpdateSavedSearch,
         )
 

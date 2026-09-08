@@ -2,12 +2,13 @@
 List lookup CSV files from Splunk.
 """
 
-import json
 from typing import Any
 
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
 
@@ -30,7 +31,7 @@ class ListLookupFiles(BaseTool):
             "Args:\n"
             "    owner (str, optional): Filter by owner. Default: 'nobody' (all users)\n"
             "    app (str, optional): Filter by app context. Default: '-' (all apps)\n"
-            "    count (int, optional): Max results to return. 0=all, default: 50 for performance\n"
+            "    count (int, optional): Page size 1-200 (default 50). If has_more, use offset=next_offset\n"
             "    offset (int, optional): Result offset for pagination. Default: 0\n"
             "    search_filter (str, optional): Filter results (e.g., 'name=*geo*')"
         ),
@@ -54,7 +55,7 @@ class ListLookupFiles(BaseTool):
         Args:
             owner: Filter by owner (default: nobody for all)
             app: Filter by app (default: - for all)
-            count: Maximum results (default: 50 for performance, 0 for all)
+            count: Maximum results (default: 50, max 200)
             offset: Pagination offset
             search_filter: Optional search filter like 'name=*pattern*'
 
@@ -79,30 +80,16 @@ class ListLookupFiles(BaseTool):
 
         try:
             await ctx.info(f"Retrieving lookup files from Splunk (owner={owner}, app={app})")
-
-            # Build request parameters
-            params = {
-                "output_mode": "json",
-                "count": count,
-                "offset": offset,
-            }
-
-            if search_filter:
-                params["search"] = search_filter
-
-            # Call the REST endpoint
-            endpoint = f"/servicesNS/{owner}/{app}/data/lookup-table-files"
-            response = service.get(endpoint, **params)
-
-            # Parse JSON response
-            response_body = response.body.read()
-            data = json.loads(response_body)
-
-            # Extract and format entries
-            entries = data.get("entry", [])
+            page = fetch_rest_collection_page(
+                service,
+                f"/servicesNS/{owner}/{app}/data/lookup-table-files",
+                count=count,
+                offset=offset,
+                search_filter=search_filter,
+            )
             lookup_files = []
 
-            for entry in entries:
+            for entry in page.entries:
                 content = entry.get("content", {})
                 acl = entry.get("acl", {})
 
@@ -128,12 +115,13 @@ class ListLookupFiles(BaseTool):
             return self.format_success_response(
                 {
                     "lookup_files": lookup_files,
-                    "count": len(lookup_files),
-                    "total_available": data.get("paging", {}).get("total", len(lookup_files)),
-                    "offset": offset,
+                    **page.paging,
                 }
             )
 
+        except PaginationError as e:
+            await ctx.error(str(e))
+            return self.format_error_response(str(e))
         except Exception as e:  # pylint: disable=broad-except
             self.logger.error("Failed to list lookup files: %s", str(e), exc_info=True)
             await ctx.error(f"Failed to list lookup files: {str(e)}")
