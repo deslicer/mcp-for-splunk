@@ -13,7 +13,7 @@ from fastmcp import Context
 from splunklib import client as spl_client
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.splunk_job_results_page import fetch_job_results_page
+from src.core.splunk_job_results_page import JOB_TTL_SECONDS, apply_job_ttl, fetch_job_results_page
 from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.saved_search_acl import (
@@ -269,6 +269,7 @@ class ExecuteSavedSearch(BaseTool):
     ) -> dict[str, Any]:
         """Execute saved search and keep the job for paging."""
         job = saved_search.dispatch(**dispatch_kwargs)
+        apply_job_ttl(job, JOB_TTL_SECONDS)
         while not job.is_done():
             job.refresh()
             await asyncio.sleep(0.1)
@@ -281,6 +282,7 @@ class ExecuteSavedSearch(BaseTool):
     ) -> dict[str, Any]:
         """Execute saved search in job mode with progress tracking"""
         job = saved_search.dispatch(**dispatch_kwargs)
+        apply_job_ttl(job, JOB_TTL_SECONDS)
 
         # Wait for job completion with progress reporting
         while not job.is_done():

@@ -37,7 +37,13 @@ def fetch_rest_collection_page(
         query.update(extra_params)
     response = service.get(endpoint, **query)
     data = json.loads(response.body.read())
-    entries = data.get("entry") or []
+    raw_entry = data.get("entry") or []
+    if isinstance(raw_entry, dict):
+        entries = [raw_entry]
+    elif isinstance(raw_entry, list):
+        entries = raw_entry
+    else:
+        entries = []
     total = int(data.get("paging", {}).get("total", len(entries)))
     return RestCollectionPage(
         entries=entries,

@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.core.splunk_job_results_page import JobResultsError, fetch_job_results_page
+from src.core.splunk_job_results_page import (
+    JobResultsError,
+    apply_job_ttl,
+    fetch_job_results_page,
+)
 
 
 def test_pages_completed_job(monkeypatch) -> None:
@@ -47,3 +51,11 @@ def test_rejects_failed_job() -> None:
     )
     with pytest.raises(JobResultsError, match="failed"):
         fetch_job_results_page(job, count=10, offset=0)
+
+
+def test_apply_job_ttl_is_non_fatal() -> None:
+    class _Job:
+        def set_ttl(self, _ttl: int) -> None:
+            raise RuntimeError("ttl rejected")
+
+    apply_job_ttl(_Job())

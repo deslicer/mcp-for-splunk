@@ -10,7 +10,12 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.list_paging import PaginationError
-from src.core.splunk_job_results_page import JobResultsError, fetch_job_results_page
+from src.core.splunk_job_results_page import (
+    JOB_TTL_SECONDS,
+    JobResultsError,
+    apply_job_ttl,
+    fetch_job_results_page,
+)
 from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.job_message_parser import JobMessageParser
@@ -104,11 +109,7 @@ class JobSearch(BaseTool):
 
             # Create the search job
             job = service.jobs.create(query, earliest_time=earliest_time, latest_time=latest_time)
-            if hasattr(job, "set_ttl"):
-                try:
-                    job.set_ttl(1800)
-                except Exception:
-                    pass
+            apply_job_ttl(job, JOB_TTL_SECONDS)
             await ctx.info(f"Search job created: {job.sid}")
 
             # Poll for completion

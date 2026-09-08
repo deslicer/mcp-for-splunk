@@ -1,5 +1,6 @@
 """Page results from a completed Splunk search job."""
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,6 +14,18 @@ from src.core.list_paging import (
 )
 
 SEARCH_PAGE_MAX = 100
+JOB_TTL_SECONDS = 1800
+logger = logging.getLogger(__name__)
+
+
+def apply_job_ttl(job: Any, ttl_seconds: int = JOB_TTL_SECONDS) -> None:
+    """Best-effort TTL so later pages can reuse the sid."""
+    if not hasattr(job, "set_ttl"):
+        return
+    try:
+        job.set_ttl(ttl_seconds)
+    except Exception as exc:
+        logger.debug("Could not set search job TTL: %s", exc)
 
 
 class JobResultsError(RuntimeError):

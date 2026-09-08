@@ -31,3 +31,15 @@ def test_parses_entries_and_paging() -> None:
     assert page.params.count == 1
     assert page.paging["has_more"] is True
     assert page.paging["next_offset"] == 1
+
+
+def test_normalizes_single_entry_object() -> None:
+    payload = {
+        "entry": {"name": "main", "content": {}, "acl": {}},
+        "paging": {"total": 1, "perPage": 1, "offset": 0},
+    }
+    service = SimpleNamespace(get=lambda endpoint, **params: SimpleNamespace(body=_Body(payload)))
+    page = fetch_rest_collection_page(service, "/services/data/indexes", count=1, offset=0)
+    assert page.entries == [{"name": "main", "content": {}, "acl": {}}]
+    assert page.total_available == 1
+    assert page.paging["has_more"] is False
