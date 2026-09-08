@@ -34,6 +34,16 @@
 ## [0.6.11](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.10...v0.6.11) (2026-09-08)
 
 
+### Features
+
+* page list/search results, add `get_search_job_results`, and keep search jobs for later pages ([#290](https://github.com/deslicer/mcp-for-splunk/issues/290)) ([ff4c9ec](https://github.com/deslicer/mcp-for-splunk/commit/ff4c9ec37d88ee624fe76623313b1228976215fa))
+
+
+### Bug Fixes
+
+* build Splunk Web job and dashboard URLs from the UI base instead of management ports ([#290](https://github.com/deslicer/mcp-for-splunk/issues/290)) ([ff4c9ec](https://github.com/deslicer/mcp-for-splunk/commit/ff4c9ec37d88ee624fe76623313b1228976215fa))
+
+
 ### Dependencies
 
 * **deps-dev:** update mypy requirement from &gt;=2.3.0 to &gt;=2.3.1 ([#279](https://github.com/deslicer/mcp-for-splunk/issues/279)) ([ccac7f4](https://github.com/deslicer/mcp-for-splunk/commit/ccac7f4824ef4badf61ce0f1226c88385b4fcfdc))
