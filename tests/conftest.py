@@ -367,9 +367,71 @@ class MockSplunkService:
             mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
             return mock_response
 
+        collection_entries = self._collection_entries_for_endpoint(endpoint)
+        if collection_entries is not None:
+            offset = int(kwargs.get("offset") or 0)
+            raw_count = kwargs.get("count")
+            count = int(raw_count) if raw_count not in (None, "") else len(collection_entries)
+            search = str(kwargs.get("search") or "")
+            filtered = [
+                entry
+                for entry in collection_entries
+                if self._entry_matches_search(entry, search)
+            ]
+            page = filtered[offset : offset + count]
+            payload = {
+                "entry": page,
+                "paging": {"total": len(filtered), "perPage": count, "offset": offset},
+            }
+            mock_response.body.read.return_value = json.dumps(payload).encode("utf-8")
+            return mock_response
+
         # Default empty JSON
         mock_response.body.read.return_value = json.dumps({}).encode("utf-8")
         return mock_response
+
+    def _collection_entries_for_endpoint(self, endpoint: str) -> list[dict] | None:
+        if endpoint.rstrip("/").endswith("/data/indexes"):
+            return [
+                {"name": idx.name, "content": {}, "acl": {}}
+                for idx in self.indexes
+            ]
+        if endpoint.rstrip("/").endswith("/apps/local"):
+            return [
+                {
+                    "name": app.name,
+                    "content": getattr(app, "content", {}),
+                    "acl": {},
+                }
+                for app in self.apps
+            ]
+        if endpoint.rstrip("/").endswith("/authentication/users"):
+            return [
+                {
+                    "name": user.name,
+                    "content": getattr(user, "content", {}),
+                    "acl": {},
+                }
+                for user in self.users
+            ]
+        if "/saved/searches" in endpoint:
+            return []
+        if "/storage/collections/config" in endpoint:
+            return []
+        if "/data/lookup-table-files" in endpoint or "/data/transforms/lookups" in endpoint:
+            return []
+        if "/data/ui/views" in endpoint:
+            return list(self._dashboards.values())
+        return None
+
+    @staticmethod
+    def _entry_matches_search(entry: dict, search: str) -> bool:
+        if not search:
+            return True
+        name = str(entry.get("name") or "")
+        if "NOT name=_*" in search and name.startswith("_"):
+            return False
+        return True
 
     def _setup_mock_configurations(self):
         """Set up mock configuration files with stanzas"""

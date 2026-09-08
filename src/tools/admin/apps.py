@@ -7,81 +7,72 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.list_paging import PaginationError
+from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
 
 class ListApps(BaseTool):
     """
-    List all installed Splunk apps.
+    List installed Splunk apps with pagination.
     """
 
     METADATA = ToolMetadata(
         name="list_apps",
         description=(
-            "Retrieve comprehensive inventory of all installed Splunk applications including metadata "
-            "(name, label, version, description, author, visibility status). "
-            "Use this tool when you need to list all apps in the Splunk environment, such as for "
-            "auditing, management, or troubleshooting compatibility. "
-            "This tool requires no arguments.\n\n"
-            "Returns detailed app catalog with 54+ apps typically found in enterprise environments, "
-            "including core Splunk apps, add-ons (TAs), custom applications, and third-party integrations."
+            "Retrieve installed Splunk applications including name, label, version, "
+            "description, author, and visibility. If has_more is true, call again with "
+            "offset=next_offset.\n\n"
+            "Args:\n"
+            "    count (int, optional): Page size 1-200 (default 50)\n"
+            "    offset (int, optional): Result offset (default 0)\n"
+            "    search_filter (str, optional): Splunk REST search filter (e.g. 'name=*TA*')"
         ),
         category="admin",
         tags=["apps", "administration", "management", "inventory", "catalog", "audit"],
         requires_connection=True,
     )
 
-    async def execute(self, ctx: Context) -> dict[str, Any]:
-        """
-        Retrieve comprehensive inventory of all Splunk applications.
-
-        Provides detailed metadata for each app including:
-        - name: Internal app directory name
-        - label: Display name shown in Splunk Web
-        - version: App version number (if available)
-        - description: App purpose and functionality
-        - author: App developer/vendor
-        - visible: UI visibility ("1" = visible, "0" = hidden)
-
-        Returns:
-            Dict containing:
-                - status: "success" or "error"
-                - count: Total number of apps found
-                - apps: List of app objects with detailed metadata
-
-        Typical enterprise environments contain 50+ apps including:
-        - Core Splunk apps (search, launcher, dmc)
-        - Technology Add-ons (Splunk_TA_*)
-        - Custom business applications
-        - Third-party integrations and visualizations
-        """
-        log_tool_execution("list_apps")
-
+    async def execute(
+        self,
+        ctx: Context,
+        count: int = 50,
+        offset: int = 0,
+        search_filter: str = "",
+    ) -> dict[str, Any]:
+        log_tool_execution("list_apps", count=count, offset=offset, search_filter=search_filter)
         is_available, service, error_msg = self.check_splunk_available(ctx)
-
         if not is_available:
             return self.format_error_response(error_msg)
 
-        self.logger.info("Retrieving list of Splunk apps")
-        await ctx.info("Retrieving list of Splunk apps")
-
         try:
-            apps = []
-            for app in service.apps:
-                apps.append(
-                    {
-                        "name": app.name,
-                        "label": app.content.get("label"),
-                        "version": app.content.get("version"),
-                        "description": app.content.get("description"),
-                        "author": app.content.get("author"),
-                        "visible": app.content.get("visible"),
-                    }
-                )
-
-            await ctx.info(f"Found {len(apps)} apps")
-            return self.format_success_response({"count": len(apps), "apps": apps})
-        except Exception as e:
-            self.logger.error(f"Failed to list apps: {str(e)}")
-            await ctx.error(f"Failed to list apps: {str(e)}")
+            page = fetch_rest_collection_page(
+                service,
+                "/services/apps/local",
+                count=count,
+                offset=offset,
+                search_filter=search_filter,
+                extra_params={"sort_key": "name"},
+            )
+        except PaginationError as e:
             return self.format_error_response(str(e))
+        except Exception as e:
+            self.logger.error("Failed to list apps: %s", e)
+            await ctx.error(f"Failed to list apps: {e}")
+            return self.format_error_response(str(e))
+
+        apps = []
+        for entry in page.entries:
+            content = entry.get("content") or {}
+            apps.append(
+                {
+                    "name": entry.get("name"),
+                    "label": content.get("label"),
+                    "version": content.get("version"),
+                    "description": content.get("description"),
+                    "author": content.get("author"),
+                    "visible": content.get("visible"),
+                }
+            )
+        await ctx.info(f"Returned {len(apps)} apps (offset={offset})")
+        return self.format_success_response({"apps": apps, **page.paging})
