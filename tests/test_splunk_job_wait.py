@@ -55,7 +55,7 @@ async def test_wait_for_job_cancels_splunk_job_on_disconnect() -> None:
     await asyncio.sleep(0.02)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        await task
+        _ = await task
     assert job.cancelled is True
 
 
