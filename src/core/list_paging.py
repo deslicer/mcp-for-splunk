@@ -13,6 +13,26 @@ class PaginationParams:
     offset: int
 
 
+def clamp_search_page_size(
+    count: int | None,
+    max_results: int | None = None,
+    *,
+    default: int = 50,
+    max_count: int = 100,
+) -> int:
+    """Coerce agent-supplied page sizes. 0/negative become default; over max is capped."""
+    raw = default
+    if count is not None:
+        raw = count
+    elif max_results is not None:
+        raw = max_results
+    if raw < 1:
+        return default
+    if raw > max_count:
+        return max_count
+    return raw
+
+
 def validate_pagination(
     count: int = 50,
     offset: int = 0,

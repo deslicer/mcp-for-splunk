@@ -6,8 +6,12 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
-from src.core.splunk_job_results_page import JobResultsError, fetch_job_results_page
+from src.core.list_paging import PaginationError, clamp_search_page_size
+from src.core.splunk_job_results_page import (
+    SEARCH_PAGE_MAX,
+    JobResultsError,
+    fetch_job_results_page,
+)
 from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution
 
@@ -23,7 +27,7 @@ class GetSearchJobResults(BaseTool):
             "when has_more is true. Pass job_id and offset=next_offset.\n\n"
             "Args:\n"
             "    job_id (str): Splunk search job id (sid)\n"
-            "    count (int, optional): Page size 1-100 (default 50)\n"
+            "    count (int, optional): Page size 1-100 (default 50; 0 uses default)\n"
             "    offset (int, optional): Result offset (default 0)\n"
         ),
         category="search",
@@ -38,6 +42,7 @@ class GetSearchJobResults(BaseTool):
         count: int = 50,
         offset: int = 0,
     ) -> dict[str, Any]:
+        count = clamp_search_page_size(count, max_count=SEARCH_PAGE_MAX)
         log_tool_execution("get_search_job_results", job_id=job_id, count=count, offset=offset)
         if not job_id or not job_id.strip():
             return self.format_error_response("job_id is required", job_id=job_id)

@@ -3,6 +3,7 @@ import pytest
 from src.core.list_paging import (
     PaginationError,
     build_paging,
+    clamp_search_page_size,
     validate_pagination,
 )
 
@@ -31,6 +32,17 @@ def test_has_more_and_next_offset() -> None:
         "has_more": True,
         "next_offset": 50,
     }
+
+
+def test_clamp_search_page_size_treats_zero_as_default() -> None:
+    assert clamp_search_page_size(0) == 50
+    assert clamp_search_page_size(None, 0) == 50
+    assert clamp_search_page_size(-5) == 50
+
+
+def test_clamp_search_page_size_caps_over_max() -> None:
+    assert clamp_search_page_size(500, max_count=100) == 100
+    assert clamp_search_page_size(25) == 25
 
 
 def test_last_page_has_no_next() -> None:

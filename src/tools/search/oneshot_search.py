@@ -9,9 +9,10 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
+from src.core.list_paging import PaginationError, clamp_search_page_size
 from src.core.splunk_job_results_page import (
     JOB_TTL_SECONDS,
+    SEARCH_PAGE_MAX,
     JobResultsError,
     apply_job_ttl,
     fetch_job_results_page,
@@ -21,11 +22,7 @@ from src.core.utils import log_tool_execution, sanitize_search_query
 
 
 def _resolve_page_size(count: int | None, max_results: int | None) -> int:
-    if count is not None:
-        return count
-    if max_results is not None:
-        return max_results
-    return 50
+    return clamp_search_page_size(count, max_results, max_count=SEARCH_PAGE_MAX)
 
 
 def _create_blocking_job(
@@ -58,7 +55,7 @@ class OneshotSearch(BaseTool):
             "    query (str): SPL to execute\n"
             "    earliest_time (str, optional): Start time (default '-15m')\n"
             "    latest_time (str, optional): End time (default 'now')\n"
-            "    count (int, optional): Page size 1-100 (default 50)\n"
+            "    count (int, optional): Page size 1-100 (default 50; 0 uses default)\n"
             "    max_results (int, optional): Deprecated alias for count\n"
             "    offset (int, optional): Result offset (default 0)"
         ),

@@ -484,9 +484,11 @@ List and search tools return one page plus:
 - `has_more` — more rows exist
 - `next_offset` — pass as `offset` on the next call
 
-Catalog lists default to 50 rows (max 200). Search results default to 50 (max 100). `count=0` is rejected.
+Catalog lists default to 50 rows (max 200). Search results default to 50 (max 100). Catalog `count=0` is rejected. Search `count=0` or `max_results=0` is treated as 50.
 
-When a search returns `has_more`, call `get_search_job_results` with the same `job_id` and `offset=next_offset`. The job is kept so page 2 does not rerun SPL.
+`run_splunk_search` waits up to `MCP_SEARCH_WAIT_SECONDS` (default 15) then returns `job_id` even if Splunk is still running. When `is_done` is false, poll `get_search_job_info`, then `get_search_job_results`.
+
+When a completed search returns `has_more`, call `get_search_job_results` with the same `job_id` and `offset=next_offset`. The job is kept so page 2 does not rerun SPL.
 
 ## 🔒 **Security Considerations**
 

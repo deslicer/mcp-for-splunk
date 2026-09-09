@@ -81,8 +81,10 @@ class TestGetSearchJobResults:
         assert result["status"] == "error"
         assert "job_id" in result["error"]
 
-    async def test_rejects_invalid_count(self, tool, mock_context, mock_service, mock_job):
+    async def test_clamps_zero_count_to_default(self, tool, mock_context, mock_service, mock_job):
         tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        tool.get_client_config_from_context = AsyncMock(return_value={})
         result = await tool.execute(mock_context, job_id=mock_job.sid, count=0)
-        assert result["status"] == "error"
-        assert "count" in result["error"]
+        assert result["status"] == "success"
+        mock_job.results.assert_called()
+        assert mock_job.results.call_args.kwargs["count"] == 50
