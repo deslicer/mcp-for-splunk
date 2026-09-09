@@ -44,10 +44,13 @@ async def test_list_saved_searches_uses_rest_paging() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_lookup_files_rejects_count_zero() -> None:
+async def test_list_lookup_files_clamps_count_zero() -> None:
+    payload = {"entry": [], "paging": {"total": 0, "offset": 0}}
+    service = Mock()
+    service.get.return_value = SimpleNamespace(body=_Body(payload))
     tool = ListLookupFiles("list_lookup_files", "list")
-    tool.check_splunk_available = Mock(return_value=(True, Mock(), ""))
+    tool.check_splunk_available = Mock(return_value=(True, service, ""))
     ctx = SimpleNamespace(info=AsyncMock(), error=AsyncMock())
     result = await tool.execute(ctx, count=0)
-    assert result["status"] == "error"
-    assert "count" in result["error"]
+    assert result["status"] == "success"
+    assert service.get.call_args.kwargs["count"] == 50

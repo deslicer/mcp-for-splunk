@@ -7,7 +7,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
+from src.core.list_paging import LIST_PAGE_DEFAULT, ListPageCount, PaginationError, count_arg_help
 from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
@@ -24,7 +24,7 @@ class ListApps(BaseTool):
             "description, author, and visibility. If has_more is true, call again with "
             "offset=next_offset.\n\n"
             "Args:\n"
-            "    count (int, optional): Page size 1-200 (default 50)\n"
+            f"{count_arg_help()}"
             "    offset (int, optional): Result offset (default 0)\n"
             "    search_filter (str, optional): Splunk REST search filter (e.g. 'name=*TA*')"
         ),
@@ -36,7 +36,7 @@ class ListApps(BaseTool):
     async def execute(
         self,
         ctx: Context,
-        count: int = 50,
+        count: ListPageCount = LIST_PAGE_DEFAULT,
         offset: int = 0,
         search_filter: str = "",
     ) -> dict[str, Any]:

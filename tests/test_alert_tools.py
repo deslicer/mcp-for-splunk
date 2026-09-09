@@ -32,10 +32,11 @@ class TestAlertToolAvailability:
             assert "confirm" in properties
 
     async def test_create_alert_without_splunk_returns_error(
-        self, fastmcp_client, extract_tool_result
+        self, fastmcp_client, tool_payload
     ):
         async with fastmcp_client as client:
-            result = await client.call_tool(
+            data = await tool_payload(
+                client,
                 "create_alert",
                 {
                     "name": "unit_test_alert",
@@ -43,7 +44,6 @@ class TestAlertToolAvailability:
                     "cron_schedule": "0 0 1 1 *",
                 },
             )
-            data = extract_tool_result(result)
             assert isinstance(data, dict)
             assert "status" in data
             if data.get("status") == "error":

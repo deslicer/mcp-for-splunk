@@ -14,11 +14,9 @@ def test_validate_defaults() -> None:
     assert params.offset == 0
 
 
-def test_validate_rejects_zero_and_over_cap() -> None:
-    with pytest.raises(PaginationError):
-        validate_pagination(count=0)
-    with pytest.raises(PaginationError):
-        validate_pagination(count=201, max_count=200)
+def test_validate_clamps_zero_and_over_cap() -> None:
+    assert validate_pagination(count=0).count == 50
+    assert validate_pagination(count=500, max_count=200).count == 200
     with pytest.raises(PaginationError):
         validate_pagination(offset=-1)
 

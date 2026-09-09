@@ -45,17 +45,15 @@ class TestToolDescriptionEnhancer:
                 assert "examples" in analysis
 
     async def test_enhance_nonexistent_tool(
-        self, enhancer_tool, fastmcp_client, extract_tool_result
+        self, enhancer_tool, fastmcp_client, tool_payload
     ):
         """Test error handling for non-existent tool"""
         async with fastmcp_client as client:
-            result = await client.call_tool(
-                "enhance_tool_description", {"tool_name": "nonexistent_tool"}
+            data = await tool_payload(
+                client, "enhance_tool_description", {"tool_name": "nonexistent_tool"}
             )
-
-            data = extract_tool_result(result)
             # Should return error for non-existent tool
-            assert "error" in data or "not found" in str(result)
+            assert "error" in data or "not found" in str(data)
 
     async def test_parameter_analysis(self, enhancer_tool):
         """Test parameter analysis functionality"""

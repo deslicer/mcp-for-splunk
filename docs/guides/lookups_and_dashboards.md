@@ -16,7 +16,7 @@ List CSV lookup table files available in Splunk.
 {
     "owner": "nobody",      # Optional: Filter by owner (default: nobody)
     "app": "-",             # Optional: Filter by app (default: - for all)
-    "count": 50,            # Optional: Page size 1-200 (default: 50)
+    "count": 50,            # Optional: default 50, max 200 (larger values are capped)
     "offset": 0,            # Optional: Pagination offset (default: 0)
     "search_filter": ""     # Optional: Filter like 'name=*geo*'
 }

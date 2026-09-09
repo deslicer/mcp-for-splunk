@@ -80,7 +80,7 @@ class TestListTriggeredAlerts:
         return service
 
     async def test_list_triggered_alerts_success(
-        self, fastmcp_client, extract_tool_result, mock_service
+        self, fastmcp_client, tool_payload, mock_service
     ):
         """Test successful listing of triggered alerts."""
         # Mock the fired_alerts method to return our test data
@@ -89,8 +89,7 @@ class TestListTriggeredAlerts:
         ):
             async with fastmcp_client as client:
                 # Execute tool through FastMCP
-                result = await client.call_tool("list_triggered_alerts", {})
-                data = extract_tool_result(result)
+                data = await tool_payload(client, "list_triggered_alerts")
 
                 # In test mode, we expect either success or error status
                 if data.get("status") == "success":
@@ -113,15 +112,14 @@ class TestListTriggeredAlerts:
                     # Ensure we get some kind of response
                     assert isinstance(data, dict)
 
-    async def test_list_triggered_alerts_with_parameters(self, fastmcp_client, extract_tool_result):
+    async def test_list_triggered_alerts_with_parameters(self, fastmcp_client, tool_payload):
         """Test listing triggered alerts with custom parameters."""
         async with fastmcp_client as client:
-            # Execute tool with custom parameters
-            result = await client.call_tool(
+            data = await tool_payload(
+                client,
                 "list_triggered_alerts",
                 {"count": 100, "earliest_time": "-1h@h", "latest_time": "-30m@m", "search": "CPU"},
             )
-            data = extract_tool_result(result)
 
             # Verify we get a response
             assert isinstance(data, dict)
@@ -135,13 +133,11 @@ class TestListTriggeredAlerts:
                 assert params["search_filter"] == "CPU"
 
     async def test_list_triggered_alerts_basic_functionality(
-        self, fastmcp_client, extract_tool_result
+        self, fastmcp_client, tool_payload
     ):
         """Test basic alerts tool functionality."""
         async with fastmcp_client as client:
-            # Execute tool with basic parameters
-            result = await client.call_tool("list_triggered_alerts", {})
-            data = extract_tool_result(result)
+            data = await tool_payload(client, "list_triggered_alerts")
 
             # Verify we get a proper response structure
             assert isinstance(data, dict)

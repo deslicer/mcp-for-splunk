@@ -29,7 +29,8 @@ class GetMetadata(BaseTool):
             "    field (str, optional): 'host', 'sourcetype', or 'source' (default 'host')\n"
             "    earliest_time (str, optional): Start time (default '-24h@h')\n"
             "    latest_time (str, optional): End time (default 'now')\n"
-            "    limit (int, optional): Page size 1-100 (default 100)\n"
+            "    limit (int, optional): Page size. Default 100. Maximum 100. "
+            "Values above 100 are capped; 0 uses 50. Do not send a larger limit.\n"
             "    offset (int, optional): Result offset (default 0)"
         ),
         category="metadata",

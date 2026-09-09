@@ -57,13 +57,17 @@ async def test_list_indexes_pages_and_excludes_internal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_indexes_rejects_count_zero() -> None:
+async def test_list_indexes_clamps_oversize_count() -> None:
+    service = _collection_service(
+        [{"name": "main", "content": {}, "acl": {}}],
+        total=1,
+    )
     tool = ListIndexes("list_indexes", "list")
-    tool.get_splunk_service = AsyncMock(return_value=Mock())
+    tool.get_splunk_service = AsyncMock(return_value=service)
     ctx = SimpleNamespace(info=AsyncMock(), error=AsyncMock())
-    result = await tool.execute(ctx, count=0)
-    assert result["status"] == "error"
-    assert "count" in result["error"]
+    result = await tool.execute(ctx, count=500, offset=0)
+    assert result["status"] == "success"
+    assert service._captured["params"]["count"] == 200
 
 
 @pytest.mark.asyncio
@@ -97,4 +101,10 @@ async def test_list_users_pages() -> None:
 
 def test_pagination_error_type() -> None:
     with pytest.raises(PaginationError):
-        raise PaginationError("count must be between 1 and 200")
+        raise PaginationError("offset must be >= 0")
+
+
+def test_list_indexes_description_states_count_cap() -> None:
+    description = ListIndexes.METADATA.description
+    assert "Maximum 200" in description
+    assert "Do not send a count larger than 200" in description
