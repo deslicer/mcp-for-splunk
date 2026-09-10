@@ -5,6 +5,7 @@ Test configuration and fixtures for MCP Server for Splunk tests.
 import json
 import os
 import sys
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -21,8 +22,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 # Import FastMCP for proper testing
 try:
     from fastmcp import Client
+    from fastmcp.exceptions import ToolError
 except ImportError:
     Client = None
+    ToolError = Exception
 
 
 # Mock classes that match the actual structure
@@ -692,6 +695,33 @@ def extract_tool_result():
             return {"empty_result": True}
 
     return _extract
+
+
+def wrap_client_tool_errors(client):
+    """Map MCP ToolError to a status/error payload so legacy client tests still read .data."""
+    original = client.call_tool
+
+    async def _call_tool(*args, **kwargs):
+        try:
+            return await original(*args, **kwargs)
+        except ToolError as exc:
+            return SimpleNamespace(data={"status": "error", "error": str(exc)})
+
+    client.call_tool = _call_tool
+    return client
+
+
+@pytest.fixture
+def tool_payload(extract_tool_result):
+    """Call a tool and map MCP ToolError to the legacy status/error dict."""
+
+    async def _call(client, name: str, arguments: dict | None = None) -> dict:
+        try:
+            return extract_tool_result(await client.call_tool(name, arguments or {}))
+        except ToolError as exc:
+            return {"status": "error", "error": str(exc)}
+
+    return _call
 
 
 @pytest.fixture

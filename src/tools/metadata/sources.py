@@ -7,7 +7,13 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
+from src.core.list_paging import (
+    LIST_PAGE_DEFAULT,
+    METADATA_PAGE_MAX,
+    MetadataPageCount,
+    PaginationError,
+    count_arg_help,
+)
 from src.core.splunk_metadata_page import fetch_metadata_page
 from src.core.utils import log_tool_execution
 
@@ -23,7 +29,7 @@ class ListSources(BaseTool):
             "Discover data sources using the metadata command. Sources can be numerous; "
             "results are paged. If has_more is true, call again with offset=next_offset.\n\n"
             "Args:\n"
-            "    count (int, optional): Page size 1-100 (default 50)\n"
+            f"{count_arg_help(max_count=METADATA_PAGE_MAX)}"
             "    offset (int, optional): Result offset (default 0)\n"
             "    index (str, optional): Limit to one index"
         ),
@@ -35,7 +41,7 @@ class ListSources(BaseTool):
     async def execute(
         self,
         ctx: Context,
-        count: int = 50,
+        count: MetadataPageCount = LIST_PAGE_DEFAULT,
         offset: int = 0,
         index: str | None = None,
     ) -> dict[str, Any]:

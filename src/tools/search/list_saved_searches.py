@@ -5,7 +5,7 @@ from typing import Any, Literal
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
+from src.core.list_paging import LIST_PAGE_DEFAULT, ListPageCount, PaginationError, count_arg_help
 from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
@@ -42,7 +42,7 @@ class ListSavedSearches(BaseTool):
             "    app (str, optional): Filter by app (default all)\n"
             "    sharing (str, optional): Filter by sharing level\n"
             "    include_disabled (bool, optional): Include disabled searches (default false)\n"
-            "    count (int, optional): Page size 1-200 (default 50)\n"
+            f"{count_arg_help()}"
             "    offset (int, optional): Result offset (default 0)\n"
             "    search_filter (str, optional): Extra REST search filter (e.g. 'name=*alert*')"
         ),
@@ -58,7 +58,7 @@ class ListSavedSearches(BaseTool):
         app: str | None = None,
         sharing: Literal["user", "app", "global", "system"] | None = None,
         include_disabled: bool = False,
-        count: int = 50,
+        count: ListPageCount = LIST_PAGE_DEFAULT,
         offset: int = 0,
         search_filter: str = "",
     ) -> dict[str, Any]:

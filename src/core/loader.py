@@ -12,12 +12,14 @@ import sys
 from typing import Any, get_type_hints
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from fastmcp.prompts import Message
 from fastmcp.server.dependencies import get_context
 
 from .base import BaseTool
 from .discovery import discover_tools
 from .registry import tool_registry
+from .tool_mcp_result import raise_on_tool_error_status, wrap_unexpected_tool_failure
 
 logger = logging.getLogger(__name__)
 
@@ -159,12 +161,14 @@ class ToolLoader:
 
                 # Call the tool's execute method
                 result = await tool_instance.execute(ctx, **bound_args.arguments)
-                return result
+                return raise_on_tool_error_status(result)
 
+            except ToolError:
+                raise
             except Exception as e:
                 self.logger.error(f"Tool {tool_name} execution failed: {e}")
                 self.logger.exception("Full traceback:")
-                return {"status": "error", "error": str(e)}
+                raise wrap_unexpected_tool_failure(e) from e
 
         # Set function metadata
         tool_wrapper.__name__ = tool_name

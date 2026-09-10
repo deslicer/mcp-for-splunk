@@ -7,7 +7,7 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError
+from src.core.list_paging import LIST_PAGE_DEFAULT, ListPageCount, PaginationError, count_arg_help
 from src.core.splunk_rest_page import fetch_rest_collection_page
 from src.core.utils import log_tool_execution
 
@@ -31,7 +31,8 @@ class ListLookupFiles(BaseTool):
             "Args:\n"
             "    owner (str, optional): Filter by owner. Default: 'nobody' (all users)\n"
             "    app (str, optional): Filter by app context. Default: '-' (all apps)\n"
-            "    count (int, optional): Page size 1-200 (default 50). If has_more, use offset=next_offset\n"
+            f"{count_arg_help()}"
+            "    If has_more is true, call again with offset=next_offset.\n"
             "    offset (int, optional): Result offset for pagination. Default: 0\n"
             "    search_filter (str, optional): Filter results (e.g., 'name=*geo*')"
         ),
@@ -45,7 +46,7 @@ class ListLookupFiles(BaseTool):
         ctx: Context,
         owner: str = "nobody",
         app: str = "-",
-        count: int = 50,
+        count: ListPageCount = LIST_PAGE_DEFAULT,
         offset: int = 0,
         search_filter: str = "",
     ) -> dict[str, Any]:

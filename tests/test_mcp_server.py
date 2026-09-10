@@ -16,12 +16,10 @@ from fastmcp.exceptions import ToolError
 class TestMCPClientIntegration:
     """Integration tests using FastMCP in-memory client following FastMCP best practices"""
 
-    async def test_fastmcp_client_health_check(self, fastmcp_client, extract_tool_result):
+    async def test_fastmcp_client_health_check(self, fastmcp_client, tool_payload):
         """Test health check via FastMCP client"""
         async with fastmcp_client as client:
-            # Call the health check tool
-            result = await client.call_tool("get_splunk_health")
-            health_data = extract_tool_result(result)
+            health_data = await tool_payload(client, "get_splunk_health")
 
             # The test should handle all possible states
             assert "status" in health_data
@@ -80,11 +78,10 @@ class TestMCPClientIntegration:
 class TestSplunkToolsIntegration:
     """Integration tests for Splunk tools using FastMCP in-memory testing"""
 
-    async def test_splunk_health_check(self, fastmcp_client, extract_tool_result):
+    async def test_splunk_health_check(self, fastmcp_client, tool_payload):
         """Test Splunk health check tool via FastMCP client"""
         async with fastmcp_client as client:
-            result = await client.call_tool("get_splunk_health")
-            health_data = extract_tool_result(result)
+            health_data = await tool_payload(client, "get_splunk_health")
 
             assert "status" in health_data
             # In test environment without Splunk connection, we expect error or disconnected
@@ -94,11 +91,10 @@ class TestSplunkToolsIntegration:
                 assert "version" in health_data
                 assert "server_name" in health_data
 
-    async def test_list_indexes(self, fastmcp_client, extract_tool_result):
+    async def test_list_indexes(self, fastmcp_client, tool_payload):
         """Test listing Splunk indexes via FastMCP client"""
         async with fastmcp_client as client:
-            result = await client.call_tool("list_indexes")
-            indexes_data = extract_tool_result(result)
+            indexes_data = await tool_payload(client, "list_indexes")
 
             # Should have either success response or error response
             if "status" in indexes_data and indexes_data["status"] == "success":
@@ -108,7 +104,7 @@ class TestSplunkToolsIntegration:
             elif "status" in indexes_data and indexes_data["status"] == "error":
                 assert "error" in indexes_data
 
-    async def test_oneshot_search(self, fastmcp_client, extract_tool_result):
+    async def test_oneshot_search(self, fastmcp_client, tool_payload):
         """Test oneshot search via FastMCP client"""
         async with fastmcp_client as client:
             search_params = {
@@ -118,8 +114,7 @@ class TestSplunkToolsIntegration:
                 "max_results": 5,
             }
 
-            result = await client.call_tool("run_oneshot_search", search_params)
-            search_data = extract_tool_result(result)
+            search_data = await tool_payload(client, "run_oneshot_search", search_params)
 
             # Should have either results or error
             if "status" in search_data and search_data["status"] == "success":
@@ -129,7 +124,7 @@ class TestSplunkToolsIntegration:
             elif "status" in search_data and search_data["status"] == "error":
                 assert "error" in search_data
 
-    async def test_job_search(self, fastmcp_client, extract_tool_result):
+    async def test_job_search(self, fastmcp_client, tool_payload):
         """Test job-based search via FastMCP client"""
         async with fastmcp_client as client:
             search_params = {
@@ -138,8 +133,7 @@ class TestSplunkToolsIntegration:
                 "latest_time": "now",
             }
 
-            result = await client.call_tool("run_splunk_search", search_params)
-            search_data = extract_tool_result(result)
+            search_data = await tool_payload(client, "run_splunk_search", search_params)
 
             # Should have either results or error
             if "job_id" in search_data:
@@ -148,11 +142,10 @@ class TestSplunkToolsIntegration:
             elif "status" in search_data and search_data["status"] == "error":
                 assert "error" in search_data
 
-    async def test_list_apps(self, fastmcp_client, extract_tool_result):
+    async def test_list_apps(self, fastmcp_client, tool_payload):
         """Test listing Splunk apps via FastMCP client"""
         async with fastmcp_client as client:
-            result = await client.call_tool("list_apps")
-            apps_data = extract_tool_result(result)
+            apps_data = await tool_payload(client, "list_apps")
 
             # Should have either apps or error
             if "apps" in apps_data:
@@ -161,11 +154,10 @@ class TestSplunkToolsIntegration:
             elif "status" in apps_data and apps_data["status"] == "error":
                 assert "error" in apps_data
 
-    async def test_list_users(self, fastmcp_client, extract_tool_result):
+    async def test_list_users(self, fastmcp_client, tool_payload):
         """Test listing Splunk users via FastMCP client"""
         async with fastmcp_client as client:
-            result = await client.call_tool("list_users")
-            users_data = extract_tool_result(result)
+            users_data = await tool_payload(client, "list_users")
 
             # Should have either users or error
             if "users" in users_data:
@@ -229,7 +221,7 @@ class TestErrorHandling:
             with pytest.raises(ToolError):
                 await client.call_tool("get_configurations", {})
 
-    async def test_search_with_invalid_query(self, fastmcp_client, extract_tool_result):
+    async def test_search_with_invalid_query(self, fastmcp_client, tool_payload):
         """Test search tool with invalid query"""
         async with fastmcp_client as client:
             search_params = {
@@ -238,8 +230,7 @@ class TestErrorHandling:
                 "max_results": 5,
             }
 
-            result = await client.call_tool("run_oneshot_search", search_params)
-            search_data = extract_tool_result(result)
+            search_data = await tool_payload(client, "run_oneshot_search", search_params)
 
             # Should return an error status or handle gracefully
             if "status" in search_data:
@@ -252,15 +243,14 @@ class TestErrorHandling:
 class TestPerformance:
     """Performance and load tests using FastMCP patterns"""
 
-    async def test_multiple_rapid_health_checks(self, fastmcp_client, extract_tool_result):
+    async def test_multiple_rapid_health_checks(self, fastmcp_client, tool_payload):
         """Test multiple rapid health check calls"""
         async with fastmcp_client as client:
             start_time = time.time()
 
             # Call health check multiple times
             for _ in range(10):  # Reduced from 100 to be more reasonable
-                result = await client.call_tool("get_splunk_health")
-                health_data = extract_tool_result(result)
+                health_data = await tool_payload(client, "get_splunk_health")
                 assert "status" in health_data
 
             end_time = time.time()
@@ -275,38 +265,30 @@ class TestPerformance:
 class TestWorkflowIntegration:
     """Test realistic workflows using FastMCP patterns"""
 
-    async def test_discovery_workflow(self, fastmcp_client, extract_tool_result):
+    async def test_discovery_workflow(self, fastmcp_client, tool_payload):
         """Test a realistic discovery workflow"""
         async with fastmcp_client as client:
-            # 1. Check health first
-            health_result = await client.call_tool("get_splunk_health")
-            health_data = extract_tool_result(health_result)
+            health_data = await tool_payload(client, "get_splunk_health")
             assert "status" in health_data
 
-            # 2. List available indexes
-            indexes_result = await client.call_tool("list_indexes")
-            indexes_data = extract_tool_result(indexes_result)
+            indexes_data = await tool_payload(client, "list_indexes")
 
-            # 3. List apps
-            apps_result = await client.call_tool("list_apps")
-            apps_data = extract_tool_result(apps_result)
+            apps_data = await tool_payload(client, "list_apps")
 
             # All should return structured data
             for data in [health_data, indexes_data, apps_data]:
                 assert isinstance(data, dict)
 
-    async def test_search_workflow(self, fastmcp_client, extract_tool_result):
+    async def test_search_workflow(self, fastmcp_client, tool_payload):
         """Test a realistic search workflow"""
         async with fastmcp_client as client:
-            # 1. Start with a simple search
-            simple_search = await client.call_tool(
-                "run_oneshot_search", {"query": "| metadata type=hosts", "max_results": 5}
+            simple_data = await tool_payload(
+                client, "run_oneshot_search", {"query": "| metadata type=hosts", "max_results": 5}
             )
-            simple_data = extract_tool_result(simple_search)
             assert isinstance(simple_data, dict)
 
-            # 2. Try a more complex search
-            complex_search = await client.call_tool(
+            complex_data = await tool_payload(
+                client,
                 "run_splunk_search",
                 {
                     "query": "| rest /services/server/info",
@@ -314,7 +296,6 @@ class TestWorkflowIntegration:
                     "latest_time": "now",
                 },
             )
-            complex_data = extract_tool_result(complex_search)
             assert isinstance(complex_data, dict)
 
 

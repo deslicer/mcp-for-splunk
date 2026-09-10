@@ -23,6 +23,7 @@ from fastmcp import Client
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from src.server import mcp
+from tests.conftest import wrap_client_tool_errors
 
 
 class TestMCPServerCore:
@@ -32,7 +33,7 @@ class TestMCPServerCore:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_server_initialization(self, client):
         """Test that the server initializes correctly."""
@@ -102,7 +103,7 @@ class TestHealthTools:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     @pytest.fixture
     def mock_splunk_service(self):
@@ -185,7 +186,7 @@ class TestSearchTools:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     @pytest.fixture
     def mock_search_results(self):
@@ -295,7 +296,7 @@ class TestAdminTools:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_list_apps(self, client):
         """Test listing Splunk apps."""
@@ -366,7 +367,7 @@ class TestMetadataTools:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_list_indexes(self, client):
         """Test listing Splunk indexes."""
@@ -436,7 +437,7 @@ class TestKVStoreTools:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_list_kvstore_collections(self, client):
         """Test listing KV Store collections."""
@@ -482,7 +483,7 @@ class TestResources:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_splunk_health_resource(self, client):
         """Test Splunk health resource."""
@@ -781,7 +782,7 @@ class TestServerMiddleware:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_client_config_middleware(self, client):
         """Test client configuration middleware."""
@@ -807,7 +808,7 @@ class TestErrorHandling:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_tool_with_invalid_parameters(self, client):
         """Test tool behavior with invalid parameters."""
@@ -893,7 +894,7 @@ class TestServerConfiguration:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     async def test_server_metadata(self, client):
         """Test server metadata and capabilities."""
@@ -945,7 +946,7 @@ class TestIntegrationWorkflows:
     async def client(self):
         """Create FastMCP client for in-memory testing."""
         async with Client(mcp) as client:
-            yield client
+            yield wrap_client_tool_errors(client)
 
     @pytest.fixture
     def comprehensive_mock_splunk_service(self):

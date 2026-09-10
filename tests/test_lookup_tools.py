@@ -74,14 +74,10 @@ class TestListLookupFiles:
 
         return service
 
-    async def test_list_lookup_files_success(
-        self, fastmcp_client, extract_tool_result, mock_service
-    ):
+    async def test_list_lookup_files_success(self, fastmcp_client, tool_payload, mock_service):
         """Test successful listing of lookup files."""
         async with fastmcp_client as client:
-            # Execute tool through FastMCP
-            result = await client.call_tool("list_lookup_files", {})
-            data = extract_tool_result(result)
+            data = await tool_payload(client, "list_lookup_files")
 
             # Verify response structure
             if data.get("status") == "success":
@@ -147,13 +143,11 @@ class TestListLookupDefinitions:
         return service
 
     async def test_list_lookup_definitions_success(
-        self, fastmcp_client, extract_tool_result, mock_service
+        self, fastmcp_client, tool_payload, mock_service
     ):
         """Test successful listing of lookup definitions."""
         async with fastmcp_client as client:
-            # Execute tool through FastMCP
-            result = await client.call_tool("list_lookup_definitions", {})
-            data = extract_tool_result(result)
+            data = await tool_payload(client, "list_lookup_definitions")
 
             # Verify response structure
             if data.get("status") == "success":
