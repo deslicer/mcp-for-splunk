@@ -36,7 +36,7 @@ async def test_tool_wrapper_raises_status_error(monkeypatch: pytest.MonkeyPatch)
                 "indexes": [],
             }
 
-    monkeypatch.setattr("src.core.loader.get_context", lambda: SimpleNamespace())
+    monkeypatch.setattr("src.core.loader.get_context", SimpleNamespace)
     wrapper = ToolLoader(Mock())._create_tool_wrapper(_ErrorTool, "list_indexes")
     with pytest.raises(ToolError, match="count must be between 1 and 200"):
         await wrapper()
