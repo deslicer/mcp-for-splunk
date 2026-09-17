@@ -33,7 +33,7 @@ def _build_server_url_from_env() -> str:
     Uses MCP_SERVER_HOST and MCP_SERVER_PORT with sensible defaults.
     """
     host = os.getenv("MCP_SERVER_HOST", "localhost").strip()
-    port = str(os.getenv("MCP_SERVER_PORT", "8001")).strip()
+    port = str(os.getenv("MCP_SERVER_PORT", "8003")).strip()
     return f"http://{host}:{port}/mcp/"
 
 

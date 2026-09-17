@@ -576,8 +576,9 @@ def setup_local_env(force_setup: bool = False) -> int:
         has_host = bool(current.get("SPLUNK_HOST", "").strip())
         has_user = bool(current.get("SPLUNK_USERNAME", "").strip())
         has_pass = bool(current.get("SPLUNK_PASSWORD", "").strip())
+        has_token = bool(current.get("SPLUNK_TOKEN", "").strip())
 
-        if has_host and has_user and has_pass:
+        if has_host and ((has_user and has_pass) or has_token):
             print_status("Splunk configuration in .env looks complete. Skipping setup prompt.")
             load_env_file(env_path)
             print_success("Local environment setup complete!")
