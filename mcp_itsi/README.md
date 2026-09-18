@@ -118,7 +118,7 @@ Send the same `X-Splunk-*` headers the parent project accepts. Optional `X-ITSI-
 | `X-Splunk-Host` | splunkd host (or set `SPLUNK_HOST` in env). |
 | `X-Splunk-Port` | splunkd management port, default `8089`. |
 | `X-Splunk-Scheme` | `https` (default) or `http`. |
-| `X-Splunk-Verify-SSL` | `true` / `false`, default `true`. Set `false` for lab/self-signed certs. |
+| `X-Splunk-Verify-SSL` | May enable verification, but cannot disable the operator's secure default. |
 | `X-Splunk-Username` + `X-Splunk-Password` | Basic auth pair. |
 | `X-Splunk-Token` | Splunk bearer / access token (preferred). |
 | `auth_token` / `X-Auth-Token` / `X-Splunk-Auth-Token` | Aliases for the bearer header (some clients send these names). |
@@ -132,6 +132,10 @@ Send the same `X-Splunk-*` headers the parent project accepts. Optional `X-ITSI-
 Auth precedence is `bearer → session → username/password`. Env defaults (`SPLUNK_TOKEN`, `MCP_SPLUNK_TOKEN`, `SPLUNK_SESSION_TOKEN`, `MCP_SPLUNK_SESSION_TOKEN`, `SPLUNK_USERNAME` / `SPLUNK_PASSWORD`) are used when a header is missing.
 
 ### Example — Cursor / Claude Desktop with two ITSI tenants
+
+For this mixed production/lab example, the operator must start the server with
+`SPLUNK_VERIFY_SSL=false`. The production client explicitly restores
+verification; request headers cannot weaken an operator default of `true`.
 
 ```jsonc
 {
@@ -154,7 +158,6 @@ Auth precedence is `bearer → session → username/password`. Env defaults (`SP
         "X-Splunk-Host": "so1",
         "X-Splunk-Username": "admin",
         "X-Splunk-Password": "Chang3d!",
-        "X-Splunk-Verify-SSL": "false",
         "X-Session-ID": "itsi-lab"
       }
     }

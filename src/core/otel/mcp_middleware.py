@@ -14,7 +14,7 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from .logging import redact_sensitive
+from .telemetry_logging import redact_sensitive
 
 logger = stdlib_logging.getLogger(__name__)
 

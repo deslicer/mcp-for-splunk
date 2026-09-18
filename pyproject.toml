@@ -61,7 +61,6 @@ test = [
 ]
 security = [
 "bandit>=1.9.4",
-"safety>=3.8.1",
 # semgrep >=1.137 hard-pins old `mcp` versions, which conflicts with FastMCP 4 /
 # MCP SDK v2. CI runs semgrep standalone (`pip install semgrep` in its own
 # isolated job), so this capped version only serves local convenience scans.
@@ -131,7 +130,6 @@ dev-dependencies = [
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
 "bandit>=1.9.4",
-"safety>=3.8.1",
 "mcp-itsi-server",
 ]
 

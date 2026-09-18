@@ -14,16 +14,10 @@ import os
 import sys
 
 from dotenv import load_dotenv
+from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
 
 from src.cli.splunk_test_headers import SplunkTestHeaderManager
-
-try:
-    from fastmcp import Client
-    from fastmcp.client.transports import StreamableHttpTransport
-except ImportError:
-    print("❌ FastMCP is not installed. The server setup script should have installed it.")
-    print("   Try running: uv pip install fastmcp")
-    sys.exit(1)
 
 # Load environment variables from a .env file if present
 load_dotenv()

@@ -21,13 +21,17 @@ adds three optional `X-ITSI-*` headers for namespace overrides.
 |-----------------------|--------------|------------------------------------------------------|
 | `X-Splunk-Port`       | `8089`       | splunkd management port.                             |
 | `X-Splunk-Scheme`     | `https`      | Scheme for splunkd.                                  |
-| `X-Splunk-Verify-SSL` | `false`      | Set `true` in production with a valid cert.          |
+| `X-Splunk-Verify-SSL` | Operator setting (`true`) | May enable verification; cannot disable the operator default. |
 | `X-ITSI-App`          | `SA-ITOA`    | Splunk app namespace.                                |
 | `X-ITSI-User-NS`      | `nobody`     | User namespace (`/servicesNS/<user>/...`).           |
 | `X-ITSI-API-Version`  | `vLatest`    | ITSI API version.                                    |
 | `X-Session-ID`        | (none)       | Optional client-defined session id for log tagging.  |
 
 ## Example: streamable-http MCP client
+
+For a lab with a self-signed certificate, the operator must set
+`SPLUNK_VERIFY_SSL=false` in the server environment. A request header cannot
+disable the secure operator default.
 
 ```json
 {
@@ -40,7 +44,6 @@ adds three optional `X-ITSI-*` headers for namespace overrides.
         "X-Splunk-Username": "admin",
         "X-Splunk-Password": "Chang3d!",
         "X-Splunk-Scheme": "https",
-        "X-Splunk-Verify-SSL": "false",
         "X-Session-ID": "itsi-dev-session"
       }
     }
