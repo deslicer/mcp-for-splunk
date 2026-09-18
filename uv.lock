@@ -36,7 +36,7 @@ members = [
     "mcp-itsi-server",
     "mcp-server-for-splunk",
 ]
-constraints = [{ name = "fastmcp-slim", specifier = "==4.0.0b4" }]
+constraints = [{ name = "fastmcp-slim", specifier = "==4.0.3" }]
 
 [[package]]
 name = "aiofile"
@@ -878,19 +878,19 @@ wheels = [
 
 [[package]]
 name = "fastmcp"
-version = "4.0.0b4"
+version = "4.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastmcp-slim", extra = ["client", "server"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/a1/032858e40579c3047ac6f3eb1e97b59db7ad649234d55094a9bcf2d560c1/fastmcp-4.0.0b4.tar.gz", hash = "sha256:e3a8b0f4a8300b3da15584e7bff62d464fa5458b52903d86a6a2e149c61c3edb", size = 42180304, upload-time = "2026-08-26T22:59:07.827Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/1a/bee10aff530338f3b8982a3dd1c377c3ba5d0bc724615bf358422c4e9ecf/fastmcp-4.0.3.tar.gz", hash = "sha256:0dd50baf070105ee4436c245f087ac3c047e655c32d9e783de16d0bf15783a98", size = 42311418, upload-time = "2026-09-05T00:31:36.932Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/11/132d9030c8b3235784352e7132286bf2e4d010f4f295ba4b4ccf2c44ebd1/fastmcp-4.0.0b4-py3-none-any.whl", hash = "sha256:2996abab765172bfcf2e7d4bdde77438390ecd79af5b5a3af586e97eedf8f5e4", size = 8088, upload-time = "2026-08-26T22:59:04.265Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/cb/66600db497b3be21cf141f01296308169859d48ed9b1bc8ba7c9d83279b7/fastmcp-4.0.3-py3-none-any.whl", hash = "sha256:f743f43193e1daf606e6497a9dddba5bbaad7df7957a98fd093716ecf4458b99", size = 8076, upload-time = "2026-09-05T00:31:33.957Z" },
 ]
 
 [[package]]
 name = "fastmcp-slim"
-version = "4.0.0b4"
+version = "4.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp-types" },
@@ -901,9 +901,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/1a/89f4ade73ba26c04b573464686a2bc656b1f910d3f92f6e0950971a7c64f/fastmcp_slim-4.0.0b4.tar.gz", hash = "sha256:9a57dfa7be461d6a65903f450af6e6b51d26266f50977bf7c30508fefaab8816", size = 679556, upload-time = "2026-08-26T22:58:39.69Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/a9/b7b796b0d4a5e095dadef233833c82ac1136f5c110dd9947b2e9a4988518/fastmcp_slim-4.0.3.tar.gz", hash = "sha256:3ce04a82b82cc41ccb12bb3bb366cfd65b52bc797b8fee332a75da9d480f9b74", size = 685704, upload-time = "2026-09-05T00:31:12.346Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/7c/abf53a150e379563efc353e510ef412aae977929e7b289e1cd089002ffd3/fastmcp_slim-4.0.0b4-py3-none-any.whl", hash = "sha256:d20afd384efe388302d42280bdd2f5525af57d317e315f8e065a8de7517302b5", size = 852891, upload-time = "2026-08-26T22:58:38.348Z" },
+    { url = "https://files.pythonhosted.org/packages/43/4b/6b31820d87f56d5773538860878c8634b618cd1e9044b3bfbd8a78380a0f/fastmcp_slim-4.0.3-py3-none-any.whl", hash = "sha256:3756ed4bd9f82f40adaf51974b7cdd1463ab6b9f479cf69b69b2692969312b87", size = 859717, upload-time = "2026-09-05T00:31:10.93Z" },
 ]
 
 [package.optional-dependencies]
@@ -1560,7 +1560,7 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'security'", specifier = ">=1.9.4" },
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=26.5.1" },
-    { name = "fastmcp", specifier = "==4.0.0b4" },
+    { name = "fastmcp", specifier = "==4.0.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp-itsi-server", marker = "extra == 'itsi'", editable = "packaging/mcp-itsi-server" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.3.1" },
