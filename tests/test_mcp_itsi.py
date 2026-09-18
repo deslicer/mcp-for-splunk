@@ -251,7 +251,6 @@ def test_splunk_session_auth_sets_authorization_header():
 async def test_itsi_client_maps_404_to_not_found():
     cfg = MagicMock()
     cfg.base_url = "https://example.invalid:8089"
-    cfg.verify_ssl = False
     cfg.splunk_token = None
     cfg.splunk_username = None
     cfg.splunk_password = None
@@ -273,7 +272,6 @@ async def test_itsi_client_maps_404_to_not_found():
 async def test_itsi_client_maps_500_to_error():
     cfg = MagicMock()
     cfg.base_url = "https://example.invalid:8089"
-    cfg.verify_ssl = False
     cfg.splunk_token = None
     cfg.splunk_username = None
     cfg.splunk_password = None
