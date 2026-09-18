@@ -31,6 +31,28 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.6.12](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.11...v0.6.12) (2026-09-18)
+
+
+### Features
+
+* return search job_id before Splunk finishes ([#292](https://github.com/deslicer/mcp-for-splunk/issues/292)) ([d4865e5](https://github.com/deslicer/mcp-for-splunk/commit/d4865e5eaf2513e7fcf8765125b2c56e69696d3b))
+
+
+### Bug Fixes
+
+* **cli:** recognize token auth and align local test port default ([#295](https://github.com/deslicer/mcp-for-splunk/issues/295)) ([23f1acc](https://github.com/deslicer/mcp-for-splunk/commit/23f1accc4015cc729ab7c0bc79176f77080f7d01))
+* **security:** document intentional ITSI TLS exception ([#297](https://github.com/deslicer/mcp-for-splunk/issues/297)) ([2fdbeb2](https://github.com/deslicer/mcp-for-splunk/commit/2fdbeb2edac2cd060f55aa93e2faa331bfdd52e5))
+* **security:** remediate open code scanning alerts ([#296](https://github.com/deslicer/mcp-for-splunk/issues/296)) ([e5c5ea4](https://github.com/deslicer/mcp-for-splunk/commit/e5c5ea4ac498ca781d78da630571390ed8f3b2f6))
+* **tests:** remove insecure unused TLS fixtures ([#298](https://github.com/deslicer/mcp-for-splunk/issues/298)) ([f46d71a](https://github.com/deslicer/mcp-for-splunk/commit/f46d71a67a323a1b2b7f394f6515fa2298e461f8))
+
+
+### Dependencies
+
+* **deps-dev:** update ruff requirement from &gt;=0.16.4 to &gt;=0.16.5 ([#287](https://github.com/deslicer/mcp-for-splunk/issues/287)) ([935e758](https://github.com/deslicer/mcp-for-splunk/commit/935e75822d2bf2840c3de222db3edec5ca1f61b7))
+* **deps-dev:** update ruff requirement from &gt;=0.16.5 to &gt;=0.16.6 ([#294](https://github.com/deslicer/mcp-for-splunk/issues/294)) ([d8f7124](https://github.com/deslicer/mcp-for-splunk/commit/d8f7124675da1b6964a488860c18d9e8c5bab96f))
+* **deps:** bump fastmcp from 4.0.0b4 to 4.0.3 in the production-dependencies group ([#293](https://github.com/deslicer/mcp-for-splunk/issues/293)) ([11a7e97](https://github.com/deslicer/mcp-for-splunk/commit/11a7e97701b84046e76d7cd2224554ff2cd3f34a))
+
 ## [0.6.11](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.10...v0.6.11) (2026-09-08)
 
 
