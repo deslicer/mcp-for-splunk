@@ -100,9 +100,6 @@ class ITSIClient:
 
         logger.debug("ITSI %s %s params=%s", method, url, params)
 
-        # TLSVerificationPolicy prevents request headers from disabling the
-        # operator's secure default; only an explicit server setting permits labs.
-        # codeql[py/request-without-cert-validation]
         response = await self._client.request(
             method,
             url,
