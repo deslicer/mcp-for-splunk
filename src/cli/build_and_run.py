@@ -18,6 +18,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.cli.splunk_auth_configuration import SplunkAuthConfiguration
+
 # ANSI colors
 COLOR_RED = "\033[0;31m"
 COLOR_GREEN = "\033[0;32m"
@@ -573,12 +575,8 @@ def setup_local_env(force_setup: bool = False) -> int:
                     v = v.strip().strip('"').strip("'")
                     current[k] = v
 
-        has_host = bool(current.get("SPLUNK_HOST", "").strip())
-        has_user = bool(current.get("SPLUNK_USERNAME", "").strip())
-        has_pass = bool(current.get("SPLUNK_PASSWORD", "").strip())
-        has_token = bool(current.get("SPLUNK_TOKEN", "").strip())
-
-        if has_host and ((has_user and has_pass) or has_token):
+        splunk_auth = SplunkAuthConfiguration.from_env_values(current)
+        if splunk_auth.is_complete():
             print_status("Splunk configuration in .env looks complete. Skipping setup prompt.")
             load_env_file(env_path)
             print_success("Local environment setup complete!")
