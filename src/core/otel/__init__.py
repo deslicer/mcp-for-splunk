@@ -12,8 +12,8 @@ from .bootstrap import (
     instrument_starlette,
 )
 from .config import OtelSettings, is_otel_enabled
-from .logging import OtelJsonFormatter, redact_sensitive
 from .mcp_middleware import OtelToolSpanMiddleware
+from .telemetry_logging import OtelJsonFormatter, redact_sensitive
 
 __all__ = [
     # Config

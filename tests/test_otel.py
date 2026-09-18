@@ -80,7 +80,7 @@ class TestOtelJsonFormatter:
         )
 
     def test_emits_json_with_trace_ids(self):
-        from src.core.otel.logging import OtelJsonFormatter
+        from src.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("hello world")
@@ -97,7 +97,7 @@ class TestOtelJsonFormatter:
         assert payload["otelSpanID"] == "def456"
 
     def test_timestamp_is_iso8601_with_millis(self):
-        from src.core.otel.logging import OtelJsonFormatter
+        from src.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         payload = json.loads(formatter.format(self._record("tick")))
@@ -109,7 +109,7 @@ class TestOtelJsonFormatter:
         assert ts[:4].isdigit()
 
     def test_trace_ids_default_when_absent(self):
-        from src.core.otel.logging import OtelJsonFormatter
+        from src.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         payload = json.loads(formatter.format(self._record("no span active")))
@@ -118,7 +118,7 @@ class TestOtelJsonFormatter:
         assert payload["otelSpanID"] == "0"
 
     def test_redacts_sensitive_values(self):
-        from src.core.otel.logging import OtelJsonFormatter
+        from src.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("connecting with X-Splunk-Token: super-secret-value")
@@ -128,7 +128,7 @@ class TestOtelJsonFormatter:
         assert "***" in payload["message"]
 
     def test_redacts_sensitive_structured_extras(self):
-        from src.core.otel.logging import OtelJsonFormatter
+        from src.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("login")
@@ -147,14 +147,14 @@ class TestOtelJsonFormatter:
 
 class TestRedaction:
     def test_redacts_authorization_bearer(self):
-        from src.core.otel.logging import redact_sensitive
+        from src.core.otel.telemetry_logging import redact_sensitive
 
         out = redact_sensitive("Authorization: Bearer eyJhbGciOi.secrettoken")
         assert "secrettoken" not in out
         assert "***" in out
 
     def test_passes_through_clean_text(self):
-        from src.core.otel.logging import redact_sensitive
+        from src.core.otel.telemetry_logging import redact_sensitive
 
         assert redact_sensitive("searching index=main") == "searching index=main"
 

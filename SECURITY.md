@@ -247,25 +247,23 @@ Our CI/CD pipeline includes:
 1. **Bandit**: Python-specific security linter
 2. **Semgrep**: Multi-pattern SAST tool
 3. **CodeQL**: Advanced semantic analysis
-4. **Safety**: Python dependency vulnerability scanner
-5. **Trivy**: Container and dependency scanner
-6. **Gitleaks**: Secret detection in git history
-7. **TruffleHog**: Secret and credential scanner
+4. **Trivy**: Container and dependency scanner
+5. **Gitleaks**: Secret detection in git history
 
 ### Running Scans Locally
 
 ```bash
-# Install security tools
-pip install bandit safety
+# Install Python security tools
+uv sync --extra security
 
 # Run Bandit scan
-bandit -r src/ -ll
+uv run bandit -r src/ -ll
 
-# Check dependencies
-safety check --file requirements.txt
+# Check dependencies and the filesystem
+trivy fs --severity CRITICAL,HIGH,MEDIUM .
 
 # Run security tests
-pytest tests/security/ -v
+uv run pytest tests/security/ -v
 ```
 
 ## Incident Response

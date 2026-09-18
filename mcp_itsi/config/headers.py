@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from mcp_itsi.config.settings import ITSIServerSettings
+from mcp_itsi.config.tls_policy import TLSVerificationPolicy
 from src.core.utils import _is_dai_session_bearer
 
 logger = logging.getLogger(__name__)
@@ -64,12 +65,6 @@ def _ci_get(headers: Mapping[str, str], name: str) -> str | None:
         if key.lower() == lower:
             return value
     return None
-
-
-def _bool_header(value: str | None, default: bool) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _int_header(value: str | None, default: int) -> int:
@@ -145,6 +140,7 @@ def extract_request_config(
         (session_from_headers.strip() if session_from_headers else None)
         or settings.default_splunk_session_token
     )
+    tls_policy = TLSVerificationPolicy(settings.default_splunk_verify_ssl)
 
     cfg = ITSIRequestConfig(
         splunk_host=host,
@@ -154,9 +150,7 @@ def extract_request_config(
         splunk_password=_ci_get(headers, "X-Splunk-Password") or settings.default_splunk_password,
         splunk_token=splunk_token,
         splunk_session_token=splunk_session_token,
-        verify_ssl=_bool_header(
-            _ci_get(headers, "X-Splunk-Verify-SSL"), settings.default_splunk_verify_ssl
-        ),
+        verify_ssl=tls_policy.resolve(_ci_get(headers, "X-Splunk-Verify-SSL")),
         itsi_app=_ci_get(headers, "X-ITSI-App") or settings.default_itsi_app,
         user_ns=_ci_get(headers, "X-ITSI-User-NS") or settings.default_itsi_user_ns,
         api_version=_ci_get(headers, "X-ITSI-API-Version") or settings.default_itsi_version,
