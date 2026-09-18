@@ -15,6 +15,8 @@ import sys
 
 from dotenv import load_dotenv
 
+from src.cli.splunk_test_headers import SplunkTestHeaderManager
+
 try:
     from fastmcp import Client
     from fastmcp.client.transports import StreamableHttpTransport
@@ -33,7 +35,7 @@ def _build_server_url_from_env() -> str:
     Uses MCP_SERVER_HOST and MCP_SERVER_PORT with sensible defaults.
     """
     host = os.getenv("MCP_SERVER_HOST", "localhost").strip()
-    port = str(os.getenv("MCP_SERVER_PORT", "8001")).strip()
+    port = str(os.getenv("MCP_SERVER_PORT", "8003")).strip()
     return f"http://{host}:{port}/mcp/"
 
 
@@ -52,18 +54,7 @@ async def test_server_connection(url: str = "", detailed: bool = False):
     print(f"URL: {resolved_url}")
 
     try:
-        # Build Splunk headers from environment variables
-        headers = {
-            "X-Splunk-Host": os.getenv("SPLUNK_HOST", "").strip() or "localhost",
-            "X-Splunk-Port": os.getenv("SPLUNK_PORT", "8089").strip(),
-            "X-Splunk-Username": os.getenv("SPLUNK_USERNAME", "admin").strip(),
-            "X-Splunk-Password": os.getenv("SPLUNK_PASSWORD", "changeme"),
-            "X-Splunk-Scheme": os.getenv("SPLUNK_SCHEME", "https").strip(),
-            # Expect "true"/"false" string; server converts to bool
-            "X-Splunk-Verify-SSL": (os.getenv("SPLUNK_VERIFY_SSL", "false").strip() or "false"),
-            # Do NOT set X-Session-ID manually; FastMCP client/session handles this
-            "Accept": "application/json, text/event-stream",
-        }
+        headers = SplunkTestHeaderManager.build_from_env()
 
         # Use Streamable HTTP transport to pass headers
         transport = StreamableHttpTransport(

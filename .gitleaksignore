@@ -152,3 +152,6 @@ f7bd2ee5e3ea6f3599ab9a60bc8ed6d6c59f1a31:tests/test_mcp_itsi.py:splunk-password:
 1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:splunk-token:138
 1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:152
 1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:153
+
+# PR #295: boolean presence check for an environment-sourced bearer credential.
+51673e710d886866a0cccdd9b78eb1fd0cd9b417:src/cli/build_and_run.py:generic-credential:579
