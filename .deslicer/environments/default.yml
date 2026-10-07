@@ -1,0 +1,40 @@
+# Deslicer environment configuration.
+# File stem "default" maps to a workspace environment (tenant: 1985c5a1-c37b-4e7a-844f-52db83afa8e4).
+# Add apps under each inventory_group as `- source_path: <relative-app-path>`.
+# See README.md at the repository root for how this file is used.
+
+destinations:
+  - inventory_group: Workers
+    apps:
+  - inventory_group: cluster_manager_cluster_c1_ag1
+    apps:
+  - inventory_group: cluster_manager_cluster_c1_ag2
+    apps:
+  - inventory_group: cluster_peers_cluster_c1_ag1
+    apps:
+  - inventory_group: cluster_peers_cluster_c1_ag2
+    apps:
+  - inventory_group: deployment_servers_ag1
+    apps:
+  - inventory_group: deployment_servers_ag2
+    apps:
+  - inventory_group: forwarders_ag1
+    apps:
+  - inventory_group: forwarders_ag2
+    apps:
+  - inventory_group: license_managers_ag1
+    apps:
+  - inventory_group: license_managers_ag2
+    apps:
+  - inventory_group: monitoring_consoles_ag1
+    apps:
+  - inventory_group: monitoring_consoles_ag2
+    apps:
+  - inventory_group: searchhead_deployer_shcluster_c1_ag1
+    apps:
+  - inventory_group: searchhead_deployer_shcluster_c1_ag2
+    apps:
+  - inventory_group: searchhead_members_shcluster_c1_ag1
+    apps:
+  - inventory_group: searchhead_members_shcluster_c1_ag2
+    apps:
