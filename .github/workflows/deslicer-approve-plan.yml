@@ -1,0 +1,58 @@
+name: Deslicer Approve Plan
+on:
+  workflow_dispatch:
+    inputs:
+      plan_id:
+        description: Deslicer plan id
+        required: true
+      environment:
+        description: YAML stem / GitHub Environment (default = sole stem)
+        required: false
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.environments.outputs.target }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - id: environments
+        name: List environments
+        env:
+          PIN: ${{ inputs.environment }}
+          MODE: one
+        run: |
+          chmod +x .github/scripts/discover-deslicer-environments.sh
+          .github/scripts/discover-deslicer-environments.sh
+  approve:
+    needs: resolve-environment
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve-environment.outputs.target }}
+    env:
+      DESLICER_API_URL: ${{ vars.DESLICER_API_URL }}
+      DESLICER_ENVIRONMENT: ${{ needs.resolve-environment.outputs.target }}
+    steps:
+      - name: Preflight Deslicer configuration
+        run: |
+          set -euo pipefail
+          if [[ -z "${DESLICER_API_URL}" ]]; then
+            echo "::error::Set repository variable DESLICER_API_URL to your deslicer-ai portal base URL"
+            exit 1
+          fi
+          if [[ -z "${DESLICER_ENVIRONMENT}" ]]; then
+            echo "::error::Could not resolve environment stem from .deslicer/environments/"
+            exit 1
+          fi
+          if ! curl -fsS --connect-timeout 10 --max-time 25 "${DESLICER_API_URL%/}/api/health" >/dev/null; then
+            echo "::error::Cannot reach deslicer-ai at DESLICER_API_URL (GET /api/health failed)"
+            exit 1
+          fi
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - id: approve
+        uses: deslicer/change-action@d78dd26a58f47d5f54c93f316eb3d6db02d2e75e
+        with:
+          command: approve
+          command-args: --plan-id ${{ inputs.plan_id }}
+          github-token: ${{ github.token }}
