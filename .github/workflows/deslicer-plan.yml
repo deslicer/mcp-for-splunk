@@ -1,0 +1,215 @@
+name: Deslicer Plan
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master, development, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: YAML stem / GitHub Environment (default = all stems)
+        required: false
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  list-environments:
+    runs-on: ubuntu-latest
+    outputs:
+      stems: ${{ steps.environments.outputs.targets }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - id: environments
+        name: List environments
+        env:
+          PIN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || '' }}
+        run: |
+          chmod +x .github/scripts/discover-deslicer-environments.sh
+          .github/scripts/discover-deslicer-environments.sh
+  discover-inventory:
+    needs: list-environments
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJson(needs.list-environments.outputs.stems) }}
+    environment: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - id: cli
+        uses: deslicer/change-action@d78dd26a58f47d5f54c93f316eb3d6db02d2e75e
+        with:
+          github-token: ${{ github.token }}
+      - name: Discover inventory for ${{ matrix.environment }}
+        env:
+          PIN: ${{ matrix.environment }}
+          MATRIX_OUTPUT_PATH: matrix.json
+          DESLICER_ENVIRONMENT: ${{ matrix.environment }}
+          DESLICER_CLI: ${{ steps.cli.outputs.cli-path }}
+        run: |
+          chmod +x .github/scripts/discover-plan-matrix.sh
+          .github/scripts/discover-plan-matrix.sh
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: plan-matrix-${{ matrix.environment }}
+          path: matrix.json
+          if-no-files-found: error
+  assemble-plan-matrix:
+    needs: [list-environments, discover-inventory]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.merge.outputs.matrix }}
+      has_targets: ${{ steps.merge.outputs.has_targets }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          pattern: plan-matrix-*
+          merge-multiple: true
+          path: matrices
+      - id: merge
+        name: Assemble plan matrix
+        run: |
+          chmod +x .github/scripts/merge-plan-matrix.sh
+          .github/scripts/merge-plan-matrix.sh matrices
+  # PR sync: env YAML + inventory validate only — never create pending_approval plans.
+  validate-diff:
+    needs: list-environments
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJson(needs.list-environments.outputs.stems) }}
+    environment: ${{ matrix.environment }}
+    env:
+      DESLICER_API_URL: ${{ vars.DESLICER_API_URL }}
+      DESLICER_ENVIRONMENT: ${{ matrix.environment }}
+    steps:
+      - name: Preflight Deslicer configuration
+        run: |
+          set -euo pipefail
+          if [[ -z "${DESLICER_API_URL}" ]]; then
+            echo "::error::Set repository variable DESLICER_API_URL to your deslicer-ai portal base URL"
+            exit 1
+          fi
+          if [[ "${DESLICER_API_URL}" == *REPLACE* ]]; then
+            echo "::error::DESLICER_API_URL is still a placeholder"
+            exit 1
+          fi
+          if [[ -z "${DESLICER_ENVIRONMENT}" ]]; then
+            echo "::error::Missing matrix environment stem"
+            exit 1
+          fi
+          if ! curl -fsS --connect-timeout 10 --max-time 25 "${DESLICER_API_URL%/}/api/health" >/dev/null; then
+            echo "::error::Cannot reach deslicer-ai at DESLICER_API_URL (GET /api/health failed)"
+            exit 1
+          fi
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - id: cli
+        uses: deslicer/change-action@d78dd26a58f47d5f54c93f316eb3d6db02d2e75e
+        with:
+          github-token: ${{ github.token }}
+      - name: Validate environment ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          CLI="${{ steps.cli.outputs.cli-path }}"
+          "${CLI}" inventory validate --environment "${DESLICER_ENVIRONMENT}"
+          {
+            echo '## Diff check (pull request)'
+            echo ""
+            echo "Validated \`${DESLICER_ENVIRONMENT}\` without creating a plan."
+            echo "Merge to \`main\`/\`master\` to create or reconcile the change plan at HEAD."
+          } >> "${GITHUB_STEP_SUMMARY}"
+  create-plan:
+    needs: assemble-plan-matrix
+    if: >-
+      needs.assemble-plan-matrix.outputs.has_targets == 'true' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.assemble-plan-matrix.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deslicer-plan-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.environment }}-${{ matrix.inventory_group }}
+      cancel-in-progress: true
+    environment: ${{ matrix.environment }}
+    env:
+      DESLICER_API_URL: ${{ vars.DESLICER_API_URL }}
+      DESLICER_ENVIRONMENT: ${{ matrix.environment }}
+      INVENTORY_GROUP: ${{ matrix.inventory_group }}
+    steps:
+      - name: Preflight Deslicer configuration
+        run: |
+          set -euo pipefail
+          if [[ -z "${DESLICER_API_URL}" ]]; then
+            echo "::error::Set repository variable DESLICER_API_URL to your deslicer-ai portal base URL"
+            exit 1
+          fi
+          if [[ "${DESLICER_API_URL}" == *REPLACE* ]]; then
+            echo "::error::DESLICER_API_URL is still a placeholder"
+            exit 1
+          fi
+          if [[ -z "${DESLICER_ENVIRONMENT}" ]]; then
+            echo "::error::Missing matrix environment stem"
+            exit 1
+          fi
+          if [[ -z "${INVENTORY_GROUP}" ]]; then
+            echo "::error::Missing matrix inventory_group"
+            exit 1
+          fi
+          # change-action whitespace-splits command-args; UUID matrix output could
+          # not inject flags — names must be allowlisted before interpolation.
+          if [[ ! "${INVENTORY_GROUP}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "::error::Invalid matrix inventory_group '${INVENTORY_GROUP}': must match ^[A-Za-z0-9_-]+$"
+            exit 1
+          fi
+          if ! curl -fsS --connect-timeout 10 --max-time 25 "${DESLICER_API_URL%/}/api/health" >/dev/null; then
+            echo "::error::Cannot reach deslicer-ai at DESLICER_API_URL (GET /api/health failed)"
+            exit 1
+          fi
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          lfs: true
+      # Pass inventory_group names (allowlisted above); CLI v1.3.2+ resolves them
+      # to host-group UUIDs. Old UUID matrix path closed argv injection.
+      # Plan title: when --name is omitted, deslicer change plan defaults to the
+      # GitHub PR title (or push commit subject). Do not put PR titles in
+      # command-args — change-action whitespace-splits them.
+      - id: plan
+        name: Create plan
+        uses: deslicer/change-action@d78dd26a58f47d5f54c93f316eb3d6db02d2e75e
+        with:
+          command: plan
+          command-args: --target-group ${{ matrix.inventory_group }} --environment ${{ matrix.environment }}
+          github-token: ${{ github.token }}
+      - name: Plan summary
+        env:
+          PLAN_ID: ${{ steps.plan.outputs.plan_id }}
+          PLAN_STATUS: ${{ steps.plan.outputs.plan_status }}
+          TARGET: ${{ matrix.environment }}
+          TIER: ${{ matrix.inventory_group }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PLAN_ID}" ]]; then
+            echo "::error::plan_id missing from deslicer change plan"
+            exit 1
+          fi
+          PORTAL="${DESLICER_API_URL%/}"
+          PLAN_URL="${PORTAL}/dashboard/dap/plans/${PLAN_ID}"
+          {
+            echo '## Deslicer plan'
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Environment | \`${TARGET}\` |"
+            echo "| Inventory group | \`${TIER}\` |"
+            echo "| Plan ID | \`${PLAN_ID}\` |"
+            if [[ -n "${PLAN_STATUS}" ]]; then
+              echo "| Status | **${PLAN_STATUS}** |"
+            fi
+            echo "| Portal | [Open in Deslicer](${PLAN_URL}) |"
+            echo ""
+            echo "${PLAN_URL}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "::notice title=Deslicer plan ${TARGET}/${TIER}::${PLAN_URL}"
