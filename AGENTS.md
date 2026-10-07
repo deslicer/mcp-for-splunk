@@ -9,7 +9,7 @@ server, prefer [`llms.txt`](llms.txt) and
 
 - **Product**: MCP Server for Splunk — FastMCP 4 / MCP SDK v2 tools, resources,
   and prompts over Splunk Enterprise/Cloud (+ optional ITSI plugin).
-- **Runtime pin**: `fastmcp==4.0.3` (see `pyproject.toml` / `uv.lock`).
+- **Runtime pin**: `fastmcp==4.0.5` (see `pyproject.toml` / `uv.lock`; keep `fastmcp-slim` on the same release via `constraint-dependencies`).
 - **Layout**:
   - `src/` — core server, tools, resources, middleware
   - `mcp_itsi/` — ITSI plugin package (also packaged under `packaging/mcp-itsi-server`)
