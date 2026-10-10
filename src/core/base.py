@@ -259,14 +259,19 @@ class BaseTool(ABC):
         """
         splunk_ctx = self._get_splunk_context(ctx)
 
+        from src.client.splunk_client import (
+            format_degraded_splunk_message,
+            get_splunk_service,
+        )
+
+        connect_error: Exception | None = None
         client_config = self._resolve_client_config_sync(ctx)
         if client_config:
             try:
-                from src.client.splunk_client import get_splunk_service
-
                 service = get_splunk_service(client_config)
                 return True, service, ""
             except Exception as e:
+                connect_error = e
                 logger.warning(
                     "Client-config Splunk connection failed in availability check: %s", e
                 )
@@ -290,7 +295,7 @@ class BaseTool(ABC):
             return (
                 False,
                 None,
-                "Splunk service is not available. MCP server is running in degraded mode.",
+                format_degraded_splunk_message(connect_error),
             )
 
         return True, service, ""
