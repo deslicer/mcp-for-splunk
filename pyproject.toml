@@ -135,6 +135,7 @@ dev-dependencies = [
 
 [tool.uv.exclude-newer-package]
 anyio = false
+certifi = false
 click = false
 fastmcp = false
 fastmcp-slim = false
