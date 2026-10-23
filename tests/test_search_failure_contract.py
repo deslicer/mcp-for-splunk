@@ -6,7 +6,7 @@ import socket
 import ssl
 from io import BytesIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 from urllib.error import URLError
 
 import pytest
@@ -345,7 +345,14 @@ async def test_success_and_paging_through_mcp_client(search, monkeypatch):
         assert page["status"] == "success" and page["job_id"] == first["job_id"]
         assert page["results"] == [{"n": "3"}] and page["has_more"] is False
         search.service.jobs.create.assert_called_once()
-        search.job.results.assert_called_with(output_mode="json", count=2, offset=2)
+        assert search.service.jobs.__getitem__.call_args_list == [
+            call(first["job_id"]),
+            call(first["job_id"]),
+        ]
+        assert search.job.results.call_args_list == [
+            call(output_mode="json", count=2, offset=0),
+            call(output_mode="json", count=2, offset=2),
+        ]
 
 
 @pytest.mark.parametrize("search", [JobSearch], indirect=True)
