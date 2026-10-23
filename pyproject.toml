@@ -21,7 +21,7 @@ dependencies = [
 # and slim distributions on the same release to avoid incompatible resolution.
 "fastmcp==4.1.0",
 "splunk-sdk>=2.1.1",
-"python-dotenv>=1.2.3",
+"python-dotenv>=1.2.4",
 "httpx>=0.28.1",
 "beautifulsoup4>=4.15.0",
 "uvicorn>=0.54.0",
