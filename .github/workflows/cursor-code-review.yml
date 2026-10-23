@@ -50,7 +50,9 @@ jobs:
 
       - name: Verify the runner cannot write the privileged socket
         shell: bash
-        run: test ! -w /run/codex-action-smoke.sock
+        run: |
+          test -S /run/codex-action-smoke.sock
+          test ! -w /run/codex-action-smoke.sock
 
   review:
     runs-on: ubuntu-latest
