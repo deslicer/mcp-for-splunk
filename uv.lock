@@ -1442,7 +1442,7 @@ requires-dist = [
     { name = "asgi-lifespan", marker = "extra == 'test'", specifier = ">=2.1.0" },
     { name = "bandit", marker = "extra == 'security'", specifier = ">=1.9.4" },
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
-    { name = "black", marker = "extra == 'dev'", specifier = ">=26.5.1" },
+    { name = "black", marker = "extra == 'dev'", specifier = ">=26.10.0" },
     { name = "fastmcp", specifier = "==4.1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp-itsi-server", marker = "extra == 'itsi'", editable = "packaging/mcp-itsi-server" },
@@ -1473,7 +1473,7 @@ provides-extras = ["dev", "itsi", "test", "security", "docs", "sentry", "otel"]
 dev = [
     { name = "asgi-lifespan", specifier = ">=2.1.0" },
     { name = "bandit", specifier = ">=1.9.4" },
-    { name = "black", specifier = ">=26.5.1" },
+    { name = "black", specifier = ">=26.10.0" },
     { name = "mcp-itsi-server", editable = "packaging/mcp-itsi-server" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "pre-commit", specifier = ">=4.6.1" },
