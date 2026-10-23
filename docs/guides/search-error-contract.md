@@ -42,6 +42,32 @@ A certificate failure in the availability check returns this shape:
 
 Clients should tolerate additional error codes and stages by treating them as unknown until supported.
 
+## Reading errors with a FastMCP client
+
+FastMCP clients raise an exception for tool errors by default. Use `raise_on_error=False` to inspect the structured result, including an unknown creation outcome or an existing job ID:
+
+```python
+import asyncio
+
+from fastmcp import Client
+
+
+async def main():
+    async with Client("http://localhost:8001/mcp") as client:
+        result = await client.call_tool(
+            "run_splunk_search",
+            {"query": "| makeresults count=3", "count": 2},
+            raise_on_error=False,
+        )
+        payload = result.structured_content
+        if result.is_error:
+            print(payload["error_code"], payload["execution_stage"])
+            print(payload["search_started"], payload.get("job_id"))
+
+
+asyncio.run(main())
+```
+
 ## Retry and reconciliation
 
 | Execution stage | Search state | Client action |
@@ -58,7 +84,7 @@ Credential fields, authorization headers, and URL userinfo are redacted from dia
 
 ## Verification
 
-`tests/test_search_failure_contract.py` exercises pre-dispatch certificate failures, uncertain creation outcomes, known SIDs after creation, network/authentication classifications, and credential redaction. It also calls both tools through the production `ToolLoader`, FastMCP client, and production HTTP app to verify `structuredContent` and `isError` survive serialization.
+`tests/test_search_failure_contract.py` exercises pre-dispatch certificate failures, uncertain creation outcomes, known SIDs after creation, network/authentication classifications, and credential redaction. It asserts successful search results, second-page retrieval, job lookup, and running-job handoff through a real FastMCP client with a controlled Splunk backend. It also calls both tools through the production `ToolLoader`, FastMCP client, and production HTTP app to verify `structuredContent` and `isError` survive serialization.
 
 `tests/test_search_error_telemetry.py` verifies that structured failures retain error status in OpenTelemetry and Sentry spans.
 
