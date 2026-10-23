@@ -43,10 +43,10 @@ jobs:
             ${{ runner.os }}-uv-
 
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Run tests (fast path)
-        run: uv run pytest -q
+        run: uv run --locked pytest -q
 
   integration:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true' }}
@@ -73,7 +73,7 @@ jobs:
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Start Splunk container
         run: docker compose -f docker-compose-splunk.yml up -d
@@ -95,7 +95,7 @@ jobs:
           exit 1
 
       - name: Run full test suite
-        run: uv run pytest -q
+        run: uv run --locked pytest -q
 
       - name: Teardown Splunk
         if: always()

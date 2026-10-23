@@ -21,18 +21,21 @@ jobs:
       - name: Install Python 3.10 via uv
         run: uv python install 3.10
 
+      - name: Check dependency lockfile
+        run: uv lock --check
+
       - name: Sync dependencies (dev)
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Lint (ruff)
-        run: uv run ruff check src/
+        run: uv run --locked ruff check src/
 
       - name: Type check (mypy)
-        run: uv run mypy src/
+        run: uv run --locked mypy src/
 
       - name: Run tests
         env:
           PYTHONUNBUFFERED: "1"
-        run: uv run pytest -q --maxfail=1
+        run: uv run --locked pytest -q --maxfail=1
 
 
