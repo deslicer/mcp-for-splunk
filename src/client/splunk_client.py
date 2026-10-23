@@ -4,6 +4,7 @@ Splunk client connection management.
 Provides connection utilities for Splunk Enterprise/Cloud instances.
 """
 
+import errno
 import logging
 import os
 import time
@@ -138,6 +139,39 @@ def _get_connect_retry_settings() -> tuple[int, float]:
     return max(retry_count, 1), max(base_delay, 0.0)
 
 
+def is_hard_network_unreachable(exc: BaseException) -> bool:
+    """True when retries cannot help (no route / host unreachable)."""
+    if isinstance(exc, OSError) and exc.errno in (
+        errno.ENETUNREACH,
+        errno.EHOSTUNREACH,
+    ):
+        return True
+    message = str(exc).lower()
+    return (
+        "enetunreach" in message
+        or "ehostunreach" in message
+        or "network is unreachable" in message
+        or "network unreachable" in message
+    )
+
+
+def format_degraded_splunk_message(cause: BaseException | None = None) -> str:
+    """User-facing degraded-mode string; keep 'degraded mode' for DAI matchers."""
+    base = "Splunk service is not available. MCP server is running in degraded mode."
+    if cause is None:
+        return base
+    detail = str(cause).strip()
+    if not detail:
+        return base
+    if is_hard_network_unreachable(cause):
+        return (
+            f"{base} Cause: {detail}. "
+            "This process has no route to the Splunk host "
+            "(common for IPv6-only DNS from a container without IPv6 egress)."
+        )
+    return f"{base} Cause: {detail}."
+
+
 def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client.Service:
     """Connect to Splunk with exponential backoff for transient failures."""
     retry_count, base_delay = _get_connect_retry_settings()
@@ -175,6 +209,8 @@ def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client
                 auth_mode,
                 e,
             )
+            if is_hard_network_unreachable(e):
+                break
 
     logger.error(
         "Failed to connect to Splunk after %d attempts: %s",
@@ -250,6 +286,5 @@ def get_splunk_service_safe(client_config: dict[str, Any] | None = None) -> clie
     try:
         return get_splunk_service(client_config)
     except Exception as e:
-        logger.warning(f"Splunk connection failed: {str(e)}")
-        logger.warning("Server will run in degraded mode without Splunk connection")
+        logger.warning("%s", format_degraded_splunk_message(e))
         return None

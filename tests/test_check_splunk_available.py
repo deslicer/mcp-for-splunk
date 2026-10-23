@@ -1,10 +1,12 @@
 """Tests for BaseTool.check_splunk_available header-based config resolution."""
 
+import errno
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Context
 
+from src.client.splunk_client import format_degraded_splunk_message
 from src.core.base import BaseTool, SplunkContext
 
 
@@ -132,3 +134,30 @@ class TestCheckSplunkAvailable:
         assert is_available is True
         assert service is lifespan_service
         assert error == ""
+
+    @patch("src.client.splunk_client.get_splunk_service")
+    @patch("src.core.base.get_http_headers")
+    def test_includes_connect_cause_when_headers_and_lifespan_fail(
+        self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
+    ):
+        """Degraded message keeps the phrase and surfaces the connect errno."""
+        mock_get_http_headers.return_value = {
+            "X-Splunk-Host": "bad.example.com",
+            "X-Splunk-Port": "8089",
+        }
+        mock_get_splunk_service.side_effect = OSError(
+            errno.ENETUNREACH, "Network is unreachable"
+        )
+
+        is_available, service, error = tool.check_splunk_available(ctx)
+
+        assert is_available is False
+        assert service is None
+        assert "degraded mode" in error
+        assert "Network is unreachable" in error
+        assert "IPv6" in error
+
+
+def test_format_degraded_splunk_message_without_cause():
+    assert "degraded mode" in format_degraded_splunk_message()
+    assert "Cause:" not in format_degraded_splunk_message()

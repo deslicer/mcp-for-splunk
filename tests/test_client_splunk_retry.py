@@ -1,5 +1,6 @@
 """Tests for Splunk connection retry with exponential backoff."""
 
+import errno
 import os
 from unittest.mock import Mock, patch
 
@@ -13,7 +14,7 @@ class TestSplunkConnectRetry:
     @patch("src.client.splunk_client.client.connect")
     def test_retries_transient_failures(self, mock_connect, mock_sleep):
         mock_service = Mock()
-        mock_connect.side_effect = [OSError("Network unreachable"), mock_service]
+        mock_connect.side_effect = [OSError("Connection reset by peer"), mock_service]
 
         with patch.dict(
             os.environ,
@@ -30,6 +31,29 @@ class TestSplunkConnectRetry:
         assert service is mock_service
         assert mock_connect.call_count == 2
         mock_sleep.assert_called_once_with(2.0)
+
+    @patch("src.client.splunk_client.time.sleep")
+    @patch("src.client.splunk_client.client.connect")
+    def test_does_not_retry_network_unreachable(self, mock_connect, mock_sleep):
+        mock_connect.side_effect = OSError(
+            errno.ENETUNREACH, "Network is unreachable"
+        )
+
+        with patch.dict(
+            os.environ,
+            {
+                "SPLUNK_USERNAME": "admin",
+                "SPLUNK_PASSWORD": "password",
+                "SPLUNK_CONNECT_RETRY_COUNT": "3",
+                "SPLUNK_CONNECT_RETRY_BASE_DELAY": "2",
+            },
+            clear=True,
+        ):
+            with pytest.raises(OSError, match="Network is unreachable"):
+                get_splunk_service()
+
+        assert mock_connect.call_count == 1
+        mock_sleep.assert_not_called()
 
     @patch("src.client.splunk_client.time.sleep")
     @patch("src.client.splunk_client.client.connect")
