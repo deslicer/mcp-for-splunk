@@ -1516,7 +1516,7 @@ requires-dist = [
     { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.44.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'otel'", specifier = ">=1.44.0" },
     { name = "opentelemetry-instrumentation-httpx", marker = "extra == 'otel'", specifier = ">=0.66b0" },
-    { name = "opentelemetry-instrumentation-logging", marker = "extra == 'otel'", specifier = ">=0.65b0" },
+    { name = "opentelemetry-instrumentation-logging", marker = "extra == 'otel'", specifier = ">=0.66b0" },
     { name = "opentelemetry-instrumentation-starlette", marker = "extra == 'otel'", specifier = ">=0.66b0" },
     { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.45.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.6.1" },
