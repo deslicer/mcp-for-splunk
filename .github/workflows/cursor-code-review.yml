@@ -9,6 +9,51 @@ permissions:
   pull-requests: write
 
 jobs:
+  codex-action-smoke:
+    # Exercise the fallback's install and Linux privilege setup without secrets
+    # or inference. External forks do not have actor permission for this action.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check runner prerequisites and create an ACL probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x /usr/bin/setpriv
+          test -x /usr/bin/setfacl
+          sudo -n python3 - <<'PY'
+          import os
+          import socket
+
+          path = "/run/codex-action-smoke.sock"
+          with socket.socket(socket.AF_UNIX) as probe:
+              probe.bind(path)
+              os.chmod(path, 0o666)
+          PY
+
+      - name: Exercise Codex installation and protected process launch
+        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1.13
+        with:
+          openai-api-key: codex-action-smoke-not-a-real-key
+          # Fail closed if the version-only command unexpectedly makes a request.
+          responses-api-endpoint: http://127.0.0.1:9/v1/responses
+          prompt: Version-only smoke test.
+          codex-args: '["--version"]'
+          # --version does not create a final-message file.
+          output-file: /dev/null
+          safety-strategy: drop-sudo
+          sandbox: danger-full-access
+          allow-bot-users: dependabot[bot]
+
+      - name: Verify the runner cannot write the privileged socket
+        shell: bash
+        run: |
+          test -S /run/codex-action-smoke.sock
+          test ! -w /run/codex-action-smoke.sock
+
   review:
     runs-on: ubuntu-latest
     # Dependabot and fork PRs cannot read repository Actions secrets.
@@ -59,7 +104,7 @@ jobs:
           head -n 1 "${install_script}" | grep -qE '^#!'
           bash "${install_script}"
           rm -f "${install_script}"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.local/bin:$PATH"
           agent --version
 
@@ -116,9 +161,10 @@ jobs:
       - name: Perform code review (Codex fallback)
         id: codex-fallback
         if: steps.skip-review.outputs.skip != 'true' && (steps.install-cursor.outcome != 'success' || steps.cursor-review.outcome != 'success') && steps.check-codex.outputs.available == 'true'
-        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e # v1
+        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          allow-bot-users: dependabot[bot]
           sandbox: danger-full-access
           safety-strategy: drop-sudo
           model: o3
