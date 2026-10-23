@@ -10,6 +10,8 @@ from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
 from src.core.list_paging import PaginationError, clamp_search_page_size
+from src.core.search_errors import SearchStage, search_error_fields
+from src.core.splunk_errors import safe_error_message
 from src.core.splunk_job_results_page import (
     JOB_TTL_SECONDS,
     SEARCH_PAGE_MAX,
@@ -77,11 +79,15 @@ class JobSearch(BaseTool):
             "run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time
         )
 
-        is_available, service, error_msg = self.check_splunk_available(ctx)
+        availability = self.check_splunk_availability(ctx)
+        service, error_msg = availability.service, availability.error
 
-        if not is_available:
+        if not availability.available:
             await ctx.error(f"Search job failed: {error_msg}")
-            return self.format_error_response(error_msg)
+            return self.format_error_response(
+                error_msg,
+                **search_error_fields(None, "pre_execution", error_code=availability.error_code),
+            )
 
         query = sanitize_search_query(query)
         page_size = clamp_search_page_size(count, max_results, max_count=SEARCH_PAGE_MAX)
@@ -90,40 +96,48 @@ class JobSearch(BaseTool):
         await ctx.info(f"Starting normal search with query: {query}")
         await ctx.report_progress(progress=0, total=100)
 
+        stage: SearchStage = "job_creation"
+        job_id = None
         try:
             start_time = time.time()
             job = await asyncio.to_thread(
                 service.jobs.create, query, earliest_time=earliest_time, latest_time=latest_time
             )
-            apply_job_ttl(job, JOB_TTL_SECONDS)
+            job_id = job.sid
+            stage = "job_ttl"
+            await asyncio.to_thread(apply_job_ttl, job, JOB_TTL_SECONDS)
             await ctx.info(f"Search job created: {job.sid}")
 
-            snapshot = await wait_for_job(
-                job, wait_seconds=resolve_search_wait_seconds()
-            )
+            stage = "job_wait"
+            snapshot = await wait_for_job(job, wait_seconds=resolve_search_wait_seconds())
             stats = snapshot.content
             await self._report_progress(ctx, stats)
 
             if snapshot.is_failed:
                 return await self._failed_job_response(ctx, job.sid, stats)
 
+            stage = "response_formatting"
             client_config = await self.get_client_config_from_context(ctx)
             links = web_links_from_service(service, client_config)
             duration = time.time() - start_time
             if not snapshot.is_done:
-                return self._incomplete_job_response(
-                    job.sid, query, stats, duration, links, offset
-                )
+                return self._incomplete_job_response(job.sid, query, stats, duration, links, offset)
 
             await ctx.info(f"Getting results for search job: {job.sid}")
+            stage = "result_retrieval"
             try:
                 page = await asyncio.to_thread(
                     fetch_job_results_page, job, count=page_size, offset=offset
                 )
             except (PaginationError, JobResultsError) as results_error:
-                await ctx.error(f"Error reading search results: {results_error}")
-                return self.format_error_response(f"Error reading search results: {results_error}")
+                detail = safe_error_message(results_error)
+                await ctx.error(f"Error reading search results: {detail}")
+                return self.format_error_response(
+                    f"Error reading search results: {detail}",
+                    **search_error_fields(results_error, stage, job_id),
+                )
 
+            stage = "response_formatting"
             return self.format_success_response(
                 {
                     "is_done": True,
@@ -146,16 +160,16 @@ class JobSearch(BaseTool):
             )
 
         except Exception as e:
-            self.logger.error(f"Search failed with exception: {str(e)}", exc_info=True)
-            await ctx.error(f"Search failed: {str(e)}")
-            error_detail = str(e)
+            error_detail = safe_error_message(e)
+            self.logger.error("Search failed with exception: %s", error_detail)
+            await ctx.error(f"Search failed: {error_detail}")
             if "Connection" in error_detail or "connection" in error_detail:
                 error_detail += " (Check Splunk server connectivity and credentials)"
             elif "Authentication" in error_detail or "authentication" in error_detail:
                 error_detail += " (Check Splunk username and password)"
             elif "Permission" in error_detail or "permission" in error_detail:
                 error_detail += " (Check user permissions for search and index access)"
-            return self.format_error_response(error_detail)
+            return self.format_error_response(error_detail, **search_error_fields(e, stage, job_id))
 
     async def _failed_job_response(
         self, ctx: Context, sid: str, stats: dict[str, Any]
@@ -166,9 +180,13 @@ class JobSearch(BaseTool):
             if parsed.error_texts
             else "Job failed with no specific error message"
         )
+        error_detail = safe_error_message(error_detail)
         self.logger.error(f"Search job {sid} failed: {error_detail}")
         await ctx.error(f"Search job {sid} failed: {error_detail}")
-        return self.format_error_response(f"Search job failed: {error_detail}")
+        return self.format_error_response(
+            f"Search job failed: {error_detail}",
+            **search_error_fields(None, "job_wait", sid, error_code="search_job_failed"),
+        )
 
     def _incomplete_job_response(
         self,

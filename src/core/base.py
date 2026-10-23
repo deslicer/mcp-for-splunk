@@ -12,7 +12,9 @@ from fastmcp import Context
 from fastmcp.server.dependencies import get_http_headers
 from splunklib import client
 
+from src.client import splunk_client
 from src.core.shared_context import http_headers_context
+from src.core.splunk_errors import SplunkAvailability, classify_splunk_error, safe_error_message
 from src.core.utils import extract_client_config_from_headers
 
 logger = logging.getLogger(__name__)
@@ -251,29 +253,25 @@ class BaseTool(ABC):
         return None
 
     def check_splunk_available(self, ctx: Context) -> tuple[bool, client.Service | None, str]:
-        """
-        Check if Splunk is available and return status.
+        """Legacy availability tuple for tools that only need a human-readable error."""
+        result = self.check_splunk_availability(ctx)
+        return result.available, result.service, result.error
 
-        Returns:
-            Tuple of (is_available, service, error_message)
-        """
+    def check_splunk_availability(self, ctx: Context) -> SplunkAvailability:
+        """Preserve the connection failure code before reducing its cause to prose."""
         splunk_ctx = self._get_splunk_context(ctx)
-
-        from src.client.splunk_client import (
-            format_degraded_splunk_message,
-            get_splunk_service,
-        )
 
         connect_error: Exception | None = None
         client_config = self._resolve_client_config_sync(ctx)
         if client_config:
             try:
-                service = get_splunk_service(client_config)
-                return True, service, ""
+                service = splunk_client.get_splunk_service(client_config)
+                return SplunkAvailability(True, service)
             except Exception as e:
                 connect_error = e
                 logger.warning(
-                    "Client-config Splunk connection failed in availability check: %s", e
+                    "Client-config Splunk connection failed in availability check: %s",
+                    safe_error_message(e),
                 )
 
         # Fallback: use server default service established at startup
@@ -292,13 +290,16 @@ class BaseTool(ABC):
                 service = splunk_ctx.get("service", None)
 
         if not is_connected or not service:
-            return (
+            return SplunkAvailability(
                 False,
-                None,
-                format_degraded_splunk_message(connect_error),
+                error=splunk_client.format_degraded_splunk_message(connect_error),
+                error_code=classify_splunk_error(
+                    connect_error,
+                    default="connection_failed" if connect_error else "splunk_unavailable",
+                ),
             )
 
-        return True, service, ""
+        return SplunkAvailability(True, service)
 
     def _get_splunk_context(self, ctx: Context):
         """

@@ -14,6 +14,8 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from src.core.tool_mcp_result import is_tool_error_result
+
 from .telemetry_logging import redact_sensitive
 
 logger = stdlib_logging.getLogger(__name__)
@@ -69,13 +71,13 @@ class OtelToolSpanMiddleware(Middleware):
 
             try:
                 result = await call_next(context)
-                span.set_status(Status(StatusCode.OK))
+                span.set_status(
+                    Status(StatusCode.ERROR if is_tool_error_result(result) else StatusCode.OK)
+                )
                 return result
             except Exception as exc:
                 _record_redacted_exception(span, exc)
-                span.set_status(
-                    Status(StatusCode.ERROR, redact_sensitive(str(exc))[:200])
-                )
+                span.set_status(Status(StatusCode.ERROR, redact_sensitive(str(exc))[:200]))
                 raise
 
     @staticmethod

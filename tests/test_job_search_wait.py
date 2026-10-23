@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from src.core.splunk_errors import SplunkAvailability
 from src.tools.search.job_search import JobSearch
 
 
@@ -39,7 +40,7 @@ async def test_run_splunk_search_returns_job_id_when_wait_expires(
         "resultCount": "0",
     }
     service.jobs.create.return_value = job
-    job_search_tool.check_splunk_available = Mock(return_value=(True, service, None))
+    job_search_tool.check_splunk_availability = Mock(return_value=SplunkAvailability(True, service))
     job_search_tool.get_client_config_from_context = AsyncMock(return_value={})
 
     result = await job_search_tool.execute(mock_context, query="index=_internal | head 1")
@@ -75,12 +76,10 @@ async def test_run_splunk_search_clamps_zero_count_instead_of_erroring(
     }
     job.results.return_value = [{"host": "a"}]
     service.jobs.create.return_value = job
-    job_search_tool.check_splunk_available = Mock(return_value=(True, service, None))
+    job_search_tool.check_splunk_availability = Mock(return_value=SplunkAvailability(True, service))
     job_search_tool.get_client_config_from_context = AsyncMock(return_value={})
 
-    result = await job_search_tool.execute(
-        mock_context, query="index=_internal | head 1", count=0
-    )
+    result = await job_search_tool.execute(mock_context, query="index=_internal | head 1", count=0)
 
     assert result["status"] == "success"
     assert result["is_done"] is True

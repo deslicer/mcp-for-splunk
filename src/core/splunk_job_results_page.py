@@ -12,6 +12,7 @@ from src.core.list_paging import (
     build_paging,
     validate_pagination,
 )
+from src.core.splunk_errors import safe_error_message
 
 SEARCH_PAGE_MAX = 100
 JOB_TTL_SECONDS = 1800
@@ -25,7 +26,7 @@ def apply_job_ttl(job: Any, ttl_seconds: int = JOB_TTL_SECONDS) -> None:
     try:
         job.set_ttl(ttl_seconds)
     except Exception as exc:
-        logger.debug("Could not set search job TTL: %s", exc)
+        logger.debug("Could not set search job TTL: %s", safe_error_message(exc))
 
 
 class JobResultsError(RuntimeError):

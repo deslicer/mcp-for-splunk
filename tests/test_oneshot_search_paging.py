@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from src.core.splunk_errors import SplunkAvailability
 from src.tools.search.oneshot_search import OneshotSearch
 
 
@@ -32,7 +33,7 @@ class TestOneshotSearchPaging:
         service.port = 8089
         service.jobs.create.return_value = job
 
-        tool.check_splunk_available = Mock(return_value=(True, service, None))
+        tool.check_splunk_availability = Mock(return_value=SplunkAvailability(True, service))
         tool.get_client_config_from_context = AsyncMock(
             return_value={"splunk_web_url": "https://splunk-b839c1.deslicer.io"}
         )
