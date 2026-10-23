@@ -29,7 +29,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
       - name: Cache uv
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -43,10 +43,10 @@ jobs:
             ${{ runner.os }}-uv-
 
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev --extra otel
 
       - name: Run tests (fast path)
-        run: uv run pytest -q
+        run: uv run --locked --extra otel pytest -q
 
   integration:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true' }}
@@ -70,10 +70,10 @@ jobs:
           python-version: '3.12'
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Start Splunk container
         run: docker compose -f docker-compose-splunk.yml up -d
@@ -95,7 +95,7 @@ jobs:
           exit 1
 
       - name: Run full test suite
-        run: uv run pytest -q
+        run: uv run --locked pytest -q
 
       - name: Teardown Splunk
         if: always()
