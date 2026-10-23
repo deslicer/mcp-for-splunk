@@ -10,6 +10,9 @@ description = "Generic API Key"
 regex = '''(?i)(api[_-]?key|apikey)['\"]?\s*[:=]\s*['"]?([0-9a-zA-Z\-_]{20,})'''
 tags = ["key", "API"]
 [rules.allowlist]
+# Exact non-credential used by the version-only Codex action smoke test.
+regexTarget = "match"
+regexes = ['''^api-key:\s+codex-action-smoke-not-a-real-key$''']
 paths = [
     '''env\.example''',
     '''\.md$''',
