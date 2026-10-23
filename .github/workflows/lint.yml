@@ -37,10 +37,10 @@ jobs:
             ${{ runner.os }}-uv-
 
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Ruff (lint)
-        run: uv run ruff check src/
+        run: uv run --locked ruff check src/
 
       - name: Mypy (types)
-        run: uv run mypy src/
+        run: uv run --locked mypy src/
