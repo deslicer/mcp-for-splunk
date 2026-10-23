@@ -8,6 +8,10 @@ Quick fixes for common setup and usage issues.
 - For self-signed certs, set `SPLUNK_VERIFY_SSL=false` in development
 - Test connectivity: `curl -k https://<splunk-host>:8089/services/server/info`
 
+## Search Failures
+
+Use the [search error contract](../guides/search-error-contract.md) to distinguish failures before dispatch from searches that may already exist. Reuse a returned `job_id` before submitting a duplicate search.
+
 ## MCP Inspector
 
 - Open `http://localhost:6274`
