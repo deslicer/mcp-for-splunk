@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from src.core.splunk_errors import SplunkAvailability
 from src.tools.search.job_search import JobSearch
 
 
@@ -41,8 +42,10 @@ class TestJobSearchErrorHandling:
     ):
         """Test that job search handles string messages without crashing."""
 
-        # Mock the check_splunk_available method to return success
-        job_search_tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        # Mock the check_splunk_availability method to return success
+        job_search_tool.check_splunk_availability = Mock(
+            return_value=SplunkAvailability(True, mock_service)
+        )
 
         # Create a mock job that fails with string messages
         mock_job = Mock()
@@ -90,8 +93,10 @@ class TestJobSearchErrorHandling:
     async def test_job_search_with_dict_messages(self, job_search_tool, mock_context, mock_service):
         """Test that job search still handles dictionary messages correctly."""
 
-        # Mock the check_splunk_available method to return success
-        job_search_tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        # Mock the check_splunk_availability method to return success
+        job_search_tool.check_splunk_availability = Mock(
+            return_value=SplunkAvailability(True, mock_service)
+        )
 
         # Create a mock job that fails with dictionary messages (normal case)
         mock_job = Mock()
@@ -143,8 +148,10 @@ class TestJobSearchErrorHandling:
     ):
         """Test that job search handles mixed string and dictionary messages."""
 
-        # Mock the check_splunk_available method to return success
-        job_search_tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        # Mock the check_splunk_availability method to return success
+        job_search_tool.check_splunk_availability = Mock(
+            return_value=SplunkAvailability(True, mock_service)
+        )
 
         # Create a mock job that fails with mixed message types
         mock_job = Mock()
@@ -193,8 +200,10 @@ class TestJobSearchErrorHandling:
     async def test_job_search_no_messages_field(self, job_search_tool, mock_context, mock_service):
         """Test that job search handles missing messages field gracefully."""
 
-        # Mock the check_splunk_available method to return success
-        job_search_tool.check_splunk_available = Mock(return_value=(True, mock_service, None))
+        # Mock the check_splunk_availability method to return success
+        job_search_tool.check_splunk_availability = Mock(
+            return_value=SplunkAvailability(True, mock_service)
+        )
 
         # Create a mock job that fails without messages field
         mock_job = Mock()

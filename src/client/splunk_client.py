@@ -13,6 +13,8 @@ from typing import Any
 from dotenv import load_dotenv
 from splunklib import client
 
+from src.core.splunk_errors import safe_error_message
+
 # Load environment variables
 load_dotenv()
 
@@ -160,7 +162,7 @@ def format_degraded_splunk_message(cause: BaseException | None = None) -> str:
     base = "Splunk service is not available. MCP server is running in degraded mode."
     if cause is None:
         return base
-    detail = str(cause).strip()
+    detail = safe_error_message(cause).strip()
     if not detail:
         return base
     if is_hard_network_unreachable(cause):
@@ -207,7 +209,7 @@ def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client
                 attempt + 1,
                 retry_count,
                 auth_mode,
-                e,
+                safe_error_message(e),
             )
             if is_hard_network_unreachable(e):
                 break
@@ -215,7 +217,7 @@ def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client
     logger.error(
         "Failed to connect to Splunk after %d attempts: %s",
         retry_count,
-        last_exception,
+        safe_error_message(last_exception),
     )
     raise last_exception  # type: ignore[misc]
 

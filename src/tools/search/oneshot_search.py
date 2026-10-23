@@ -9,11 +9,12 @@ from typing import Any
 from fastmcp import Context
 
 from src.core.base import BaseTool, ToolMetadata
-from src.core.list_paging import PaginationError, clamp_search_page_size
+from src.core.list_paging import clamp_search_page_size
+from src.core.search_errors import SearchStage, search_error_fields
+from src.core.splunk_errors import safe_error_message
 from src.core.splunk_job_results_page import (
     JOB_TTL_SECONDS,
     SEARCH_PAGE_MAX,
-    JobResultsError,
     apply_job_ttl,
     fetch_job_results_page,
 )
@@ -23,20 +24,6 @@ from src.core.utils import log_tool_execution, sanitize_search_query
 
 def _resolve_page_size(count: int | None, max_results: int | None) -> int:
     return clamp_search_page_size(count, max_results, max_count=SEARCH_PAGE_MAX)
-
-
-def _create_blocking_job(
-    service: Any, query: str, earliest_time: str, latest_time: str
-) -> Any:
-    job = service.jobs.create(
-        query,
-        earliest_time=earliest_time,
-        latest_time=latest_time,
-        exec_mode="blocking",
-        adhoc_search_level="smart",
-    )
-    apply_job_ttl(job, JOB_TTL_SECONDS)
-    return job
 
 
 class OneshotSearch(BaseTool):
@@ -83,23 +70,40 @@ class OneshotSearch(BaseTool):
             count=page_size,
             offset=offset,
         )
-        is_available, service, error_msg = self.check_splunk_available(ctx)
-        if not is_available:
+        availability = self.check_splunk_availability(ctx)
+        service, error_msg = availability.service, availability.error
+        if not availability.available:
             await ctx.error(f"One-shot search failed: {error_msg}")
             return self.format_error_response(
-                error_msg, results=[], count=0, query_executed=query
+                error_msg,
+                results=[],
+                count=0,
+                query_executed=query,
+                **search_error_fields(None, "pre_execution", error_code=availability.error_code),
             )
 
         query = sanitize_search_query(query)
         await ctx.info(f"Executing blocking search: {query}")
         start_time = time.time()
+        stage: SearchStage = "job_creation"
+        job_id = None
         try:
             job = await asyncio.to_thread(
-                _create_blocking_job, service, query, earliest_time, latest_time
+                service.jobs.create,
+                query,
+                earliest_time=earliest_time,
+                latest_time=latest_time,
+                exec_mode="blocking",
+                adhoc_search_level="smart",
             )
+            job_id = job.sid
+            stage = "job_ttl"
+            await asyncio.to_thread(apply_job_ttl, job, JOB_TTL_SECONDS)
+            stage = "result_retrieval"
             page = await asyncio.to_thread(
                 fetch_job_results_page, job, count=page_size, offset=offset
             )
+            stage = "response_formatting"
             client_config = await self.get_client_config_from_context(ctx)
             links = web_links_from_service(service, client_config)
             duration = time.time() - start_time
@@ -113,13 +117,14 @@ class OneshotSearch(BaseTool):
                     **links.job_links(job.sid),
                 }
             )
-        except (PaginationError, JobResultsError) as e:
-            return self.format_error_response(
-                str(e), results=[], count=0, query_executed=query
-            )
         except Exception as e:
-            self.logger.error("One-shot search failed: %s", e)
-            await ctx.error(f"One-shot search failed: {e}")
+            detail = safe_error_message(e)
+            self.logger.error("One-shot search failed: %s", detail)
+            await ctx.error(f"One-shot search failed: {detail}")
             return self.format_error_response(
-                str(e), results=[], count=0, query_executed=query
+                detail,
+                results=[],
+                count=0,
+                query_executed=query,
+                **search_error_fields(e, stage, job_id),
             )

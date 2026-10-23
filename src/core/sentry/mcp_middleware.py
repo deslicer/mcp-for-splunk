@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from src.core.session_disconnect import is_session_disconnect_error
+from src.core.tool_mcp_result import is_tool_error_result
 
 from .config import _sentry_initialized
 from .context import add_breadcrumb, set_mcp_context
@@ -66,8 +67,9 @@ class SentryMCPMiddleware(Middleware):
 
                     duration_ms = (time.perf_counter() - start_time) * 1000
                     span.set_data("mcp.duration_ms", round(duration_ms, 2))
-                    span.set_data("mcp.status", "success")
-                    span.set_status("ok")
+                    failed = is_tool_error_result(result)
+                    span.set_data("mcp.status", "error" if failed else "success")
+                    span.set_status("internal_error" if failed else "ok")
 
                     self._set_result_metadata(span, result)
 
@@ -215,7 +217,7 @@ class SentryMCPMiddleware(Middleware):
                 return
 
             span.set_data("mcp.result.type", type(result).__name__)
-            span.set_data("response.status", "success")
+            span.set_data("response.status", "error" if is_tool_error_result(result) else "success")
 
             if isinstance(result, dict):
                 span.set_data("mcp.result.keys", list(result.keys())[:20])
@@ -331,12 +333,14 @@ class SentryMCPMiddleware(Middleware):
                     sanitized[key] = f"[list with {len(value)} items]"
                 else:
                     sanitized[key] = [
-                        self._sanitize_result(item, max_depth - 1)
-                        if isinstance(item, dict)
-                        else (
-                            item
-                            if not isinstance(item, str) or len(item) <= 200
-                            else f"[{len(item)} chars]"
+                        (
+                            self._sanitize_result(item, max_depth - 1)
+                            if isinstance(item, dict)
+                            else (
+                                item
+                                if not isinstance(item, str) or len(item) <= 200
+                                else f"[{len(item)} chars]"
+                            )
                         )
                         for item in value[:10]
                     ]
@@ -355,4 +359,3 @@ def create_sentry_middlewares():
     from .http_middleware import SentryHTTPMiddleware
 
     return SentryHTTPMiddleware, SentryMCPMiddleware()
-
