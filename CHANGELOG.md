@@ -31,6 +31,31 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.6.13](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.12...v0.6.13) (2026-10-23)
+
+
+### Bug Fixes
+
+* **ci:** enforce committed dependency locks and test OpenTelemetry ([#335](https://github.com/deslicer/mcp-for-splunk/issues/335)) ([2a71014](https://github.com/deslicer/mcp-for-splunk/commit/2a71014aa38c068490deca278c16dd445b5d3c70))
+* clearer degraded mode for IPv6-unreachable Splunk ([#315](https://github.com/deslicer/mcp-for-splunk/issues/315)) ([744aed7](https://github.com/deslicer/mcp-for-splunk/commit/744aed7283df964932bc975875dc07774102643f))
+* **search:** preserve failure causes and job execution state ([#336](https://github.com/deslicer/mcp-for-splunk/issues/336)) ([d582862](https://github.com/deslicer/mcp-for-splunk/commit/d582862b498afb489ef0ac01fe4c72f023dd7237))
+* **security:** clear Trivy alerts for certifi, virtualenv, and mcp ([167b80f](https://github.com/deslicer/mcp-for-splunk/commit/167b80fbd767a1cbc2ebbe2a4dd7ad78e1480d57))
+* **security:** clear Trivy alerts for certifi, virtualenv, and mcp ([42de015](https://github.com/deslicer/mcp-for-splunk/commit/42de015b24ffe63a060e0c20744975913fc3cd92))
+
+
+### Dependencies
+
+* **deps-dev:** update black requirement from &gt;=26.5.1 to &gt;=26.10.0 ([#320](https://github.com/deslicer/mcp-for-splunk/issues/320)) ([1608bf2](https://github.com/deslicer/mcp-for-splunk/commit/1608bf28c1ce4f0d42037841a30a22524fe6f742))
+* **deps-dev:** update mypy requirement from &gt;=2.3.1 to &gt;=2.4.0 ([#323](https://github.com/deslicer/mcp-for-splunk/issues/323)) ([91c8969](https://github.com/deslicer/mcp-for-splunk/commit/91c8969eee2c216c34ce3394c40c39525279ed9e))
+* **deps-dev:** update opentelemetry-instrumentation-httpx requirement from &gt;=0.65b0 to &gt;=0.66b0 ([#321](https://github.com/deslicer/mcp-for-splunk/issues/321)) ([9a3ed7c](https://github.com/deslicer/mcp-for-splunk/commit/9a3ed7c6d8e75d28eea6cb56fdfbd9b2df7eff5f))
+* **deps-dev:** update opentelemetry-instrumentation-logging requirement from &gt;=0.65b0 to &gt;=0.66b0 ([#319](https://github.com/deslicer/mcp-for-splunk/issues/319)) ([bc87755](https://github.com/deslicer/mcp-for-splunk/commit/bc877552d23eaf91b879633f16cf6619e319eeba))
+* **deps-dev:** update opentelemetry-instrumentation-starlette requirement from &gt;=0.65b0 to &gt;=0.66b0 ([#317](https://github.com/deslicer/mcp-for-splunk/issues/317)) ([7710a7f](https://github.com/deslicer/mcp-for-splunk/commit/7710a7f2ea6a8f1c6a1c350e2fef95b9d2fb9d7d))
+* **deps-dev:** update opentelemetry-sdk requirement from &gt;=1.44.0 to &gt;=1.45.0 ([#322](https://github.com/deslicer/mcp-for-splunk/issues/322)) ([d94e1b3](https://github.com/deslicer/mcp-for-splunk/commit/d94e1b3e763b20175caf98ec1f8795b3895e0340))
+* **deps-dev:** update sentry-sdk requirement from &gt;=2.69.2 to &gt;=2.71.0 ([#325](https://github.com/deslicer/mcp-for-splunk/issues/325)) ([f22fd9f](https://github.com/deslicer/mcp-for-splunk/commit/f22fd9f999ae6a89408516ea0d7120cc25fb5534))
+* **deps:** bump fastmcp from 4.0.5 to 4.1.0 in the production-dependencies group across 1 directory ([#316](https://github.com/deslicer/mcp-for-splunk/issues/316)) ([b50ccae](https://github.com/deslicer/mcp-for-splunk/commit/b50ccae66e3d56be2ab416a2534b96e27f74f9e8))
+* **deps:** update python-dotenv requirement from &gt;=1.2.3 to &gt;=1.2.4 ([#318](https://github.com/deslicer/mcp-for-splunk/issues/318)) ([66d07be](https://github.com/deslicer/mcp-for-splunk/commit/66d07be543deb7ece7e62b4c2912e91a47268dab))
+* **deps:** update uvicorn requirement from &gt;=0.53.0 to &gt;=0.54.0 ([#324](https://github.com/deslicer/mcp-for-splunk/issues/324)) ([f204f6e](https://github.com/deslicer/mcp-for-splunk/commit/f204f6ed99a4bf6268ff2390ea8b284da32cb362))
+
 ## [0.6.12](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.11...v0.6.12) (2026-09-18)
 
 
