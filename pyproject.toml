@@ -24,7 +24,7 @@ dependencies = [
 "python-dotenv>=1.2.3",
 "httpx>=0.28.1",
 "beautifulsoup4>=4.15.0",
-"uvicorn>=0.53.0",
+"uvicorn>=0.54.0",
 "wsproto>=1.3.2",
 ]
 license = { file = "LICENSE" }
@@ -71,7 +71,7 @@ docs = [
 ]
 # Optional Sentry monitoring
 sentry = [
-"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.69.2",
+"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.71.0",
 ]
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
@@ -135,6 +135,7 @@ dev-dependencies = [
 
 [tool.uv.exclude-newer-package]
 anyio = false
+certifi = false
 click = false
 fastmcp = false
 fastmcp-slim = false
