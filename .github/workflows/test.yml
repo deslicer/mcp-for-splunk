@@ -43,10 +43,10 @@ jobs:
             ${{ runner.os }}-uv-
 
       - name: Sync dependencies
-        run: uv sync --locked --dev
+        run: uv sync --locked --dev --extra otel
 
       - name: Run tests (fast path)
-        run: uv run --locked pytest -q
+        run: uv run --locked --extra otel pytest -q
 
   integration:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true' }}
