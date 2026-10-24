@@ -6,7 +6,7 @@ import socket
 import ssl
 from io import BytesIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 from urllib.error import URLError
 
 import pytest
@@ -19,6 +19,8 @@ from src import server as production_server
 from src.client import splunk_client
 from src.core.base import SplunkContext
 from src.core.loader import ToolLoader
+from src.tools.search.job_info import GetSearchJobInfo
+from src.tools.search.job_results import GetSearchJobResults
 from src.tools.search.job_search import JobSearch
 from src.tools.search.oneshot_search import OneshotSearch
 
@@ -231,18 +233,21 @@ def test_connection_retry_logs_redact_credentials(monkeypatch, caplog):
     assert "private password" not in caplog.text
 
 
-def mcp_server_for_search(search, monkeypatch):
+def mcp_server_for_search(search, monkeypatch, extra_tools=()):
     server = FastMCP("search error contract")
-    tool_class = type(search.tool)
-    monkeypatch.setattr(tool_class, "_get_splunk_context", lambda self, ctx: search.context)
-    monkeypatch.setattr(
-        tool_class,
-        "_resolve_client_config_sync",
-        lambda self, ctx: search.tool._resolve_client_config_sync(ctx),
-    )
-    monkeypatch.setattr(tool_class, "get_client_config_from_context", AsyncMock(return_value={}))
-    wrapper = ToolLoader(server)._create_tool_wrapper(tool_class, search.tool.name)
-    server.tool(name=search.tool.name)(wrapper)
+    for tool_class in (type(search.tool), *extra_tools):
+        monkeypatch.setattr(tool_class, "_get_splunk_context", lambda self, ctx: search.context)
+        monkeypatch.setattr(
+            tool_class,
+            "_resolve_client_config_sync",
+            lambda self, ctx: search.tool._resolve_client_config_sync(ctx),
+        )
+        monkeypatch.setattr(
+            tool_class, "get_client_config_from_context", AsyncMock(return_value={})
+        )
+        name = tool_class.METADATA.name
+        wrapper = ToolLoader(server)._create_tool_wrapper(tool_class, name)
+        server.tool(name=name)(wrapper)
     return server
 
 
@@ -308,3 +313,60 @@ async def test_unquoted_password_is_fully_redacted(search, secret, caplog):
     emitted = json.dumps(result) + caplog.text + str(search.ctx.error.call_args_list)
     assert "first" not in emitted
     assert "second" not in emitted
+
+
+async def test_success_and_paging_through_mcp_client(search, monkeypatch):
+    search.job.content["resultCount"] = "3"
+    search.job.results.side_effect = [[{"n": "1"}, {"n": "2"}], [{"n": "3"}]]
+    search.service.jobs.__getitem__ = Mock(return_value=search.job)
+    server = mcp_server_for_search(search, monkeypatch, (GetSearchJobInfo, GetSearchJobResults))
+    async with Client(server) as client:
+        tools = {tool.name for tool in await client.list_tools()}
+        assert {search.tool.name, "get_search_job_info", "get_search_job_results"} <= tools
+        result = await client.call_tool(
+            search.tool.name, {"query": "| makeresults count=3", "count": 2}
+        )
+        assert result.is_error is False
+        first = result.structured_content
+        assert first["status"] == "success"
+        assert first["job_id"] == search.job.sid
+        assert first["results"] == [{"n": "1"}, {"n": "2"}]
+        assert first["has_more"] is True and first["next_offset"] == 2
+        assert json.loads(result.content[0].text) == first
+        info = await client.call_tool("get_search_job_info", {"job_id": first["job_id"]})
+        assert info.is_error is False
+        assert info.structured_content["job_status"]["is_done"] is True
+        result = await client.call_tool(
+            "get_search_job_results",
+            {"job_id": first["job_id"], "offset": first["next_offset"], "count": 2},
+        )
+        assert result.is_error is False
+        page = result.structured_content
+        assert page["status"] == "success" and page["job_id"] == first["job_id"]
+        assert page["results"] == [{"n": "3"}] and page["has_more"] is False
+        search.service.jobs.create.assert_called_once()
+        assert search.service.jobs.__getitem__.call_args_list == [
+            call(first["job_id"]),
+            call(first["job_id"]),
+        ]
+        assert search.job.results.call_args_list == [
+            call(output_mode="json", count=2, offset=0),
+            call(output_mode="json", count=2, offset=2),
+        ]
+
+
+@pytest.mark.parametrize("search", [JobSearch], indirect=True)
+async def test_running_job_handoff_through_mcp_client(search, monkeypatch):
+    monkeypatch.setenv("MCP_SEARCH_WAIT_SECONDS", "0")
+    search.job.is_done.return_value = False
+    search.job.content.update(isDone="0", resultCount="0")
+    server = mcp_server_for_search(search, monkeypatch)
+    async with Client(server) as client:
+        result = await client.call_tool(search.tool.name, {"query": "index=main"})
+    assert result.is_error is False
+    payload = result.structured_content
+    assert payload["status"] == "success" and payload["is_done"] is False
+    assert payload["job_id"] == search.job.sid
+    assert payload["poll_with"] == "get_search_job_info"
+    assert payload["results"] == []
+    search.job.results.assert_not_called()
