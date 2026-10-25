@@ -1442,7 +1442,7 @@ requires-dist = [
 
 [[package]]
 name = "mcp-server-for-splunk"
-version = "0.6.12"
+version = "0.6.13"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
