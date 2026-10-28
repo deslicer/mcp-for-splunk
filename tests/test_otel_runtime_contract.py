@@ -5,10 +5,13 @@ import logging
 import pytest
 from fastmcp import Client, FastMCP
 
+from src.core.otel import bootstrap
 from src.core.otel.bootstrap import _instrument_logging
 from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
 
 try:
+    from opentelemetry import trace
+    from opentelemetry.exporter.otlp.proto.common.trace_encoder import encode_spans
     from opentelemetry.instrumentation.logging import LoggingInstrumentor
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -62,3 +65,41 @@ async def test_real_mcp_call_uses_operation_name_and_ambient_trace():
         assert "not-for-telemetry" not in spans[0].to_json()
     finally:
         provider.shutdown()
+
+
+def test_bootstrap_export_drops_raw_exception_details(monkeypatch):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector.invalid:4318")
+    monkeypatch.setattr(trace, "set_tracer_provider", lambda provider: None)
+    bootstrap._reset_for_tests()
+    exporter = InMemorySpanExporter()
+    provider = bootstrap.init_otel(span_exporter=exporter)
+    assert provider is not None
+    original_exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(original_exporter))
+    try:
+        with pytest.raises(ValueError):
+            with provider.get_tracer("httpx").start_as_current_span("GET") as active:
+                active.set_attribute("http.request.method", "GET")
+                active.add_event("retry", {"attempt": 1})
+                raise ValueError("Authorization: Bearer transport-secret; private@example.test")
+        span = exporter.get_finished_spans()[0]
+        original = original_exporter.get_finished_spans()[0]
+        assert span.status.status_code.name == "ERROR"
+        assert span.events[1].attributes["exception.type"] == "ValueError"
+        encoded = encode_spans([span])
+        wire_span = encoded.resource_spans[0].scope_spans[0].spans[0]
+        assert wire_span.trace_id.hex() == format(original.context.trace_id, "032x")
+        assert wire_span.span_id.hex() == format(original.context.span_id, "016x")
+        assert wire_span.start_time_unix_nano == original.start_time
+        assert wire_span.end_time_unix_nano == original.end_time
+        assert wire_span.events[0].name == "retry"
+        assert wire_span.events[0].attributes[0].value.int_value == 1
+        assert wire_span.attributes[0].value.string_value == "GET"
+        assert encoded.resource_spans[0].scope_spans[0].scope.name == "httpx"
+        assert "transport-secret" in original.to_json(), "The original span must not be mutated"
+        evidence = span.to_json() + str(encoded) + str(span.status.description)
+        assert "transport-secret" not in evidence
+        assert "private@example.test" not in evidence
+    finally:
+        provider.shutdown()
+        bootstrap._reset_for_tests()

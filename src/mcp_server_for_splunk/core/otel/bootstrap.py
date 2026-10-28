@@ -78,6 +78,9 @@ def init_otel(
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
 
+        # Optional SDK integration stays inside the enabled bootstrap path.
+        from .safe_export import SafeSpanExporter
+
         resource = Resource.create(
             {
                 "service.name": settings.service_name,
@@ -89,7 +92,7 @@ def init_otel(
         provider = TracerProvider(resource=resource, sampler=_build_sampler(settings.sampler))
 
         if span_exporter is not None:
-            provider.add_span_processor(SimpleSpanProcessor(span_exporter))
+            provider.add_span_processor(SimpleSpanProcessor(SafeSpanExporter(span_exporter)))
         else:
             exporter = _build_otlp_exporter()
             if exporter is None:
@@ -98,7 +101,7 @@ def init_otel(
                     "(no span processor registered, nothing would be exported)"
                 )
                 return None
-            provider.add_span_processor(BatchSpanProcessor(exporter))
+            provider.add_span_processor(BatchSpanProcessor(SafeSpanExporter(exporter)))
 
         trace.set_tracer_provider(provider)
         _instrument_logging()
