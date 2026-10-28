@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-import socket
+import re
 import subprocess
 import sys
 import tempfile
@@ -20,15 +20,16 @@ from mcp_server_for_splunk.server import ensure_components_loaded, load_plugins,
 
 
 async def check_cli() -> None:
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1", 0))
-        port = listener.getsockname()[1]
     launch = (
         "from importlib.metadata import distribution; "
         "entry = next(e for e in distribution('mcp-server-for-splunk').entry_points "
         "if e.name == 'mcp-server'); raise SystemExit(entry.load()())"
     )
-    with tempfile.TemporaryFile(mode="w+") as log:
+    with (
+        tempfile.TemporaryDirectory() as directory,
+        open(Path(directory) / "server.log", "w") as log,
+    ):
+        log_path = Path(directory) / "server.log"
         process = subprocess.Popen(
             [
                 sys.executable,
@@ -38,19 +39,24 @@ async def check_cli() -> None:
                 "--local",
                 "--host",
                 "127.0.0.1",
-                "--port",
-                str(port),
             ],
             stdout=log,
             stderr=subprocess.STDOUT,
+            env={**os.environ, "MCP_SERVER_PORT": "0"},
         )
         try:
-            url = f"http://127.0.0.1:{port}"
+            url = None
             async with httpx.AsyncClient(timeout=1, trust_env=False) as http:
                 for _ in range(100):
                     if process.poll() is not None:
-                        log.seek(0)
-                        raise AssertionError(log.read())
+                        raise AssertionError(log_path.read_text())
+                    bound = re.search(
+                        r"Uvicorn running on (http://127\.0\.0\.1:\d+)", log_path.read_text()
+                    )
+                    if bound is None:
+                        await asyncio.sleep(0.1)
+                        continue
+                    url = bound.group(1)
                     try:
                         response = await http.get(f"{url}/health")
                         if response.status_code == 200:

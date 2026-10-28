@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import tomllib
+from importlib.metadata import PackageNotFoundError
+from pathlib import Path
+from unittest.mock import Mock
+
+from mcp_server_for_splunk.core import http_session_mode
 from mcp_server_for_splunk.core.http_session_mode import (
     CLIENT_API_VERSION,
     HEADER_SERVER_VERSION,
@@ -62,3 +68,12 @@ def test_from_env_reads_stateless_flag(monkeypatch) -> None:
     assert advertiser.session_mode == SESSION_MODE_SESSION
     assert advertiser.version
     assert advertiser.version != "unknown"
+
+
+def test_source_version_fallback_without_installed_metadata(monkeypatch):
+    monkeypatch.setattr(
+        http_session_mode, "package_version", Mock(side_effect=PackageNotFoundError)
+    )
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    expected = tomllib.loads(pyproject.read_text())["project"]["version"]
+    assert http_session_mode.resolve_package_version() == expected

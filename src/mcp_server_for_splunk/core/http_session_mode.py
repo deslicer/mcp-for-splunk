@@ -11,7 +11,8 @@ from __future__ import annotations
 import os
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
-from pathlib import Path
+
+from mcp_server_for_splunk.cli.paths import source_checkout
 
 try:  # Python 3.11+
     import tomllib  # type: ignore[attr-defined]
@@ -45,7 +46,9 @@ def resolve_package_version() -> str:
 
 
 def _version_from_pyproject() -> str | None:
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = source_checkout()
+    if project_root is None:
+        return None
     pyproject_path = project_root / "pyproject.toml"
     try:
         with pyproject_path.open("rb") as handle:
