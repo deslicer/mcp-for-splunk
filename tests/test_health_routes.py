@@ -7,6 +7,9 @@ the universe of values they may pass in ``X-MCP-Toolsets``.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import Mock, PropertyMock
+
 from fastmcp import FastMCP
 from starlette.testclient import TestClient
 
@@ -107,3 +110,15 @@ def test_health_api_uses_injected_advertiser_not_live_env(monkeypatch):
     assert body["server"]["version"] == "9.9.9-test"
     assert resp.headers.get("X-MCP-Session-Mode") == "session"
     assert resp.headers.get("X-MCP-Server-Version") == "9.9.9-test"
+
+
+def test_liveness_never_contacts_splunk():
+    service = Mock()
+    info = PropertyMock(side_effect=AssertionError("Liveness must not contact Splunk"))
+    type(service).info = info
+    mcp = FastMCP("liveness")
+    mcp._splunk_context = SimpleNamespace(is_connected=True, service=service)
+    response = TestClient(_build_app(mcp)).get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+    info.assert_not_called()

@@ -7,13 +7,17 @@ including listing, executing, creating, updating, and deleting saved searches.
 
 import asyncio
 import time
+from copy import copy
 from typing import Any, Literal
 
 from fastmcp import Context
 from splunklib import client as spl_client
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.search_errors import SearchStage, search_error_fields
+from src.core.splunk_errors import safe_error_message
 from src.core.splunk_job_results_page import JOB_TTL_SECONDS, apply_job_ttl, fetch_job_results_page
+from src.core.splunk_job_wait import resolve_search_wait_seconds, wait_for_job
 from src.core.splunk_web_urls import web_links_from_service
 from src.core.utils import log_tool_execution, sanitize_search_query
 from src.tools.search.saved_search_acl import (
@@ -32,13 +36,9 @@ def _find_saved_search(
     namespaces: list[Any | None] = []
 
     if app:
-        namespaces.append(
-            spl_client.namespace(app=app, owner=owner or "nobody", sharing="app")
-        )
+        namespaces.append(spl_client.namespace(app=app, owner=owner or "nobody", sharing="app"))
         if owner:
-            namespaces.append(
-                spl_client.namespace(app=app, owner=owner, sharing="user")
-            )
+            namespaces.append(spl_client.namespace(app=app, owner=owner, sharing="user"))
 
     for try_owner in dict.fromkeys([owner, "admin", "nobody"]):
         if try_owner:
@@ -194,16 +194,21 @@ class ExecuteSavedSearch(BaseTool):
             "execute_saved_search", name=name, mode=mode, earliest_time=earliest_time
         )
 
-        is_available, service, error_msg = self.check_splunk_available(ctx)
+        is_available, service, error_msg = await asyncio.to_thread(self.check_splunk_available, ctx)
         if not is_available:
             await ctx.error(f"Execute saved search failed: {error_msg}")
             return self.format_error_response(error_msg, saved_search_name=name)
+
+        # Namespace lookup/dispatch must not mutate the shared startup Service.
+        # Collections created from this context retain its request-local namespace.
+        service = copy(service)
+        service.namespace = copy(service.namespace)
 
         try:
             # Find the saved search
             await ctx.info(f"Looking for saved search: {name}")
 
-            saved_search = _find_saved_search(service, name, app, owner)
+            saved_search = await asyncio.to_thread(_find_saved_search, service, name, app, owner)
 
             if not saved_search:
                 error_msg = f"Saved search '{name}' not found"
@@ -215,7 +220,7 @@ class ExecuteSavedSearch(BaseTool):
             original_namespace = _apply_saved_search_namespace(service, saved_search)
             try:
                 try:
-                    saved_search = service.saved_searches[saved_search.name]
+                    saved_search = await asyncio.to_thread(lambda: service.saved_searches[name])
                 except KeyError:
                     return self.format_error_response(
                         f"Saved search '{name}' is not accessible in the expected namespace",
@@ -267,35 +272,64 @@ class ExecuteSavedSearch(BaseTool):
     async def _execute_oneshot(
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
-        """Execute saved search and keep the job for paging."""
-        job = saved_search.dispatch(**dispatch_kwargs)
-        apply_job_ttl(job, JOB_TTL_SECONDS)
-        while not job.is_done():
-            job.refresh()
-            await asyncio.sleep(0.1)
-        return await self._paged_saved_search_response(
-            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "oneshot"
+        return await self._execute_bounded(
+            ctx, saved_search, dispatch_kwargs, max_results, start_time, "oneshot"
         )
 
     async def _execute_job(
         self, ctx: Context, saved_search, dispatch_kwargs: dict, max_results: int, start_time: float
     ) -> dict[str, Any]:
-        """Execute saved search in job mode with progress tracking"""
-        job = saved_search.dispatch(**dispatch_kwargs)
-        apply_job_ttl(job, JOB_TTL_SECONDS)
-
-        # Wait for job completion with progress reporting
-        while not job.is_done():
-            await ctx.report_progress(
-                progress=int(float(job.content.get("dispatchState", {}).get("percentComplete", 0))),
-                total=100,
-            )
-            await asyncio.sleep(0.5)
-            job.refresh()
-
-        return await self._paged_saved_search_response(
-            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, "job"
+        return await self._execute_bounded(
+            ctx, saved_search, dispatch_kwargs, max_results, start_time, "job"
         )
+
+    async def _execute_bounded(
+        self,
+        ctx: Context,
+        saved_search,
+        dispatch_kwargs: dict,
+        max_results: int,
+        start_time: float,
+        mode: str,
+    ) -> dict[str, Any]:
+        stage: SearchStage = "job_creation"
+        job_id = None
+        try:
+            job = await asyncio.to_thread(saved_search.dispatch, **dispatch_kwargs)
+            job_id = job.sid
+            stage = "job_ttl"
+            await asyncio.to_thread(apply_job_ttl, job, JOB_TTL_SECONDS)
+            stage = "job_wait"
+            snapshot = await wait_for_job(job, wait_seconds=resolve_search_wait_seconds())
+            if snapshot.is_failed:
+                return self.format_error_response(
+                    "Saved search job failed",
+                    saved_search_name=saved_search.name,
+                    **search_error_fields(None, "job_wait", job_id, error_code="splunk_job_failed"),
+                )
+            if not snapshot.is_done:
+                return self.format_success_response(
+                    {
+                        "saved_search_name": saved_search.name,
+                        "execution_mode": mode,
+                        "job_id": job.sid,
+                        "is_done": False,
+                        "results": [],
+                        "results_count": 0,
+                        "poll_with": "get_search_job_info",
+                        "duration": round(time.time() - start_time, 3),
+                    }
+                )
+            stage = "result_retrieval"
+            return await self._paged_saved_search_response(
+                ctx, saved_search, job, dispatch_kwargs, max_results, start_time, mode
+            )
+        except Exception as error:
+            return self.format_error_response(
+                safe_error_message(error),
+                saved_search_name=saved_search.name,
+                **search_error_fields(error, stage, job_id),
+            )
 
     async def _paged_saved_search_response(
         self,

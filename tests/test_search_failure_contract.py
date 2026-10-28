@@ -93,8 +93,6 @@ async def test_job_creation_failure_is_unknown(search, failure):
 @pytest.mark.parametrize("stage", ["job_wait", "result_retrieval", "job_ttl"])
 async def test_failure_after_creation_preserves_sid(search, monkeypatch, stage):
     if stage == "job_wait":
-        if isinstance(search.tool, OneshotSearch):
-            pytest.skip("Blocking create has no separate wait stage")
         search.job.is_done.side_effect = certificate_failure()
     elif stage == "result_retrieval":
         search.job.results.side_effect = certificate_failure()
@@ -355,7 +353,6 @@ async def test_success_and_paging_through_mcp_client(search, monkeypatch):
         ]
 
 
-@pytest.mark.parametrize("search", [JobSearch], indirect=True)
 async def test_running_job_handoff_through_mcp_client(search, monkeypatch):
     monkeypatch.setenv("MCP_SEARCH_WAIT_SECONDS", "0")
     search.job.is_done.return_value = False

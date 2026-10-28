@@ -79,7 +79,7 @@ class JobSearch(BaseTool):
             "run_splunk_search", query=query, earliest_time=earliest_time, latest_time=latest_time
         )
 
-        availability = self.check_splunk_availability(ctx)
+        availability = await asyncio.to_thread(self.check_splunk_availability, ctx)
         service, error_msg = availability.service, availability.error
 
         if not availability.available:
@@ -101,7 +101,9 @@ class JobSearch(BaseTool):
         try:
             start_time = time.time()
             job = await asyncio.to_thread(
-                service.jobs.create, query, earliest_time=earliest_time, latest_time=latest_time
+                lambda: service.jobs.create(
+                    query, earliest_time=earliest_time, latest_time=latest_time
+                )
             )
             job_id = job.sid
             stage = "job_ttl"

@@ -11,7 +11,7 @@ import time
 from typing import Any
 
 from dotenv import load_dotenv
-from splunklib import client
+from splunklib import binding, client
 
 from src.core.splunk_errors import safe_error_message
 
@@ -19,6 +19,9 @@ from src.core.splunk_errors import safe_error_message
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+# Bound SDK connect and socket reads, including result bodies.
+SPLUNK_REQUEST_TIMEOUT_SECONDS = 30.0
 
 
 def get_splunk_config(client_config: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -191,7 +194,11 @@ def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client
                 )
                 time.sleep(delay)
 
-            service = client.connect(**splunk_config)
+            # Service ignores a timeout kwarg; supply the bounded transport explicitly.
+            handler = binding.handler(
+                timeout=SPLUNK_REQUEST_TIMEOUT_SECONDS, verify=splunk_config.get("verify", False)
+            )
+            service = client.connect(**splunk_config, handler=handler)
             _enable_cookie_forwarding(service)
             if attempt > 0:
                 logger.info(

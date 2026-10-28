@@ -5,6 +5,7 @@ Retrieves status/properties/messages for an existing Splunk search job by sid.
 This is useful for polling a job created by `run_splunk_search` without re-running it.
 """
 
+import asyncio
 import time
 from typing import Any
 
@@ -63,21 +64,23 @@ class GetSearchJobInfo(BaseTool):
         if not job_id or not job_id.strip():
             return self.format_error_response("job_id is required", job_id=job_id)
 
-        is_available, service, error_msg = self.check_splunk_available(ctx)
+        is_available, service, error_msg = await asyncio.to_thread(self.check_splunk_available, ctx)
         if not is_available:
             await ctx.error(f"Get search job info failed: {error_msg}")
             return self.format_error_response(error_msg, job_id=job_id)
 
         try:
             try:
-                job = service.jobs[job_id]
+                job = await asyncio.to_thread(lambda: service.jobs[job_id])
             except Exception as e:
-                message = f"Search job not found or inaccessible: {job_id} ({type(e).__name__}: {e})"
+                message = (
+                    f"Search job not found or inaccessible: {job_id} ({type(e).__name__}: {e})"
+                )
                 await ctx.error(message)
                 return self.format_error_response(message, job_id=job_id)
 
             try:
-                job.refresh()
+                await asyncio.to_thread(job.refresh)
             except Exception:
                 self.logger.debug("job.refresh() failed for %s, using stale content", job_id)
 

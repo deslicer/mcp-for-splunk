@@ -47,12 +47,12 @@ class GetSearchJobResults(BaseTool):
         if not job_id or not job_id.strip():
             return self.format_error_response("job_id is required", job_id=job_id)
 
-        is_available, service, error_msg = self.check_splunk_available(ctx)
+        is_available, service, error_msg = await asyncio.to_thread(self.check_splunk_available, ctx)
         if not is_available:
             return self.format_error_response(error_msg, job_id=job_id)
 
         try:
-            job = service.jobs[job_id]
+            job = await asyncio.to_thread(lambda: service.jobs[job_id])
             page = await asyncio.to_thread(fetch_job_results_page, job, count=count, offset=offset)
             client_config = await self.get_client_config_from_context(ctx)
             links = web_links_from_service(service, client_config)

@@ -179,7 +179,7 @@ def setup_health_routes(
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health_api(request: Request) -> JSONResponse:
-        """API endpoint for health checks with real data"""
+        """Process liveness and loaded capabilities, without remote network I/O."""
         try:
             version = http_mode.version
 
@@ -218,15 +218,8 @@ def setup_health_routes(
                     splunk_ctx = mcp._splunk_context
                     if splunk_ctx.is_connected and splunk_ctx.service:
                         splunk_status = "connected"
-                        try:
-                            info = splunk_ctx.service.info
-                            if info:
-                                splunk_info = {
-                                    "version": info.get("version", "unknown"),
-                                    "serverName": info.get("serverName", "Unknown"),
-                                }
-                        except Exception:
-                            logger.debug("Could not retrieve Splunk info for health", exc_info=True)
+                        # Liveness reports startup state only. Reading service.info
+                        # performs synchronous Splunk I/O and can freeze this loop.
                     else:
                         logger.debug("Splunk context shows disconnected state")
                 else:
@@ -257,6 +250,7 @@ def setup_health_routes(
                     "server": server_info_data,
                     "http": http_block,
                     "splunk_connection": splunk_status,
+                    "splunk_connection_check": "startup_state",
                     "splunk_info": splunk_info,
                     "loaded_plugins": loaded_plugins,
                     "available_toolsets": available_toolsets,

@@ -60,5 +60,9 @@ EXPOSE 8001
 
 USER mcp
 
+# Curl exits before Docker's deadline, with no shell or orphaned child process.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD ["curl", "--fail", "--silent", "--show-error", "--connect-timeout", "2", "--max-time", "4", "--output", "/dev/null", "http://127.0.0.1:8001/health"]
+
 # Run the MCP server using uv with enhanced hot reload support
 CMD ["sh", "-c", "echo 'Starting modular MCP server (src/server.py)'; if [ \"$MCP_HOT_RELOAD\" = \"true\" ]; then echo 'Starting with enhanced hot reload...'; uv run watchmedo auto-restart --directory=./src --directory=./contrib --pattern=*.py --recursive --ignore-patterns='*/__pycache__/*;*.pyc;*.pyo;*/.pytest_cache/*' -- python -u src/server.py; else echo 'Starting in production mode...'; uv run python src/server.py; fi"]
