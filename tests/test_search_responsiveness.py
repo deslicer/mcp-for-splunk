@@ -145,10 +145,13 @@ async def test_concurrent_saved_searches_do_not_mutate_shared_service_namespace(
     tasks = [
         asyncio.create_task(tool.execute(ctx, name="report", app=app)) for app in ("app-a", "app-b")
     ]
+
+    async def wait_until_entered():
+        while len(contexts) < 2:
+            await asyncio.sleep(0)
+
     try:
-        async with asyncio.timeout(1):
-            while len(contexts) < 2:
-                await asyncio.sleep(0)
+        await asyncio.wait_for(wait_until_entered(), timeout=1)
         assert service.namespace == original
         assert contexts[0] is not contexts[1]
         assert {context.namespace["app"] for context in contexts} == {"app-a", "app-b"}
@@ -258,3 +261,30 @@ def test_sdk_socket_timeout_covers_headers_and_result_body(monkeypatch, send_hea
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+@pytest.mark.parametrize("stage", ["job_creation", "job_ttl", "result_retrieval"])
+async def test_saved_search_timeout_preserves_dispatch_outcome(stage, monkeypatch):
+    job = Mock(sid="known-sid")
+    job.is_done.return_value = True
+    job.content = {"isDone": "1", "isFailed": "0"}
+    saved = Mock()
+    saved.name = "report"
+    saved.dispatch.return_value = job
+    error = TimeoutError("Splunk stalled")
+    if stage == "job_creation":
+        saved.dispatch.side_effect = error
+    else:
+        target = "apply_job_ttl" if stage == "job_ttl" else "fetch_job_results_page"
+        monkeypatch.setattr(saved_search_tools, target, Mock(side_effect=error))
+    tool = ExecuteSavedSearch("execute_saved_search", "test")
+    response = await tool._execute_bounded(SimpleNamespace(), saved, {}, 50, time.time(), "oneshot")
+    assert response["status"] == "error"
+    assert response["execution_stage"] == stage
+    if stage == "job_creation":
+        assert response["search_started"] is None
+        assert "job_id" not in response
+    else:
+        assert response["search_started"] is True
+        assert response["job_id"] == "known-sid"
+    assert saved.dispatch.call_count == 1

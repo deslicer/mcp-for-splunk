@@ -14,6 +14,8 @@ from fastmcp import Context
 from splunklib import client as spl_client
 
 from src.core.base import BaseTool, ToolMetadata
+from src.core.search_errors import SearchStage, search_error_fields
+from src.core.splunk_errors import safe_error_message
 from src.core.splunk_job_results_page import JOB_TTL_SECONDS, apply_job_ttl, fetch_job_results_page
 from src.core.splunk_job_wait import resolve_search_wait_seconds, wait_for_job
 from src.core.splunk_web_urls import web_links_from_service
@@ -290,29 +292,44 @@ class ExecuteSavedSearch(BaseTool):
         start_time: float,
         mode: str,
     ) -> dict[str, Any]:
-        job = await asyncio.to_thread(saved_search.dispatch, **dispatch_kwargs)
-        await asyncio.to_thread(apply_job_ttl, job, JOB_TTL_SECONDS)
-        snapshot = await wait_for_job(job, wait_seconds=resolve_search_wait_seconds())
-        if snapshot.is_failed:
+        stage: SearchStage = "job_creation"
+        job_id = None
+        try:
+            job = await asyncio.to_thread(saved_search.dispatch, **dispatch_kwargs)
+            job_id = job.sid
+            stage = "job_ttl"
+            await asyncio.to_thread(apply_job_ttl, job, JOB_TTL_SECONDS)
+            stage = "job_wait"
+            snapshot = await wait_for_job(job, wait_seconds=resolve_search_wait_seconds())
+            if snapshot.is_failed:
+                return self.format_error_response(
+                    "Saved search job failed",
+                    saved_search_name=saved_search.name,
+                    **search_error_fields(None, "job_wait", job_id, error_code="splunk_job_failed"),
+                )
+            if not snapshot.is_done:
+                return self.format_success_response(
+                    {
+                        "saved_search_name": saved_search.name,
+                        "execution_mode": mode,
+                        "job_id": job.sid,
+                        "is_done": False,
+                        "results": [],
+                        "results_count": 0,
+                        "poll_with": "get_search_job_info",
+                        "duration": round(time.time() - start_time, 3),
+                    }
+                )
+            stage = "result_retrieval"
+            return await self._paged_saved_search_response(
+                ctx, saved_search, job, dispatch_kwargs, max_results, start_time, mode
+            )
+        except Exception as error:
             return self.format_error_response(
-                "Saved search job failed", job_id=job.sid, saved_search_name=saved_search.name
+                safe_error_message(error),
+                saved_search_name=saved_search.name,
+                **search_error_fields(error, stage, job_id),
             )
-        if not snapshot.is_done:
-            return self.format_success_response(
-                {
-                    "saved_search_name": saved_search.name,
-                    "execution_mode": mode,
-                    "job_id": job.sid,
-                    "is_done": False,
-                    "results": [],
-                    "results_count": 0,
-                    "poll_with": "get_search_job_info",
-                    "duration": round(time.time() - start_time, 3),
-                }
-            )
-        return await self._paged_saved_search_response(
-            ctx, saved_search, job, dispatch_kwargs, max_results, start_time, mode
-        )
 
     async def _paged_saved_search_response(
         self,
