@@ -47,5 +47,5 @@ class TestOneshotSearchPaging:
         assert len(result["results"]) == 50
         assert "job_details_url" in result
         service.jobs.create.assert_called_once()
-        assert service.jobs.create.call_args.kwargs.get("exec_mode") == "blocking"
+        assert service.jobs.create.call_args.kwargs.get("exec_mode") == "normal"
         service.jobs.oneshot.assert_not_called()
