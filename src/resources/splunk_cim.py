@@ -5,6 +5,7 @@ Provides access to CIM data model documentation for data normalization and onboa
 """
 
 import logging
+import re
 from datetime import datetime
 
 from fastmcp import Context
@@ -257,6 +258,32 @@ class SplunkCIMResource(BaseResource):
             version = "latest"
 
         return self.CIM_VERSION_MAPPING.get(version, self.CIM_VERSION_MAPPING["latest"])
+
+    @staticmethod
+    def _normalize_model_key(value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+
+    @classmethod
+    def resolve_model_key(cls, model: str) -> str | None:
+        """Resolve a CIM model key from kebab keys, data model names, or display names.
+
+        Accepts ``network-traffic``, ``Network_Traffic``, ``Network Traffic`` and
+        ``Network Resolution (DNS)`` alike, since agents pass whatever form they
+        saw in ``datamodel`` searches or documentation.
+        """
+        if not model:
+            return None
+        if model in cls.CIM_DATA_MODELS:
+            return model
+        normalized = cls._normalize_model_key(model)
+        for key, info in cls.CIM_DATA_MODELS.items():
+            if normalized == key or normalized == cls._normalize_model_key(info["name"]):
+                return key
+        stripped_display_names = {
+            cls._normalize_model_key(re.sub(r"\(.*?\)", "", info["name"])): key
+            for key, info in cls.CIM_DATA_MODELS.items()
+        }
+        return stripped_display_names.get(normalized)
 
     def format_cim_url(self, version: str, model_slug: str) -> str:
         """Format URL for CIM data model documentation.
@@ -643,14 +670,16 @@ class CIMDataModelResource(SplunkCIMResource):
 
     def __init__(self, version: str, model: str):
         self.version = version if version else "latest"
-        self.model = model
+        resolved_model = self.resolve_model_key(model)
 
-        if model not in self.CIM_DATA_MODELS:
+        if resolved_model is None:
             available_models = ", ".join(sorted(self.CIM_DATA_MODELS.keys()))
             raise ValueError(
                 f"Unknown CIM data model: {model}. Available models: {available_models}"
             )
 
+        model = resolved_model
+        self.model = model
         model_info = self.CIM_DATA_MODELS[model]
         uri = f"splunk-cim://{self.version}/{model}"
 
