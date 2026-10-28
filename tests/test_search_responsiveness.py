@@ -62,7 +62,7 @@ async def test_connection_does_not_block_health(tool_class, monkeypatch):
         assert not task.done(), "Search connection blocked the event loop until it timed out"
     finally:
         release.set()
-        await task
+        await asyncio.gather(task, return_exceptions=True)
 
 
 @pytest.mark.parametrize("tool_class", [GetSearchJobInfo, GetSearchJobResults])
@@ -175,7 +175,7 @@ async def test_stalled_job_poll_respects_wait_budget():
         job.cancel.assert_not_called()
     finally:
         release.set()
-        await task
+        await asyncio.gather(task, return_exceptions=True)
 
 
 @pytest.mark.parametrize("verify", [True, False])
