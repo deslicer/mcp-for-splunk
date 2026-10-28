@@ -31,6 +31,24 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.7.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.13...v0.7.0) (2026-10-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **packaging:** install the server under its own namespace
+* **security:** require Python 3.11 to clear scanning alerts
+
+### Bug Fixes
+
+* **deps:** bump fastmcp 4.1.4 and clear OSV findings ([#353](https://github.com/deslicer/mcp-for-splunk/issues/353)) ([9c4ebc9](https://github.com/deslicer/mcp-for-splunk/commit/9c4ebc9c58f99d4cb1c70c89681de113e9a848f7))
+* **docs:** accept title-case and data model names in get_cim_reference ([#349](https://github.com/deslicer/mcp-for-splunk/issues/349)) ([33944c3](https://github.com/deslicer/mcp-for-splunk/commit/33944c35a1e25ddfc4bd38c7f557fb5c795375c0))
+* make lazy exports and startup retry intent explicit ([b42bba9](https://github.com/deslicer/mcp-for-splunk/commit/b42bba96a556055a1f66297ae685165368d2c01c))
+* **packaging:** install the server under its own namespace ([e3652d1](https://github.com/deslicer/mcp-for-splunk/commit/e3652d17d31d0ec753e1050d64f6d233072bb6c3))
+* preserve source version fallback and avoid probe port races ([0557f18](https://github.com/deslicer/mcp-for-splunk/commit/0557f1867c2530d2f85c6d79a84c2848993ae200))
+* **search:** bound Splunk I/O and keep MCP health responsive ([#351](https://github.com/deslicer/mcp-for-splunk/issues/351)) ([55ce4da](https://github.com/deslicer/mcp-for-splunk/commit/55ce4dafbe13cee3e46dc17a20e235425ab64a57))
+* **security:** require Python 3.11 to clear scanning alerts ([6d5ca26](https://github.com/deslicer/mcp-for-splunk/commit/6d5ca26415189cfdce6d4a299dd9d329c75777c0))
+
 ## [0.6.13](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.12...v0.6.13) (2026-10-24)
 
 
