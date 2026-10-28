@@ -1304,8 +1304,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--host",
-        default="0.0.0.0",
-        help="Host to bind the HTTP server (only for http transport)",  # nosec B104
+        default="0.0.0.0",  # nosec B104 - intended for containerized deployments
+        help="Host to bind the HTTP server (only for http transport)",
     )
     parser.add_argument(
         "--port",

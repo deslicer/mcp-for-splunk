@@ -52,7 +52,7 @@ classification and no longer imports the parent server for that operation.
 Publish the compatible ITSI release before publishing the parent release.
 Rebuild Docker images together with their dependencies. Auth wrappers and other
 plugins that import the parent directly must update their imports when adopting
-the new parent release; the auth tracing PR also needs this migration.
+the new parent release.
 
 ## Distribution verification
 

@@ -56,7 +56,7 @@ async def check_cli() -> None:
                         if response.status_code == 200:
                             break
                     except httpx.TransportError:
-                        pass
+                        pass  # The child is still starting; retry until the deadline.
                     await asyncio.sleep(0.1)
                 else:
                     raise AssertionError("Installed CLI did not become healthy")

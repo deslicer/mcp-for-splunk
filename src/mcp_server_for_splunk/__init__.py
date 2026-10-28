@@ -5,6 +5,10 @@ imported, including through the existing ``from mcp_server_for_splunk import mcp
 """
 
 from importlib import import_module
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .server import mcp as mcp
 
 __all__ = ["mcp"]
 
