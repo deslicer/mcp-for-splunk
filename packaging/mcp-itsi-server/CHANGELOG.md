@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.1.3...mcp-itsi-server-v0.2.0) (2026-10-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **packaging:** install the server under its own namespace
+* **security:** require Python 3.11 to clear scanning alerts
+
+### Bug Fixes
+
+* **packaging:** install the server under its own namespace ([e3652d1](https://github.com/deslicer/mcp-for-splunk/commit/e3652d17d31d0ec753e1050d64f6d233072bb6c3))
+* **security:** require Python 3.11 to clear scanning alerts ([6d5ca26](https://github.com/deslicer/mcp-for-splunk/commit/6d5ca26415189cfdce6d4a299dd9d329c75777c0))
+
 ## [0.1.3](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.1.2...mcp-itsi-server-v0.1.3) (2026-08-13)
 
 
