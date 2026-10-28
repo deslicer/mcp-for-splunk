@@ -70,4 +70,4 @@ class SafeSpanExporter(SpanExporter):
         self._delegate.shutdown()
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
-        return self._delegate.force_flush(timeout_millis)
+        return bool(self._delegate.force_flush(timeout_millis))
