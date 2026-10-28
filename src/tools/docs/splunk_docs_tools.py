@@ -1466,6 +1466,7 @@ class GetCIMReference(BaseTool):
 
         try:
             resource = CIMDataModelResource(version, model)
+            model = resource.model
             content = await resource.get_content(ctx)
 
             uri = f"splunk-cim://{version}/{model}"
