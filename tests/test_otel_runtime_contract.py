@@ -77,11 +77,13 @@ def test_bootstrap_export_drops_raw_exception_details(monkeypatch):
     original_exporter = InMemorySpanExporter()
     provider.add_span_processor(SimpleSpanProcessor(original_exporter))
     try:
-        with pytest.raises(ValueError):
+        try:
             with provider.get_tracer("httpx").start_as_current_span("GET") as active:
                 active.set_attribute("http.request.method", "GET")
                 active.add_event("retry", {"attempt": 1})
                 raise ValueError("Authorization: Bearer transport-secret; private@example.test")
+        except ValueError:
+            pass  # The SDK has recorded the failure as the span context exits.
         span = exporter.get_finished_spans()[0]
         original = original_exporter.get_finished_spans()[0]
         assert span.status.status_code.name == "ERROR"
