@@ -85,9 +85,9 @@ uv run scripts/run_tests.sh -x
 ## Coverage
 
 Current test coverage: **63% overall**
-- `src/server.py`: 59% (272 statements)
-- `src/splunk_client.py`: 85% (41 statements)
-- `src/__init__.py`: 100% (2 statements)
+- `src/mcp_server_for_splunk/server.py`: 59% (272 statements)
+- `src/mcp_server_for_splunk/splunk_client.py`: 85% (41 statements)
+- `src/mcp_server_for_splunk/__init__.py`: 100% (2 statements)
 
 Coverage reports are generated in:
 - Terminal output

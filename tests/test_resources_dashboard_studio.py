@@ -4,13 +4,13 @@ Tests for Dashboard Studio documentation resources.
 
 import pytest
 
-from src.core.registry import resource_registry
-from src.resources.dashboard_studio_content import (
+from mcp_server_for_splunk.core.registry import resource_registry
+from mcp_server_for_splunk.resources.dashboard_studio_content import (
     CHEATSHEET_SOURCE_PATH,
     cheatsheet_edit_path,
     load_cheatsheet_markdown,
 )
-from src.resources.dashboard_studio_docs import (
+from mcp_server_for_splunk.resources.dashboard_studio_docs import (
     DASHBOARD_STUDIO_TOPICS,
     DashboardStudioDiscoveryResource,
     DashboardStudioDocsResource,

@@ -20,7 +20,7 @@ Use the [search error contract](../guides/search-error-contract.md) to distingui
 
 ## Tools Not Visible
 
-- Ensure tool files are in `src/tools/` or `contrib/tools/`
+- Ensure tool files are in `src/mcp_server_for_splunk/tools/` or `contrib/tools/`
 - Confirm classes inherit the correct base classes and include metadata
 - Restart server after adding new tools
 

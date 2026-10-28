@@ -64,7 +64,7 @@ class ToolValidator:
         import_checks = [
             ("typing", "Any and Dict types"),
             ("fastmcp", "Context"),
-            ("src.core.base", "BaseTool and ToolMetadata"),
+            ("mcp_server_for_splunk.core.base", "BaseTool and ToolMetadata"),
         ]
 
         for module, description in import_checks:

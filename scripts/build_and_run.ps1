@@ -413,14 +413,14 @@ function Start-LocalServer {
     }
 
     Write-Local "Starting MCP server on port $mcpPort..."
-    Write-Local "Command: uv run fastmcp run src/server.py --transport http --port $mcpPort"
+    Write-Local "Command: uv run fastmcp run src/mcp_server_for_splunk/server.py --transport http --port $mcpPort"
 
     # Ensure logs directory exists
     Ensure-LogsDir
 
     # Start server in background to check if it starts successfully
     try {
-        $serverProcess = Start-Process -FilePath "uv" -ArgumentList "run", "fastmcp", "run", "src/server.py", "--transport", "http", "--port", $mcpPort -RedirectStandardOutput "logs/mcp_server.log" -RedirectStandardError "logs/mcp_server_error.log" -PassThru -NoNewWindow
+        $serverProcess = Start-Process -FilePath "uv" -ArgumentList "run", "fastmcp", "run", "src/mcp_server_for_splunk/server.py", "--transport", "http", "--port", $mcpPort -RedirectStandardOutput "logs/mcp_server.log" -RedirectStandardError "logs/mcp_server_error.log" -PassThru -NoNewWindow
 
         # Give server time to start
         Write-Local "Waiting for MCP server to start..."
@@ -442,9 +442,9 @@ function Start-LocalServer {
             }
 
             Write-Error "Troubleshooting steps:"
-            Write-Host "1. Check if src/server.py exists and is valid"
+            Write-Host "1. Check if src/mcp_server_for_splunk/server.py exists and is valid"
             Write-Host "2. Verify FastMCP installation: uv run python -c 'import fastmcp'"
-            Write-Host "3. Try running manually: uv run fastmcp run src/server.py --help"
+            Write-Host "3. Try running manually: uv run fastmcp run src/mcp_server_for_splunk/server.py --help"
             Write-Host "4. Check Python environment: uv run python --version"
             Write-Host ""
             Write-Error "📚 For prerequisite installation help, see:"
@@ -560,7 +560,7 @@ function Start-LocalServer {
             Write-Local "If this works, there might be a background process issue..."
 
             # Try running in foreground (this will block)
-            & uv run fastmcp run src/server.py --transport http --port $mcpPort
+            & uv run fastmcp run src/mcp_server_for_splunk/server.py --transport http --port $mcpPort
             exit 1
         }
 

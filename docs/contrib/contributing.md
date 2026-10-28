@@ -29,7 +29,7 @@ cd mcp-for-splunk
 ./contrib/scripts/list_tools.py --interactive
 
 # Understand the structure
-tree src/tools/ contrib/tools/
+tree src/mcp_server_for_splunk/tools/ contrib/tools/
 ```
 
 ### 3. Create Your First Tool
@@ -96,7 +96,7 @@ Every tool follows this pattern:
 
 ```python
 # contrib/tools/category/my_tool.py
-from src.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
 from fastmcp import Context
 
 class MyTool(BaseTool):

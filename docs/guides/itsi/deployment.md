@@ -252,7 +252,7 @@ Set verbosity per-process via `MCP_ITSI_LOG_LEVEL=DEBUG` (falls back to `MCP_LOG
 - The standalone container runs as a non-root `mcp` user (uid `1001`).
 - TLS termination is delegated to your reverse proxy (Traefik / NGINX / ingress). The image itself listens on plain HTTP.
 - Credential precedence is bearer → session → basic; configure your clients to send a token unless you have a strong reason for password auth.
-- `MCP_AUTH_DISABLED` should never be `true` in production unless you understand that it allows clients to send Splunk tokens via `Authorization: Bearer` — see [`src/core/utils.py`](../../../src/core/utils.py).
+- `MCP_AUTH_DISABLED` should never be `true` in production unless you understand that it allows clients to send Splunk tokens via `Authorization: Bearer` — see [`src/mcp_server_for_splunk/core/utils.py`](../../../src/mcp_server_for_splunk/core/utils.py).
 - Tokens are redacted in logs; the server never prints credential headers (the `Clear-text logging of sensitive information` CodeQL findings on the test scripts have been remediated).
 
 ## Verification

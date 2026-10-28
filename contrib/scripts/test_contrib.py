@@ -126,8 +126,8 @@ def check_test_environment():
     if importlib.util.find_spec("fastmcp") is None:
         issues.append("fastmcp module not available")
 
-    if importlib.util.find_spec("src.core.base") is None:
-        issues.append("src.core.base module not available - run from project root")
+    if importlib.util.find_spec("mcp_server_for_splunk.core.base") is None:
+        issues.append("mcp_server_for_splunk.core.base module not available - run from project root")
 
     if issues:
         print("❌ Test environment issues:")

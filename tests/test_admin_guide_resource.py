@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.resources.splunk_docs import AdminGuideResource, _doc_cache
+from mcp_server_for_splunk.resources.splunk_docs import AdminGuideResource, _doc_cache
 
 
 class TestAdminGuideResource:

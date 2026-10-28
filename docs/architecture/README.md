@@ -68,7 +68,7 @@ contrib/                # Community contributions
 
 ### Tool Discovery and Loading
 
-1. **Scan Phase**: Discover all Python modules in `src/tools/` and `contrib/tools/`
+1. **Scan Phase**: Discover all Python modules in `src/mcp_server_for_splunk/tools/` and `contrib/tools/`
 2. **Registration Phase**: Register tools with metadata validation
 3. **Loading Phase**: Dynamically load into FastMCP server
 4. **Runtime Phase**: Tools available for MCP client invocation

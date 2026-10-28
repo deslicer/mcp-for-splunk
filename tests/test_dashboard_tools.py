@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.tools.dashboards.create_dashboard import CreateDashboard
-from src.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
-from src.tools.dashboards.list_dashboards import ListDashboards
+from mcp_server_for_splunk.tools.dashboards.create_dashboard import CreateDashboard
+from mcp_server_for_splunk.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
+from mcp_server_for_splunk.tools.dashboards.list_dashboards import ListDashboards
 
 
 class TestListDashboards:
@@ -546,9 +546,7 @@ class TestDashboardWebUrls:
         result = await tool.execute(ctx)
         assert result["status"] == "success"
         urls = [item["web_url"] for item in result["dashboards"]]
-        assert urls[0] == (
-            "https://splunk-b839c1.deslicer.io/en-US/app/search/security_overview"
-        )
+        assert urls[0] == ("https://splunk-b839c1.deslicer.io/en-US/app/search/security_overview")
         assert all(":8089" not in url and ":8000" not in url for url in urls)
 
     async def test_get_definition_https_omits_web_port(self):

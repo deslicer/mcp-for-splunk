@@ -175,7 +175,7 @@ Accept: application/json, text/event-stream
 
 **Test fails with "No tools found":**
 
-- Check that `src/tools/` directory exists
+- Check that `src/mcp_server_for_splunk/tools/` directory exists
 - Verify all tool files are present
 - Review server startup logs
 
@@ -245,9 +245,9 @@ asyncio.run(test_with_headers())
 
 ## Related Files
 
-- `src/server.py` - Contains `ClientConfigMiddleware`
-- `src/core/base.py` - Contains `get_client_config_from_context()`
-- `src/client/splunk_client.py` - Splunk SDK wrapper
+- `src/mcp_server_for_splunk/server.py` - Contains `ClientConfigMiddleware`
+- `src/mcp_server_for_splunk/core/base.py` - Contains `get_client_config_from_context()`
+- `src/mcp_server_for_splunk/client/splunk_client.py` - Splunk SDK wrapper
 - `bug.md` - Troubleshooting documentation
 
 ## Contributing

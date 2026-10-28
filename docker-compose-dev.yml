@@ -183,27 +183,27 @@ services:
     develop:
       watch:
         # Watch all source files and sync them - fine-grained watching
-        - path: ./src/tools
+        - path: ./src/mcp_server_for_splunk/tools
           action: sync
-          target: /app/src/tools
+          target: /app/src/mcp_server_for_splunk/tools
           ignore:
             - "**/__pycache__"
             - "**/*.pyc"
             - "**/*.pyo"
             - "**/.pytest_cache"
         # Watch all resource files and sync them - fine-grained watching
-        - path: ./src/resources
+        - path: ./src/mcp_server_for_splunk/resources
           action: sync
-          target: /app/src/resources
+          target: /app/src/mcp_server_for_splunk/resources
           ignore:
             - "**/__pycache__"
             - "**/*.pyc"
             - "**/*.pyo"
             - "**/.pytest_cache"
         # Watch core framework files
-        - path: ./src/core
+        - path: ./src/mcp_server_for_splunk/core
           action: sync
-          target: /app/src/core
+          target: /app/src/mcp_server_for_splunk/core
           ignore:
             - "**/__pycache__"
             - "**/*.pyc"
@@ -217,17 +217,17 @@ services:
             - "**/*.pyc"
             - "**/*.pyo"
         # Watch client and other source files
-        - path: ./src/client
+        - path: ./src/mcp_server_for_splunk/client
           action: sync
-          target: /app/src/client
+          target: /app/src/mcp_server_for_splunk/client
           ignore:
             - "**/__pycache__"
             - "**/*.pyc"
             - "**/*.pyo"
         # Watch server.py specifically
-        - path: ./src/server.py
+        - path: ./src/mcp_server_for_splunk/server.py
           action: sync
-          target: /app/src/server.py
+          target: /app/src/mcp_server_for_splunk/server.py
         # Rebuild on configuration changes
         - path: ./pyproject.toml
           action: rebuild

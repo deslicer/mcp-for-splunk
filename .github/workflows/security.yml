@@ -88,7 +88,7 @@ jobs:
 
           # Only suppress specific rule+file combinations where nosemgrep is documented
           suppressed = {
-              ("python.lang.security.use-defused-xml.use-defused-xml", "src/tools/dashboards/create_dashboard.py"),
+              ("python.lang.security.use-defused-xml.use-defused-xml", "src/mcp_server_for_splunk/tools/dashboards/create_dashboard.py"),
               ("python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected", "scripts/hot_reload.py"),
           }
 
@@ -388,7 +388,7 @@ jobs:
       - name: Run security validation tests
         run: |
           uv run --locked python -c "
-          from src.core.security import get_security_config
+          from mcp_server_for_splunk.core.security import get_security_config
           import json
           config = get_security_config()
           print('Security Configuration:')

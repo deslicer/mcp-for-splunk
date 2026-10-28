@@ -18,7 +18,7 @@ import pytest
 # ---------------------------------------------------------------------------
 class TestOtelSettings:
     def test_disabled_when_endpoint_missing(self, monkeypatch):
-        from src.core.otel.config import OtelSettings, is_otel_enabled
+        from mcp_server_for_splunk.core.otel.config import OtelSettings, is_otel_enabled
 
         monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
         settings = OtelSettings.from_env()
@@ -28,7 +28,11 @@ class TestOtelSettings:
         assert is_otel_enabled() is False
 
     def test_enabled_when_endpoint_set(self, monkeypatch):
-        from src.core.otel.config import OtelSettings, _otel_sdk_available, is_otel_enabled
+        from mcp_server_for_splunk.core.otel.config import (
+            OtelSettings,
+            _otel_sdk_available,
+            is_otel_enabled,
+        )
 
         monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4318")
         settings = OtelSettings.from_env()
@@ -40,7 +44,7 @@ class TestOtelSettings:
         assert is_otel_enabled() is _otel_sdk_available
 
     def test_defaults_mirror_contract(self, monkeypatch):
-        from src.core.otel.config import OtelSettings
+        from mcp_server_for_splunk.core.otel.config import OtelSettings
 
         monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4318")
         monkeypatch.delenv("OTEL_SERVICE_NAME", raising=False)
@@ -53,7 +57,7 @@ class TestOtelSettings:
         assert settings.sampler == "parentbased_always_on"
 
     def test_env_overrides_defaults(self, monkeypatch):
-        from src.core.otel.config import OtelSettings
+        from mcp_server_for_splunk.core.otel.config import OtelSettings
 
         monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
         monkeypatch.setenv("OTEL_SERVICE_NAME", "custom-mcp")
@@ -80,7 +84,7 @@ class TestOtelJsonFormatter:
         )
 
     def test_emits_json_with_trace_ids(self):
-        from src.core.otel.telemetry_logging import OtelJsonFormatter
+        from mcp_server_for_splunk.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("hello world")
@@ -97,7 +101,7 @@ class TestOtelJsonFormatter:
         assert payload["otelSpanID"] == "def456"
 
     def test_timestamp_is_iso8601_with_millis(self):
-        from src.core.otel.telemetry_logging import OtelJsonFormatter
+        from mcp_server_for_splunk.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         payload = json.loads(formatter.format(self._record("tick")))
@@ -109,7 +113,7 @@ class TestOtelJsonFormatter:
         assert ts[:4].isdigit()
 
     def test_trace_ids_default_when_absent(self):
-        from src.core.otel.telemetry_logging import OtelJsonFormatter
+        from mcp_server_for_splunk.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         payload = json.loads(formatter.format(self._record("no span active")))
@@ -118,7 +122,7 @@ class TestOtelJsonFormatter:
         assert payload["otelSpanID"] == "0"
 
     def test_redacts_sensitive_values(self):
-        from src.core.otel.telemetry_logging import OtelJsonFormatter
+        from mcp_server_for_splunk.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("connecting with X-Splunk-Token: super-secret-value")
@@ -128,7 +132,7 @@ class TestOtelJsonFormatter:
         assert "***" in payload["message"]
 
     def test_redacts_sensitive_structured_extras(self):
-        from src.core.otel.telemetry_logging import OtelJsonFormatter
+        from mcp_server_for_splunk.core.otel.telemetry_logging import OtelJsonFormatter
 
         formatter = OtelJsonFormatter()
         record = self._record("login")
@@ -147,14 +151,14 @@ class TestOtelJsonFormatter:
 
 class TestRedaction:
     def test_redacts_authorization_bearer(self):
-        from src.core.otel.telemetry_logging import redact_sensitive
+        from mcp_server_for_splunk.core.otel.telemetry_logging import redact_sensitive
 
         out = redact_sensitive("Authorization: Bearer eyJhbGciOi.secrettoken")
         assert "secrettoken" not in out
         assert "***" in out
 
     def test_passes_through_clean_text(self):
-        from src.core.otel.telemetry_logging import redact_sensitive
+        from mcp_server_for_splunk.core.otel.telemetry_logging import redact_sensitive
 
         assert redact_sensitive("searching index=main") == "searching index=main"
 
@@ -164,7 +168,7 @@ class TestRedaction:
 # ---------------------------------------------------------------------------
 class TestInitOtel:
     def test_returns_none_when_disabled(self, monkeypatch):
-        from src.core.otel import bootstrap
+        from mcp_server_for_splunk.core.otel import bootstrap
 
         monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
         bootstrap._reset_for_tests()
@@ -177,7 +181,7 @@ class TestInitOtel:
             InMemorySpanExporter,
         )
 
-        from src.core.otel import bootstrap
+        from mcp_server_for_splunk.core.otel import bootstrap
 
         monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
         bootstrap._reset_for_tests()
@@ -204,7 +208,7 @@ class TestOtelToolSpanMiddleware:
             InMemorySpanExporter,
         )
 
-        from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
+        from mcp_server_for_splunk.core.otel.mcp_middleware import OtelToolSpanMiddleware
 
         exporter = InMemorySpanExporter()
         provider = TracerProvider()
@@ -237,7 +241,7 @@ class TestOtelToolSpanMiddleware:
             InMemorySpanExporter,
         )
 
-        from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
+        from mcp_server_for_splunk.core.otel.mcp_middleware import OtelToolSpanMiddleware
 
         exporter = InMemorySpanExporter()
         provider = TracerProvider()
@@ -264,9 +268,7 @@ class TestOtelToolSpanMiddleware:
         assert "***" in (span.status.description or "")
 
         # Exception event message + stacktrace must be redacted.
-        blob = json.dumps(
-            {event.name: dict(event.attributes) for event in span.events}
-        )
+        blob = json.dumps({event.name: dict(event.attributes) for event in span.events})
         assert "exception" in blob
         assert "super-secret-value" not in blob
         assert "***" in blob
@@ -280,7 +282,7 @@ class TestOtelToolSpanMiddleware:
             InMemorySpanExporter,
         )
 
-        from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
+        from mcp_server_for_splunk.core.otel.mcp_middleware import OtelToolSpanMiddleware
 
         exporter = InMemorySpanExporter()
         provider = TracerProvider()

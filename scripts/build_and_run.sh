@@ -556,13 +556,13 @@ run_local_server() {
     fi
 
     print_local "Starting MCP server on port $mcp_port..."
-    print_local "Command: uv run fastmcp run src/server.py --transport http --port $mcp_port"
+    print_local "Command: uv run fastmcp run src/mcp_server_for_splunk/server.py --transport http --port $mcp_port"
 
     # Ensure logs directory exists
     ensure_logs_dir
 
     # Start server in background to check if it starts successfully
-    uv run fastmcp run src/server.py --transport http --port $mcp_port > logs/mcp_server.log 2>&1 &
+    uv run fastmcp run src/mcp_server_for_splunk/server.py --transport http --port $mcp_port > logs/mcp_server.log 2>&1 &
     local server_pid=$!
 
     # Give server time to start
@@ -580,9 +580,9 @@ run_local_server() {
         fi
 
         print_error "Troubleshooting steps:"
-        echo "1. Check if src/server.py exists and is valid"
+        echo "1. Check if src/mcp_server_for_splunk/server.py exists and is valid"
         echo "2. Verify FastMCP installation: uv run python -c 'import fastmcp'"
-        echo "3. Try running manually: uv run fastmcp run src/server.py --help"
+        echo "3. Try running manually: uv run fastmcp run src/mcp_server_for_splunk/server.py --help"
         echo "4. Check Python environment: uv run python --version"
         echo
         print_error "📚 For prerequisite installation help, see:"
@@ -786,7 +786,7 @@ run_local_server() {
         print_local "If this works, there might be a background process issue..."
 
         # Try running in foreground
-        exec uv run fastmcp run src/server.py --transport http --port $mcp_port
+        exec uv run fastmcp run src/mcp_server_for_splunk/server.py --transport http --port $mcp_port
     fi
 
     # Update cleanup function to include server PID

@@ -22,7 +22,7 @@ from fastmcp import Client
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from src.server import mcp
+from mcp_server_for_splunk.server import mcp
 from tests.conftest import wrap_client_tool_errors
 
 
@@ -120,7 +120,7 @@ class TestHealthTools:
     async def test_get_splunk_health_success(self, client, mock_splunk_service):
         """Test successful health check."""
         with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
+            "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
         ) as mock_get_service:
             # Mock the async get_splunk_service method properly
             async_mock = AsyncMock(return_value=mock_splunk_service)
@@ -138,7 +138,7 @@ class TestHealthTools:
     async def test_get_splunk_health_with_client_config(self, client, mock_splunk_service):
         """Test health check with client configuration."""
         with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
+            "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
         ) as mock_get_service:
             # Mock the async get_splunk_service method properly
             async_mock = AsyncMock(return_value=mock_splunk_service)
@@ -163,7 +163,7 @@ class TestHealthTools:
     async def test_get_splunk_health_failure(self, client):
         """Test health check failure handling."""
         with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
+            "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
         ) as mock_get_service:
             mock_get_service.side_effect = Exception("Connection failed")
 
@@ -199,7 +199,7 @@ class TestSearchTools:
     async def test_oneshot_search(self, client, mock_search_results):
         """Test oneshot search functionality."""
         with patch(
-            "src.tools.search.oneshot_search.OneshotSearch.get_splunk_service"
+            "mcp_server_for_splunk.tools.search.oneshot_search.OneshotSearch.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
             mock_service.host = "so1"
@@ -235,7 +235,9 @@ class TestSearchTools:
 
     async def test_job_search(self, client, mock_search_results):
         """Test job-based search functionality."""
-        with patch("src.tools.search.job_search.JobSearch.get_splunk_service") as mock_get_service:
+        with patch(
+            "mcp_server_for_splunk.tools.search.job_search.JobSearch.get_splunk_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_job = Mock()
             mock_job.sid = "test_job_123"
@@ -264,7 +266,7 @@ class TestSearchTools:
     async def test_list_saved_searches(self, client):
         """Test listing saved searches."""
         with patch(
-            "src.tools.search.list_saved_searches.ListSavedSearches.get_splunk_service"
+            "mcp_server_for_splunk.tools.search.list_saved_searches.ListSavedSearches.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
             mock_saved_search = Mock()
@@ -300,7 +302,9 @@ class TestAdminTools:
 
     async def test_list_apps(self, client):
         """Test listing Splunk apps."""
-        with patch("src.tools.admin.apps.ListApps.get_splunk_service") as mock_get_service:
+        with patch(
+            "mcp_server_for_splunk.tools.admin.apps.ListApps.get_splunk_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_app = Mock()
             mock_app.name = "search"
@@ -327,7 +331,9 @@ class TestAdminTools:
 
     async def test_list_users(self, client):
         """Test listing Splunk users."""
-        with patch("src.tools.admin.users.ListUsers.get_splunk_service") as mock_get_service:
+        with patch(
+            "mcp_server_for_splunk.tools.admin.users.ListUsers.get_splunk_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_user = Mock()
             mock_user.name = "admin"
@@ -371,7 +377,9 @@ class TestMetadataTools:
 
     async def test_list_indexes(self, client):
         """Test listing Splunk indexes."""
-        with patch("src.tools.metadata.indexes.ListIndexes.get_splunk_service") as mock_get_service:
+        with patch(
+            "mcp_server_for_splunk.tools.metadata.indexes.ListIndexes.get_splunk_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_index = Mock()
             mock_index.name = "main"
@@ -401,7 +409,7 @@ class TestMetadataTools:
     async def test_list_sourcetypes(self, client):
         """Test listing sourcetypes."""
         with patch(
-            "src.tools.metadata.sourcetypes.ListSourcetypes.get_splunk_service"
+            "mcp_server_for_splunk.tools.metadata.sourcetypes.ListSourcetypes.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
 
@@ -442,7 +450,7 @@ class TestKVStoreTools:
     async def test_list_kvstore_collections(self, client):
         """Test listing KV Store collections."""
         with patch(
-            "src.tools.kvstore.collections.ListKvstoreCollections.get_splunk_service"
+            "mcp_server_for_splunk.tools.kvstore.collections.ListKvstoreCollections.get_splunk_service"
         ) as mock_get_service:
             mock_service = Mock()
 
@@ -488,7 +496,7 @@ class TestResources:
     async def test_splunk_health_resource(self, client):
         """Test Splunk health resource."""
         with patch(
-            "src.resources.splunk_config.SplunkHealthResource.get_content"
+            "mcp_server_for_splunk.resources.splunk_config.SplunkHealthResource.get_content"
         ) as mock_get_content:
             mock_health_data = {
                 "status": "healthy",
@@ -514,7 +522,7 @@ class TestResources:
     async def test_splunk_config_resource(self, client):
         """Test Splunk configuration resource."""
         with patch(
-            "src.resources.splunk_config.SplunkConfigResource.get_content"
+            "mcp_server_for_splunk.resources.splunk_config.SplunkConfigResource.get_content"
         ) as mock_get_content:
             mock_config = """# Configuration: indexes.conf
 # Client: test-client
@@ -545,7 +553,7 @@ maxDataSize = 1000
     async def test_splunk_apps_resource(self, client):
         """Test Splunk apps resource."""
         with patch(
-            "src.resources.splunk_config.SplunkAppsResource.get_content"
+            "mcp_server_for_splunk.resources.splunk_config.SplunkAppsResource.get_content"
         ) as mock_get_content:
             mock_apps_data = {
                 "client_id": "test-client",
@@ -836,7 +844,7 @@ class TestErrorHandling:
     async def test_tool_without_splunk_connection(self, client):
         """Test tool behavior when Splunk is not available."""
         with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
+            "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
         ) as mock_get_service:
             mock_get_service.side_effect = ConnectionError("Splunk not available")
 
@@ -928,7 +936,7 @@ class TestServerConfiguration:
 
         with patch.dict(os.environ, test_env_vars):
             # Test environment extraction
-            from src.server import extract_client_config_from_env
+            from mcp_server_for_splunk.server import extract_client_config_from_env
 
             config = extract_client_config_from_env()
             assert config is not None
@@ -993,10 +1001,14 @@ class TestIntegrationWorkflows:
     ):
         """Test a complete health assessment workflow."""
         with (
-            patch("src.tools.health.status.GetSplunkHealth.get_splunk_service") as mock_get_service,
-            patch("src.tools.admin.apps.ListApps.get_splunk_service") as mock_apps_service,
             patch(
-                "src.tools.metadata.indexes.ListIndexes.get_splunk_service"
+                "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
+            ) as mock_get_service,
+            patch(
+                "mcp_server_for_splunk.tools.admin.apps.ListApps.get_splunk_service"
+            ) as mock_apps_service,
+            patch(
+                "mcp_server_for_splunk.tools.metadata.indexes.ListIndexes.get_splunk_service"
             ) as mock_indexes_service,
         ):
             # Mock as async methods
@@ -1085,7 +1097,7 @@ class TestIntegrationWorkflows:
         """Test error recovery and fallback mechanisms."""
         # Test health check with no connection
         with patch(
-            "src.tools.health.status.GetSplunkHealth.get_splunk_service"
+            "mcp_server_for_splunk.tools.health.status.GetSplunkHealth.get_splunk_service"
         ) as mock_get_service:
             mock_get_service.side_effect = ConnectionError("No connection")
 

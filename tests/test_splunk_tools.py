@@ -131,9 +131,7 @@ class TestSearchTools:
     async def test_run_oneshot_search_with_search_prefix(self, fastmcp_client, tool_payload):
         """Test oneshot search that already has search prefix"""
         async with fastmcp_client as client:
-            data = await tool_payload(
-                client, "run_oneshot_search", {"query": "search index=main"}
-            )
+            data = await tool_payload(client, "run_oneshot_search", {"query": "search index=main"})
 
             assert isinstance(data, dict)
             assert "status" in data or "results" in data

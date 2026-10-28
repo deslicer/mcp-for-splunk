@@ -1,4 +1,6 @@
 <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; padding: 1em 0;">
+
+Python integrations: see the [package namespace migration guide](docs/guides/package-namespace-migration.md).
   <!-- Logo -->
   <div>
     <img align="left" src="media/deslicer_white.svg" alt="Deslicer" width="200">
@@ -317,7 +319,7 @@ The companion `mcp_itsi` server (standalone or plugin — see [🛡️ ITSI MCP 
   "mcpServers": {
     "splunk": {
       "command": "fastmcp",
-      "args": ["run", "/path/to/src/server.py"],
+      "args": ["run", "/path/to/src/mcp_server_for_splunk/server.py"],
       "env": {
         "MCP_SPLUNK_HOST": "your-splunk.com",
         "MCP_SPLUNK_USERNAME": "your-user"
@@ -373,7 +375,7 @@ splunk_agent = LlmAgent(
     model='gemini-2.0-flash',
     tools=[MCPToolset(connection_params=StdioServerParameters(
         command='fastmcp',
-        args=['run', '/path/to/src/server.py']
+        args=['run', '/path/to/src/mcp_server_for_splunk/server.py']
     ))]
 )
 ```

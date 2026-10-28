@@ -47,10 +47,10 @@ clean: ## Clean build artifacts
 	find . -type f -name "*.pyc" -delete
 
 run: ## Run the MCP server locally
-	uv run python src/server.py
+	uv run python src/mcp_server_for_splunk/server.py
 
 run-inspector: ## Run with MCP Inspector
-	uv run python -m mcp.debug_inspector src/server.py
+	uv run python -m mcp.debug_inspector src/mcp_server_for_splunk/server.py
 
 docker-up: ## Start Docker containers
 	docker-compose up -d

@@ -123,7 +123,7 @@ Copy-Item env.example .env
 # Edit .env with your Splunk details
 
 # Run with FastMCP CLI
-uv run fastmcp run src/server.py
+uv run fastmcp run src/mcp_server_for_splunk/server.py
 ```
 
 ### Optional: Node.js Installation (for MCP Inspector)

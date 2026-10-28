@@ -13,7 +13,7 @@ rules:
     message: |
       Potential subsearch injection vulnerability detected (CVE-2025-20381).
       Subsearches in square brackets can bypass security controls.
-      Use sanitize_search_query() from src.core.security module.
+      Use sanitize_search_query() from mcp_server_for_splunk.core.security module.
     languages: [python]
     severity: ERROR
     metadata:

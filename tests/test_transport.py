@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src import server
+from mcp_server_for_splunk import server
 
 
 class TestTransportConfiguration:
@@ -92,7 +92,7 @@ class TestStdioTransport:
     """Test stdio transport functionality"""
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_stdio_transport_startup(self, mock_run_async):
         """Test stdio transport server startup"""
         mock_run_async.return_value = None
@@ -107,12 +107,12 @@ class TestStdioTransport:
         mock_run_async.assert_called_once_with(transport="stdio")
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_stdio_transport_with_logging(self, mock_run_async):
         """Test stdio transport startup with logging"""
         mock_run_async.return_value = None
 
-        with patch("src.server.logger") as mock_logger:
+        with patch("mcp_server_for_splunk.server.logger") as mock_logger:
             args = argparse.Namespace(transport="stdio")
 
             # Simulate main function logging and startup
@@ -125,7 +125,7 @@ class TestStdioTransport:
             mock_run_async.assert_called_once_with(transport="stdio")
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_stdio_transport_error_handling(self, mock_run_async):
         """Test stdio transport error handling"""
         mock_run_async.side_effect = Exception("STDIO connection failed")
@@ -138,7 +138,7 @@ class TestStreamableHttpTransport:
     """Test streamable-http transport functionality"""
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_http_transport_startup(self, mock_run_async):
         """Test HTTP transport server startup"""
         mock_run_async.return_value = None
@@ -158,7 +158,7 @@ class TestStreamableHttpTransport:
         )
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_http_transport_custom_configuration(self, mock_run_async):
         """Test HTTP transport with custom configuration"""
         mock_run_async.return_value = None
@@ -176,12 +176,12 @@ class TestStreamableHttpTransport:
         )
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_http_transport_with_logging(self, mock_run_async):
         """Test HTTP transport startup with logging"""
         mock_run_async.return_value = None
 
-        with patch("src.server.logger") as mock_logger:
+        with patch("mcp_server_for_splunk.server.logger") as mock_logger:
             args = argparse.Namespace(
                 transport="streamable-http", host="localhost", port=8000, path="/mcp/"
             )
@@ -198,7 +198,7 @@ class TestStreamableHttpTransport:
             )
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_http_transport_error_handling(self, mock_run_async):
         """Test HTTP transport error handling"""
         mock_run_async.side_effect = Exception("HTTP server failed to start")
@@ -209,7 +209,7 @@ class TestStreamableHttpTransport:
             )
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_http_transport_port_binding_error(self, mock_run_async):
         """Test HTTP transport port binding error"""
         mock_run_async.side_effect = OSError("Address already in use")
@@ -224,7 +224,7 @@ class TestMainFunction:
     """Test the main function transport routing"""
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     @patch("argparse.ArgumentParser.parse_args")
     async def test_main_stdio_routing(self, mock_parse_args, mock_run_async):
         """Test main function routes to stdio transport correctly"""
@@ -239,7 +239,7 @@ class TestMainFunction:
         mock_run_async.assert_called_once_with(transport="stdio")
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     @patch("argparse.ArgumentParser.parse_args")
     async def test_main_http_routing(self, mock_parse_args, mock_run_async):
         """Test main function routes to HTTP transport correctly"""
@@ -261,7 +261,7 @@ class TestMainFunction:
 
     @pytest.mark.asyncio
     @patch("sys.argv", ["server.py"])
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_main_no_arguments_default(self, mock_run_async):
         """Test main function with no arguments uses defaults"""
         mock_run_async.return_value = None
@@ -287,7 +287,7 @@ class TestTransportIntegration:
     """Test transport integration with MCP server"""
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_stdio_with_splunk_connection(self, mock_run_async):
         """Test stdio transport startup"""
         mock_run_async.return_value = None
@@ -297,8 +297,8 @@ class TestTransportIntegration:
         mock_run_async.assert_called_once_with(transport="stdio")
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
-    @patch("src.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.splunk_client.get_splunk_service")
     async def test_http_with_splunk_connection(self, mock_get_service, mock_run_async):
         """Test HTTP transport with Splunk service integration"""
         mock_service = Mock()
@@ -307,7 +307,7 @@ class TestTransportIntegration:
         mock_run_async.return_value = None
 
         # Test that Splunk connection works with HTTP transport
-        from src.splunk_client import get_splunk_service
+        from mcp_server_for_splunk.splunk_client import get_splunk_service
 
         service = get_splunk_service()
         assert service.info["version"] == "9.0.0"
@@ -320,7 +320,7 @@ class TestTransportIntegration:
         )
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_transport_failure_handling(self, mock_run_async):
         """Test transport failure handling across both transports"""
         mock_run_async.side_effect = Exception("Transport initialization failed")
@@ -368,7 +368,7 @@ class TestDockerEnvironment:
             assert args.path == "/mcp/"
 
     @pytest.mark.asyncio
-    @patch("src.server.mcp.run_async")
+    @patch("mcp_server_for_splunk.server.mcp.run_async")
     async def test_docker_http_transport_startup(self, mock_run_async):
         """Test Docker HTTP transport startup"""
         mock_run_async.return_value = None

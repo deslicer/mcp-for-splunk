@@ -12,7 +12,7 @@ def test_spec_reference_handler_registration():
     mcp = FastMCP("test-server")
 
     # Import the loader
-    from src.core.loader import ResourceLoader
+    from mcp_server_for_splunk.core.loader import ResourceLoader
 
     # Create loader instance
     loader = ResourceLoader(mcp)
@@ -47,18 +47,18 @@ def test_spec_reference_handler_registration():
 
     # Check for the correct URI pattern (simplified to just config, no version)
     spec_uris = [r["uri"] for r in spec_resources]
-    assert any("splunk-spec://{config}" in uri for uri in spec_uris), (
-        f"Expected 'splunk-spec://{{config}}' pattern, got: {spec_uris}"
-    )
-    assert any("splunk-spec://{version}/{config}" in uri for uri in spec_uris), (
-        f"Expected 'splunk-spec://{{version}}/{{config}}' pattern, got: {spec_uris}"
-    )
+    assert any(
+        "splunk-spec://{config}" in uri for uri in spec_uris
+    ), f"Expected 'splunk-spec://{{config}}' pattern, got: {spec_uris}"
+    assert any(
+        "splunk-spec://{version}/{config}" in uri for uri in spec_uris
+    ), f"Expected 'splunk-spec://{{version}}/{{config}}' pattern, got: {spec_uris}"
 
     # Check for correct name
     spec_names = [r["name"] for r in spec_resources]
-    assert "get_spec_reference_docs" in spec_names, (
-        f"Expected 'get_spec_reference_docs' name, got: {spec_names}"
-    )
+    assert (
+        "get_spec_reference_docs" in spec_names
+    ), f"Expected 'get_spec_reference_docs' name, got: {spec_names}"
 
 
 def test_spec_reference_in_skip_list():
@@ -66,7 +66,7 @@ def test_spec_reference_in_skip_list():
     # This is a code inspection test - verify the skip list exists
     import inspect
 
-    from src.core.loader import ResourceLoader
+    from mcp_server_for_splunk.core.loader import ResourceLoader
 
     source = inspect.getsource(ResourceLoader._load_single_resource)
 
@@ -77,12 +77,12 @@ def test_spec_reference_in_skip_list():
 def test_spec_reference_factory_exists():
     """Test that the factory function exists and is importable."""
     try:
-        from src.resources.splunk_docs import create_spec_reference_resource
+        from mcp_server_for_splunk.resources.splunk_docs import create_spec_reference_resource
 
         # Verify it's callable
-        assert callable(create_spec_reference_resource), (
-            "create_spec_reference_resource is not callable"
-        )
+        assert callable(
+            create_spec_reference_resource
+        ), "create_spec_reference_resource is not callable"
 
         print("✓ Factory function exists and is importable")
 

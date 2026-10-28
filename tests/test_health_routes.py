@@ -13,8 +13,8 @@ from unittest.mock import Mock, PropertyMock
 from fastmcp import FastMCP
 from starlette.testclient import TestClient
 
-from src.core.http_session_mode import HttpSessionModeAdvertiser
-from src.routes.health import setup_health_routes
+from mcp_server_for_splunk.core.http_session_mode import HttpSessionModeAdvertiser
+from mcp_server_for_splunk.routes.health import setup_health_routes
 
 
 def _build_app(mcp: FastMCP):

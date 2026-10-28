@@ -10,19 +10,19 @@ This document describes the implementation of embedded resources for the MCP Spl
 
 The embedded resources system consists of several key components:
 
-1. **Base Embedded Resource Classes** (`src/resources/embedded.py`)
+1. **Base Embedded Resource Classes** (`src/mcp_server_for_splunk/resources/embedded.py`)
    - `EmbeddedResource`: Base class for embedded content
    - `SplunkEmbeddedResource`: Splunk-specific embedded resource
    - `FileEmbeddedResource`: File-based embedded resource
    - `TemplateEmbeddedResource`: Template-based embedded resource
 
-2. **Splunk Documentation Resources** (`src/resources/embedded_splunk_docs.py`)
+2. **Splunk Documentation Resources** (`src/mcp_server_for_splunk/resources/embedded_splunk_docs.py`)
    - `SplunkCheatSheetEmbeddedResource`: Comprehensive Splunk cheat sheet
    - `SPLReferenceEmbeddedResource`: SPL syntax and command reference
    - `SplunkTroubleshootingEmbeddedResource`: Troubleshooting guide
    - `SplunkAdminGuideEmbeddedResource`: Administration guide
 
-3. **Tools for Accessing Embedded Resources** (`src/tools/resources/embedded_docs_tools.py`)
+3. **Tools for Accessing Embedded Resources** (`src/mcp_server_for_splunk/tools/resources/embedded_docs_tools.py`)
    - `ListEmbeddedDocsTool`: List all available embedded documentation
    - `GetEmbeddedDocTool`: Get specific documentation by name or URI
    - `SearchEmbeddedDocsTool`: Search within documentation content
@@ -46,7 +46,7 @@ The embedded resources system consists of several key components:
 
 **Usage**:
 ```python
-from src.resources.embedded_splunk_docs import embedded_splunk_docs_registry
+from mcp_server_for_splunk.resources.embedded_splunk_docs import embedded_splunk_docs_registry
 
 cheat_sheet = embedded_splunk_docs_registry["cheat_sheet"]
 content = await cheat_sheet.get_content(ctx)
@@ -210,18 +210,18 @@ Get the comprehensive administration guide.
 
 The embedded resources are automatically registered through the following process:
 
-1. **Resource Registration** (`src/resources/__init__.py`):
+1. **Resource Registration** (`src/mcp_server_for_splunk/resources/__init__.py`):
    ```python
    from .embedded_splunk_docs import register_embedded_splunk_docs
    register_embedded_splunk_docs()
    ```
 
-2. **Tool Registration** (`src/tools/__init__.py`):
+2. **Tool Registration** (`src/mcp_server_for_splunk/tools/__init__.py`):
    ```python
    from .resources import *
    ```
 
-3. **Automatic Discovery** (`src/core/loader.py`):
+3. **Automatic Discovery** (`src/mcp_server_for_splunk/core/loader.py`):
    The ComponentLoader automatically discovers and registers all tools and resources.
 
 ### Registry System
@@ -229,7 +229,7 @@ The embedded resources are automatically registered through the following proces
 The embedded resources use a registry system for easy access:
 
 ```python
-from src.resources.embedded_splunk_docs import embedded_splunk_docs_registry
+from mcp_server_for_splunk.resources.embedded_splunk_docs import embedded_splunk_docs_registry
 
 # Access by name
 cheat_sheet = embedded_splunk_docs_registry["cheat_sheet"]

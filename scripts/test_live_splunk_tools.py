@@ -300,9 +300,9 @@ async def main() -> int:
         f"{os.environ.get('SPLUNK_PORT', '8089')}"
     )
 
-    from src.client.splunk_client import get_splunk_service
-    from src.core.discovery import discover_tools
-    from src.core.registry import tool_registry
+    from mcp_server_for_splunk.client.splunk_client import get_splunk_service
+    from mcp_server_for_splunk.core.discovery import discover_tools
+    from mcp_server_for_splunk.core.registry import tool_registry
 
     print("Connecting to Splunk...")
     service = get_splunk_service(config)

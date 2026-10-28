@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.resources.admin_topics import (
+from mcp_server_for_splunk.resources.admin_topics import (
     ADMIN_TOPICS,
     build_admin_url,
     list_admin_topics,
     resolve_admin_topic,
 )
-from src.resources.splunk_docs import AdminGuideResource
+from mcp_server_for_splunk.resources.splunk_docs import AdminGuideResource
 
 
 def test_catalog_only_contains_verified_keys() -> None:

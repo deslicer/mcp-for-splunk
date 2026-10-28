@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.tools.search.job_results import GetSearchJobResults
+from mcp_server_for_splunk.tools.search.job_results import GetSearchJobResults
 
 
 class TestGetSearchJobResults:

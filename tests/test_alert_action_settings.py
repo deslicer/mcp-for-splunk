@@ -1,7 +1,7 @@
 """Unit tests for alert action field mapping."""
 
-from src.tools.alerts.alert_action_settings import AlertActionSettings
-from src.tools.alerts.alert_saved_search import create_alert_config
+from mcp_server_for_splunk.tools.alerts.alert_action_settings import AlertActionSettings
+from mcp_server_for_splunk.tools.alerts.alert_saved_search import create_alert_config
 
 
 class TestAlertActionSettings:
@@ -92,9 +92,7 @@ class TestAlertActionSettings:
         parsed = self.mapper.parse_actions(
             '[{"name": "email", "params": {"to": "ops@example.com"}}]'
         )
-        assert parsed == [
-            {"name": "email", "params": {"to": "ops@example.com"}, "enabled": True}
-        ]
+        assert parsed == [{"name": "email", "params": {"to": "ops@example.com"}, "enabled": True}]
 
 
 class TestCreateAlertConfig:

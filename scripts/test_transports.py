@@ -24,7 +24,7 @@ def test_stdio_mode():
 
     try:
         # Test stdio mode by checking if it starts without errors
-        cmd = [sys.executable, "src/server.py", "--transport", "stdio"]
+        cmd = [sys.executable, "src/mcp_server_for_splunk/server.py", "--transport", "stdio"]
 
         print(f"Command: {' '.join(cmd)}")
         print("Starting server in stdio mode (will timeout after 5 seconds)...")
@@ -62,7 +62,7 @@ async def test_http_mode():
         from fastmcp import Client
 
         # Start server in background
-        cmd = [sys.executable, "src/server.py", "--transport", "http", "--port", "8005"]
+        cmd = [sys.executable, "src/mcp_server_for_splunk/server.py", "--transport", "http", "--port", "8005"]
         print(f"Command: {' '.join(cmd)}")
         print("Starting server in HTTP mode on port 8005...")
 
@@ -159,10 +159,10 @@ def print_usage_examples():
     print(
         """
 🔧 **STDIO Mode** (for direct MCP client integration):
-       python src/server.py --transport stdio
+       python src/mcp_server_for_splunk/server.py --transport stdio
 
 🌐 **HTTP Mode** (for web-based clients and Inspector):
-       python src/server.py --transport http --port 8000
+       python src/mcp_server_for_splunk/server.py --transport http --port 8000
 
 🐳 **Docker Mode** (full production setup):
    docker-compose up

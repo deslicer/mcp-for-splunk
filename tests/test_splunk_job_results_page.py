@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.core.splunk_job_results_page import (
+from mcp_server_for_splunk.core.splunk_job_results_page import (
     JobResultsError,
     apply_job_ttl,
     fetch_job_results_page,
@@ -20,7 +20,7 @@ def test_pages_completed_job(monkeypatch) -> None:
             return iter(self._rows)
 
     monkeypatch.setattr(
-        "src.core.splunk_job_results_page.JSONResultsReader",
+        "mcp_server_for_splunk.core.splunk_job_results_page.JSONResultsReader",
         FakeReader,
     )
     job = SimpleNamespace(

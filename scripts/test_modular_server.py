@@ -13,7 +13,7 @@ from pathlib import Path
 
 from fastmcp import Client
 
-from src.server import mcp
+from mcp_server_for_splunk.server import mcp
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent

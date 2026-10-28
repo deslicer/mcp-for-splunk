@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.tools.search.job_info import GetSearchJobInfo
+from mcp_server_for_splunk.tools.search.job_info import GetSearchJobInfo
 
 
 class TestJobInfoTool:
@@ -168,8 +168,7 @@ class TestJobInfoTool:
             "job_details_dashboard?form.sid=sid_links"
         )
         assert result["job_inspector_url"] == (
-            "https://splunk-b839c1.deslicer.io/en-US/manager/search/"
-            "job_inspector?sid=sid_links"
+            "https://splunk-b839c1.deslicer.io/en-US/manager/search/" "job_inspector?sid=sid_links"
         )
         assert ":8089" not in result["job_details_url"]
         assert ":8000" not in result["job_inspector_url"]

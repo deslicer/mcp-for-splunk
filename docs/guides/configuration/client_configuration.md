@@ -15,7 +15,7 @@ connection style first — see
 
 ## Supported Servers
 
-- **`src/server.py`** — Full support (HTTP headers + environment variables)
+- **`src/mcp_server_for_splunk/server.py`** — Full support (HTTP headers + environment variables)
 
 ## Configuration Methods
 
@@ -34,7 +34,7 @@ Add one or both of these to your `mcp.json` or settings, depending on transport:
   "mcpServers": {
     "splunk": {
       "command": "fastmcp",
-      "args": ["run", "/path/to/src/server.py"],
+      "args": ["run", "/path/to/src/mcp_server_for_splunk/server.py"],
       "env": {
         "MCP_SPLUNK_HOST": "your-splunk.com",
         "MCP_SPLUNK_USERNAME": "your-user",
@@ -102,7 +102,7 @@ splunk_agent = LlmAgent(
         MCPToolset(
             connection_params=StdioServerParameters(
                 command="fastmcp",
-                args=["run", "/path/to/src/server.py"],
+                args=["run", "/path/to/src/mcp_server_for_splunk/server.py"],
                 env={
                     "MCP_SPLUNK_HOST": "customer-a.splunk.com",
                     "MCP_SPLUNK_USERNAME": "api_user",

@@ -4,9 +4,12 @@ from unittest.mock import Mock
 import pytest
 from fastmcp.exceptions import ToolError
 
-from src.core.base import BaseTool
-from src.core.loader import ToolLoader
-from src.core.tool_mcp_result import raise_on_tool_error_status, wrap_unexpected_tool_failure
+from mcp_server_for_splunk.core.base import BaseTool
+from mcp_server_for_splunk.core.loader import ToolLoader
+from mcp_server_for_splunk.core.tool_mcp_result import (
+    raise_on_tool_error_status,
+    wrap_unexpected_tool_failure,
+)
 
 
 def test_raise_on_tool_error_status_surfaces_message() -> None:
@@ -36,7 +39,7 @@ async def test_tool_wrapper_raises_status_error(monkeypatch: pytest.MonkeyPatch)
                 "indexes": [],
             }
 
-    monkeypatch.setattr("src.core.loader.get_context", SimpleNamespace)
+    monkeypatch.setattr("mcp_server_for_splunk.core.loader.get_context", SimpleNamespace)
     wrapper = ToolLoader(Mock())._create_tool_wrapper(_ErrorTool, "list_indexes")
     with pytest.raises(ToolError, match="count must be between 1 and 200"):
         await wrapper()

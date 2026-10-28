@@ -11,8 +11,8 @@ import asyncio
 import os
 import sys
 
-from src.core.shared_context import http_headers_context
-from src.tools.health.status import GetSplunkHealth
+from mcp_server_for_splunk.core.shared_context import http_headers_context
+from mcp_server_for_splunk.tools.health.status import GetSplunkHealth
 
 # Add the project root to the path for imports
 project_root = os.path.dirname(os.path.dirname(__file__))
@@ -109,7 +109,7 @@ async def demo_client_configuration():
         print(f"   SSL Verify: {config['X-Splunk-Verify-SSL']}")
 
         try:
-            # Simulate HTTP header capture (normally set by ASGI middleware in src/server.py)
+            # Simulate HTTP header capture (normally set by ASGI middleware in src/mcp_server_for_splunk/server.py)
             http_headers_context.set(config)
 
             # Execute without kwargs; tool will read client config from headers

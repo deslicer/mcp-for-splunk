@@ -50,7 +50,7 @@ def test_env_vars():
 
     print("\n🔌 Splunk Client Configuration Test:")
     try:
-        from src.client.splunk_client import get_splunk_config
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_config
 
         config = get_splunk_config()
         print("  ✅ Splunk configuration loaded successfully")

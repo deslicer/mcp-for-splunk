@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.resources.splunk_docs import (
+from mcp_server_for_splunk.resources.splunk_docs import (
     SplunkSpecReferenceResource,
     create_spec_reference_resource,
 )

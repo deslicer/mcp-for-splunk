@@ -7,13 +7,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.splunk_client import get_splunk_service
+from mcp_server_for_splunk.splunk_client import get_splunk_service
 
 
 class TestSplunkClientConnection:
     """Test Splunk client connection functionality"""
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_successful_connection(self, mock_service_class):
         """Test successful Splunk connection with mocked client"""
         # Mock the service instance
@@ -31,7 +31,7 @@ class TestSplunkClientConnection:
         mock_service.login.assert_called()
         mock_service_class.assert_called_once()
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_connection_failure(self, mock_service_class):
         """Test connection failure handling"""
         mock_service = Mock()
@@ -52,7 +52,7 @@ class TestSplunkClientConnection:
             ):
                 get_splunk_service()
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_port_conversion_success(self, mock_service_class):
         """Test successful port conversion"""
         mock_service = Mock()
@@ -95,7 +95,7 @@ class TestSplunkClientConnection:
 class TestEnvironmentVariableHandling:
     """Test environment variable handling"""
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_default_values(self, mock_service_class):
         """Test default values when environment variables not set"""
         mock_service = Mock()
@@ -117,7 +117,7 @@ class TestEnvironmentVariableHandling:
 class TestSslVerification:
     """TLS verify flag from SPLUNK_VERIFY_SSL."""
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_verify_ssl_defaults_true(self, mock_service_class):
         mock_service = Mock()
         mock_service.login = Mock()
@@ -133,7 +133,7 @@ class TestSslVerification:
 
         assert mock_service_class.call_args[1]["verify"] is True
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_verify_ssl_opt_out(self, mock_service_class):
         mock_service = Mock()
         mock_service.login = Mock()
@@ -157,7 +157,7 @@ class TestSslVerification:
 class TestTokenAuthentication:
     """Tests covering bearer / access token authentication."""
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_bearer_token_uses_splunk_token_kwarg(self, mock_service_class):
         """SPLUNK_TOKEN should be passed as ``splunkToken`` to splunklib."""
         mock_service = Mock()
@@ -184,7 +184,7 @@ class TestTokenAuthentication:
             # /services/auth/login endpoint with credentials we do not have.
             mock_service.login.assert_not_called()
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_session_token_uses_token_kwarg(self, mock_service_class):
         """SPLUNK_SESSION_TOKEN should be passed as ``token`` to splunklib."""
         mock_service = Mock()
@@ -207,7 +207,7 @@ class TestTokenAuthentication:
             assert "splunkToken" not in call_args
             mock_service.login.assert_not_called()
 
-    @patch("src.splunk_client.client.Service")
+    @patch("mcp_server_for_splunk.splunk_client.client.Service")
     def test_bearer_token_takes_priority_over_password(self, mock_service_class):
         """When both SPLUNK_TOKEN and password are set, token should win."""
         mock_service = Mock()

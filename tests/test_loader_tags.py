@@ -1,7 +1,7 @@
 """Verify that ``ToolLoader`` tags every host tool with ``{"splunk"}``.
 
 The host registers core Splunk tools through
-:class:`src.core.loader.ToolLoader`. Tagging is done at registration
+:class:`mcp_server_for_splunk.core.loader.ToolLoader`. Tagging is done at registration
 time so the host doesn't have to retro-fit ``tags`` on every
 ``BaseTool`` subclass. Per-tool ``ToolMetadata.tags`` (if any) merges
 in alongside the default ``"splunk"`` tag.
@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from src.core.base import BaseTool, ToolMetadata
-from src.core.loader import ToolLoader
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.loader import ToolLoader
 
 
 class _FakeTool(BaseTool):
@@ -37,8 +37,8 @@ def _patch_registry(monkeypatch, name: str, extra_tags: list[str] | None) -> Non
     fake_registry._tools = {name: _FakeTool}
     fake_registry.get_metadata.return_value = metadata
 
-    monkeypatch.setattr("src.core.loader.tool_registry", fake_registry)
-    monkeypatch.setattr("src.core.loader.discover_tools", lambda: None)
+    monkeypatch.setattr("mcp_server_for_splunk.core.loader.tool_registry", fake_registry)
+    monkeypatch.setattr("mcp_server_for_splunk.core.loader.discover_tools", lambda: None)
 
 
 def _decorator_capture():

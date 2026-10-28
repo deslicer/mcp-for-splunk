@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.core.splunk_errors import SplunkAvailability
-from src.tools.search.job_search import JobSearch
+from mcp_server_for_splunk.core.splunk_errors import SplunkAvailability
+from mcp_server_for_splunk.tools.search.job_search import JobSearch
 
 
 class TestJobSearchErrorHandling:

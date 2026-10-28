@@ -23,7 +23,7 @@ class TestHealthEndpointSecurity:
         """Health endpoint should expose only benign, non-sensitive information."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -61,7 +61,9 @@ class TestHealthEndpointSecurity:
                     ]
                     data_str = json.dumps(data).lower()
                     for key in sensitive_keys:
-                        assert key not in data_str, f"Sensitive key '{key}' found in health response"
+                        assert (
+                            key not in data_str
+                        ), f"Sensitive key '{key}' found in health response"
         except ImportError:
             import inspect
 
@@ -81,7 +83,7 @@ class TestHealthEndpointSecurity:
         """Health endpoint should work without any authentication."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -109,7 +111,7 @@ class TestMalformedRequestHandling:
         """Very long SPL strings should not cause crashes or expose errors."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -158,7 +160,7 @@ class TestMalformedRequestHandling:
         """Invalid JSON should return error without exposing internals."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -185,7 +187,7 @@ class TestMalformedRequestHandling:
 
                     # Response should not contain Python stack traces
                     response_text = resp.text.lower()
-                    assert "file \"" not in response_text  # Python file path in traceback
+                    assert 'file "' not in response_text  # Python file path in traceback
                     assert "line " not in response_text or "error" in response_text
         except ImportError:
             pytest.skip("ASGI lifespan not available")
@@ -195,7 +197,7 @@ class TestMalformedRequestHandling:
         """Special characters in queries should be handled safely."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -237,7 +239,9 @@ class TestMalformedRequestHandling:
                         )
 
                         # Server should not crash
-                        assert resp.status_code in range(200, 500), f"Crash on payload: {payload[:50]}"
+                        assert resp.status_code in range(
+                            200, 500
+                        ), f"Crash on payload: {payload[:50]}"
         except ImportError:
             pytest.skip("ASGI lifespan not available")
 
@@ -252,7 +256,7 @@ class TestErrorResponseSanitization:
         """Error responses should not contain Python stack traces."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -287,8 +291,8 @@ class TestErrorResponseSanitization:
 
                     # Should not contain Python internals
                     assert "traceback (most recent call last)" not in response_text
-                    assert "file \"/" not in response_text  # Unix path in traceback
-                    assert "file \"c:" not in response_text  # Windows path in traceback
+                    assert 'file "/' not in response_text  # Unix path in traceback
+                    assert 'file "c:' not in response_text  # Windows path in traceback
         except ImportError:
             pytest.skip("ASGI lifespan not available")
 
@@ -297,7 +301,7 @@ class TestErrorResponseSanitization:
         """Error responses should not expose internal file paths."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -335,7 +339,9 @@ class TestErrorResponseSanitization:
                     # Should not expose file system paths
                     path_patterns = ["/home/", "/var/", "/usr/", "/opt/", "c:\\", "d:\\"]
                     for pattern in path_patterns:
-                        assert pattern not in response_text, f"Internal path '{pattern}' exposed in error"
+                        assert (
+                            pattern not in response_text
+                        ), f"Internal path '{pattern}' exposed in error"
         except ImportError:
             pytest.skip("ASGI lifespan not available")
 
@@ -344,7 +350,7 @@ class TestErrorResponseSanitization:
         """Error responses should not contain secrets or credentials."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -398,7 +404,7 @@ class TestRequestRateLimiting:
 
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -418,7 +424,9 @@ class TestRequestRateLimiting:
                     responses = await asyncio.gather(*tasks, return_exceptions=True)
 
                     # At least some should succeed
-                    success_count = sum(1 for r in responses if hasattr(r, "status_code") and r.status_code == 200)
+                    success_count = sum(
+                        1 for r in responses if hasattr(r, "status_code") and r.status_code == 200
+                    )
                     assert success_count > 0, "All rapid requests failed"
 
                     # Server should still be responsive after burst

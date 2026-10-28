@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.core.list_paging import PaginationError
-from src.tools.admin.apps import ListApps
-from src.tools.admin.users import ListUsers
-from src.tools.metadata.indexes import ListIndexes
+from mcp_server_for_splunk.core.list_paging import PaginationError
+from mcp_server_for_splunk.tools.admin.apps import ListApps
+from mcp_server_for_splunk.tools.admin.users import ListUsers
+from mcp_server_for_splunk.tools.metadata.indexes import ListIndexes
 
 
 class _Body:
@@ -26,7 +26,10 @@ def _collection_service(entries: list[dict], total: int | None = None) -> Mock:
         captured["params"] = params
         payload = {
             "entry": entries,
-            "paging": {"total": total if total is not None else len(entries), "offset": params.get("offset", 0)},
+            "paging": {
+                "total": total if total is not None else len(entries),
+                "offset": params.get("offset", 0),
+            },
         }
         return SimpleNamespace(body=_Body(payload))
 

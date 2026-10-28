@@ -11,7 +11,7 @@ import re  # Added for regex in _validate_task
 from pathlib import Path
 from typing import Any
 
-from src.tools.workflows.shared.definitions import TaskDefinition, WorkflowDefinition
+from mcp_server_for_splunk.tools.workflows.shared.definitions import TaskDefinition, WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class WorkflowLoader:
         # Directories to scan
         directories = [
             self.workflows_directory,  # contrib/workflows
-            Path("src/tools/workflows/core/"),  # core workflows
+            Path("src/mcp_server_for_splunk/tools/workflows/core/"),  # core workflows
         ]
 
         for dir_path in directories:
@@ -474,8 +474,8 @@ class WorkflowLoader:
         return None
 
     def _validate_tools(self, workflow_data: dict[str, Any]) -> tuple[list[str], list[str]]:
-        from src.core.discovery import discover_tools  # Import here to avoid circular imports
-        from src.core.registry import tool_registry  # Import here to avoid circular imports
+        from mcp_server_for_splunk.core.discovery import discover_tools  # Import here to avoid circular imports
+        from mcp_server_for_splunk.core.registry import tool_registry  # Import here to avoid circular imports
 
         errors = []
         warnings = []

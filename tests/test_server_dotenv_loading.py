@@ -10,7 +10,8 @@ def _run_server_env_probe(cwd: Path, extra_env: dict[str, str] | None = None) ->
     """Import server startup path in an isolated subprocess."""
     env = os.environ.copy()
     project_root = Path(__file__).resolve().parents[1]
-    env["PYTHONPATH"] = str(project_root)
+    env["PYTHONPATH"] = os.pathsep.join((str(project_root / "src"), str(project_root)))
+    env.pop("PYTHON_DOTENV_DISABLED", None)
     for key in (
         "MCP_SPLUNK_HOST",
         "MCP_SPLUNK_TOKEN",
@@ -27,7 +28,7 @@ def _run_server_env_probe(cwd: Path, extra_env: dict[str, str] | None = None) ->
     script = """
 import json
 import os
-from src.server import LOG_LEVEL_NAME, extract_client_config_from_env
+from mcp_server_for_splunk.server import LOG_LEVEL_NAME, extract_client_config_from_env
 
 print(json.dumps({
     "log_level": LOG_LEVEL_NAME,

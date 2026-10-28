@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Context
 
-from src.client.splunk_client import format_degraded_splunk_message
-from src.core.base import BaseTool, SplunkContext
+from mcp_server_for_splunk.client.splunk_client import format_degraded_splunk_message
+from mcp_server_for_splunk.core.base import BaseTool, SplunkContext
 
 
 class _TestTool(BaseTool):
@@ -39,8 +39,8 @@ def ctx():
 class TestCheckSplunkAvailable:
     """Verify check_splunk_available resolves header-based client config."""
 
-    @patch("src.client.splunk_client.get_splunk_service")
-    @patch("src.core.base.get_http_headers")
+    @patch("mcp_server_for_splunk.client.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.core.base.get_http_headers")
     def test_uses_http_headers_when_request_state_empty(
         self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
     ):
@@ -66,8 +66,8 @@ class TestCheckSplunkAvailable:
             }
         )
 
-    @patch("src.client.splunk_client.get_splunk_service")
-    @patch("src.core.base.get_http_headers")
+    @patch("mcp_server_for_splunk.client.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.core.base.get_http_headers")
     def test_prefers_request_state_over_headers(
         self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
     ):
@@ -95,8 +95,8 @@ class TestCheckSplunkAvailable:
             }
         )
 
-    @patch("src.client.splunk_client.get_splunk_service")
-    @patch("src.core.base.get_http_headers")
+    @patch("mcp_server_for_splunk.client.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.core.base.get_http_headers")
     def test_falls_back_to_degraded_mode_when_no_client_config(
         self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
     ):
@@ -110,8 +110,8 @@ class TestCheckSplunkAvailable:
         assert "degraded mode" in error
         mock_get_splunk_service.assert_not_called()
 
-    @patch("src.client.splunk_client.get_splunk_service")
-    @patch("src.core.base.get_http_headers")
+    @patch("mcp_server_for_splunk.client.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.core.base.get_http_headers")
     def test_falls_back_to_lifespan_when_headers_fail(
         self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
     ):
@@ -135,8 +135,8 @@ class TestCheckSplunkAvailable:
         assert service is lifespan_service
         assert error == ""
 
-    @patch("src.client.splunk_client.get_splunk_service")
-    @patch("src.core.base.get_http_headers")
+    @patch("mcp_server_for_splunk.client.splunk_client.get_splunk_service")
+    @patch("mcp_server_for_splunk.core.base.get_http_headers")
     def test_includes_connect_cause_when_headers_and_lifespan_fail(
         self, mock_get_http_headers, mock_get_splunk_service, tool, ctx
     ):
@@ -145,9 +145,7 @@ class TestCheckSplunkAvailable:
             "X-Splunk-Host": "bad.example.com",
             "X-Splunk-Port": "8089",
         }
-        mock_get_splunk_service.side_effect = OSError(
-            errno.ENETUNREACH, "Network is unreachable"
-        )
+        mock_get_splunk_service.side_effect = OSError(errno.ENETUNREACH, "Network is unreachable")
 
         is_available, service, error = tool.check_splunk_available(ctx)
 

@@ -47,7 +47,7 @@ SENTRY_TRACES_SAMPLE_RATE=1.0
 ./scripts/build_and_run.sh --docker
 
 # Local development (requires step 1)
-uv run python src/server.py
+uv run python src/mcp_server_for_splunk/server.py
 ```
 
 You'll see in the logs:
@@ -222,7 +222,7 @@ Then in Sentry, you'll see:
 Use the `@trace_mcp_tool` decorator for automatic tool tracing:
 
 ```python
-from src.core.sentry_integration import trace_mcp_tool
+from mcp_server_for_splunk.core.sentry_integration import trace_mcp_tool
 
 @trace_mcp_tool("my_custom_tool")
 async def my_custom_tool(ctx: Context, param: str) -> dict:
@@ -236,7 +236,7 @@ async def my_custom_tool(ctx: Context, param: str) -> dict:
 Use `@trace_splunk_operation` for Splunk-specific operations:
 
 ```python
-from src.core.sentry_integration import trace_splunk_operation
+from mcp_server_for_splunk.core.sentry_integration import trace_splunk_operation
 
 @trace_splunk_operation("search")
 async def execute_search(query: str) -> dict:
@@ -250,7 +250,7 @@ async def execute_search(query: str) -> dict:
 Create custom spans for specific operations:
 
 ```python
-from src.core.sentry_integration import mcp_span
+from mcp_server_for_splunk.core.sentry_integration import mcp_span
 
 async def complex_operation():
     with mcp_span(
@@ -271,7 +271,7 @@ async def complex_operation():
 Track the sequence of operations:
 
 ```python
-from src.core.sentry_integration import add_breadcrumb
+from mcp_server_for_splunk.core.sentry_integration import add_breadcrumb
 
 add_breadcrumb(
     message="User requested search",
@@ -286,7 +286,7 @@ add_breadcrumb(
 Manually capture exceptions with MCP context:
 
 ```python
-from src.core.sentry_integration import capture_mcp_error
+from mcp_server_for_splunk.core.sentry_integration import capture_mcp_error
 
 try:
     result = await risky_operation()
@@ -398,7 +398,7 @@ send_default_pii=False  # No automatic PII collection
 Custom data you add should also be sanitized:
 
 ```python
-from src.core.sentry_integration import _sanitize_kwargs
+from mcp_server_for_splunk.core.sentry_integration import _sanitize_kwargs
 
 # Before logging parameters
 safe_params = _sanitize_kwargs({"password": "secret", "query": "search *"})

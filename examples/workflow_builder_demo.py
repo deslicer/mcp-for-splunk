@@ -42,7 +42,7 @@ async def demonstrate_workflow_builder():
 
     try:
         # Import the workflow builder tool
-        from src.tools.workflows.workflow_builder import WorkflowBuilderTool
+        from mcp_server_for_splunk.tools.workflows.workflow_builder import WorkflowBuilderTool
 
         print("✅ WorkflowBuilderTool imported successfully")
 
@@ -378,7 +378,7 @@ async def demonstrate_workflow_requirements():
     print("=" * 80)
 
     try:
-        from src.tools.workflows.workflow_requirements import WorkflowRequirementsTool
+        from mcp_server_for_splunk.tools.workflows.workflow_requirements import WorkflowRequirementsTool
 
         workflow_requirements = WorkflowRequirementsTool("workflow_requirements", "workflows")
         ctx = MockContext()
@@ -465,7 +465,7 @@ if result['integration_ready']:
             "code": """
 # After processing with workflow builder, save JSON under contrib/workflows/
 # then rediscover with list_workflows (built-in agent runner was removed)
-from src.tools.workflows.list_workflows import ListWorkflowsTool
+from mcp_server_for_splunk.tools.workflows.list_workflows import ListWorkflowsTool
 
 list_workflows = ListWorkflowsTool("list_workflows", "workflows")
 result = await list_workflows.execute(ctx=ctx, format_type="summary")
@@ -562,7 +562,7 @@ if __name__ == "__main__":
     print("   ✅ Template generation for different workflow types")
     print("   ✅ Multiple validation modes and error handling")
     print("\n🔧 To use the WorkflowBuilderTool in your own code:")
-    print("   1. Import: from src.tools.workflows.workflow_builder import WorkflowBuilderTool")
+    print("   1. Import: from mcp_server_for_splunk.tools.workflows.workflow_builder import WorkflowBuilderTool")
     print("   2. Initialize: tool = WorkflowBuilderTool('workflow_builder', 'workflows')")
     print(
         "   3. Process: result = await tool.execute(ctx=context, mode='process', workflow_data=your_workflow)"

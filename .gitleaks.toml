@@ -54,7 +54,7 @@ paths = [
     '''examples/''',
     '''mcp_itsi/knowledge/''',
     '''\.github/workflows/''',
-    '''src/cli/''',
+    '''src/mcp_server_for_splunk/cli/''',
 ]
 regexes = [
     '''os\.getenv''',
@@ -117,10 +117,10 @@ paths = [
     '''scripts/''',
     '''examples/''',
     '''mcp_itsi/config/''',
-    '''src/core/security/''',
-    '''src/core/client_config_cache\.py$''',  # Header-name lookups only; no secret values
-    '''src/splunk_client\.py$''',  # Env-var lookups / splunklib kwargs; no secret values
-    '''src/splunk_connector\.py$''',
+    '''src/mcp_server_for_splunk/core/security/''',
+    '''src/mcp_server_for_splunk/core/client_config_cache\.py$''',  # Header-name lookups only; no secret values
+    '''src/mcp_server_for_splunk/splunk_client\.py$''',  # Env-var lookups / splunklib kwargs; no secret values
+    '''src/mcp_server_for_splunk/splunk_connector\.py$''',
     '''\.github/workflows/''',
 ]
 regexes = [

@@ -76,7 +76,7 @@ If you prefer to create tools manually:
 
 from typing import Any, Dict
 from fastmcp import Context
-from src.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
 
 class HelloWorldTool(BaseTool):
     """A simple example tool that demonstrates the contribution pattern."""
@@ -181,7 +181,7 @@ All contributions will be reviewed for:
 # contrib/resources/examples/sample_data.py
 
 from fastmcp import Context
-from src.core.base import BaseResource, ResourceMetadata
+from mcp_server_for_splunk.core.base import BaseResource, ResourceMetadata
 
 class SampleDataResource(BaseResource):
     """Provides sample Splunk data for testing."""
@@ -203,7 +203,7 @@ class SampleDataResource(BaseResource):
 # contrib/prompts/examples/basic_prompts.py
 
 from fastmcp import Context
-from src.core.base import BasePrompt, PromptMetadata
+from mcp_server_for_splunk.core.base import BasePrompt, PromptMetadata
 
 class SearchAssistantPrompt(BasePrompt):
     """Helps users build Splunk search queries."""
@@ -226,7 +226,7 @@ class SearchAssistantPrompt(BasePrompt):
 
 - **Documentation**: [Project Wiki](link-to-wiki)
 - **Examples**: See `contrib/tools/examples/` for complete examples
-- **Best Practices**: Check existing core tools in `src/tools/`
+- **Best Practices**: Check existing core tools in `src/mcp_server_for_splunk/tools/`
 - **Issues**: [GitHub Issues](link-to-issues)
 - **Discussions**: [GitHub Discussions](link-to-discussions)
 

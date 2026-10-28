@@ -16,7 +16,7 @@ No OpenAI API key is required for workflow discovery or authoring.
 
 ## Where workflows live
 
-- Core: `src/tools/workflows/core/`
+- Core: `src/mcp_server_for_splunk/tools/workflows/core/`
 - Contrib (your custom workflows): `contrib/workflows/<category>/<workflow_id>.json`
 
 ## Core workflows

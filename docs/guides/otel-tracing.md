@@ -32,7 +32,7 @@ DEPLOYMENT_ENVIRONMENT=development
 ### 3. Start the server
 
 ```bash
-uv run python src/server.py
+uv run python src/mcp_server_for_splunk/server.py
 ```
 
 You'll see in the logs:
@@ -74,7 +74,7 @@ The OTLP/HTTP exporter reads standard OTel environment variables (`OTEL_EXPORTER
 When tracing is enabled, log records are reformatted as single-line JSON carrying `otelTraceID`, `otelSpanID`, and `otelServiceName`, so logs and traces share the same identifiers in your backend:
 
 ```json
-{"timestamp": "2026-06-23T17:07:46.645Z", "level": "INFO", "logger": "src.server", "message": "...", "otelTraceID": "9b...", "otelSpanID": "1a...", "otelServiceName": "splunk-mcp"}
+{"timestamp": "2026-06-23T17:07:46.645Z", "level": "INFO", "logger": "mcp_server_for_splunk.server", "message": "...", "otelTraceID": "9b...", "otelSpanID": "1a...", "otelServiceName": "splunk-mcp"}
 ```
 
 ## 🔒 Security

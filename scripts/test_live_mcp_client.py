@@ -304,7 +304,7 @@ async def main() -> int:
 
     from fastmcp import Client
 
-    from src.server import mcp
+    from mcp_server_for_splunk.server import mcp
 
     state = SuiteState()
     runs: list[Run] = []

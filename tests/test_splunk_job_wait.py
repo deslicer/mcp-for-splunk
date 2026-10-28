@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from src.core.splunk_job_wait import resolve_search_wait_seconds, wait_for_job
+from mcp_server_for_splunk.core.splunk_job_wait import resolve_search_wait_seconds, wait_for_job
 
 
 class _Job:
@@ -43,10 +43,7 @@ async def test_wait_for_job_returns_when_done() -> None:
 
 @pytest.mark.asyncio
 async def test_wait_for_job_cancels_splunk_job_on_disconnect() -> None:
-    job = _Job(
-        [{"isDone": "0", "isFailed": "0", "doneProgress": "0.1"}]
-        * 20
-    )
+    job = _Job([{"isDone": "0", "isFailed": "0", "doneProgress": "0.1"}] * 20)
 
     async def _run() -> None:
         await wait_for_job(job, wait_seconds=5, poll_interval=0.05)

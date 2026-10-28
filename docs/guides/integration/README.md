@@ -34,7 +34,7 @@ The most popular MCP client for interactive AI conversations.
   "mcpServers": {
     "splunk": {
       "command": "fastmcp",
-      "args": ["run", "/path/to/mcp-server-for-splunk/src/server.py"],
+      "args": ["run", "/path/to/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py"],
       "env": {
         "SPLUNK_HOST": "your-splunk.company.com",
         "SPLUNK_USERNAME": "your-username",
@@ -53,7 +53,7 @@ The most popular MCP client for interactive AI conversations.
   "mcpServers": {
     "splunk-prod": {
       "command": "fastmcp",
-      "args": ["run", "/opt/mcp-server-for-splunk/src/server.py"],
+      "args": ["run", "/opt/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py"],
       "env": {
         "SPLUNK_HOST": "prod-splunk.company.com",
         "SPLUNK_USERNAME": "mcp-user",
@@ -62,7 +62,7 @@ The most popular MCP client for interactive AI conversations.
     },
     "splunk-dev": {
       "command": "fastmcp",
-      "args": ["run", "/opt/mcp-server-for-splunk/src/server.py"],
+      "args": ["run", "/opt/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py"],
       "env": {
         "SPLUNK_HOST": "dev-splunk.company.com",
         "SPLUNK_USERNAME": "dev-user",
@@ -87,7 +87,7 @@ Perfect for AI-assisted development with Splunk integration.
   "mcpServers": {
     "splunk": {
       "command": "uv",
-      "args": ["run", "fastmcp", "run", "src/server.py"],
+      "args": ["run", "fastmcp", "run", "src/mcp_server_for_splunk/server.py"],
       "cwd": "/path/to/mcp-server-for-splunk",
       "env": {
         "MCP_SPLUNK_HOST": "localhost",
@@ -105,7 +105,7 @@ Perfect for AI-assisted development with Splunk integration.
   "mcpServers": {
     "splunk-local": {
       "command": "python",
-      "args": ["-m", "fastmcp", "run", "src/server.py"],
+      "args": ["-m", "fastmcp", "run", "src/mcp_server_for_splunk/server.py"],
       "cwd": "${workspaceFolder}",
       "env": {
         "PYTHONPATH": "${workspaceFolder}",
@@ -131,7 +131,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParamet
 splunk_mcp = MCPToolset(
     connection_params=StdioServerParameters(
         command='fastmcp',
-        args=['run', '/path/to/mcp-server-for-splunk/src/server.py'],
+        args=['run', '/path/to/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py'],
         env={
             'SPLUNK_HOST': 'your-splunk.company.com',
             'SPLUNK_USERNAME': 'your-username',
@@ -175,7 +175,7 @@ class SplunkAgent:
     def _get_config(self, environment):
         configs = {
             'prod': {
-                'server_path': '/opt/mcp-server-for-splunk/src/server.py',
+                'server_path': '/opt/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py',
                 'env': {
                     'SPLUNK_HOST': 'prod-splunk.company.com',
                     'SPLUNK_USERNAME': os.getenv('PROD_SPLUNK_USER'),
@@ -185,7 +185,7 @@ class SplunkAgent:
                 'system_instruction': 'You are a production Splunk assistant. Be careful with destructive operations.'
             },
             'dev': {
-                'server_path': './src/server.py',
+                'server_path': './src/mcp_server_for_splunk/server.py',
                 'env': {
                     'SPLUNK_HOST': 'dev-splunk.company.com',
                     'SPLUNK_USERNAME': os.getenv('DEV_SPLUNK_USER'),
@@ -221,7 +221,7 @@ AI-powered code assistant with MCP support.
     {
       "name": "splunk",
       "command": "fastmcp",
-      "args": ["run", "src/server.py"],
+      "args": ["run", "src/mcp_server_for_splunk/server.py"],
       "cwd": "/path/to/mcp-server-for-splunk",
       "env": {
         "SPLUNK_HOST": "localhost",
@@ -252,7 +252,7 @@ class SplunkAIAssistant:
         """Connect to MCP server"""
         server_params = StdioServerParameters(
             command="fastmcp",
-            args=["run", "src/server.py"],
+            args=["run", "src/mcp_server_for_splunk/server.py"],
             env={
                 "SPLUNK_HOST": "your-splunk.company.com",
                 "SPLUNK_USERNAME": "your-username",

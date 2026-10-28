@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.core.base import BaseTool
-from src.tools.alerts.alert_tool_context import AlertContextMixin
-from src.tools.alerts.update_alert import UpdateAlert
+from mcp_server_for_splunk.core.base import BaseTool
+from mcp_server_for_splunk.tools.alerts.alert_tool_context import AlertContextMixin
+from mcp_server_for_splunk.tools.alerts.update_alert import UpdateAlert
 
 
 class _StubAlertTool(AlertContextMixin, BaseTool):
@@ -30,9 +30,7 @@ async def test_notify_progress_uses_fastmcp_report_progress() -> None:
     tool = _StubAlertTool("stub", "stub")
     ctx = AsyncMock()
     await tool.notify_progress(ctx, 50, 100, "halfway")
-    ctx.report_progress.assert_awaited_once_with(
-        progress=50, total=100, message="halfway"
-    )
+    ctx.report_progress.assert_awaited_once_with(progress=50, total=100, message="halfway")
 
 
 @pytest.mark.asyncio

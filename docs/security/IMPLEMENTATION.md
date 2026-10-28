@@ -26,7 +26,7 @@ Our implementation was vulnerable to the same attack vector as described in the 
 
 ## Implemented Solutions
 
-### 1. Comprehensive Query Validation (`src/core/security.py`)
+### 1. Comprehensive Query Validation (`src/mcp_server_for_splunk/core/security.py`)
 
 Created a robust SPL query validation system with:
 
@@ -63,7 +63,7 @@ Created a robust SPL query validation system with:
 #### Usage
 
 ```python
-from src.core.security import sanitize_search_query, validate_search_query
+from mcp_server_for_splunk.core.security import sanitize_search_query, validate_search_query
 
 # Validate and sanitize queries (raises exception on violation)
 safe_query = sanitize_search_query("index=main error | stats count")
@@ -74,7 +74,7 @@ for violation in violations:
     print(f"{violation.violation_type}: {violation.message}")
 ```
 
-### 2. Security Monitoring & Runtime Protection (`src/core/security_monitoring.py`)
+### 2. Security Monitoring & Runtime Protection (`src/mcp_server_for_splunk/core/security_monitoring.py`)
 
 Implemented comprehensive runtime security monitoring:
 
@@ -202,7 +202,7 @@ Test suite covering:
 pytest tests/security/ -v
 
 # Run with coverage
-pytest tests/security/ --cov=src.core.security --cov-report=html
+pytest tests/security/ --cov=mcp_server_for_splunk.core.security --cov-report=html
 ```
 
 ### 8. Security Documentation
@@ -232,7 +232,7 @@ sanitized = sanitize_search_query(malicious)  # NO PROTECTION
 
 ```python
 # New implementation - PROTECTED
-from src.core.security import sanitize_search_query, QuerySecurityException
+from mcp_server_for_splunk.core.security import sanitize_search_query, QuerySecurityException
 
 # This will raise QuerySecurityException
 try:
@@ -277,7 +277,7 @@ Run started: 2025-12-05 10:30:00
 Test results:
 >> Issue: [B201:flask_debug_true] A Flask app appears to have debug mode enabled. 
    Severity: Medium   Confidence: High
-   Location: src/server.py:45
+   Location: src/mcp_server_for_splunk/server.py:45
    More Info: https://bandit.readthedocs.io/en/latest/plugins/b201_flask_debug_true.html
 
 Code scanned:
@@ -360,7 +360,7 @@ pytest tests/security/ -v
 
 # 4. Verify security configuration
 python -c "
-from src.core.security import get_security_config
+from mcp_server_for_splunk.core.security import get_security_config
 import json
 print(json.dumps(get_security_config(), indent=2))
 "
@@ -373,7 +373,7 @@ cp env.example .env
 pre-commit install
 
 # 7. Restart the server
-uv run python -m src.server
+uv run python -m mcp_server_for_splunk.server
 ```
 
 ### Configuration Options
@@ -419,7 +419,7 @@ docker run -d \
 ### Security Event Monitoring
 
 ```python
-from src.core.security_monitoring import get_security_monitor
+from mcp_server_for_splunk.core.security_monitoring import get_security_monitor
 
 # Get security summary
 monitor = get_security_monitor()

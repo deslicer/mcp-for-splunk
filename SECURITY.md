@@ -27,7 +27,7 @@ We release security updates for the following versions:
 - Users can only access data their Splunk credentials permit
 
 **Defense-in-Depth Measures**:
-- Implemented SPL query validation in `src/core/security.py`
+- Implemented SPL query validation in `src/mcp_server_for_splunk/core/security.py`
 - Blocked dangerous commands that could modify data or execute external code (`collect`, `outputlookup`, `delete`, `sendemail`, `script`, `run`)
 - Query complexity limits to prevent DoS
 - Comprehensive security testing suite added
@@ -39,7 +39,7 @@ git pull origin main
 uv sync
 
 # Verify security features are active
-python -c "from src.core.security import get_security_config; import json; print(json.dumps(get_security_config(), indent=2))"
+python -c "from mcp_server_for_splunk.core.security import get_security_config; import json; print(json.dumps(get_security_config(), indent=2))"
 ```
 
 ## Reporting a Vulnerability
@@ -138,7 +138,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 **Dangerous Command Blocking**
 ```python
-from src.core.security import validate_query, QuerySecurityError
+from mcp_server_for_splunk.core.security import validate_query, QuerySecurityError
 
 # Data modification commands are blocked
 try:

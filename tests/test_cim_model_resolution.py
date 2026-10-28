@@ -1,6 +1,6 @@
 import pytest
 
-from src.resources.splunk_cim import CIMDataModelResource, SplunkCIMResource
+from mcp_server_for_splunk.resources.splunk_cim import CIMDataModelResource, SplunkCIMResource
 
 
 @pytest.mark.parametrize(

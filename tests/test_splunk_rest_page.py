@@ -1,7 +1,7 @@
 import json
 from types import SimpleNamespace
 
-from src.core.splunk_rest_page import fetch_rest_collection_page
+from mcp_server_for_splunk.core.splunk_rest_page import fetch_rest_collection_page
 
 
 class _Body:

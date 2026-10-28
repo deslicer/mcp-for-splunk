@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from src.core.splunk_web_urls import (
+from mcp_server_for_splunk.core.splunk_web_urls import (
     SplunkWebLinks,
     resolve_splunk_web_base,
     web_links_from_service,

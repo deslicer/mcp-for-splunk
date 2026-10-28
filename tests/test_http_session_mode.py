@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.core.http_session_mode import (
+from mcp_server_for_splunk.core.http_session_mode import (
     CLIENT_API_VERSION,
     HEADER_SERVER_VERSION,
     HEADER_SESSION_MODE,

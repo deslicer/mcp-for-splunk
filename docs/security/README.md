@@ -14,7 +14,7 @@ In response to **Splunk Security Advisory SVD-2025-1210 (CVE-2025-20381)**, we d
 
 ## 📦 What's New
 
-### 1. **SPL Query Security** (`src/core/security.py`)
+### 1. **SPL Query Security** (`src/mcp_server_for_splunk/core/security.py`)
 - ✅ Blocks subsearch injection attacks `[ search ... ]`
 - ✅ Command allowlisting (blocks dangerous commands)
 - ✅ Protected index access controls (`_audit`, `_internal`, etc.)
@@ -22,14 +22,14 @@ In response to **Splunk Security Advisory SVD-2025-1210 (CVE-2025-20381)**, we d
 - ✅ Suspicious pattern detection
 
 ```python
-from src.core.security import sanitize_search_query
+from mcp_server_for_splunk.core.security import sanitize_search_query
 
 # This will raise an exception now:
 malicious = "index=main [ search index=_audit ]"
 sanitize_search_query(malicious)  # ❌ QuerySecurityException!
 ```
 
-### 2. **Security Monitoring** (`src/core/security_monitoring.py`)
+### 2. **Security Monitoring** (`src/mcp_server_for_splunk/core/security_monitoring.py`)
 - ✅ Rate limiting per client
 - ✅ Anomaly detection
 - ✅ Threat detection and logging
@@ -83,13 +83,13 @@ uv sync
 pytest tests/security/ -v
 
 # 3. Verify configuration
-python -c "from src.core.security import get_security_config; import json; print(json.dumps(get_security_config(), indent=2))"
+python -c "from mcp_server_for_splunk.core.security import get_security_config; import json; print(json.dumps(get_security_config(), indent=2))"
 
 # 4. Install pre-commit hooks
 pre-commit install
 
 # 5. Start server
-uv run python -m src.server
+uv run python -m mcp_server_for_splunk.server
 ```
 
 ### Configuration
@@ -167,7 +167,7 @@ search index=app_logs level=ERROR | top 10 error_code
 Events are logged and can be exported to SIEM:
 
 ```python
-from src.core.security_monitoring import get_security_monitor
+from mcp_server_for_splunk.core.security_monitoring import get_security_monitor
 
 monitor = get_security_monitor()
 summary = monitor.get_security_summary(hours=24)
@@ -185,8 +185,8 @@ CEF:0|MCP-Splunk|MCP-Server|1.0|injection_attempt|Subsearch detected|8|src=192.1
 ## 📚 Key Files
 
 ### New Files
-- `src/core/security.py` - Query validation engine
-- `src/core/security_monitoring.py` - Runtime monitoring
+- `src/mcp_server_for_splunk/core/security.py` - Query validation engine
+- `src/mcp_server_for_splunk/core/security_monitoring.py` - Runtime monitoring
 - `tests/security/test_query_validation.py` - Security tests
 - `.github/workflows/security.yml` - CI/CD security pipeline
 - `.github/dependabot.yml` - Dependency updates
@@ -198,7 +198,7 @@ CEF:0|MCP-Splunk|MCP-Server|1.0|injection_attempt|Subsearch detected|8|src=192.1
 - `docs/security/IMPLEMENTATION.md` - Implementation guide
 
 ### Modified Files
-- `src/core/utils.py` - Updated sanitization to use security module
+- `src/mcp_server_for_splunk/core/utils.py` - Updated sanitization to use security module
 
 ---
 
