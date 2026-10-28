@@ -21,7 +21,7 @@ Prepare your environment and to run the mcp server.
 
 ### Prerequisites
 
-- Python 3.10+ and UV package manager
+- Python 3.11+ and UV package manager
 - Splunk test instance will be provided to you by email, let the instructor know if you haven't received an email.
 
 ### Clone Github Repository

@@ -9,7 +9,7 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 ## Development Setup
 
 1. Fork and clone the repository
-2. Install uv and Python 3.10+
+2. Install uv and Python 3.11+
 3. Sync dependencies: `uv sync --dev`
 4. Run tests: `uv run pytest -q`
 5. Lint/types: `uv run ruff check` and `uv run mypy`

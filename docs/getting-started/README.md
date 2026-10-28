@@ -12,7 +12,7 @@ By the end of this guide, you'll have:
 
 ## 🏃‍♂️ Quick Path (5 minutes)
 
-**Already have Python 3.10+ and want to get started immediately?**
+**Already have Python 3.11+ and want to get started immediately?**
 
 ```bash
 # Clone and run in one shot
@@ -42,7 +42,7 @@ Skip to [First Success Test](#first-success-test) →
 ### Required Tools
 | Tool | Version | Installation | Check |
 |------|---------|--------------|-------|
-| **Python** | 3.10+ | [Download](https://python.org) | `python --version` |
+| **Python** | 3.11+ | [Download](https://python.org) | `python --version` |
 | **UV** | Latest | [Install Guide](https://github.com/astral-sh/uv) | `uv --version` |
 | **Git** | Any | [Download](https://git-scm.com) | `git --version` |
 

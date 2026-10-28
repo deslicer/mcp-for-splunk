@@ -432,7 +432,7 @@ make lint                             # Code style checks
 ### Development Environment
 
 **Required tools:**
-- Python 3.10+
+- Python 3.11+
 - UV package manager
 - Git
 

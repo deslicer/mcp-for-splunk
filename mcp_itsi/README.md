@@ -2,7 +2,7 @@
   <h1>🛡️ MCP Server for Splunk IT Service Intelligence</h1>
 
   [![FastMCP](https://img.shields.io/badge/FastMCP-2.13%2B-blue)](https://gofastmcp.com/)
-  [![Python](https://img.shields.io/badge/Python-3.10%2B-green)](https://python.org)
+  [![Python](https://img.shields.io/badge/Python-3.11%2B-green)](https://python.org)
   [![ITSI](https://img.shields.io/badge/ITSI-4.21-purple)](https://help.splunk.com/en/splunk-it-service-intelligence/splunk-it-service-intelligence/leverage-rest-apis/4.21/itsi-rest-api-reference/itsi-rest-api-reference)
   [![Tools](https://img.shields.io/badge/tools-73-orange)](#capabilities-at-a-glance)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)

@@ -221,12 +221,15 @@ def _connect_with_retry(splunk_config: dict[str, Any], auth_mode: str) -> client
             if is_hard_network_unreachable(e):
                 break
 
+    if last_exception is None:
+        raise RuntimeError("No Splunk connection attempts were made")
+
     logger.error(
         "Failed to connect to Splunk after %d attempts: %s",
         retry_count,
         safe_error_message(last_exception),
     )
-    raise last_exception  # type: ignore[misc]
+    raise last_exception
 
 
 def get_splunk_service(client_config: dict[str, Any] | None = None) -> client.Service:

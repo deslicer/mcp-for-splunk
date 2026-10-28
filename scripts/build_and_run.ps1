@@ -35,7 +35,7 @@ Examples:
     .\scripts\build_and_run.ps1 -DockerOnly        # Use Docker mode only
 
 Prerequisites:
-    - Python 3.10+ (for local mode)
+    - Python 3.11+ (for local mode)
     - uv package manager (auto-installed if missing)
     - Docker Desktop (for Docker mode)
     - Node.js/npm (optional, for MCP Inspector)

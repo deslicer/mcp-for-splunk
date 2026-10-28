@@ -203,7 +203,7 @@ docker build --pull --no-cache -t mcp-splunk .
 trivy image mcp-splunk
 
 # Update Dockerfile base
-FROM python:3.10-slim-bookworm  # Use latest patched version
+FROM python:3.11-slim-bookworm  # Use latest patched version
 ```
 
 ## Monitoring & Alerts

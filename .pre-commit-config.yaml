@@ -28,7 +28,7 @@ repos:
     rev: 26.10.1
     hooks:
       - id: black
-        language_version: python3.10
+        language_version: python3.11
         args: ['--line-length=100']
 
   # Python linting with Ruff
@@ -86,7 +86,7 @@ repos:
 
 # Configuration
 default_language_version:
-  python: python3.10
+  python: python3.11
 
 # Don't fail on warnings
 fail_fast: false

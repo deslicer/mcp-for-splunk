@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Header / field names whose values must never be logged in clear text.
 _SENSITIVE_KEYS = (
@@ -128,7 +128,7 @@ class OtelJsonFormatter(logging.Formatter):
 
 def _iso_timestamp(created: float) -> str:
     """UTC ISO-8601 timestamp with millisecond precision and trailing ``Z``."""
-    dt = datetime.fromtimestamp(created, tz=timezone.utc)
+    dt = datetime.fromtimestamp(created, tz=UTC)
     return dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond // 1000:03d}Z"
 
 
