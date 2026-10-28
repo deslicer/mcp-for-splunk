@@ -82,6 +82,13 @@ class OtelToolSpanMiddleware(Middleware):
 
     @staticmethod
     def _tool_name(context: MiddlewareContext) -> str:
+        # FastMCP supplies typed CallToolRequestParams as context.message.
+        message = getattr(context, "message", None)
+        name = message.get("name") if isinstance(message, dict) else getattr(message, "name", None)
+        if isinstance(name, str) and name:
+            return name
+
+        # Retain support for legacy adapters that expose an untyped params dict.
         params = getattr(context, "params", None)
         if isinstance(params, dict):
             name = params.get("name")

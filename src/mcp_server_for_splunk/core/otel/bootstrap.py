@@ -164,7 +164,7 @@ def _instrument_logging() -> None:
     try:
         from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-        LoggingInstrumentor().instrument(set_logging_format=False)
+        LoggingInstrumentor().instrument(set_logging_format=False, inject_trace_context=True)
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Logging instrumentation unavailable: %s", exc)
 
