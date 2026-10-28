@@ -21,7 +21,7 @@ This guide explains how to ship extensions in a separate package and have the se
 [project]
 name = "mcp-splunk-auth-plugin"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = ["mcp-server-for-splunk>=0.2.1", "starlette>=0.37", "fastmcp>=2.11.3"]
 
 [project.entry-points."mcp_splunk.plugins"]

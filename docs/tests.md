@@ -4,7 +4,7 @@ Get your first green run in minutes. This guide covers the fastest way to run te
 
 ## Prerequisites
 
-- Python 3.10+ and the `uv` package manager
+- Python 3.11+ and the `uv` package manager
 - Docker (optional, required only for the Splunk container scenario)
 
 ## Run the Test Suite (fast path)

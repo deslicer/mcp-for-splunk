@@ -9,7 +9,7 @@ This guide provides Windows-specific instructions for setting up and running the
 | Software | Version | Installation Method | Notes |
 |----------|---------|-------------------|-------|
 | **PowerShell** | 5.1+ or Core 7+ | Built-in or [Microsoft Store](https://aka.ms/powershell) | Required for main script |
-| **Python** | 3.10+ | [Microsoft Store](https://apps.microsoft.com/store/detail/python-310/9PJPW5LDXLZ5) or [python.org](https://python.org) | Use Microsoft Store version for best PATH handling |
+| **Python** | 3.11+ | [python.org](https://www.python.org/downloads/windows/) | Select the option to add Python to PATH |
 | **Git** | Latest | [git-scm.com](https://git-scm.com/download/win) | For cloning the repository |
 
 ### Optional Software
@@ -255,8 +255,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 python --version
 py --version
 
-# Add Python to PATH (if needed)
-$env:PATH += ";C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python310"
+# Add Python to PATH (if needed; match your installed version)
+$env:PATH += ";C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python311"
 ```
 
 #### uv Installation Issues
@@ -419,7 +419,7 @@ Get-Content logs\mcp_server.log -Tail 50
 You'll know the setup is working when you see:
 
 ✅ **Environment Setup**
-- Python 3.10+ detected
+- Python 3.11+ detected
 - uv package manager installed
 - Dependencies synchronized
 

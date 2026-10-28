@@ -12,7 +12,7 @@ Before running the MCP Server for Splunk, ensure you have the following prerequi
 
 | Requirement | Minimum Version | Recommended | Platform Support |
 |-------------|-----------------|-------------|------------------|
-| **Python** | 3.10+ | 3.11+ | Windows, macOS, Linux |
+| **Python** | 3.11+ | 3.11+ | Windows, macOS, Linux |
 | **UV Package Manager** | Latest | Latest | Windows, macOS, Linux |
 | **Node.js** (Optional) | 18+ | 20+ LTS | For MCP Inspector testing |
 | **Docker** (Optional) | 20+ | Latest | For full containerized stack |

@@ -8,7 +8,7 @@
 # MCP Server for Splunk
 
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13.0.2%2B-blue)](https://gofastmcp.com/)
-[![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-green)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple)](https://modelcontextprotocol.io/)
 [![Tests Passing](https://img.shields.io/badge/tests-174%20passing-green)](#)
@@ -70,10 +70,13 @@ Transform your Splunk instance into an AI-native platform. Our community-driven 
 
 ### Prerequisites
 
-- Python 3.10+ and UV package manager
+- Python 3.11+ and UV package manager
 - Nodejs (optional used for mcp inspector)
 - Docker (optional but recommended for full stack)
 - Splunk instance with API access (or use included Docker Splunk)
+
+Python 3.10 is no longer supported: the patched DNS and file-lock dependencies
+require Python 3.11 or newer. Upgrade Python before updating this server.
 
 > **📖 Complete Setup Guide**: [Installation Guide](docs/getting-started/installation.md)
 

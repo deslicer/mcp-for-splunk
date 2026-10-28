@@ -59,7 +59,7 @@ Dependabot PRs that only edit `pyproject.toml` floors without `uv.lock` are inco
 
 ## Conventions
 
-- **Python**: 3.10+; keep modules focused; prefer composition over large god-files.
+- **Python**: 3.11+; keep modules focused; prefer composition over large god-files.
 - **File size**: stay under ~500 lines; split earlier around ~400.
 - **Imports**: top of module only (no inline imports unless a documented cycle).
 - **Markdown**: follow `.cursorrules` / `docs/readme-guide.md` (one H1, short

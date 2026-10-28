@@ -20,6 +20,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from fastmcp import Context
@@ -29,9 +30,7 @@ logger = logging.getLogger(__name__)
 
 def _now_iso() -> str:
     try:
-        from datetime import datetime, timezone
-
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
     except Exception:
         return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -120,10 +119,8 @@ class ExecutedWorkflowStore:
 
     def _is_expired(self, executed_at_iso: str) -> bool:
         try:
-            from datetime import datetime, timezone
-
             executed_at = datetime.fromisoformat(executed_at_iso.replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             age = (now - executed_at).total_seconds()
             return age > self.ttl_seconds
         except Exception:

@@ -3,7 +3,7 @@ name = "mcp-server-for-splunk"
 version = "0.6.13"
 description = "MCP server for Splunk"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
 {name = "MCP for Splunk", email = "developer@example.com"}
 ]
@@ -12,7 +12,6 @@ classifiers = [
 "Development Status :: 3 - Alpha",
 "Intended Audience :: Developers",
 "Programming Language :: Python :: 3",
-"Programming Language :: Python :: 3.10",
 "Programming Language :: Python :: 3.11",
 "Programming Language :: Python :: 3.12",
 ]
@@ -118,7 +117,12 @@ mcp-itsi-server = { workspace = true }
 # Opt out exact pins and recently cleared CVE/security bumps so `uv lock --check`
 # does not regress them while they are still inside the cooldown window.
 exclude-newer = "7 days"
-constraint-dependencies = ["fastmcp-slim==4.1.4"]
+constraint-dependencies = [
+    "fastmcp-slim==4.1.4",
+    # Patched floors for the dependency alerts reported by Trivy.
+    "dnspython>=2.9.0",
+    "filelock>=4.2.1",
+]
 dev-dependencies = [
 "pytest>=9.1.1",
 "pytest-asyncio>=1.4.0",
@@ -181,7 +185,7 @@ required_plugins = [
 
 [tool.black]
 line-length = 100
-target-version = ['py310']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -199,14 +203,14 @@ extend-exclude = '''
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "B", "UP"]
 ignore = ["E501"]                             # Line too long (handled by black)
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

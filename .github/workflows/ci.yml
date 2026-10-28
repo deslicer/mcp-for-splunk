@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MCP_DISABLE_PLUGINS: "true"
+      UV_PYTHON: "3.11"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -18,8 +19,8 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
-      - name: Install Python 3.10 via uv
-        run: uv python install 3.10
+      - name: Install Python 3.11 via uv
+        run: uv python install 3.11
 
       - name: Check dependency lockfile
         run: uv lock --check

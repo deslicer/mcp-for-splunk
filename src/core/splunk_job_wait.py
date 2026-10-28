@@ -56,7 +56,7 @@ async def wait_for_job(
                 asyncio.to_thread(_read_job, job),
                 timeout=max(0.001, deadline - time.monotonic()),
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # The SDK socket timeout bounds the worker; return the known SID to
             # the caller instead of waiting for that worker or creating another job.
             return JobWaitSnapshot(is_done=False, is_failed=False, cancelled=False, content=content)

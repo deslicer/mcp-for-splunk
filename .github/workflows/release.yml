@@ -100,8 +100,8 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
-      - name: Install Python 3.10 via uv
-        run: uv python install 3.10
+      - name: Install Python 3.11 via uv
+        run: uv python install 3.11
 
       - name: Build mcp-server-for-splunk
         run: uv build --no-sources --package mcp-server-for-splunk --out-dir dist-parent
@@ -151,8 +151,8 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
-      - name: Install Python 3.10 via uv
-        run: uv python install 3.10
+      - name: Install Python 3.11 via uv
+        run: uv python install 3.11
 
       - name: Build mcp-itsi-server
         run: uv build --no-sources --package mcp-itsi-server --out-dir dist-itsi

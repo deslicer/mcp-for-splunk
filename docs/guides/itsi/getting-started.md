@@ -12,7 +12,7 @@ This guide takes you from zero to a working ITSI MCP server in **about 15 minute
 
 | Requirement | Why | How to check |
 |---|---|---|
-| Python 3.10+ and [`uv`](https://github.com/astral-sh/uv) | Server runtime + dependency management | `uv --version` |
+| Python 3.11+ and [`uv`](https://github.com/astral-sh/uv) | Server runtime + dependency management | `uv --version` |
 | Git | Clone this repository | `git --version` |
 | Docker (optional) | Standalone container deployment | `docker --version` |
 | Splunk ITSI 4.18+ instance, reachable on port `8089` | The server talks to the ITSI REST API | Try `curl -k https://<host>:8089/services/server/info` |
