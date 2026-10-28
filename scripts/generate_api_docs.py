@@ -17,8 +17,8 @@ from typing import Any, Union
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.core.discovery import discover_tools
-from src.core.registry import tool_registry
+from mcp_server_for_splunk.core.discovery import discover_tools
+from mcp_server_for_splunk.core.registry import tool_registry
 
 
 class ToolDocumentationExtractor:

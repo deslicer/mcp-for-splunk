@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.tools.lookups.list_lookup_files import ListLookupFiles
-from src.tools.search.list_saved_searches import ListSavedSearches
+from mcp_server_for_splunk.tools.lookups.list_lookup_files import ListLookupFiles
+from mcp_server_for_splunk.tools.search.list_saved_searches import ListSavedSearches
 
 
 class _Body:

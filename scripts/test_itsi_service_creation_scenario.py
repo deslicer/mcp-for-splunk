@@ -531,7 +531,7 @@ async def step_clone_service(s: Scenario, key: str) -> None:
 
     cloned_payload = {
         k: v
-        for k, v in src.items()
+        for k, v in mcp_server_for_splunk.items()
         if k
         not in {
             "_key",

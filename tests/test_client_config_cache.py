@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 
-from src.core.client_config_cache import (
+from mcp_server_for_splunk.core.client_config_cache import (
     ClientConfigCache,
     ClientConfigCacheKeyResolver,
     extract_header,

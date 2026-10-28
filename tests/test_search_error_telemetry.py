@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from fastmcp.tools import ToolResult
 
-from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
-from src.core.sentry.mcp_middleware import SentryMCPMiddleware
+from mcp_server_for_splunk.core.otel.mcp_middleware import OtelToolSpanMiddleware
+from mcp_server_for_splunk.core.sentry.mcp_middleware import SentryMCPMiddleware
 
 
 @pytest.fixture(params=[True, False], ids=["error", "success"])
@@ -34,9 +34,11 @@ async def test_otel_records_structured_error_status(tool_result):
 
 
 async def test_sentry_records_structured_error_status(tool_result, monkeypatch):
-    monkeypatch.setattr("src.core.sentry.mcp_middleware._sentry_initialized", True)
-    monkeypatch.setattr("src.core.sentry.mcp_middleware.set_mcp_context", Mock())
-    monkeypatch.setattr("src.core.sentry.mcp_middleware.add_breadcrumb", Mock())
+    monkeypatch.setattr(
+        "mcp_server_for_splunk.core.sentry.mcp_middleware._sentry_initialized", True
+    )
+    monkeypatch.setattr("mcp_server_for_splunk.core.sentry.mcp_middleware.set_mcp_context", Mock())
+    monkeypatch.setattr("mcp_server_for_splunk.core.sentry.mcp_middleware.add_breadcrumb", Mock())
     span = Mock()
     sentry = SimpleNamespace(start_span=lambda **kwargs: nullcontext(span))
     monkeypatch.setitem(sys.modules, "sentry_sdk", sentry)

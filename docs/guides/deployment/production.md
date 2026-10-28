@@ -17,7 +17,7 @@ cp env.example .env
 # Edit .env with your Splunk details
 
 # Start local server
-uv run python src/server.py
+uv run python src/mcp_server_for_splunk/server.py
 ```
 
 **Client Configuration (Cursor):**
@@ -28,7 +28,7 @@ uv run python src/server.py
       "command": "uv",
       "args": [
         "--directory", "/path/to/mcp-server-for-splunk/",
-        "run", "python", "src/server.py"
+        "run", "python", "src/mcp_server_for_splunk/server.py"
       ],
       "env": {
         "SPLUNK_HOST": "localhost",
@@ -221,7 +221,7 @@ USER mcpuser
 EXPOSE 8000
 
 # Start server
-CMD ["python", "src/server.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "src/mcp_server_for_splunk/server.py", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### Production docker-compose.yml

@@ -65,7 +65,7 @@ pip install httpx
 3) Start the server
 
 ```bash
-uv run python -m src.server
+uv run python -m mcp_server_for_splunk.server
 ```
 
 4) Test
@@ -96,7 +96,7 @@ Notes:
 
 ## 📚 How it works
 
-- Dynamic provider: `src/server.py` reads `MCP_AUTH_PROVIDER` and optional `MCP_AUTH_PROVIDER_KWARGS` to import and initialize any provider at runtime. Use `module:callable` or `module.ClassName` formats. This lets you ship your auth in a separate repository/package.
+- Dynamic provider: `src/mcp_server_for_splunk/server.py` reads `MCP_AUTH_PROVIDER` and optional `MCP_AUTH_PROVIDER_KWARGS` to import and initialize any provider at runtime. Use `module:callable` or `module.ClassName` formats. This lets you ship your auth in a separate repository/package.
 - Supabase API provider: supplied by an external package you install. The provider typically calls `POST /auth/v1/user` with the bearer token and anon key. If the token is valid, the request is authenticated; otherwise, a 401 is returned with a clear message.
 - Disable auth entirely by setting `MCP_AUTH_DISABLED=true`.
 

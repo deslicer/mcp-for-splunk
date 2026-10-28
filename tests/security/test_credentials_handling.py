@@ -23,7 +23,7 @@ class TestPasswordMaskingInResponses:
         """user_agent_info tool should mask X-Splunk-Password in response."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -56,7 +56,9 @@ class TestPasswordMaskingInResponses:
 
                     # Password should NOT appear in response
                     response_text = resp.text
-                    assert test_password not in response_text, "Password was echoed back in response!"
+                    assert (
+                        test_password not in response_text
+                    ), "Password was echoed back in response!"
 
                     # Should be masked with ***
                     if resp.status_code == 200 and "password" in response_text.lower():
@@ -70,7 +72,7 @@ class TestPasswordMaskingInResponses:
         """Error responses should never contain passwords."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -115,7 +117,7 @@ class TestPasswordMaskingInResponses:
         """Authorization tokens should not be echoed back."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -159,7 +161,7 @@ class TestSessionCredentialIsolation:
         """Different session IDs should have isolated credentials."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -198,10 +200,14 @@ class TestSessionCredentialIsolation:
                 transport = httpx.ASGITransport(app=app)
                 async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                     # Make request with session 1
-                    resp1 = await client.post("/mcp", headers=session1_headers, content=json.dumps(body))
+                    resp1 = await client.post(
+                        "/mcp", headers=session1_headers, content=json.dumps(body)
+                    )
 
                     # Make request with session 2
-                    resp2 = await client.post("/mcp", headers=session2_headers, content=json.dumps(body))
+                    resp2 = await client.post(
+                        "/mcp", headers=session2_headers, content=json.dumps(body)
+                    )
 
                     # Session 2 response should not contain session 1 credentials
                     assert "password1_secret" not in resp2.text
@@ -224,7 +230,11 @@ class TestSessionTerminationCleanup:
         """Session termination should clear cached client config."""
         import httpx
 
-        from src.server import HEADER_CLIENT_CONFIG_CACHE, create_root_app, get_mcp
+        from mcp_server_for_splunk.server import (
+            HEADER_CLIENT_CONFIG_CACHE,
+            create_root_app,
+            get_mcp,
+        )
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -279,7 +289,7 @@ class TestCredentialMaskingInLogs:
 
     def test_cache_summary_masks_sensitive_values(self):
         """Cache summary should mask sensitive values."""
-        from src.server import HEADER_CLIENT_CONFIG_CACHE, _cache_summary
+        from mcp_server_for_splunk.server import HEADER_CLIENT_CONFIG_CACHE, _cache_summary
 
         # Add test data to cache
         test_session = "log-test-session"
@@ -321,7 +331,7 @@ class TestEnvironmentVariableCredentials:
         """Environment credentials should not appear in health responses."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -348,7 +358,7 @@ class TestHeaderExtraction:
 
     def test_extract_client_config_from_headers(self):
         """Test that extract_client_config_from_headers works correctly."""
-        from src.server import extract_client_config_from_headers
+        from mcp_server_for_splunk.server import extract_client_config_from_headers
 
         headers = {
             "X-Splunk-Host": "test.example.com",
@@ -371,7 +381,7 @@ class TestHeaderExtraction:
 
     def test_extract_client_config_case_insensitive(self):
         """Header extraction should be case-insensitive."""
-        from src.server import extract_client_config_from_headers
+        from mcp_server_for_splunk.server import extract_client_config_from_headers
 
         headers = {
             "x-splunk-host": "test.example.com",
@@ -385,14 +395,14 @@ class TestHeaderExtraction:
 
     def test_extract_client_config_empty_headers(self):
         """Empty headers should return None."""
-        from src.server import extract_client_config_from_headers
+        from mcp_server_for_splunk.server import extract_client_config_from_headers
 
         config = extract_client_config_from_headers({})
         assert config is None
 
     def test_extract_client_config_partial_headers(self):
         """Partial headers should return partial config."""
-        from src.server import extract_client_config_from_headers
+        from mcp_server_for_splunk.server import extract_client_config_from_headers
 
         headers = {
             "X-Splunk-Host": "partial.example.com",
@@ -416,7 +426,7 @@ class TestCrossSessionLeakagePrevention:
         """Credentials from one session should not contaminate global state."""
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -454,7 +464,9 @@ class TestCrossSessionLeakagePrevention:
                     await client.post("/mcp", headers=headers_with_creds, content=json.dumps(body))
 
                     # Second request without credentials should not get first session's creds
-                    resp2 = await client.post("/mcp", headers=headers_no_creds, content=json.dumps(body))
+                    resp2 = await client.post(
+                        "/mcp", headers=headers_no_creds, content=json.dumps(body)
+                    )
 
                     # Response should not contain leaked credentials
                     assert "contaminated-host.local" not in resp2.text

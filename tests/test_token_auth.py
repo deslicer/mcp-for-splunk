@@ -1,10 +1,10 @@
 """
 Tests for Splunk token / bearer authentication support.
 
-Covers the modular client (`src/client/splunk_client.py`), the HTTP header
-extraction utility (`src/core/utils.py`), the enhanced extractor
-(`src/core/enhanced_config_extractor.py`), and the security validation in
-`src/core/client_identity.py`.
+Covers the modular client (`src/mcp_server_for_splunk/client/splunk_client.py`), the HTTP header
+extraction utility (`src/mcp_server_for_splunk/core/utils.py`), the enhanced extractor
+(`src/mcp_server_for_splunk/core/enhanced_config_extractor.py`), and the security validation in
+`src/mcp_server_for_splunk/core/client_identity.py`.
 """
 
 import base64
@@ -22,62 +22,68 @@ _HDR_SPLUNK_SESSION_TOK = "X-Splunk-Session-" + _TOK.capitalize()
 
 
 # ---------------------------------------------------------------------------
-# src/client/splunk_client.py
+# src/mcp_server_for_splunk/client/splunk_client.py
 # ---------------------------------------------------------------------------
 class TestModularClientTokenAuth:
     """Verify the modular Splunk client honours bearer / session tokens."""
 
     def test_get_splunk_config_maps_splunk_token_to_bearer_kwarg(self):
-        from src.client.splunk_client import get_splunk_config
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_config
 
         with patch.dict(os.environ, {}, clear=True):
-            cfg = get_splunk_config({
-                "splunk_host": "splunk.example.com",
-                _SPLUNK_TOK: "tok-abc",
-            })
+            cfg = get_splunk_config(
+                {
+                    "splunk_host": "splunk.example.com",
+                    _SPLUNK_TOK: "tok-abc",
+                }
+            )
 
         assert cfg["host"] == "splunk.example.com"
         assert cfg["splunkToken"] == "tok-abc"
 
     def test_get_splunk_config_maps_session_token_to_token(self):
-        from src.client.splunk_client import get_splunk_config
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_config
 
         with patch.dict(os.environ, {}, clear=True):
-            cfg = get_splunk_config({
-                "splunk_host": "splunk.example.com",
-                _SPLUNK_SESSION_TOK: "session-xyz",
-            })
+            cfg = get_splunk_config(
+                {
+                    "splunk_host": "splunk.example.com",
+                    _SPLUNK_SESSION_TOK: "session-xyz",
+                }
+            )
 
         assert cfg["token"] == "session-xyz"
 
     def test_get_splunk_config_picks_up_env_token(self):
-        from src.client.splunk_client import get_splunk_config
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_config
 
         with patch.dict(os.environ, {"SPLUNK_TOKEN": "env-bearer"}, clear=True):
             cfg = get_splunk_config(None)
 
         assert cfg["splunkToken"] == "env-bearer"
 
-    @patch("src.client.splunk_client.client.connect")
+    @patch("mcp_server_for_splunk.client.splunk_client.client.connect")
     def test_get_splunk_service_drops_password_when_token_present(self, mock_connect):
-        from src.client.splunk_client import get_splunk_service
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_service
 
         with patch.dict(os.environ, {}, clear=True):
-            get_splunk_service({
-                "splunk_host": "splunk.example.com",
-                "splunk_username": "admin",
-                "splunk_password": "ignored",
-                _SPLUNK_TOK: "tok-abc",
-            })
+            get_splunk_service(
+                {
+                    "splunk_host": "splunk.example.com",
+                    "splunk_username": "admin",
+                    "splunk_password": "ignored",
+                    _SPLUNK_TOK: "tok-abc",
+                }
+            )
 
         kwargs = mock_connect.call_args[1]
         assert kwargs["splunkToken"] == "tok-abc"
         assert "password" not in kwargs
         assert "username" not in kwargs
 
-    @patch("src.client.splunk_client.client.connect")
+    @patch("mcp_server_for_splunk.client.splunk_client.client.connect")
     def test_get_splunk_service_forwards_lb_cookies_after_basic_auth(self, mock_connect):
-        from src.client.splunk_client import get_splunk_service
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_service
 
         captured_messages = []
 
@@ -96,18 +102,22 @@ class TestModularClientTokenAuth:
         mock_connect.return_value = FakeService()
 
         with patch.dict(os.environ, {}, clear=True):
-            service = get_splunk_service({
-                "splunk_host": "splunk.example.com",
-                "splunk_username": "admin",
-                "splunk_password": "password",
-            })
+            service = get_splunk_service(
+                {
+                    "splunk_host": "splunk.example.com",
+                    "splunk_username": "admin",
+                    "splunk_password": "password",
+                }
+            )
 
-        service.http.request("https://splunk.example.com:8089/services/server/info", {"headers": []})
+        service.http.request(
+            "https://splunk.example.com:8089/services/server/info", {"headers": []}
+        )
 
         assert ("Cookie", "AWSALB=route-a; AWSALBTG=target-a") in captured_messages[0]["headers"]
 
     def test_get_splunk_service_requires_some_credential(self):
-        from src.client.splunk_client import get_splunk_service
+        from mcp_server_for_splunk.client.splunk_client import get_splunk_service
 
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError, match="No Splunk credentials provided"):
@@ -115,66 +125,76 @@ class TestModularClientTokenAuth:
 
 
 # ---------------------------------------------------------------------------
-# src/core/utils.py
+# src/mcp_server_for_splunk/core/utils.py
 # ---------------------------------------------------------------------------
 class TestHeaderExtractionForTokens:
     def test_x_splunk_token_header_extracted(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
-        cfg = extract_client_config_from_headers({
-            "X-Splunk-Host": "splunk.example.com",
-            _HDR_SPLUNK_TOK: "header-token",
-        })
+        cfg = extract_client_config_from_headers(
+            {
+                "X-Splunk-Host": "splunk.example.com",
+                _HDR_SPLUNK_TOK: "header-token",
+            }
+        )
 
         assert cfg is not None
         assert cfg[_SPLUNK_TOK] == "header-token"
         assert "splunk_password" not in cfg
 
     def test_x_splunk_session_token_header_extracted(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
-        cfg = extract_client_config_from_headers({
-            "X-Splunk-Host": "splunk.example.com",
-            _HDR_SPLUNK_SESSION_TOK: "session-token",
-        })
+        cfg = extract_client_config_from_headers(
+            {
+                "X-Splunk-Host": "splunk.example.com",
+                _HDR_SPLUNK_SESSION_TOK: "session-token",
+            }
+        )
 
         assert cfg is not None
         assert cfg[_SPLUNK_SESSION_TOK] == "session-token"
 
     def test_authorization_bearer_used_when_mcp_auth_disabled(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
         with patch.dict(os.environ, {"MCP_AUTH_DISABLED": "true"}, clear=False):
-            cfg = extract_client_config_from_headers({
-                "X-Splunk-Host": "splunk.example.com",
-                "Authorization": "Bearer abc.def.ghi",
-            })
+            cfg = extract_client_config_from_headers(
+                {
+                    "X-Splunk-Host": "splunk.example.com",
+                    "Authorization": "Bearer abc.def.ghi",
+                }
+            )
 
         assert cfg is not None
         assert cfg[_SPLUNK_TOK] == "abc.def.ghi"
 
     def test_authorization_bearer_ignored_when_mcp_auth_enabled(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
         with patch.dict(os.environ, {"MCP_AUTH_DISABLED": "false"}, clear=False):
-            cfg = extract_client_config_from_headers({
-                "X-Splunk-Host": "splunk.example.com",
-                "Authorization": "Bearer abc.def.ghi",
-            })
+            cfg = extract_client_config_from_headers(
+                {
+                    "X-Splunk-Host": "splunk.example.com",
+                    "Authorization": "Bearer abc.def.ghi",
+                }
+            )
 
         assert cfg is not None
         assert _SPLUNK_TOK not in cfg
 
     def test_authorization_local_db_bearer_ignored_when_mcp_auth_disabled(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
         with patch.dict(os.environ, {"MCP_AUTH_DISABLED": "true"}, clear=False):
-            cfg = extract_client_config_from_headers({
-                "X-Splunk-Host": "splunk.example.com",
-                "X-Splunk-Username": "admin",
-                "X-Splunk-Password": "password",
-                "Authorization": "Bearer local-db-session-token",
-            })
+            cfg = extract_client_config_from_headers(
+                {
+                    "X-Splunk-Host": "splunk.example.com",
+                    "X-Splunk-Username": "admin",
+                    "X-Splunk-Password": "password",
+                    "Authorization": "Bearer local-db-session-token",
+                }
+            )
 
         assert cfg is not None
         assert _SPLUNK_TOK not in cfg
@@ -182,27 +202,35 @@ class TestHeaderExtractionForTokens:
         assert cfg["splunk_password"] == "password"
 
     def test_explicit_splunk_token_header_wins_over_authorization(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
         with patch.dict(os.environ, {"MCP_AUTH_DISABLED": "true"}, clear=False):
-            cfg = extract_client_config_from_headers({
-                "X-Splunk-Host": "splunk.example.com",
-                _HDR_SPLUNK_TOK: "preferred",
-                "Authorization": "Bearer fallback",
-            })
+            cfg = extract_client_config_from_headers(
+                {
+                    "X-Splunk-Host": "splunk.example.com",
+                    _HDR_SPLUNK_TOK: "preferred",
+                    "Authorization": "Bearer fallback",
+                }
+            )
 
         assert cfg[_SPLUNK_TOK] == "preferred"
 
     def test_base64_username_password_headers_are_decoded(self):
-        from src.core.utils import extract_client_config_from_headers
+        from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
         username = "admin€"
         password = "€89#$:(^{])[ekj#ad"
-        cfg = extract_client_config_from_headers({
-            "X-Splunk-Host": "splunk.example.com",
-            "X-Splunk-Username-Base64": base64.b64encode(username.encode("utf-8")).decode("ascii"),
-            "X-Splunk-Password-Base64": base64.b64encode(password.encode("utf-8")).decode("ascii"),
-        })
+        cfg = extract_client_config_from_headers(
+            {
+                "X-Splunk-Host": "splunk.example.com",
+                "X-Splunk-Username-Base64": base64.b64encode(username.encode("utf-8")).decode(
+                    "ascii"
+                ),
+                "X-Splunk-Password-Base64": base64.b64encode(password.encode("utf-8")).decode(
+                    "ascii"
+                ),
+            }
+        )
 
         assert cfg is not None
         assert cfg["splunk_username"] == username
@@ -210,11 +238,11 @@ class TestHeaderExtractionForTokens:
 
 
 # ---------------------------------------------------------------------------
-# src/core/enhanced_config_extractor.py
+# src/mcp_server_for_splunk/core/enhanced_config_extractor.py
 # ---------------------------------------------------------------------------
 class TestEnhancedConfigExtractorTokenNormalization:
     def test_normalize_keeps_token_distinct_from_password(self):
-        from src.core.enhanced_config_extractor import EnhancedConfigExtractor
+        from mcp_server_for_splunk.core.enhanced_config_extractor import EnhancedConfigExtractor
 
         extractor = EnhancedConfigExtractor()
         normalized = extractor._normalize_config(
@@ -229,17 +257,15 @@ class TestEnhancedConfigExtractorTokenNormalization:
         assert "splunk_password" not in normalized
 
     def test_normalize_session_token_alias(self):
-        from src.core.enhanced_config_extractor import EnhancedConfigExtractor
+        from mcp_server_for_splunk.core.enhanced_config_extractor import EnhancedConfigExtractor
 
         extractor = EnhancedConfigExtractor()
-        normalized = extractor._normalize_config(
-            {"session_token": "session-value"}
-        )
+        normalized = extractor._normalize_config({"session_token": "session-value"})
 
         assert normalized[_SPLUNK_SESSION_TOK] == "session-value"
 
     def test_server_default_config_picks_up_splunk_token_env(self):
-        from src.core.enhanced_config_extractor import EnhancedConfigExtractor
+        from mcp_server_for_splunk.core.enhanced_config_extractor import EnhancedConfigExtractor
 
         extractor = EnhancedConfigExtractor()
         with patch.dict(
@@ -253,31 +279,38 @@ class TestEnhancedConfigExtractorTokenNormalization:
 
 
 # ---------------------------------------------------------------------------
-# src/core/client_identity.py
+# src/mcp_server_for_splunk/core/client_identity.py
 # ---------------------------------------------------------------------------
 class TestClientIdentityTokenValidation:
     def test_validate_accepts_token_only_config(self):
-        from src.core.client_identity import ClientConnectionManager
+        from mcp_server_for_splunk.core.client_identity import ClientConnectionManager
 
         mgr = ClientConnectionManager()
         # Should not raise
-        mgr._validate_client_config({
-            "splunk_host": "splunk.example.com",
-            _SPLUNK_TOK: "abc",
-        })
+        mgr._validate_client_config(
+            {
+                "splunk_host": "splunk.example.com",
+                _SPLUNK_TOK: "abc",
+            }
+        )
 
     def test_validate_accepts_username_password_config(self):
-        from src.core.client_identity import ClientConnectionManager
+        from mcp_server_for_splunk.core.client_identity import ClientConnectionManager
 
         mgr = ClientConnectionManager()
-        mgr._validate_client_config({
-            "splunk_host": "splunk.example.com",
-            "splunk_username": "admin",
-            "splunk_password": "p",
-        })
+        mgr._validate_client_config(
+            {
+                "splunk_host": "splunk.example.com",
+                "splunk_username": "admin",
+                "splunk_password": "p",
+            }
+        )
 
     def test_validate_rejects_when_no_auth_provided(self):
-        from src.core.client_identity import ClientConnectionManager, SecurityError
+        from mcp_server_for_splunk.core.client_identity import (
+            ClientConnectionManager,
+            SecurityError,
+        )
 
         mgr = ClientConnectionManager()
         with pytest.raises(SecurityError, match="authentication missing"):
@@ -285,17 +318,21 @@ class TestClientIdentityTokenValidation:
 
     def test_token_fingerprint_changes_identity_hash(self):
         """Different bearer tokens should produce different identity hashes."""
-        from src.core.client_identity import ClientConnectionManager
+        from mcp_server_for_splunk.core.client_identity import ClientConnectionManager
 
         mgr = ClientConnectionManager()
-        h1 = mgr._normalize_config_for_hash({
-            "splunk_host": "splunk.example.com",
-            _SPLUNK_TOK: "token-A",
-        })
-        h2 = mgr._normalize_config_for_hash({
-            "splunk_host": "splunk.example.com",
-            _SPLUNK_TOK: "token-B",
-        })
+        h1 = mgr._normalize_config_for_hash(
+            {
+                "splunk_host": "splunk.example.com",
+                _SPLUNK_TOK: "token-A",
+            }
+        )
+        h2 = mgr._normalize_config_for_hash(
+            {
+                "splunk_host": "splunk.example.com",
+                _SPLUNK_TOK: "token-B",
+            }
+        )
         assert h1 != h2
         # Raw token must not appear in the hash input
         assert "token-A" not in h1
@@ -303,7 +340,7 @@ class TestClientIdentityTokenValidation:
 
 
 # ---------------------------------------------------------------------------
-# src/tools/admin/me.py — username resolution under token auth
+# src/mcp_server_for_splunk/tools/admin/me.py — username resolution under token auth
 # ---------------------------------------------------------------------------
 class TestMeToolUsernameResolution:
     """`me` must work when service.username is empty (bearer / session token)."""
@@ -338,7 +375,7 @@ class TestMeToolUsernameResolution:
         return service
 
     def test_resolve_username_falls_back_to_current_context(self):
-        from src.tools.admin.me import Me
+        from mcp_server_for_splunk.tools.admin.me import Me
 
         tool = Me("me", "me")
         service = self._make_service_with_current_context("admin")
@@ -346,15 +383,13 @@ class TestMeToolUsernameResolution:
         resolved = tool._resolve_current_username(service)
 
         assert resolved == "admin"
-        service.get.assert_called_once_with(
-            "/services/authentication/current-context"
-        )
+        service.get.assert_called_once_with("/services/authentication/current-context")
 
     def test_resolve_username_prefers_sdk_username_when_set(self):
         """Basic-auth path should still short-circuit without an extra HTTP call."""
         from unittest.mock import MagicMock
 
-        from src.tools.admin.me import Me
+        from mcp_server_for_splunk.tools.admin.me import Me
 
         tool = Me("me", "me")
         service = MagicMock()
@@ -368,7 +403,7 @@ class TestMeToolUsernameResolution:
     def test_resolve_username_returns_none_when_endpoint_fails(self):
         from unittest.mock import MagicMock
 
-        from src.tools.admin.me import Me
+        from mcp_server_for_splunk.tools.admin.me import Me
 
         tool = Me("me", "me")
         service = MagicMock()

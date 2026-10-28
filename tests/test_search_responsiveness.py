@@ -12,16 +12,16 @@ import pytest
 from fastmcp import FastMCP
 from splunklib import client as spl_client
 
-from src.client import splunk_client
-from src.core.base import SplunkContext
-from src.core.splunk_job_wait import wait_for_job
-from src.routes.health import setup_health_routes
-from src.tools.search import saved_search_tools
-from src.tools.search.job_info import GetSearchJobInfo
-from src.tools.search.job_results import GetSearchJobResults
-from src.tools.search.job_search import JobSearch
-from src.tools.search.oneshot_search import OneshotSearch
-from src.tools.search.saved_search_tools import ExecuteSavedSearch
+from mcp_server_for_splunk.client import splunk_client
+from mcp_server_for_splunk.core.base import SplunkContext
+from mcp_server_for_splunk.core.splunk_job_wait import wait_for_job
+from mcp_server_for_splunk.routes.health import setup_health_routes
+from mcp_server_for_splunk.tools.search import saved_search_tools
+from mcp_server_for_splunk.tools.search.job_info import GetSearchJobInfo
+from mcp_server_for_splunk.tools.search.job_results import GetSearchJobResults
+from mcp_server_for_splunk.tools.search.job_search import JobSearch
+from mcp_server_for_splunk.tools.search.oneshot_search import OneshotSearch
+from mcp_server_for_splunk.tools.search.saved_search_tools import ExecuteSavedSearch
 
 
 @pytest.mark.parametrize(

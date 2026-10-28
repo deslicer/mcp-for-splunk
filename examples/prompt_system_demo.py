@@ -15,8 +15,8 @@ from pathlib import Path
 
 from fastmcp import FastMCP
 
-from src.core.loader import ComponentLoader
-from src.core.registry import prompt_registry
+from mcp_server_for_splunk.core.loader import ComponentLoader
+from mcp_server_for_splunk.core.registry import prompt_registry
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent

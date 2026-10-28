@@ -1,6 +1,6 @@
 """Tests for published Splunk Help version mapping."""
 
-from src.resources.docs_versions import (
+from mcp_server_for_splunk.resources.docs_versions import (
     CLOUD,
     DEFAULT_DOC_VERSION,
     DEFAULT_STUDIO_VERSION,

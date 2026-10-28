@@ -155,7 +155,7 @@ def main() -> int:
             "uv",
             "run",
             "python",
-            "src/server.py",
+            "src/mcp_server_for_splunk/server.py",
             "--host",
             "127.0.0.1",
             "--port",

@@ -2,8 +2,8 @@
 Quick integration test to verify SplunkSpecReferenceResource registration.
 """
 
-from src.core.registry import resource_registry
-from src.resources.splunk_docs import create_spec_reference_resource
+from mcp_server_for_splunk.core.registry import resource_registry
+from mcp_server_for_splunk.resources.splunk_docs import create_spec_reference_resource
 
 
 def main():

@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from splunklib import client as spl_client
 
-from src.tools.search.saved_search_tools import (
+from mcp_server_for_splunk.tools.search.saved_search_tools import (
     DEFAULT_SAVED_SEARCH_APP,
     _apply_saved_search_namespace,
     _namespace_for_saved_search_acl,
@@ -13,18 +13,14 @@ from src.tools.search.saved_search_tools import (
 
 
 def test_namespace_for_saved_search_create_user_uses_app_context():
-    namespace = _namespace_for_saved_search_create(
-        app="search", owner="admin", sharing="user"
-    )
+    namespace = _namespace_for_saved_search_create(app="search", owner="admin", sharing="user")
     assert namespace["app"] == "search"
     assert namespace["owner"] == "admin"
     assert namespace["sharing"] == "user"
 
 
 def test_namespace_for_saved_search_acl_defaults_missing_app():
-    namespace = _namespace_for_saved_search_acl(
-        {"owner": "admin", "sharing": "user"}
-    )
+    namespace = _namespace_for_saved_search_acl({"owner": "admin", "sharing": "user"})
     assert namespace["app"] == DEFAULT_SAVED_SEARCH_APP
     assert namespace["owner"] == "admin"
     assert namespace["sharing"] == "user"

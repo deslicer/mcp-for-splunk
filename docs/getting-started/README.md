@@ -169,7 +169,7 @@ If you have Claude Desktop installed:
   "mcpServers": {
     "splunk": {
       "command": "fastmcp",
-      "args": ["run", "/path/to/mcp-server-for-splunk/src/server.py"],
+      "args": ["run", "/path/to/mcp-server-for-splunk/src/mcp_server_for_splunk/server.py"],
       "env": {
         "SPLUNK_HOST": "localhost",
         "SPLUNK_USERNAME": "admin",
@@ -290,7 +290,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **"Port already in use"**
 - The scripts auto-detect available ports
 - Check what's running: `netstat -tulpn | grep 8001`
-- Or use a different port: `uv run fastmcp run src/server.py --port 8002`
+- Or use a different port: `uv run fastmcp run src/mcp_server_for_splunk/server.py --port 8002`
 
 **"Splunk connection failed"**
 ```bash

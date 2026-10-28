@@ -79,9 +79,7 @@ class TestListTriggeredAlerts:
 
         return service
 
-    async def test_list_triggered_alerts_success(
-        self, fastmcp_client, tool_payload, mock_service
-    ):
+    async def test_list_triggered_alerts_success(self, fastmcp_client, tool_payload, mock_service):
         """Test successful listing of triggered alerts."""
         # Mock the fired_alerts method to return our test data
         with patch.object(
@@ -132,9 +130,7 @@ class TestListTriggeredAlerts:
                 assert params["latest_time"] == "-30m@m"
                 assert params["search_filter"] == "CPU"
 
-    async def test_list_triggered_alerts_basic_functionality(
-        self, fastmcp_client, tool_payload
-    ):
+    async def test_list_triggered_alerts_basic_functionality(self, fastmcp_client, tool_payload):
         """Test basic alerts tool functionality."""
         async with fastmcp_client as client:
             data = await tool_payload(client, "list_triggered_alerts")

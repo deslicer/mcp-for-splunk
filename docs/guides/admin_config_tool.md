@@ -12,7 +12,7 @@ Creates or updates a stanza in a Splunk `.conf` file at the app level. It uses t
 ### Prerequisites
 
 - MCP server connected to Splunk (see `docs/getting-started/installation.md`).
-- Credentials via headers or environment per `src/server.py` (e.g., `X-Splunk-Host`, `X-Splunk-Username`, etc.).
+- Credentials via headers or environment per `src/mcp_server_for_splunk/server.py` (e.g., `X-Splunk-Host`, `X-Splunk-Username`, etc.).
 
 ### First success in 2 minutes
 

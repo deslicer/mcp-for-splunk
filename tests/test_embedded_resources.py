@@ -18,8 +18,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from src.core.base import ResourceMetadata
-from src.resources.embedded import (
+from mcp_server_for_splunk.core.base import ResourceMetadata
+from mcp_server_for_splunk.resources.embedded import (
     ContentValidator,
     EmbeddedResource,
     EmbeddedResourceRegistry,
@@ -1046,8 +1046,12 @@ class TestSplunkEmbeddedResource:
 
         # Mock the client manager and config extractor
         with (
-            patch("src.resources.embedded.get_client_manager") as mock_get_manager,
-            patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor,
+            patch(
+                "mcp_server_for_splunk.resources.embedded.get_client_manager"
+            ) as mock_get_manager,
+            patch(
+                "mcp_server_for_splunk.resources.embedded.EnhancedConfigExtractor"
+            ) as mock_extractor,
         ):
             # Mock client manager
             mock_manager = Mock()
@@ -1087,7 +1091,9 @@ class TestSplunkEmbeddedResource:
             async def _generate_splunk_content(self, ctx, identity, service):
                 return "splunk content"
 
-        with patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor:
+        with patch(
+            "mcp_server_for_splunk.resources.embedded.EnhancedConfigExtractor"
+        ) as mock_extractor:
             mock_extractor_instance = Mock()
             mock_extractor_instance.extract_client_config = AsyncMock(return_value=None)
             mock_extractor.return_value = mock_extractor_instance
@@ -1112,8 +1118,12 @@ class TestSplunkEmbeddedResource:
                 return "splunk content"
 
         with (
-            patch("src.resources.embedded.get_client_manager") as mock_get_manager,
-            patch("src.resources.embedded.EnhancedConfigExtractor") as mock_extractor,
+            patch(
+                "mcp_server_for_splunk.resources.embedded.get_client_manager"
+            ) as mock_get_manager,
+            patch(
+                "mcp_server_for_splunk.resources.embedded.EnhancedConfigExtractor"
+            ) as mock_extractor,
         ):
             # Mock client manager that fails on first attempt
             mock_manager = Mock()

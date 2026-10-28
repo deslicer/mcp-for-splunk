@@ -30,9 +30,9 @@ license = { file = "LICENSE" }
 urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
 
 [project.scripts]
-generate-tool = "contrib.scripts.generate_tool:main"
-validate-tools = "contrib.scripts.validate_tools:main"
-mcp-server = "src.cli.build_and_run:main"
+generate-tool = "mcp_server_for_splunk.cli.contrib:generate_tool"
+validate-tools = "mcp_server_for_splunk.cli.contrib:validate_tools"
+mcp-server = "mcp_server_for_splunk.cli.entrypoint:main"
 # `mcp-itsi-server` script and the `mcp_splunk.plugins.itsi` entry point are
 # provided by the sibling `mcp-itsi-server` distribution
 # (packaging/mcp-itsi-server). Install with the [itsi] extra below to pull
@@ -50,7 +50,7 @@ dev = [
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
 # distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
 itsi = [
-"mcp-itsi-server>=0.1.2",
+"mcp-itsi-server>=0.2.0",
 ]
 test = [
 "pytest>=9.1.1",
@@ -88,10 +88,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src/mcp_server_for_splunk"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"docs/reference/dashboard_studio_cheatsheet.md" = "src/bundled_docs/dashboard_studio_cheatsheet.md"
+"docs/reference/dashboard_studio_cheatsheet.md" = "mcp_server_for_splunk/bundled_docs/dashboard_studio_cheatsheet.md"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -215,4 +215,23 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
-exclude = "(^src/tools/|^src/resources/|^src/routes/|^src/prompts/|^src/core/(discovery|loader|enhanced_config_extractor|__init__|base|client_identity)\\.py|^src/server\\.py)"
+exclude = "(^src/mcp_server_for_splunk/tools/|^src/mcp_server_for_splunk/resources/|^src/mcp_server_for_splunk/routes/|^src/mcp_server_for_splunk/prompts/|^src/mcp_server_for_splunk/core/(discovery|loader|enhanced_config_extractor|__init__|base|client_identity)\\.py|^src/mcp_server_for_splunk/server\\.py)"
+
+# Preserve the existing type-check scope after moving to a discoverable package.
+# `exclude` controls file discovery only; imports can otherwise pull these same
+# legacy modules back into the check under their new qualified names.
+[[tool.mypy.overrides]]
+module = [
+    "mcp_server_for_splunk.tools.*",
+    "mcp_server_for_splunk.resources.*",
+    "mcp_server_for_splunk.routes.*",
+    "mcp_server_for_splunk.prompts.*",
+    "mcp_server_for_splunk.core",
+    "mcp_server_for_splunk.core.discovery",
+    "mcp_server_for_splunk.core.loader",
+    "mcp_server_for_splunk.core.enhanced_config_extractor",
+    "mcp_server_for_splunk.core.base",
+    "mcp_server_for_splunk.core.client_identity",
+    "mcp_server_for_splunk.server",
+]
+follow_imports = "skip"

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastmcp import Context
 
-from src.tools.admin.config import CreateConfig
+from mcp_server_for_splunk.tools.admin.config import CreateConfig
 
 
 class TestCreateConfigTool:

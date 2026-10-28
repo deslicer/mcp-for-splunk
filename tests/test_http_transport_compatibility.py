@@ -11,8 +11,8 @@ from mcp_types import (
 )
 from starlette.testclient import TestClient
 
-from src import server
-from src.core.http_session_mode import HttpSessionModeAdvertiser
+from mcp_server_for_splunk import server
+from mcp_server_for_splunk.core.http_session_mode import HttpSessionModeAdvertiser
 
 
 @pytest.mark.parametrize("stateless", [True, False], ids=["sessionless", "session"])

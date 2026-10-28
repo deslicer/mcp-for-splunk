@@ -32,7 +32,7 @@ headers = get_http_headers(include_all=True)
 
 ## The Fix
 
-### Changes to `src/core/base.py`
+### Changes to `src/mcp_server_for_splunk/core/base.py`
 
 Updated `get_client_config_from_context()` method to use FastMCP runtime dependencies:
 
@@ -46,7 +46,7 @@ try:
         self.logger.debug("Attempting to extract config from HTTP headers (available: %s)", list(headers.keys()))
         
         # Extract Splunk configuration from headers
-        from src.server import extract_client_config_from_headers
+        from mcp_server_for_splunk.server import extract_client_config_from_headers
         client_config = extract_client_config_from_headers(headers)
         
         if client_config:
@@ -63,7 +63,7 @@ except Exception as e:
 3. Better error logging with debug messages
 4. Shows which config keys were extracted
 
-### Changes to `src/server.py`
+### Changes to `src/mcp_server_for_splunk/server.py`
 
 Enhanced logging in `ClientConfigMiddleware` to help debug header extraction:
 
@@ -188,8 +188,8 @@ curl -X POST http://localhost:8001/mcp \
 
 ## Files Modified
 
-1. `src/core/base.py` - Updated `get_client_config_from_context()` to use FastMCP runtime dependencies
-2. `src/server.py` - Enhanced logging in `ClientConfigMiddleware` for better debugging
+1. `src/mcp_server_for_splunk/core/base.py` - Updated `get_client_config_from_context()` to use FastMCP runtime dependencies
+2. `src/mcp_server_for_splunk/server.py` - Enhanced logging in `ClientConfigMiddleware` for better debugging
 
 ## Additional Issue: 400 Bad Request Error
 
@@ -235,24 +235,24 @@ However, since you need the `HeaderCaptureMiddleware` for extracting Splunk head
 
 ### Problem
 
-After reverting changes, the `src/tools/search/job_search.py` file was accidentally deleted, causing all tools to fail loading. The server would start but no tools would be available except those defined directly in `server.py`.
+After reverting changes, the `src/mcp_server_for_splunk/tools/search/job_search.py` file was accidentally deleted, causing all tools to fail loading. The server would start but no tools would be available except those defined directly in `server.py`.
 
 ### Root Cause
 
-During the `git reset --hard HEAD` command, the `job_search.py` file was deleted but not restored from the repository. This caused an import error when the discovery system tried to load tools from `src.tools.search`.
+During the `git reset --hard HEAD` command, the `job_search.py` file was deleted but not restored from the repository. This caused an import error when the discovery system tried to load tools from `mcp_server_for_splunk.tools.search`.
 
 ### Fix
 
 Restored the missing file from the main branch:
 ```bash
-git checkout main -- src/tools/search/job_search.py
+git checkout main -- src/mcp_server_for_splunk/tools/search/job_search.py
 ```
 
 ### Symptoms
 
 - MCP server starts successfully
 - Only tools defined in `server.py` (like `user_agent_info`) are available
-- No tools from `src/tools/` directories are loaded
+- No tools from `src/mcp_server_for_splunk/tools/` directories are loaded
 - No error messages in logs about tool loading failures
 
 ## Next Steps

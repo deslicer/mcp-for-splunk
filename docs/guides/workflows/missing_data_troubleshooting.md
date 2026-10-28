@@ -2,7 +2,7 @@
 
 Automate Splunk's "I can't find my data" investigation with a single, repeatable workflow. This turns Splunk guidance into an executable procedure that delivers consistent, auditable results.
 
-- **Workflow file**: `src/tools/workflows/core/missing_data_troubleshooting.json`
+- **Workflow file**: `src/mcp_server_for_splunk/tools/workflows/core/missing_data_troubleshooting.json`
 - **Reference**: [I can't find my data!](https://help.splunk.com/en/splunk-enterprise/administer/troubleshoot/10.0/splunk-web-and-search-problems/i-cant-find-my-data)
 - **Overview docs**: See `docs/guides/workflows/README.md`
 
@@ -34,5 +34,5 @@ Each task includes detailed instructions for the LLM, required tools, dependenci
 
 ## Where to find it
 
-- JSON definition: `../../src/tools/workflows/core/missing_data_troubleshooting.json`
+- JSON definition: `../../src/mcp_server_for_splunk/tools/workflows/core/missing_data_troubleshooting.json`
 - Workflow docs hub: `./README.md`

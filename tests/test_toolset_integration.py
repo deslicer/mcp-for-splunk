@@ -6,7 +6,7 @@ These tests build a small FastMCP host with three pre-registered tools
 the closest thing to a real client sending the ``X-MCP-Toolsets``
 header against the host server short of running uvicorn.
 
-A separate test verifies the production ``src.server`` module exposes
+A separate test verifies the production ``mcp_server_for_splunk.server`` module exposes
 ``install_toolset_filter`` and the helper actually attaches the
 middleware to the FastMCP instance.
 """
@@ -19,7 +19,7 @@ import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 
-from src.core.toolset_filter import ToolsetFilterMiddleware
+from mcp_server_for_splunk.core.toolset_filter import ToolsetFilterMiddleware
 
 
 @pytest.fixture
@@ -120,12 +120,12 @@ async def test_call_allowed_tool_succeeds(monkeypatch, host: FastMCP):
 
 
 def test_real_server_exposes_install_toolset_filter():
-    """The production src.server module must expose install_toolset_filter."""
-    server = importlib.import_module("src.server")
+    """The production mcp_server_for_splunk.server module must expose install_toolset_filter."""
+    server = importlib.import_module("mcp_server_for_splunk.server")
 
-    assert hasattr(server, "install_toolset_filter"), (
-        "src.server must export install_toolset_filter for create_root_app to wire up"
-    )
+    assert hasattr(
+        server, "install_toolset_filter"
+    ), "mcp_server_for_splunk.server must export install_toolset_filter for create_root_app to wire up"
 
     # Use a throwaway FastMCP so we don't mutate the module-level singleton.
     test_mcp = FastMCP(name="install_test")
@@ -136,7 +136,7 @@ def test_real_server_exposes_install_toolset_filter():
 
 
 def test_real_server_install_is_idempotent():
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
 
     test_mcp = FastMCP(name="idempotent_test")
     first = server.install_toolset_filter(test_mcp)
@@ -147,7 +147,7 @@ def test_real_server_install_is_idempotent():
 
 def test_real_server_known_toolsets_includes_splunk_and_loaded_plugins():
     """install_toolset_filter must use a callable that includes splunk + loaded plugins."""
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
 
     test_mcp = FastMCP(name="known_test")
     test_mcp._loaded_plugins = [{"name": "itsi"}, {"name": "auth"}]

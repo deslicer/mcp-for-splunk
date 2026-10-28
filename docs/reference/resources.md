@@ -122,7 +122,7 @@ def get_config_v1():
 
 ## Server-specific resources (MCP Server for Splunk)
 
-This server auto-registers several Splunk-focused resources from `src/resources/`. Common URIs include:
+This server auto-registers several Splunk-focused resources from `src/mcp_server_for_splunk/resources/`. Common URIs include:
 
 ### Splunk Documentation Resources
 

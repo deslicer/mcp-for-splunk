@@ -4,13 +4,13 @@
 
 The MCP Server for Splunk is a modular system that exposes Splunk capabilities to LLMs through the Model Context Protocol (MCP). It organizes code into clear subsystems for maintainability and extensibility:
 
-- **Core framework (`src/core/`)**: Base abstractions, registries, discovery/loading, context handling, client identity, and enhanced config extraction.
-- **Tools (`src/tools/`)**: Actionable operations (search, metadata, admin, health, KV Store, workflows).
-- **Resources (`src/resources/`)**: Read-only, URI-addressable data for context (Splunk documentation, configuration, health, search results).
-- **Workflows (`src/tools/workflows/`)**: Dependency-aware diagnostic workflows and supporting utilities.
-- **Client connectivity (`src/client/`)**: Splunk SDK wrapper and connection helpers.
-- **Routes/UI (`src/routes/`)**: Lightweight HTTP status pages and assets.
-- **Prompts (`src/prompts/`)**: Prompt assets for agents.
+- **Core framework (`src/mcp_server_for_splunk/core/`)**: Base abstractions, registries, discovery/loading, context handling, client identity, and enhanced config extraction.
+- **Tools (`src/mcp_server_for_splunk/tools/`)**: Actionable operations (search, metadata, admin, health, KV Store, workflows).
+- **Resources (`src/mcp_server_for_splunk/resources/`)**: Read-only, URI-addressable data for context (Splunk documentation, configuration, health, search results).
+- **Workflows (`src/mcp_server_for_splunk/tools/workflows/`)**: Dependency-aware diagnostic workflows and supporting utilities.
+- **Client connectivity (`src/mcp_server_for_splunk/client/`)**: Splunk SDK wrapper and connection helpers.
+- **Routes/UI (`src/mcp_server_for_splunk/routes/`)**: Lightweight HTTP status pages and assets.
+- **Prompts (`src/mcp_server_for_splunk/prompts/`)**: Prompt assets for agents.
 - **Contrib (`contrib/`)**: Community extensions with examples and validation.
 
 ## Current directory structure (trimmed)
@@ -57,18 +57,18 @@ mcp-server-for-splunk/
 
 ## Core components
 
-- **Base & registry**: `src/core/base.py` defines base classes; `src/core/registry.py` manages registration and discovery.
-- **Discovery & loader**: `src/core/discovery.py` and `src/core/loader.py` implement dynamic capability loading.
-- **Shared context**: `src/core/context.py` and `src/core/shared_context.py` provide request/session context.
-- **Client identity & config**: `src/core/client_identity.py` and `src/core/enhanced_config_extractor.py` secure per-client Splunk connections.
+- **Base & registry**: `src/mcp_server_for_splunk/core/base.py` defines base classes; `src/mcp_server_for_splunk/core/registry.py` manages registration and discovery.
+- **Discovery & loader**: `src/mcp_server_for_splunk/core/discovery.py` and `src/mcp_server_for_splunk/core/loader.py` implement dynamic capability loading.
+- **Shared context**: `src/mcp_server_for_splunk/core/context.py` and `src/mcp_server_for_splunk/core/shared_context.py` provide request/session context.
+- **Client identity & config**: `src/mcp_server_for_splunk/core/client_identity.py` and `src/mcp_server_for_splunk/core/enhanced_config_extractor.py` secure per-client Splunk connections.
 
 ## Resources subsystem
 
 Resources are read-only and often client-scoped:
 
-- **Splunk documentation**: `splunk-docs://...` URIs (cheat sheet, SPL reference, admin, troubleshooting) via `src/resources/splunk_docs.py` with HTML processing.
-- **Splunk runtime**: Configuration (`splunk://config/{config_file}`), health, apps, indexes, saved searches, and recent search results via `src/resources/splunk_config.py`.
-- **Registration**: `src/resources/__init__.py` registers all resource types at import.
+- **Splunk documentation**: `splunk-docs://...` URIs (cheat sheet, SPL reference, admin, troubleshooting) via `src/mcp_server_for_splunk/resources/splunk_docs.py` with HTML processing.
+- **Splunk runtime**: Configuration (`splunk://config/{config_file}`), health, apps, indexes, saved searches, and recent search results via `src/mcp_server_for_splunk/resources/splunk_config.py`.
+- **Registration**: `src/mcp_server_for_splunk/resources/__init__.py` registers all resource types at import.
 - **Security**: Client isolation and helpful error payloads guide credentials when missing.
 
 See the **Resources Reference**: [../reference/resources.md](../reference/resources.md)
@@ -77,13 +77,13 @@ See the **Resources Reference**: [../reference/resources.md](../reference/resour
 
 Tools implement actions and integrate with Splunk APIs:
 
-- Search, metadata, admin, health, KV Store, and workflow orchestration utilities under `src/tools/`.
+- Search, metadata, admin, health, KV Store, and workflow orchestration utilities under `src/mcp_server_for_splunk/tools/`.
 
 See the **Tools Reference**: [../reference/tools.md](../reference/tools.md)
 
 ## Workflows subsystem
 
-- **Definitions**: JSON workflows under `src/tools/workflows/core/` and `contrib/workflows/`.
+- **Definitions**: JSON workflows under `src/mcp_server_for_splunk/tools/workflows/core/` and `contrib/workflows/`.
 - **Discovery/authoring**: `list_workflows`, `workflow_builder`, `workflow_requirements`.
 - **Execution**: built-in OpenAI `workflow_runner` was removed; orchestrate tools from your MCP client.
 
@@ -107,13 +107,13 @@ Read more:
 ## Testing & operations
 
 - **Tests**: See `tests/` and [../guides/TESTING.md](../guides/TESTING.md). Use scripts in `scripts/` for CI-like runs.
-- **Health route**: `src/routes/health.py` renders `routes/templates/health.html` with `routes/static/health.css`.
+- **Health route**: `src/mcp_server_for_splunk/routes/health.py` renders `routes/templates/health.html` with `routes/static/health.css`.
 
 ## Extensibility
 
-- **Add tools**: Implement under `src/tools/<category>/` and follow project conventions.
-- **Add resources**: Implement under `src/resources/` and register with the registry.
-- **Add workflows**: Contribute definitions and shared utilities under `src/tools/workflows/`.
+- **Add tools**: Implement under `src/mcp_server_for_splunk/tools/<category>/` and follow project conventions.
+- **Add resources**: Implement under `src/mcp_server_for_splunk/resources/` and register with the registry.
+- **Add workflows**: Contribute definitions and shared utilities under `src/mcp_server_for_splunk/tools/workflows/`.
 
 ## Related documentation
 

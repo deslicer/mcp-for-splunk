@@ -5,6 +5,6 @@ This package contains community-contributed tools that extend the
 functionality of the MCP Server for Splunk.
 
 Note: The workflow builder and requirements tools are now part of the core
-system in src/tools/workflows/. This directory is for community-contributed
+system in src/mcp_server_for_splunk/tools/workflows/. This directory is for community-contributed
 troubleshooting tools and utilities.
 """

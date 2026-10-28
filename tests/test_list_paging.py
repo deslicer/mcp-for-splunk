@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.list_paging import (
+from mcp_server_for_splunk.core.list_paging import (
     PaginationError,
     build_paging,
     clamp_search_page_size,

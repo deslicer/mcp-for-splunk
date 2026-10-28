@@ -381,9 +381,7 @@ class MockSplunkService:
             count = int(raw_count) if raw_count not in (None, "") else len(collection_entries)
             search = str(kwargs.get("search") or "")
             filtered = [
-                entry
-                for entry in collection_entries
-                if self._entry_matches_search(entry, search)
+                entry for entry in collection_entries if self._entry_matches_search(entry, search)
             ]
             page = filtered[offset : offset + count]
             payload = {
@@ -399,10 +397,7 @@ class MockSplunkService:
 
     def _collection_entries_for_endpoint(self, endpoint: str) -> list[dict] | None:
         if endpoint.rstrip("/").endswith("/data/indexes"):
-            return [
-                {"name": idx.name, "content": {}, "acl": {}}
-                for idx in self.indexes
-            ]
+            return [{"name": idx.name, "content": {}, "acl": {}} for idx in self.indexes]
         if endpoint.rstrip("/").endswith("/apps/local"):
             return [
                 {
@@ -645,7 +640,7 @@ async def fastmcp_client():
         pytest.skip("FastMCP not available")
 
     # Import the actual server
-    from src.server import mcp
+    from mcp_server_for_splunk.server import mcp
 
     # Use FastMCP's in-memory transport for testing
     client = Client(mcp)
@@ -820,23 +815,25 @@ def mock_splunk_get_service(mock_splunk_service):
     patches = []
     try:
         # Import tool classes and patch their get_splunk_service
-        from src.tools.admin.apps import ListApps
-        from src.tools.admin.users import ListUsers
-        from src.tools.dashboards.create_dashboard import CreateDashboard
-        from src.tools.dashboards.get_dashboard_definition import GetDashboardDefinition
-        from src.tools.dashboards.list_dashboards import ListDashboards
-        from src.tools.health.status import GetSplunkHealth
-        from src.tools.kvstore.collections import ListKvstoreCollections
-        from src.tools.kvstore.data import GetKvstoreData
-        from src.tools.metadata.indexes import ListIndexes
-        from src.tools.metadata.sources import ListSources
-        from src.tools.metadata.sourcetypes import ListSourcetypes
-        from src.tools.search.job_info import GetSearchJobInfo
-        from src.tools.search.job_results import GetSearchJobResults
-        from src.tools.search.job_search import JobSearch
-        from src.tools.search.list_saved_searches import ListSavedSearches
-        from src.tools.search.oneshot_search import OneshotSearch
-        from src.tools.search.saved_search_tools import (
+        from mcp_server_for_splunk.tools.admin.apps import ListApps
+        from mcp_server_for_splunk.tools.admin.users import ListUsers
+        from mcp_server_for_splunk.tools.dashboards.create_dashboard import CreateDashboard
+        from mcp_server_for_splunk.tools.dashboards.get_dashboard_definition import (
+            GetDashboardDefinition,
+        )
+        from mcp_server_for_splunk.tools.dashboards.list_dashboards import ListDashboards
+        from mcp_server_for_splunk.tools.health.status import GetSplunkHealth
+        from mcp_server_for_splunk.tools.kvstore.collections import ListKvstoreCollections
+        from mcp_server_for_splunk.tools.kvstore.data import GetKvstoreData
+        from mcp_server_for_splunk.tools.metadata.indexes import ListIndexes
+        from mcp_server_for_splunk.tools.metadata.sources import ListSources
+        from mcp_server_for_splunk.tools.metadata.sourcetypes import ListSourcetypes
+        from mcp_server_for_splunk.tools.search.job_info import GetSearchJobInfo
+        from mcp_server_for_splunk.tools.search.job_results import GetSearchJobResults
+        from mcp_server_for_splunk.tools.search.job_search import JobSearch
+        from mcp_server_for_splunk.tools.search.list_saved_searches import ListSavedSearches
+        from mcp_server_for_splunk.tools.search.oneshot_search import OneshotSearch
+        from mcp_server_for_splunk.tools.search.saved_search_tools import (
             CreateSavedSearch,
             DeleteSavedSearch,
             ExecuteSavedSearch,

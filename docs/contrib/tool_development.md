@@ -22,7 +22,7 @@ All tools inherit from `BaseTool` which provides:
 Every tool must include a `METADATA` class attribute that describes the tool:
 
 ```python
-from src.core.base import ToolMetadata
+from mcp_server_for_splunk.core.base import ToolMetadata
 
 METADATA = ToolMetadata(
     name="your_tool_name",           # Tool identifier (snake_case)
@@ -53,7 +53,7 @@ contrib/tools/
 ```python
 from typing import Any, Dict, Optional
 from fastmcp import Context
-from src.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
 
 class YourToolName(BaseTool):
     """Brief description of what your tool does."""
@@ -409,7 +409,7 @@ def mock_splunk_service():
 ### Automatic Discovery
 
 Tools are automatically discovered if they:
-1. Are located in `contrib/tools/` or `src/tools/` directories
+1. Are located in `contrib/tools/` or `src/mcp_server_for_splunk/tools/` directories
 2. Inherit from `BaseTool`
 3. Have a `METADATA` class attribute
 4. Are in a `.py` file (not `__init__.py`)
@@ -429,7 +429,7 @@ If your tool isn't being discovered:
 
 ```python
 # Add this to test tool discovery
-from src.core.discovery import discover_tools
+from mcp_server_for_splunk.core.discovery import discover_tools
 
 # Run discovery manually
 tools = discover_tools()

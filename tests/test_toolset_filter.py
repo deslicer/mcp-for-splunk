@@ -18,11 +18,11 @@ from fastmcp.server.dependencies import (
     get_http_headers as fastmcp_get_http_headers,
 )
 
-from src.core.toolset_filter import (
+from mcp_server_for_splunk.core.toolset_filter import (
     ToolsetFilterMiddleware,
     _wanted_toolsets,
 )
-from src.core.toolset_filter import (
+from mcp_server_for_splunk.core.toolset_filter import (
     get_http_headers as toolset_filter_get_http_headers,
 )
 
@@ -43,7 +43,7 @@ def _patch_headers(monkeypatch, headers: dict[str, str] | None):
     so we patch the symbol where the middleware imports it.
     """
     monkeypatch.setattr(
-        "src.core.toolset_filter.get_http_headers",
+        "mcp_server_for_splunk.core.toolset_filter.get_http_headers",
         lambda: dict(headers or {}),
     )
 

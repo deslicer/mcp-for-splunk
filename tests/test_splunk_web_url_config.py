@@ -1,4 +1,4 @@
-from src.core.utils import extract_client_config_from_headers
+from mcp_server_for_splunk.core.utils import extract_client_config_from_headers
 
 
 def test_web_url_header_maps() -> None:

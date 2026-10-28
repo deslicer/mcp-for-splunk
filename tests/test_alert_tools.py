@@ -31,9 +31,7 @@ class TestAlertToolAvailability:
             properties = (delete_alert.inputSchema or {}).get("properties") or {}
             assert "confirm" in properties
 
-    async def test_create_alert_without_splunk_returns_error(
-        self, fastmcp_client, tool_payload
-    ):
+    async def test_create_alert_without_splunk_returns_error(self, fastmcp_client, tool_payload):
         async with fastmcp_client as client:
             data = await tool_payload(
                 client,

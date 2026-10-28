@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 
 from mcp_itsi.config.settings import ITSIServerSettings
 from mcp_itsi.config.tls_policy import TLSVerificationPolicy
-from src.core.utils import _is_dai_session_bearer
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +50,10 @@ class ITSIRequestConfig:
         return f"/servicesNS/{self.user_ns}/{self.itsi_app}"
 
     def has_credentials(self) -> bool:
-        return bool(self.splunk_token) or bool(self.splunk_session_token) or bool(
-            self.splunk_username and self.splunk_password
+        return (
+            bool(self.splunk_token)
+            or bool(self.splunk_session_token)
+            or bool(self.splunk_username and self.splunk_password)
         )
 
 
@@ -132,14 +133,14 @@ def extract_request_config(
     splunk_token = bearer_from_headers or settings.default_splunk_token
     if not splunk_token and _mcp_auth_disabled():
         bearer_from_auth = _extract_bearer_from_authorization(headers)
-        if bearer_from_auth and not _is_dai_session_bearer(bearer_from_auth):
+        # ITSI is also a standalone distribution: do not import the parent server.
+        if bearer_from_auth and not bearer_from_auth.startswith("local-db-"):
             splunk_token = bearer_from_auth
 
     session_from_headers = _ci_get(headers, "X-Splunk-Session-Token")
     splunk_session_token = (
-        (session_from_headers.strip() if session_from_headers else None)
-        or settings.default_splunk_session_token
-    )
+        session_from_headers.strip() if session_from_headers else None
+    ) or settings.default_splunk_session_token
     tls_policy = TLSVerificationPolicy(settings.default_splunk_verify_ssl)
 
     cfg = ITSIRequestConfig(

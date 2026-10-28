@@ -80,7 +80,7 @@ async def main() -> int:
 
     from fastmcp import Client
 
-    from src.server import mcp
+    from mcp_server_for_splunk.server import mcp
 
     async with Client(mcp) as client:
         print("MCP client connected (in-memory transport → live Splunk via server env)")

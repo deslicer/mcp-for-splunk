@@ -80,7 +80,7 @@ async def main() -> int:
 
     from fastmcp import Client
 
-    from src.server import mcp
+    from mcp_server_for_splunk.server import mcp
 
     outcomes: list[tuple[str, str, str]] = []
     found: dict[str, Any] | None = None

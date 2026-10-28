@@ -5,7 +5,7 @@ def test_plugins_disabled_returns_zero(monkeypatch):
     # Ensure disabled
     monkeypatch.setenv("MCP_DISABLE_PLUGINS", "true")
     # Import lazily to pick up env
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
     count = server.load_plugins(server.mcp)
     assert count == 0
 
@@ -36,7 +36,7 @@ def test_load_plugins_invokes_setup(monkeypatch):
             return []
 
     # Import server and patch its imported symbol directly
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
     monkeypatch.setattr(server, "entry_points", lambda: FakeEntryPoints(), raising=True)
     # Call MCP stage
     count1 = server.load_plugins(server.mcp)
@@ -70,7 +70,7 @@ def test_load_plugins_records_each_loaded_plugin_on_server(monkeypatch):
                 return [FakeEntryPoint()]
             return []
 
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
     monkeypatch.setattr(server, "entry_points", lambda: FakeEntryPoints(), raising=True)
 
     # Reset any previous test state on the shared mcp instance
@@ -105,7 +105,7 @@ def test_load_plugins_does_not_duplicate_records_across_stages(monkeypatch):
                 return [FakeEntryPoint()]
             return []
 
-    server = importlib.import_module("src.server")
+    server = importlib.import_module("mcp_server_for_splunk.server")
     monkeypatch.setattr(server, "entry_points", lambda: FakeEntryPoints(), raising=True)
 
     if hasattr(server.mcp, "_loaded_plugins"):

@@ -10,12 +10,12 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_exists(self):
         """Test builder prompt file exists."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         assert prompt_path.exists(), f"Builder prompt not found at {prompt_path}"
 
     def test_builder_prompt_loads(self):
         """Test builder prompt content loads successfully."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         assert content is not None
@@ -23,7 +23,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_key_sections(self):
         """Test builder prompt contains essential sections."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for key instructional sections
@@ -40,7 +40,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_authoring_guidance(self):
         """Test builder prompt includes authoring guidance."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for authoring concepts
@@ -57,7 +57,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_output_contract(self):
         """Test builder prompt specifies output contract."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for output format guidance
@@ -67,7 +67,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_examples(self):
         """Test builder prompt includes examples."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for code examples
@@ -75,7 +75,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_references_resources(self):
         """Test builder prompt references Dashboard Studio resources."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for resource references
@@ -90,7 +90,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_constraints(self):
         """Test builder prompt specifies REST creation constraints."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for constraint guidance
@@ -106,7 +106,7 @@ class TestDashboardStudioPrompts:
 
     def test_builder_prompt_has_validation_checks(self):
         """Test builder prompt includes validation checks."""
-        prompt_path = Path("src/prompts/dashboard_studio_builder.md")
+        prompt_path = Path("src/mcp_server_for_splunk/prompts/dashboard_studio_builder.md")
         content = prompt_path.read_text(encoding="utf-8")
 
         # Check for validation guidance

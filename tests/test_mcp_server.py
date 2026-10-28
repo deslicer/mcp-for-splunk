@@ -337,7 +337,7 @@ class TestHttpSessionHeaders:
 
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)
@@ -392,7 +392,7 @@ class TestHttpSessionHeaders:
 
         import httpx
 
-        from src.server import create_root_app, get_mcp
+        from mcp_server_for_splunk.server import create_root_app, get_mcp
 
         mcp = get_mcp()
         app = create_root_app(mcp)

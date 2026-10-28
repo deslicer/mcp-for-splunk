@@ -53,9 +53,9 @@ VERSION_MAPPING = {
 #### A. Base Documentation Resource Class
 
 ```python
-# src/resources/splunk_docs.py
+# src/mcp_server_for_splunk/resources/splunk_docs.py
 
-from src.core.base import BaseResource, ResourceMetadata
+from mcp_server_for_splunk.core.base import BaseResource, ResourceMetadata
 from fastmcp import Context
 import httpx
 from typing import Optional, Dict, List
@@ -124,7 +124,7 @@ class SplunkDocsResource(BaseResource):
 #### B. Specific Documentation Resources
 
 ```python
-# src/resources/splunk_docs.py (continued)
+# src/mcp_server_for_splunk/resources/splunk_docs.py (continued)
 
 class SPLReferenceResource(SplunkDocsResource):
     """SPL (Search Processing Language) reference documentation."""
@@ -184,7 +184,7 @@ class AdminGuideResource(SplunkDocsResource):
 #### A. HTML to LLM Format Processor
 
 ```python
-# src/resources/processors/html_processor.py
+# src/mcp_server_for_splunk/resources/processors/html_processor.py
 
 from bs4 import BeautifulSoup
 from typing import Dict, List
@@ -294,10 +294,10 @@ class SplunkDocsProcessor:
 #### A. Automatic Resource Registration
 
 ```python
-# src/resources/__init__.py
+# src/mcp_server_for_splunk/resources/__init__.py
 
 from .splunk_docs import SPLReferenceResource, AdminGuideResource, APIReferenceResource
-from src.core.registry import resource_registry
+from mcp_server_for_splunk.core.registry import resource_registry
 
 def register_documentation_resources():
     """Register all Splunk documentation resources."""
@@ -380,7 +380,7 @@ async def discover_documentation(ctx: Context, version: str = "latest") -> dict:
 #### A. Version-Aware Caching
 
 ```python
-# src/resources/cache.py
+# src/mcp_server_for_splunk/resources/cache.py
 
 class DocumentationCache:
     """Version-aware caching for Splunk documentation."""
@@ -425,19 +425,19 @@ class DocumentationCache:
 ### A. Add to Core Resource Registry
 
 ```python
-# src/core/registry.py (modification)
+# src/mcp_server_for_splunk/core/registry.py (modification)
 
 class ResourceRegistry:
     def register_documentation_resources(self):
         """Register Splunk documentation resources."""
-        from src.resources.splunk_docs import register_documentation_resources
+        from mcp_server_for_splunk.resources.splunk_docs import register_documentation_resources
         register_documentation_resources()
 ```
 
 ### B. Update Server Initialization
 
 ```python
-# src/server.py (modification)
+# src/mcp_server_for_splunk/server.py (modification)
 
 async def main():
     # ... existing code ...

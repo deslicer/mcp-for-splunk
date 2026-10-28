@@ -2,10 +2,10 @@
 
 Saved-search tools already use get_saved_search_acl() (see
 tests/test_saved_search_acl.py). This module pins the shared
-src.core.utils.entity_acl helper for indexes/saved-search resources.
+mcp_server_for_splunk.core.utils.entity_acl helper for indexes/saved-search resources.
 """
 
-from src.core.utils import entity_acl
+from mcp_server_for_splunk.core.utils import entity_acl
 
 
 class FakeEntity:

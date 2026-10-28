@@ -1,8 +1,8 @@
 """Regression tests for local CLI Splunk authentication handling."""
 
-from src.cli.splunk_auth_configuration import SplunkAuthConfiguration
-from src.cli.splunk_test_headers import SplunkTestHeaderManager
-from src.cli.test_mcp_server import _build_server_url_from_env
+from mcp_server_for_splunk.cli.splunk_auth_configuration import SplunkAuthConfiguration
+from mcp_server_for_splunk.cli.splunk_test_headers import SplunkTestHeaderManager
+from mcp_server_for_splunk.cli.test_mcp_server import _build_server_url_from_env
 
 
 class TestSplunkAuthConfiguration:

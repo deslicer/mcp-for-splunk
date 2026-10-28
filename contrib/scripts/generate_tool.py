@@ -505,8 +505,8 @@ from typing import Any, Dict
 
 from fastmcp import Context
 from splunklib.results import ResultsReader
-from src.core.base import BaseTool, ToolMetadata
-from src.core.utils import log_tool_execution, sanitize_search_query
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.utils import log_tool_execution, sanitize_search_query
 
 
 class {info["class_name"]}(BaseTool):
@@ -677,8 +677,8 @@ from typing import Any, Dict
 
 from fastmcp import Context
 
-from src.core.base import BaseTool, ToolMetadata
-from src.core.utils import log_tool_execution
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.utils import log_tool_execution
 
 
 class {info["class_name"]}(BaseTool):

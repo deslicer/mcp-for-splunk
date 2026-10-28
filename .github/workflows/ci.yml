@@ -39,4 +39,9 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: uv run --locked pytest -q --maxfail=1
 
+      - name: Build and smoke-test the installed wheel
+        run: |
+          uv build --all-packages --wheel
+          uv run --locked python scripts/check_wheel.py dist/mcp_server_for_splunk-*.whl dist/mcp_itsi_server-*.whl
+
 

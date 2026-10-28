@@ -92,9 +92,7 @@ def test_read_only_field_is_warning():
 
 
 def test_nested_kpi_validation_recurses():
-    result = PayloadValidator().validate(
-        "service", {"title": "x", "kpis": [{"titel": "bad"}]}
-    )
+    result = PayloadValidator().validate("service", {"title": "x", "kpis": [{"titel": "bad"}]})
     assert not result.ok
     assert any("Service KPI" in e.message for e in result.errors)
 

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.resources.docs_http import (
+from mcp_server_for_splunk.resources.docs_http import (
     DocsFetchResult,
     DocumentationCache,
     fetch_docs_url,
@@ -43,7 +43,7 @@ async def test_fetch_docs_url_rejects_soft_404(monkeypatch) -> None:
         async def get(self, url: str):
             return _Response()
 
-    monkeypatch.setattr("src.resources.docs_http.httpx.AsyncClient", _Client)
+    monkeypatch.setattr("mcp_server_for_splunk.resources.docs_http.httpx.AsyncClient", _Client)
     result = await fetch_docs_url("https://help.splunk.com/missing")
     assert result.ok is False
     assert result.error == "Help page looks like a soft 404"
@@ -101,7 +101,10 @@ async def test_fetch_first_ok_uses_second_candidate() -> None:
         final_url="https://example.test/live",
     )
 
-    with patch("src.resources.docs_http.fetch_docs_url", new=AsyncMock(side_effect=[missing, found])):
+    with patch(
+        "mcp_server_for_splunk.resources.docs_http.fetch_docs_url",
+        new=AsyncMock(side_effect=[missing, found]),
+    ):
         result = await fetch_first_ok(["https://example.test/missing", "https://example.test/live"])
 
     assert result.ok

@@ -176,7 +176,7 @@ docker-compose up -d so1
 
 # Run MCP server locally
 export MCP_SERVER_MODE=docker
-uv run python src/server.py
+uv run python src/mcp_server_for_splunk/server.py
 ```
 
 ## 🛑 Stopping Services

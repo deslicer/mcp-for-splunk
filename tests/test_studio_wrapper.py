@@ -2,7 +2,7 @@
 
 import json
 
-from src.tools.dashboards.studio_wrapper import (
+from mcp_server_for_splunk.tools.dashboards.studio_wrapper import (
     DashboardDefinitionPreparer,
     StudioDashboardWrapper,
     StudioThemeResolver,
@@ -47,7 +47,10 @@ class TestStudioDashboardWrapper:
             '  <definition><![CDATA[{"title":"X"}]]></definition>\n'
             "</dashboard>"
         )
-        assert StudioDashboardWrapper.wrap(prewrapped, label=None, description=None, theme="dark") == prewrapped
+        assert (
+            StudioDashboardWrapper.wrap(prewrapped, label=None, description=None, theme="dark")
+            == prewrapped
+        )
 
 
 class TestDashboardDefinitionPreparer:

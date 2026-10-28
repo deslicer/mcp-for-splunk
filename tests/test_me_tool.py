@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastmcp import Context
 
-from src.tools.admin.me import Me
+from mcp_server_for_splunk.tools.admin.me import Me
 
 
 class TestMeTool:

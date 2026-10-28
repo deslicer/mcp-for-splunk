@@ -7,8 +7,8 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from src.core.http_session_mode import HttpSessionModeAdvertiser
-from src.core.http_session_mode_middleware import HttpSessionModeHeaderMiddleware
+from mcp_server_for_splunk.core.http_session_mode import HttpSessionModeAdvertiser
+from mcp_server_for_splunk.core.http_session_mode_middleware import HttpSessionModeHeaderMiddleware
 
 
 async def _ok(_request):

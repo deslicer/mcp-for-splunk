@@ -4,7 +4,7 @@ This document provides an in-depth look at the modular architecture of the MCP S
 
 ## Core Architecture Components
 
-### 1. Core Framework (`src/core/`)
+### 1. Core Framework (`src/mcp_server_for_splunk/core/`)
 
 The core framework provides the foundation for all modular components:
 
@@ -50,7 +50,7 @@ def discover_tools(search_paths: List[str] = None) -> List[Type[BaseTool]]:
 ```
 
 **Discovery Process:**
-1. **Path Scanning** - Recursively scan `src/tools/` and `contrib/tools/`
+1. **Path Scanning** - Recursively scan `src/mcp_server_for_splunk/tools/` and `contrib/tools/`
 2. **Module Import** - Dynamically import Python modules
 3. **Class Inspection** - Find classes inheriting from `BaseTool`
 4. **Metadata Validation** - Ensure tools have valid `METADATA` attributes
@@ -105,7 +105,7 @@ class ComponentLoader:
         """Load a single tool class into the server."""
 ```
 
-### 2. Tool Organization (`src/tools/`)
+### 2. Tool Organization (`src/mcp_server_for_splunk/tools/`)
 
 Core tools are organized by functional domain:
 
@@ -163,7 +163,7 @@ Startup → Scan Paths → Import Modules → Inspect Classes → Validate Metad
 ```python
 # Default search paths
 search_paths = [
-    "src/tools",      # Core tools
+    "src/mcp_server_for_splunk/tools",      # Core tools
     "contrib/tools",  # Community tools
     "plugins/tools"   # External plugins (future)
 ]

@@ -23,8 +23,8 @@ eec6d6dc260ec720c48f8d4b9f3ebae5db785252:tests/security/test_http_surface.py:spl
 
 # splunk_client.py password parameter (commits 64ac233 and eec6d6d)
 # This is the password= parameter in splunklib.client.connect() - not a hardcoded secret
-64ac233bfd533af5bd907ec9af136e10d1703f28:src/splunk_client.py:generic-credential:36
-eec6d6dc260ec720c48f8d4b9f3ebae5db785252:src/splunk_client.py:generic-credential:46
+64ac233bfd533af5bd907ec9af136e10d1703f28:src/mcp_server_for_splunk/splunk_client.py:generic-credential:36
+eec6d6dc260ec720c48f8d4b9f3ebae5db785252:src/mcp_server_for_splunk/splunk_client.py:generic-credential:46
 
 # Docker compose dev defaults (commit a71bc8a)
 # Default dev password Chang3d! - well-known, not a production secret
@@ -38,62 +38,62 @@ a71bc8a403dc1071a407a350c8d24ec891b59ad8:docker-compose-dev.yml:generic-credenti
 # Sentry integration ContextVar tokens - not secrets, just variable names
 # These are Python contextvars.ContextVar.set() return values, named "token" per stdlib convention
 # Original files (commit 141f35f - now deleted)
-141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_integration.py:generic-credential:220
-141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_integration.py:generic-credential:277
-141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_middleware.py:generic-credential:58
-141f35f3ca9425db7b276e1c964528f75a54ad45:src/core/sentry_middleware.py:generic-credential:59
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/mcp_server_for_splunk/core/sentry_integration.py:generic-credential:220
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/mcp_server_for_splunk/core/sentry_integration.py:generic-credential:277
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/mcp_server_for_splunk/core/sentry_middleware.py:generic-credential:58
+141f35f3ca9425db7b276e1c964528f75a54ad45:src/mcp_server_for_splunk/core/sentry_middleware.py:generic-credential:59
 # Refactored sentry subpackage (commit 8f63aa5)
-8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/http_middleware.py:generic-credential:51
-8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/http_middleware.py:generic-credential:52
-8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/decorators.py:generic-credential:53
-8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/core/sentry/decorators.py:generic-credential:101
+8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/mcp_server_for_splunk/core/sentry/http_middleware.py:generic-credential:51
+8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/mcp_server_for_splunk/core/sentry/http_middleware.py:generic-credential:52
+8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/mcp_server_for_splunk/core/sentry/decorators.py:generic-credential:53
+8f63aa5470fe7953e54953b5e6b2bd4cca655aff:src/mcp_server_for_splunk/core/sentry/decorators.py:generic-credential:101
 
 # Dict key name "splunk_password" in config extractor and utils
 # These are configuration key mappings, not hardcoded secrets
-0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/enhanced_config_extractor.py:generic-credential:201
-0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/core/utils.py:splunk-password:38
+0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:201
+0c6f03aa9360a176e81f8b731b2929debd2e6fc1:src/mcp_server_for_splunk/core/utils.py:splunk-password:38
 
 # PR #118 (bearer token auth): Gitleaks generic-credential false positives on
 # Splunk credential variable names and config-key mappings (identifiers only).
 # Commit b12ed6d is the first token-auth commit.
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:290
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:291
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:292
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:296
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:201
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:202
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:203
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:27
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:52
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:53
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:46
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:51
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:290
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:291
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:292
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:296
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:201
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:202
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:203
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:27
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:52
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:53
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/client/splunk_client.py:generic-credential:46
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/client/splunk_client.py:generic-credential:51
 b12ed6d07dcc7dabc7b177fac592e28753f88991:tests/test_splunk_client.py:splunk-password:183
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:25
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:26
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:306
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/server.py:generic-credential:307
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:25
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:26
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/server.py:generic-credential:306
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/server.py:generic-credential:307
 919e4aa97539e05a307fe719894d6ba650ff3ff5:tests/test_splunk_client.py:splunk-password:185
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:33
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:35
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:55
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:59
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/splunk_client.py:generic-credential:68
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:74
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:75
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/utils.py:generic-credential:106
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/client/splunk_client.py:generic-credential:64
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:438
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:439
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:440
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:441
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:442
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:443
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:521
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/enhanced_config_extractor.py:generic-credential:522
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:337
-b12ed6d07dcc7dabc7b177fac592e28753f88991:src/core/client_identity.py:generic-credential:338
-2bc622c4d5dcd09744727b533eea21e8abd3b9de:src/splunk_client.py:generic-credential:55
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:33
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:35
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:55
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:59
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/splunk_client.py:generic-credential:68
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:74
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:75
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/utils.py:generic-credential:106
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/client/splunk_client.py:generic-credential:64
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:438
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:439
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:440
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:441
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:442
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:443
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:521
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/enhanced_config_extractor.py:generic-credential:522
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:337
+b12ed6d07dcc7dabc7b177fac592e28753f88991:src/mcp_server_for_splunk/core/client_identity.py:generic-credential:338
+2bc622c4d5dcd09744727b533eea21e8abd3b9de:src/mcp_server_for_splunk/splunk_client.py:generic-credential:55
 c01a9a453a75d6cdb3b65391f25c08405b3e920a:.gitleaksignore:generic-credential:57
 
 # PR #121 (ITSI MCP server): Gitleaks false positives.
@@ -154,4 +154,4 @@ f7bd2ee5e3ea6f3599ab9a60bc8ed6d6c59f1a31:tests/test_mcp_itsi.py:splunk-password:
 1fc8a2bda4c88553ae9462f1fa35828f470c6954:mcp_itsi/config/headers.py:generic-credential:153
 
 # PR #295: boolean presence check for an environment-sourced bearer credential.
-51673e710d886866a0cccdd9b78eb1fd0cd9b417:src/cli/build_and_run.py:generic-credential:579
+51673e710d886866a0cccdd9b78eb1fd0cd9b417:src/mcp_server_for_splunk/cli/build_and_run.py:generic-credential:579

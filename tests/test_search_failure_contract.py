@@ -15,14 +15,14 @@ from mcp_types import CLIENT_CAPABILITIES_META_KEY, CLIENT_INFO_META_KEY, PROTOC
 from splunklib.binding import HTTPError
 from starlette.testclient import TestClient
 
-from src import server as production_server
-from src.client import splunk_client
-from src.core.base import SplunkContext
-from src.core.loader import ToolLoader
-from src.tools.search.job_info import GetSearchJobInfo
-from src.tools.search.job_results import GetSearchJobResults
-from src.tools.search.job_search import JobSearch
-from src.tools.search.oneshot_search import OneshotSearch
+from mcp_server_for_splunk import server as production_server
+from mcp_server_for_splunk.client import splunk_client
+from mcp_server_for_splunk.core.base import SplunkContext
+from mcp_server_for_splunk.core.loader import ToolLoader
+from mcp_server_for_splunk.tools.search.job_info import GetSearchJobInfo
+from mcp_server_for_splunk.tools.search.job_results import GetSearchJobResults
+from mcp_server_for_splunk.tools.search.job_search import JobSearch
+from mcp_server_for_splunk.tools.search.oneshot_search import OneshotSearch
 
 
 @pytest.fixture(params=[OneshotSearch, JobSearch], ids=["oneshot", "job"])
@@ -100,7 +100,8 @@ async def test_failure_after_creation_preserves_sid(search, monkeypatch, stage):
         # Unexpected TTL helper errors must not lose a job already returned by create.
         module = "oneshot_search" if isinstance(search.tool, OneshotSearch) else "job_search"
         monkeypatch.setattr(
-            f"src.tools.search.{module}.apply_job_ttl", Mock(side_effect=certificate_failure())
+            f"mcp_server_for_splunk.tools.search.{module}.apply_job_ttl",
+            Mock(side_effect=certificate_failure()),
         )
     result = await search.tool.execute(search.ctx, query="index=main")
     assert result["error_code"] == "certificate_verify_failed"

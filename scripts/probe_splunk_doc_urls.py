@@ -12,9 +12,9 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.resources.dashboard_studio_docs import DASHBOARD_STUDIO_TOPICS
-from src.resources.splunk_cim import SplunkCIMResource
-from src.resources.splunk_docs import AdminGuideResource, TroubleshootingResource
+from mcp_server_for_splunk.resources.dashboard_studio_docs import DASHBOARD_STUDIO_TOPICS
+from mcp_server_for_splunk.resources.splunk_cim import SplunkCIMResource
+from mcp_server_for_splunk.resources.splunk_docs import AdminGuideResource, TroubleshootingResource
 
 COMMON_CONFIG_FILES = [
     "alert_actions.conf",

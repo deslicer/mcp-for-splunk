@@ -57,7 +57,7 @@ In our architecture:
 
 ## What We DO Protect Against
 
-Our `src/core/security.py` module blocks:
+Our `src/mcp_server_for_splunk/core/security.py` module blocks:
 
 | Command | Reason |
 |---------|--------|

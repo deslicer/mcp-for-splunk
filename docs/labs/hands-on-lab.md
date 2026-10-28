@@ -132,7 +132,7 @@ Example minimal tool structure:
 ```python
 from typing import Any, Dict
 from fastmcp import Context
-from src.core.base import BaseTool, ToolMetadata
+from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
 
 class HelloWorldTool(BaseTool):
     """A simple example tool that returns a greeting."""

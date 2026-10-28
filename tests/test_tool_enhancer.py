@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from src.tools.admin.tool_enhancer import ToolDescriptionEnhancer
+from mcp_server_for_splunk.tools.admin.tool_enhancer import ToolDescriptionEnhancer
 
 
 class TestToolDescriptionEnhancer:
@@ -44,9 +44,7 @@ class TestToolDescriptionEnhancer:
                 assert "parameters" in analysis
                 assert "examples" in analysis
 
-    async def test_enhance_nonexistent_tool(
-        self, enhancer_tool, fastmcp_client, tool_payload
-    ):
+    async def test_enhance_nonexistent_tool(self, enhancer_tool, fastmcp_client, tool_payload):
         """Test error handling for non-existent tool"""
         async with fastmcp_client as client:
             data = await tool_payload(

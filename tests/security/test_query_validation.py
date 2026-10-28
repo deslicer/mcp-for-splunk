@@ -7,7 +7,7 @@ Index access and subsearches are handled by Splunk RBAC.
 
 import pytest
 
-from src.core.security import (
+from mcp_server_for_splunk.core.security import (
     QuerySecurityError,
     SecurityViolationType,
     SPLQueryValidator,
@@ -20,9 +20,9 @@ from src.core.security import (
 class TestForbiddenCommands:
     """Tests for forbidden command blocking."""
 
-    @pytest.mark.parametrize("cmd", [
-        "collect", "outputlookup", "outputcsv", "delete", "sendemail", "script", "run"
-    ])
+    @pytest.mark.parametrize(
+        "cmd", ["collect", "outputlookup", "outputcsv", "delete", "sendemail", "script", "run"]
+    )
     def test_forbidden_command_blocked(self, cmd):
         """Test that data-modifying commands are blocked."""
         query = f"index=main | {cmd} test"

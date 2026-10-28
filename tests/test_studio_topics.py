@@ -1,6 +1,6 @@
 """Tests for versioned Dashboard Studio Help URLs."""
 
-from src.resources.studio_topics import (
+from mcp_server_for_splunk.resources.studio_topics import (
     build_studio_urls,
     default_studio_url,
     parse_studio_ref,

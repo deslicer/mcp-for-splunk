@@ -29,14 +29,14 @@ Useful entry points:
 
 ```bash
 uv run mcp-server --local          # local HTTP defaults (sessionless)
-uv run python src/server.py --host 127.0.0.1 --port 8014
+uv run python src/mcp_server_for_splunk/server.py --host 127.0.0.1 --port 8014
 ```
 
 ## Build / lint / test
 
 ```bash
 uv run ruff check src/ tests/
-uv run mypy src/core/client_config_cache.py   # targeted; full mypy via CI lint job
+uv run mypy src/mcp_server_for_splunk/core/client_config_cache.py   # targeted; full mypy via CI lint job
 uv run pytest tests/ -q --ignore=tests/integration
 ```
 
@@ -71,7 +71,7 @@ Dependabot PRs that only edit `pyproject.toml` floors without `uv.lock` are inco
   JSON discovery/authoring tools only (`list_workflows`, `workflow_builder`,
   `workflow_requirements`).
 - **Saved-search ACL**: read ownership from `entity.access` via
-  `src/tools/search/saved_search_acl.py` — not `content['eai:acl']`.
+  `src/mcp_server_for_splunk/tools/search/saved_search_acl.py` — not `content['eai:acl']`.
 - **ITSI packaging**: `mcp_itsi/` and `packaging/mcp-itsi-server/mcp_itsi/` may
   be hardlinked — edit once, verify both paths if unsure.
 
@@ -112,8 +112,8 @@ Renovate vulnerability alerts bypass `minimumReleaseAge` via a dedicated
 
 | Task | Start here |
 |------|------------|
-| Server / middleware / HTTP | `src/server.py`, `src/core/` |
-| Splunk tools | `src/tools/` |
+| Server / middleware / HTTP | `src/mcp_server_for_splunk/server.py`, `src/mcp_server_for_splunk/core/` |
+| Splunk tools | `src/mcp_server_for_splunk/tools/` |
 | Client config headers | `docs/guides/configuration/client_configuration.md` |
 | Sessionless vs session HTTP | `docs/guides/configuration/http-client-modes.md` |
 | ITSI tools / schemas | `mcp_itsi/`, `mcp_itsi/llms.txt` |

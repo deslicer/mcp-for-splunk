@@ -13,15 +13,15 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.resources.admin_topics import ADMIN_TOPICS, build_admin_urls
-from src.resources.docs_http import is_soft_404_body
-from src.resources.docs_versions import (
+from mcp_server_for_splunk.resources.admin_topics import ADMIN_TOPICS, build_admin_urls
+from mcp_server_for_splunk.resources.docs_http import is_soft_404_body
+from mcp_server_for_splunk.resources.docs_versions import (
     SUPPORTED_DOC_VERSIONS,
     build_spec_urls,
     build_spl_urls,
     build_troubleshooting_urls,
 )
-from src.resources.studio_topics import DASHBOARD_STUDIO_TOPICS, build_studio_urls
+from mcp_server_for_splunk.resources.studio_topics import DASHBOARD_STUDIO_TOPICS, build_studio_urls
 
 HEADERS = {
     "User-Agent": (

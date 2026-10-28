@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from src.tools.search.saved_search_acl import (
+from mcp_server_for_splunk.tools.search.saved_search_acl import (
     get_saved_search_acl,
     matches_app_owner,
 )

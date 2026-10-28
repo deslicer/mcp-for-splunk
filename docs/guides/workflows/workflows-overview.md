@@ -20,7 +20,7 @@ OpenAI Agents `workflow_runner` execution was **removed** (Option C) as part of 
 
 ## Where workflows live
 
-- Core: `src/tools/workflows/core/`
+- Core: `src/mcp_server_for_splunk/tools/workflows/core/`
 - Contrib: `contrib/workflows/<category>/<workflow_id>.json`
 
 ## Related docs

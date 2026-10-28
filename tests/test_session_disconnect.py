@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from src.core.session_disconnect import is_session_disconnect_error
-from src.core.session_disconnect_middleware import SessionDisconnectMiddleware
+from mcp_server_for_splunk.core.session_disconnect import is_session_disconnect_error
+from mcp_server_for_splunk.core.session_disconnect_middleware import SessionDisconnectMiddleware
 
 
 class TestSessionDisconnectDetection:

@@ -1,7 +1,7 @@
 import pytest
 
-from src.core.list_paging import PaginationError
-from src.core.splunk_metadata_page import (
+from mcp_server_for_splunk.core.list_paging import PaginationError
+from mcp_server_for_splunk.core.splunk_metadata_page import (
     build_metadata_page_query,
     build_metadata_total_query,
 )
