@@ -177,10 +177,10 @@ Guides for contributing and community participation.
 
 ### Quick Links
 
-- **🔗 [Project Repository](https://github.com/your-org/mcp-server-for-splunk)**
-- **🐛 [Report Issues](https://github.com/your-org/mcp-server-for-splunk/issues)**
-- **💬 [Community Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions)**
-- **📋 [Roadmap](https://github.com/your-org/mcp-server-for-splunk/projects)**
+- **🔗 [Project Repository](https://github.com/deslicer/mcp-for-splunk)**
+- **🐛 [Report Issues](https://github.com/deslicer/mcp-for-splunk/issues)**
+- **💬 [Community Discussions](https://github.com/deslicer/mcp-for-splunk/discussions)**
+- **📋 [Roadmap](https://github.com/deslicer/mcp-for-splunk/projects)**
 
 ### External Resources
 
@@ -220,13 +220,13 @@ Found a gap or error? We welcome documentation contributions!
 ### Quick Fixes
 
 - **Typos and small errors**: Edit directly via GitHub
-- **Broken links**: Report via [Issues](https://github.com/your-org/mcp-server-for-splunk/issues)
-- **Missing examples**: Submit via [Pull Request](https://github.com/your-org/mcp-server-for-splunk/pulls)
+- **Broken links**: Report via [Issues](https://github.com/deslicer/mcp-for-splunk/issues)
+- **Missing examples**: Submit via [Pull Request](https://github.com/deslicer/mcp-for-splunk/pulls)
 
 ### Major Contributions
 
 - **New guides**: Follow our [Documentation Style Guide](docs/readme-guide.md)
-- **Structural changes**: Discuss in [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions)
+- **Structural changes**: Discuss in [GitHub Discussions](https://github.com/deslicer/mcp-for-splunk/discussions)
 - **Translation**: Contact maintainers for coordination
 
 ---
@@ -237,4 +237,4 @@ Found a gap or error? We welcome documentation contributions!
 - **Developers**: Jump to [Integration Guide](guides/integration/)
 - **Contributors**: Check out [Contributing Guide](community/contributing.md)
 
-**Need help?** Join our [community discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) - we're here to help!
+**Need help?** Join our [community discussions](https://github.com/deslicer/mcp-for-splunk/discussions) - we're here to help!

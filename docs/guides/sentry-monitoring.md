@@ -36,7 +36,7 @@ SENTRY_DSN=https://your-key@o123.ingest.sentry.io/project-id
 
 # Recommended settings
 SENTRY_ENVIRONMENT=development
-SENTRY_RELEASE=mcp-server-splunk@0.5.0
+# SENTRY_RELEASE defaults to the installed package version when unset.
 SENTRY_TRACES_SAMPLE_RATE=1.0
 ```
 
@@ -53,7 +53,7 @@ uv run python src/mcp_server_for_splunk/server.py
 You'll see in the logs:
 
 ```
-INFO - Sentry initialized successfully (env=development, release=mcp-server-splunk@0.5.0, traces=100.0%)
+INFO - Sentry initialized successfully (env=development, release=mcp-server-for-splunk@0.6.13, traces=100.0%)
 INFO - Sentry MCP middleware added for request tracing
 INFO - Sentry HTTP middleware added for request tracing
 ```
@@ -116,12 +116,12 @@ Every span includes MCP context:
 |----------|-------------|---------|
 | `SENTRY_DSN` | Sentry project DSN (required to enable) | - |
 | `SENTRY_ENVIRONMENT` | Environment name | `development` |
-| `SENTRY_RELEASE` | Release/version identifier | `mcp-server-splunk@0.5.0` |
+| `SENTRY_RELEASE` | Release/version identifier | installed package version |
 | `SENTRY_TRACES_SAMPLE_RATE` | Traces sampling rate (0.0-1.0) | `1.0` |
 | `SENTRY_PROFILES_SAMPLE_RATE` | Profiling sampling rate (0.0-1.0) | `0.1` |
 | `SENTRY_DEBUG` | Enable debug mode | `false` |
 | `SENTRY_ENABLE_LOGS` | Enable Sentry Logs feature | `true` |
-| `SENTRY_SEND_PII` | Include tool inputs/outputs in traces | `true` |
+| `SENTRY_SEND_PII` | Include tool inputs/outputs in traces. Enabling it sends request data to Sentry | `false` |
 
 ### Smart Sampling
 
@@ -207,7 +207,7 @@ View in Sentry at **Releases → [Your Release]**:
 
 ```bash
 # Set release version for tracking
-SENTRY_RELEASE=mcp-server-splunk@0.4.1
+SENTRY_RELEASE=mcp-server-for-splunk@0.6.13
 ```
 
 Then in Sentry, you'll see:

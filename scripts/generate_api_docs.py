@@ -653,9 +653,9 @@ The server implements connection pooling and request throttling to prevent overw
 
 ## Support
 
-- **Documentation:** [GitHub Repository](https://github.com/your-org/mcp-server-for-splunk)
-- **Issues:** [Report Issues](https://github.com/your-org/mcp-server-for-splunk/issues)
-- **Discussions:** [Community Support](https://github.com/your-org/mcp-server-for-splunk/discussions)
+- **Documentation:** [GitHub Repository](https://github.com/deslicer/mcp-for-splunk)
+- **Issues:** [Report Issues](https://github.com/deslicer/mcp-for-splunk/issues)
+- **Discussions:** [Community Support](https://github.com/deslicer/mcp-for-splunk/discussions)
 
 ---
 
@@ -679,7 +679,7 @@ class OpenAPIGenerator:
                 "description": "Model Context Protocol server providing Splunk integration tools",
                 "contact": {
                     "name": "API Support",
-                    "url": "https://github.com/your-org/mcp-server-for-splunk",
+                    "url": "https://github.com/deslicer/mcp-for-splunk",
                 },
                 "license": {"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
             },

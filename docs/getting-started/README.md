@@ -16,7 +16,7 @@ By the end of this guide, you'll have:
 
 ```bash
 # Clone and run in one shot
-git clone https://github.com/your-org/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-for-splunk.git
 cd mcp-server-for-splunk
 
 # macOS/Linux: preview and install prerequisites
@@ -64,7 +64,7 @@ Skip to [First Success Test](#first-success-test) →
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/mcp-server-for-splunk.git
+git clone https://github.com/deslicer/mcp-for-splunk.git
 cd mcp-server-for-splunk
 ```
 
@@ -305,7 +305,7 @@ curl -k -u username:password https://your-splunk:8089/services/server/info
 
 1. **Check logs**: `docker logs mcp-server` (Docker) or console output (local)
 2. **Test manually**: Use MCP Inspector to test individual tools
-3. **Community support**: [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions)
+3. **Community support**: [GitHub Discussions](https://github.com/deslicer/mcp-for-splunk/discussions)
 
 ## 🎯 Next Steps
 

@@ -3,6 +3,7 @@
 import logging
 import os
 from contextvars import ContextVar
+from importlib.metadata import PackageNotFoundError, version
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,14 @@ _sentry_initialized = False
 mcp_session_id: ContextVar[str | None] = ContextVar("mcp_session_id", default=None)
 mcp_request_id: ContextVar[str | None] = ContextVar("mcp_request_id", default=None)
 mcp_tool_name: ContextVar[str | None] = ContextVar("mcp_tool_name", default=None)
+
+
+def _default_sentry_release() -> str:
+    """Release name when SENTRY_RELEASE is unset. Uses the installed package version."""
+    try:
+        return f"mcp-server-for-splunk@{version('mcp-server-for-splunk')}"
+    except PackageNotFoundError:
+        return "mcp-server-for-splunk@unknown"
 
 
 def is_sentry_enabled() -> bool:
@@ -62,7 +71,7 @@ def init_sentry() -> bool:
             _mcp_integration_available = False
 
         environment = os.getenv("SENTRY_ENVIRONMENT", "development")
-        release = os.getenv("SENTRY_RELEASE", "mcp-server-splunk@0.5.0")
+        release = os.getenv("SENTRY_RELEASE") or _default_sentry_release()
         traces_sample_rate = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0"))
         profiles_sample_rate = float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.1"))
         debug = os.getenv("SENTRY_DEBUG", "false").lower() == "true"
@@ -89,7 +98,7 @@ def init_sentry() -> bool:
             profiles_sample_rate=profiles_sample_rate,
             enable_logs=enable_logs,
             auto_session_tracking=True,
-            send_default_pii=os.getenv("SENTRY_SEND_PII", "true").lower() == "true",
+            send_default_pii=os.getenv("SENTRY_SEND_PII", "false").lower() == "true",
             integrations=[
                 *([MCPIntegration()] if _mcp_integration_available else []),
                 AsyncioIntegration(),
