@@ -52,7 +52,7 @@ dev = [
 "pytest-asyncio>=1.4.0",
 "black>=26.10.1",
 "mypy>=2.4.0",
-"ruff>=0.17.1",
+"ruff>=0.17.2",
 "pre-commit>=4.6.1"
 ]
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
@@ -136,7 +136,7 @@ dev-dependencies = [
 "pytest-asyncio>=1.4.0",
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
-"ruff>=0.17.1",
+"ruff>=0.17.2",
 "mypy>=2.4.0",
 "pre-commit>=4.6.1",
 "watchdog>=6.0.0",
