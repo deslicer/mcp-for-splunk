@@ -109,7 +109,7 @@ jobs:
       # Trusted publishing path (no token configured — uses GitHub OIDC).
       - name: Publish mcp-server-for-splunk to PyPI (trusted publishing)
         if: env.PYPI_TOKEN == ''
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           packages-dir: dist-parent
           skip-existing: true
@@ -117,7 +117,7 @@ jobs:
       # Token publishing path (back-compat with the existing PYPI_API_TOKEN secret).
       - name: Publish mcp-server-for-splunk to PyPI (token)
         if: env.PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           password: ${{ env.PYPI_TOKEN }}
           packages-dir: dist-parent
@@ -159,14 +159,14 @@ jobs:
 
       - name: Publish mcp-itsi-server to PyPI (trusted publishing)
         if: env.PYPI_TOKEN == ''
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           packages-dir: dist-itsi
           skip-existing: true
 
       - name: Publish mcp-itsi-server to PyPI (token)
         if: env.PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
           password: ${{ env.PYPI_TOKEN }}
           packages-dir: dist-itsi
