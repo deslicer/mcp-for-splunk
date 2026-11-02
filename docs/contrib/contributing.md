@@ -473,4 +473,4 @@ Every contribution makes a difference:
 
 Start with our [interactive tool generator](../../contrib/scripts/generate_tool.py) or browse [existing tools](../../contrib/tools/) for inspiration!
 
-**Questions?** Join our [GitHub Discussions](https://github.com/deslicer/mcp-server-for-splunk/discussions) - the community is here to help!
+**Questions?** Join our [GitHub Discussions](https://github.com/deslicer/mcp-for-splunk/discussions) - the community is here to help!

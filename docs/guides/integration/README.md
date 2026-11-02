@@ -570,4 +570,4 @@ tail -f logs/mcp-server.log
 
 ---
 
-**Need help?** Join our [GitHub Discussions](https://github.com/your-org/mcp-server-for-splunk/discussions) for community support!
+**Need help?** Join our [GitHub Discussions](https://github.com/deslicer/mcp-for-splunk/discussions) for community support!

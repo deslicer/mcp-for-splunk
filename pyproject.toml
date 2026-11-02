@@ -1,13 +1,21 @@
 [project]
 name = "mcp-server-for-splunk"
 version = "0.6.13"
-description = "MCP server for Splunk"
+description = "Open-source Splunk MCP server (Model Context Protocol) for Splunk Enterprise and Splunk Cloud"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-{name = "MCP for Splunk", email = "developer@example.com"}
+{name = "Deslicer", email = "dev@deslicer.com"}
 ]
-keywords = ["mcp", "splunk", "model-context-protocol"]
+keywords = [
+"mcp",
+"splunk",
+"model-context-protocol",
+"splunk-mcp",
+"mcp-server",
+"splunk-mcp-server",
+"spl",
+]
 classifiers = [
 "Development Status :: 3 - Alpha",
 "Intended Audience :: Developers",
@@ -27,7 +35,7 @@ dependencies = [
 "wsproto>=1.3.2",
 ]
 license = { file = "LICENSE" }
-urls = { Homepage = "https://github.com/deslicer/mcp-server-for-splunk" }
+urls = { Homepage = "https://github.com/deslicer/mcp-for-splunk", Repository = "https://github.com/deslicer/mcp-for-splunk", Documentation = "https://deslicer.ai/docs/integrations/splunk-mcp", Issues = "https://github.com/deslicer/mcp-for-splunk/issues" }
 
 [project.scripts]
 generate-tool = "mcp_server_for_splunk.cli.contrib:generate_tool"
