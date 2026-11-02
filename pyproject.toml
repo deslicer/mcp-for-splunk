@@ -53,7 +53,7 @@ dev = [
 "black>=26.10.1",
 "mypy>=2.4.0",
 "ruff>=0.17.1",
-"pre-commit>=4.6.1"
+"pre-commit>=4.7.0"
 ]
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
 # distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
@@ -138,7 +138,7 @@ dev-dependencies = [
 "black>=26.10.1",
 "ruff>=0.17.1",
 "mypy>=2.4.0",
-"pre-commit>=4.6.1",
+"pre-commit>=4.7.0",
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
 "bandit>=1.9.4",
