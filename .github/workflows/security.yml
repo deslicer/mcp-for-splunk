@@ -208,7 +208,8 @@ jobs:
         with:
           # Gitleaks needs full history for PR/push diff ranges. Keep scheduled
           # and manual scans shallow so historical false positives are not
-          # republished as current code-scanning alerts.
+          # republished as current code-scanning alerts. Depth 2 includes HEAD
+          # and its first parent, which is the range the scheduled scan diffs.
           fetch-depth: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 2 || 0 }}
 
       - name: Install Gitleaks
@@ -242,8 +243,12 @@ jobs:
               ARGS+=(--log-opts "HEAD~1..HEAD")
             fi
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Shallow checkout (fetch-depth 2): scan recent commits only, not full history or --no-git tree
-            ARGS+=(--log-opts "HEAD~1..HEAD")
+            # Depth 2 grafts both parents of a merge. HEAD~1..HEAD then includes
+            # the second parent as a root commit, and git log -p prints the
+            # whole tree as if that commit added it. -m --first-parent -1 diffs
+            # HEAD against its first parent only: that parent is present at
+            # depth 2, and the diff is exactly what landed on the branch.
+            ARGS+=(--log-opts "-m --first-parent -1")
           fi
           gitleaks "${ARGS[@]}"
 
