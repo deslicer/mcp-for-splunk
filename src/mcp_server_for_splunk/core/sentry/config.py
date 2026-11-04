@@ -1,9 +1,15 @@
 """Sentry SDK configuration and initialization."""
 
+from __future__ import annotations
+
 import logging
 import os
 from contextvars import ContextVar
 from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import Event, Hint
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +142,7 @@ def init_sentry() -> bool:
         return False
 
 
-def _before_send_hook(event: dict, hint: dict) -> dict | None:
+def _before_send_hook(event: Event, hint: Hint) -> Event | None:
     """Enrich error events with MCP context before sending to Sentry."""
     try:
         session_id = mcp_session_id.get()
@@ -168,7 +174,7 @@ def _before_send_hook(event: dict, hint: dict) -> dict | None:
     return event
 
 
-def _before_send_transaction_hook(event: dict, hint: dict) -> dict | None:
+def _before_send_transaction_hook(event: Event, hint: Hint) -> Event | None:
     """Enrich transaction events with MCP metadata."""
     try:
         session_id = mcp_session_id.get()
