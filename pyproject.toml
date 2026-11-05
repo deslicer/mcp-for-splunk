@@ -49,11 +49,11 @@ mcp-server = "mcp_server_for_splunk.cli.entrypoint:main"
 [project.optional-dependencies]
 dev = [
 "pytest>=9.1.1",
-"pytest-asyncio>=1.4.0",
+"pytest-asyncio>=1.4.1",
 "black>=26.10.1",
 "mypy>=2.4.0",
-"ruff>=0.17.1",
-"pre-commit>=4.6.1"
+"ruff>=0.17.2",
+"pre-commit>=4.7.0"
 ]
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
 # distribution. End users: `pip install "mcp-server-for-splunk[itsi]"`.
@@ -62,7 +62,7 @@ itsi = [
 ]
 test = [
 "pytest>=9.1.1",
-"pytest-asyncio>=1.4.0",
+"pytest-asyncio>=1.4.1",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
 ]
@@ -78,7 +78,7 @@ docs = [
 ]
 # Optional Sentry monitoring
 sentry = [
-"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.72.0",
+"sentry-sdk[mcp,starlette,httpx,asyncio]>=2.73.0",
 ]
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
@@ -133,12 +133,12 @@ constraint-dependencies = [
 ]
 dev-dependencies = [
 "pytest>=9.1.1",
-"pytest-asyncio>=1.4.0",
+"pytest-asyncio>=1.4.1",
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
-"ruff>=0.17.1",
+"ruff>=0.17.2",
 "mypy>=2.4.0",
-"pre-commit>=4.6.1",
+"pre-commit>=4.7.0",
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
 "bandit>=1.9.4",
