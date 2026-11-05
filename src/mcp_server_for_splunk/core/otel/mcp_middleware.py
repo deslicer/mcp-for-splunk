@@ -41,12 +41,14 @@ class OtelToolSpanMiddleware(Middleware):
             return self._tracer_provider.get_tracer(_TRACER_NAME)
         return get_tracer(_TRACER_NAME)
 
-    async def on_request(self, context: MiddlewareContext, call_next):
-        """Create a tool span for ``tools/call``; pass through other methods."""
-        method = getattr(context, "method", None)
-        if method != "tools/call":
-            return await call_next(context)
+    async def on_call_tool(self, context: MiddlewareContext, call_next):
+        """Create a tool span for a FastMCP 4 ``tools/call``.
 
+        FastMCP 4 delivers ``CallToolRequestParams`` as ``context.message`` on
+        ``on_call_tool``. The tool name is ``context.message.name``. ``on_request``
+        also sees other methods and validation failures that never become a tool
+        execution, so the span stays on this hook.
+        """
         tool_name = self._tool_name(context)
         session_id = getattr(context, "session_id", None)
 
@@ -82,11 +84,11 @@ class OtelToolSpanMiddleware(Middleware):
 
     @staticmethod
     def _tool_name(context: MiddlewareContext) -> str:
-        params = getattr(context, "params", None)
-        if isinstance(params, dict):
-            name = params.get("name")
-            if name:
-                return str(name)
+        # https://gofastmcp.com/servers/middleware — on_call_tool message.name
+        message = getattr(context, "message", None)
+        name = message.get("name") if isinstance(message, dict) else getattr(message, "name", None)
+        if isinstance(name, str) and name:
+            return name
         return "unknown"
 
 

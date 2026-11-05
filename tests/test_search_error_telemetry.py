@@ -25,8 +25,11 @@ async def test_otel_records_structured_error_status(tool_result):
     exporter = memory.InMemorySpanExporter()
     provider.add_span_processor(export.SimpleSpanProcessor(exporter))
     middleware = OtelToolSpanMiddleware(tracer_provider=provider)
-    context = SimpleNamespace(method="tools/call", params={"name": "run_splunk_search"})
-    result = await middleware.on_request(context, AsyncMock(return_value=tool_result))
+    context = SimpleNamespace(
+        method="tools/call",
+        message=SimpleNamespace(name="run_splunk_search"),
+    )
+    result = await middleware.on_call_tool(context, AsyncMock(return_value=tool_result))
     assert result is tool_result
     span = exporter.get_finished_spans()[0]
     assert span.status.status_code.name == ("ERROR" if tool_result.is_error else "OK")

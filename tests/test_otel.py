@@ -216,15 +216,19 @@ class TestOtelToolSpanMiddleware:
 
         middleware = OtelToolSpanMiddleware(tracer_provider=provider)
 
+        class _Message:
+            name = "get_indexes"
+            arguments: dict = {}
+
         class FakeContext:
             method = "tools/call"
-            params = {"name": "get_indexes", "arguments": {}}
+            message = _Message()
             session_id = "sess-1"
 
         async def call_next(_ctx):
             return {"ok": True}
 
-        result = await middleware.on_request(FakeContext(), call_next)
+        result = await middleware.on_call_tool(FakeContext(), call_next)
 
         assert result == {"ok": True}
         spans = exporter.get_finished_spans()
@@ -248,16 +252,20 @@ class TestOtelToolSpanMiddleware:
         provider.add_span_processor(SimpleSpanProcessor(exporter))
         middleware = OtelToolSpanMiddleware(tracer_provider=provider)
 
+        class _Message:
+            name = "do_thing"
+            arguments: dict = {}
+
         class FakeContext:
             method = "tools/call"
-            params = {"name": "do_thing", "arguments": {}}
+            message = _Message()
             session_id = None
 
         async def call_next(_ctx):
             raise ValueError("X-Splunk-Token: super-secret-value")
 
         with pytest.raises(ValueError):
-            await middleware.on_request(FakeContext(), call_next)
+            await middleware.on_call_tool(FakeContext(), call_next)
 
         spans = exporter.get_finished_spans()
         assert len(spans) == 1
