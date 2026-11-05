@@ -5,9 +5,9 @@ import logging
 import pytest
 from fastmcp import Client, FastMCP
 
-from src.core.otel import bootstrap
-from src.core.otel.bootstrap import _instrument_logging
-from src.core.otel.mcp_middleware import OtelToolSpanMiddleware
+from mcp_server_for_splunk.core.otel import bootstrap
+from mcp_server_for_splunk.core.otel.bootstrap import _instrument_logging
+from mcp_server_for_splunk.core.otel.mcp_middleware import OtelToolSpanMiddleware
 
 try:
     from opentelemetry import trace
