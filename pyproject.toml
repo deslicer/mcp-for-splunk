@@ -51,7 +51,7 @@ dev = [
 "pytest>=9.1.1",
 "pytest-asyncio>=1.4.1",
 "black>=26.10.1",
-"mypy>=2.4.0",
+"mypy>=2.4.1",
 "ruff>=0.17.2",
 "pre-commit>=4.7.0"
 ]
@@ -137,7 +137,7 @@ dev-dependencies = [
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
 "ruff>=0.17.2",
-"mypy>=2.4.0",
+"mypy>=2.4.1",
 "pre-commit>=4.7.0",
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
