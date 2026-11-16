@@ -1349,7 +1349,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.4.1" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=7.1.0" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.17.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.17.3" },
     { name = "semgrep", marker = "extra == 'security'", specifier = ">=1.0.0,<1.137" },
     { name = "sentry-sdk", extras = ["mcp", "starlette", "httpx", "asyncio"], marker = "extra == 'sentry'", specifier = ">=2.73.0" },
     { name = "splunk-sdk", specifier = ">=2.1.1" },
@@ -1369,7 +1369,7 @@ dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "ruff", specifier = ">=0.17.2" },
+    { name = "ruff", specifier = ">=0.17.3" },
     { name = "watchdog", specifier = ">=6.0.0" },
 ]
 
