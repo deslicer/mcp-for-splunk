@@ -13,7 +13,8 @@ jobs:
     # Exercise the fallback's install and Linux privilege setup without secrets
     # or inference. External forks do not have actor permission for this action.
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    # codex-action drop-sudo fails on Ubuntu 26.04 (openai/codex-action#188).
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -55,7 +56,8 @@ jobs:
           test ! -w /run/codex-action-smoke.sock
 
   review:
-    runs-on: ubuntu-latest
+    # codex-action drop-sudo fails on Ubuntu 26.04 (openai/codex-action#188).
+    runs-on: ubuntu-24.04
     # Dependabot and fork PRs cannot read repository Actions secrets.
     steps:
       - name: Skip review when credentials unavailable
