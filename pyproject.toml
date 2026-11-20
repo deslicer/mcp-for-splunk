@@ -48,7 +48,7 @@ mcp-server = "mcp_server_for_splunk.cli.entrypoint:main"
 
 [project.optional-dependencies]
 dev = [
-"pytest>=9.1.1",
+"pytest>=9.2.0",
 "pytest-asyncio>=1.4.1",
 "black>=26.10.1",
 "mypy>=2.4.0",
@@ -61,7 +61,7 @@ itsi = [
 "mcp-itsi-server>=0.2.0",
 ]
 test = [
-"pytest>=9.1.1",
+"pytest>=9.2.0",
 "pytest-asyncio>=1.4.1",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
@@ -132,7 +132,7 @@ constraint-dependencies = [
     "filelock>=4.2.1",
 ]
 dev-dependencies = [
-"pytest>=9.1.1",
+"pytest>=9.2.0",
 "pytest-asyncio>=1.4.1",
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
