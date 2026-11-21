@@ -38,7 +38,7 @@ async def test_otel_records_structured_error_status(tool_result):
 
 async def test_sentry_records_structured_error_status(tool_result, monkeypatch):
     monkeypatch.setattr(
-        "mcp_server_for_splunk.core.sentry.mcp_middleware._sentry_initialized", True
+        "mcp_server_for_splunk.core.sentry.config._sentry_initialized", True
     )
     monkeypatch.setattr("mcp_server_for_splunk.core.sentry.mcp_middleware.set_mcp_context", Mock())
     monkeypatch.setattr("mcp_server_for_splunk.core.sentry.mcp_middleware.add_breadcrumb", Mock())

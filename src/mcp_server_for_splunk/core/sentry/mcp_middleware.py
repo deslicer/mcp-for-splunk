@@ -10,7 +10,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from mcp_server_for_splunk.core.session_disconnect import is_session_disconnect_error
 from mcp_server_for_splunk.core.tool_mcp_result import is_tool_error_result
 
-from .config import _sentry_initialized
+from .config import is_sentry_initialized
 from .context import add_breadcrumb, set_mcp_context
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class SentryMCPMiddleware(Middleware):
 
     async def on_request(self, context: MiddlewareContext, call_next):
         """Process MCP request with Sentry tracing."""
-        if not _sentry_initialized:
+        if not is_sentry_initialized():
             return await call_next(context)
 
         try:
@@ -352,7 +352,7 @@ class SentryMCPMiddleware(Middleware):
 
 def create_sentry_middlewares():
     """Factory function to create Sentry middleware instances."""
-    if not _sentry_initialized:
+    if not is_sentry_initialized():
         logger.debug("Sentry not initialized, skipping middleware creation")
         return None, None
 

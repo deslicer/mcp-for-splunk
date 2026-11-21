@@ -9,6 +9,7 @@ feature (local setup, Splunk config, server run, Docker mode, stop, etc.).
 from __future__ import annotations
 
 import argparse
+import getpass
 import os
 import shlex
 import shutil
@@ -20,6 +21,7 @@ from pathlib import Path
 
 from mcp_server_for_splunk.cli.paths import working_directory
 from mcp_server_for_splunk.cli.splunk_auth_configuration import SplunkAuthConfiguration
+from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host
 
 # ANSI colors
 COLOR_RED = "\033[0;31m"
@@ -353,7 +355,11 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
             v = v.strip().strip('"').strip("'")
             current[k] = v
 
-    cur_host = current.get("SPLUNK_HOST", "")
+    try:
+        cur_host = normalize_splunk_host(current.get("SPLUNK_HOST", ""))
+    except ValueError as exc:
+        print_error(str(exc))
+        return False
     cur_port = current.get("SPLUNK_PORT", "8089")
     cur_user = current.get("SPLUNK_USERNAME", "admin")
     cur_pass = current.get("SPLUNK_PASSWORD", "")
@@ -397,31 +403,20 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         def prompt_value(
             label: str,
             current: str,
-            display_current: str | None = None,
             default: str | None = None,
             required: bool = True,
-            secure_mode: bool = False,
         ) -> str:
-            import getpass
-
             value = current
-            display = display_current if display_current is not None else current
+            display = current
             while True:
                 if current:
                     p = f"Enter {label} (press Enter to keep current: {display}): "
                 else:
                     p = f"Enter {label} (required, current: Not set): "
-                if secure_mode:
-                    new = getpass.getpass(p)
-                else:
-                    new = input(p).strip()
+                new = input(p).strip()
                 if new:
                     value = new
                 elif current:
-                    if secure_mode and current:  # Confirm keep for secure fields
-                        confirm = input("Keep current value? (y/N): ").strip().lower()
-                        if confirm != "y":
-                            continue
                     value = current
                 elif default:
                     value = default
@@ -430,28 +425,25 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
                     continue
                 return value
 
-        final_host = prompt_value("Splunk host/URL", cur_host)
+        try:
+            final_host = normalize_splunk_host(prompt_value("Splunk host/URL", cur_host))
+        except ValueError as exc:
+            print_error(str(exc))
+            return False
         final_port = prompt_value("Splunk port", cur_port, default="8089", required=False)
         final_user = prompt_value("Splunk username", cur_user, default="admin")
         try:
-            final_pass = prompt_value(
-                "Splunk password",
-                cur_pass,
-                display_current="***" if cur_pass else "",
-                required=True,
-                secure_mode=True,
-            )
+            while True:
+                final_pass = getpass.getpass("Enter Splunk password (hidden; Enter to keep current): ")
+                if final_pass:
+                    break
+                if cur_pass and input("Keep current password? (y/N): ").strip().lower() == "y":
+                    final_pass = cur_pass
+                    break
+                print_error("Splunk password is required.")
         except KeyboardInterrupt:
             print()
             final_pass = cur_pass
-
-        # Strip protocol if URL provided
-        if final_host.startswith("http://") or final_host.startswith("https://"):
-            final_host = final_host.split("://", 1)[1]
-            print_local(f"Extracted hostname from URL: {final_host}")
-            print_local(
-                "Note: SSL verification setting unchanged (preserves private CA configuration)"
-            )
 
     # Validate
     if not final_host:
@@ -482,8 +474,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
     print("  Password: ***")
     print()
 
-    # Note: final_pass contains the actual password value (not masked);
-    # the display_current is only for prompt masking, actual value is preserved/updated
+    # Persist the password only to the configuration, never to console output.
     if has_changes:
         if docker_defaults_restored:
             print_status("Automatically updating .env file with restored Docker defaults...")

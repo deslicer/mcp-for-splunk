@@ -29,6 +29,11 @@ mcp_request_id: ContextVar[str | None] = ContextVar("mcp_request_id", default=No
 mcp_tool_name: ContextVar[str | None] = ContextVar("mcp_tool_name", default=None)
 
 
+def is_sentry_initialized() -> bool:
+    """Read current initialization state without copying a module-level boolean."""
+    return _sentry_initialized
+
+
 def _default_sentry_release() -> str:
     """Release name when SENTRY_RELEASE is unset. Uses the installed package version."""
     try:
@@ -47,7 +52,7 @@ def is_sentry_enabled() -> bool:
 
 def init_sentry() -> bool:
     """Initialize Sentry SDK. Returns True if initialized successfully."""
-    global _sentry_initialized  # noqa: PLW0603 - exported for cross-module use
+    global _sentry_initialized  # noqa: PLW0603 - read through is_sentry_initialized
 
     if _sentry_initialized:
         return True
@@ -62,7 +67,6 @@ def init_sentry() -> bool:
         return False
 
     try:
-        import sentry_sdk
         from sentry_sdk.integrations.asyncio import AsyncioIntegration
         from sentry_sdk.integrations.httpx import HttpxIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration

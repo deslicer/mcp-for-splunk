@@ -7,7 +7,7 @@ from typing import Any
 from mcp_server_for_splunk.core.session_disconnect import is_session_disconnect_error
 
 from .config import (
-    _sentry_initialized,
+    is_sentry_initialized,
     mcp_request_id,
     mcp_session_id,
 )
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def mcp_span(op: str, name: str, description: str | None = None, **attributes: Any):
     """Create an MCP-specific span for tracing operations."""
-    if not _sentry_initialized:
+    if not is_sentry_initialized():
         yield None
         return
 
@@ -48,7 +48,7 @@ def set_mcp_context(
     Call this at the start of request processing to enrich all
     subsequent spans and error events with MCP context.
     """
-    if not _sentry_initialized:
+    if not is_sentry_initialized():
         return
 
     try:
@@ -84,7 +84,7 @@ def capture_mcp_error(
 
     Use this to manually capture exceptions with rich MCP metadata.
     """
-    if not _sentry_initialized:
+    if not is_sentry_initialized():
         return
 
     if is_session_disconnect_error(error):
@@ -131,7 +131,7 @@ def add_breadcrumb(
     Breadcrumbs appear in error reports and help understand
     the sequence of events leading to an error.
     """
-    if not _sentry_initialized:
+    if not is_sentry_initialized():
         return
 
     try:

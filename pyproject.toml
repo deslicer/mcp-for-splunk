@@ -3,7 +3,7 @@ name = "mcp-server-for-splunk"
 version = "0.7.1"
 description = "Open-source Splunk MCP server (Model Context Protocol) for Splunk Enterprise and Splunk Cloud"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 authors = [
 {name = "Deslicer", email = "dev@deslicer.com"}
 ]
@@ -68,10 +68,8 @@ test = [
 ]
 security = [
 "bandit>=1.9.4",
-# semgrep >=1.137 hard-pins old `mcp` versions, which conflicts with FastMCP 4 /
-# MCP SDK v2. CI runs semgrep standalone (`pip install semgrep` in its own
-# isolated job), so this capped version only serves local convenience scans.
-"semgrep>=1.0.0,<1.137"
+# Run Semgrep in isolation: uvx semgrep scan --config p/security-audit .
+# Its MCP SDK constraints must not constrain the server dependency graph.
 ]
 docs = [
 # beautifulsoup4 and httpx moved to main dependencies (required for spec resources)
@@ -128,7 +126,9 @@ exclude-newer = "7 days"
 constraint-dependencies = [
     "fastmcp-slim==4.1.5",
     # Patched floors for the dependency alerts reported by Trivy.
-    "dnspython>=2.9.0",
+    "dnspython>=2.9.2",
+    "joserfc>=1.7.6",
+    "soupsieve>=4.0.0",
     "filelock>=4.2.1",
 ]
 dev-dependencies = [
@@ -154,6 +154,7 @@ dnspython = false
 fastmcp = false
 fastmcp-slim = false
 filelock = false
+joserfc = false
 httpcore2 = false
 httpx2 = false
 "httpx2-jsfetch" = false

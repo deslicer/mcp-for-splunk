@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from .config import _sentry_initialized, mcp_request_id, mcp_session_id
+from .config import is_sentry_initialized, mcp_request_id, mcp_session_id
 from .context import add_breadcrumb
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class SentryHTTPMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process HTTP request with Sentry tracing."""
-        if not _sentry_initialized:
+        if not is_sentry_initialized():
             return cast(Response, await call_next(request))
 
         try:

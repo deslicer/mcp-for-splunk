@@ -7,7 +7,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from .config import _sentry_initialized, mcp_session_id, mcp_tool_name
+from .config import is_sentry_initialized, mcp_session_id, mcp_tool_name
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def trace_mcp_tool(tool_name: str | None = None):
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return await func(*args, **kwargs)
 
             try:
@@ -92,7 +92,7 @@ def trace_mcp_tool(tool_name: str | None = None):
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return func(*args, **kwargs)
 
             try:
@@ -137,7 +137,7 @@ def trace_mcp_resource(resource_uri: str | None = None):
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return await func(*args, **kwargs)
 
             try:
@@ -170,7 +170,7 @@ def trace_mcp_resource(resource_uri: str | None = None):
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return func(*args, **kwargs)
 
             try:
@@ -207,7 +207,7 @@ def trace_splunk_operation(operation: str):
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return await func(*args, **kwargs)
 
             try:
@@ -260,7 +260,7 @@ def trace_splunk_operation(operation: str):
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            if not _sentry_initialized:
+            if not is_sentry_initialized():
                 return func(*args, **kwargs)
 
             try:

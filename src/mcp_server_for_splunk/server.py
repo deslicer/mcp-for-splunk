@@ -506,7 +506,6 @@ else:
         try:
             import importlib
             import inspect
-            import json
 
             module_name, attr_name = None, None
             if ":" in provider_spec:
