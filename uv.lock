@@ -1181,7 +1181,7 @@ wheels = [
 
 [[package]]
 name = "mcp-itsi-server"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "packaging/mcp-itsi-server" }
 dependencies = [
     { name = "fastmcp" },
