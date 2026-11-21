@@ -128,7 +128,7 @@ def test_password_is_saved_but_never_displayed(tmp_path, monkeypatch, capsys):
 def test_host_input_fails_closed_without_hidden_terminal(monkeypatch):
     def fallback(prompt):
         warnings.warn("Cannot hide input", getpass.GetPassWarning, stacklevel=2)
-        pytest.fail("must not fall back to echoed input")
+        raise AssertionError("must not fall back to echoed input")
 
     monkeypatch.setattr("getpass.getpass", fallback)
     with pytest.raises(ValueError, match="interactive terminal"):
@@ -145,7 +145,7 @@ def test_password_input_fails_closed_without_hidden_terminal(tmp_path, monkeypat
         if "host/URL" in prompt:
             return "host"
         warnings.warn("Cannot hide input", getpass.GetPassWarning, stacklevel=2)
-        pytest.fail("must not read password with terminal echo")
+        raise AssertionError("must not read password with terminal echo")
 
     monkeypatch.setattr("getpass.getpass", hidden)
     monkeypatch.setattr("builtins.input", lambda _: "")
