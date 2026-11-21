@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.2.0...mcp-itsi-server-v0.2.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* patch security dependencies, protect setup credentials and repair tracing ([#393](https://github.com/deslicer/mcp-for-splunk/issues/393)) ([8f0a376](https://github.com/deslicer/mcp-for-splunk/commit/8f0a376932bf6a6835c7d8da03c0f581989e4257))
+
 ## [0.2.0](https://github.com/deslicer/mcp-for-splunk/compare/mcp-itsi-server-v0.1.3...mcp-itsi-server-v0.2.0) (2026-11-05)
 
 
