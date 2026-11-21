@@ -1,8 +1,8 @@
 """Validate host input before displaying or persisting it."""
 
-import getpass
-import warnings
 from urllib.parse import urlsplit
+
+from mcp_server_for_splunk.cli.secure_input import read_hidden_input
 
 
 def normalize_splunk_host(value: str) -> str:
@@ -37,13 +37,7 @@ def normalize_splunk_host(value: str) -> str:
 def prompt_splunk_host(current: str) -> str:
     """Read without terminal echo, including when a user pastes URL credentials."""
     prompt = f"Enter Splunk host/URL (hidden; Enter to keep {current or 'unset'}): "
-    try:
-        with warnings.catch_warnings():
-            # getpass otherwise falls back to echoing stdin when no TTY is available.
-            warnings.simplefilter("error", getpass.GetPassWarning)
-            value = getpass.getpass(prompt)
-    except getpass.GetPassWarning:
-        raise ValueError("Hidden host input requires an interactive terminal.") from None
+    value = read_hidden_input(prompt)
     host = normalize_splunk_host(value.strip() or current)
     if not host:
         raise ValueError("Splunk host is required.")

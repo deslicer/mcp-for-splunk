@@ -133,3 +133,24 @@ def test_host_input_fails_closed_without_hidden_terminal(monkeypatch):
     monkeypatch.setattr("getpass.getpass", fallback)
     with pytest.raises(ValueError, match="interactive terminal"):
         prompt_splunk_host("host")
+
+
+def test_password_input_fails_closed_without_hidden_terminal(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    env = tmp_path / ".env"
+    original = "SPLUNK_HOST=host\nSPLUNK_USERNAME=admin\nSPLUNK_PASSWORD=old-secret\n"
+    env.write_text(original)
+
+    def hidden(prompt):
+        if "host/URL" in prompt:
+            return "host"
+        warnings.warn("Cannot hide input", getpass.GetPassWarning, stacklevel=2)
+        pytest.fail("must not read password with terminal echo")
+
+    monkeypatch.setattr("getpass.getpass", hidden)
+    monkeypatch.setattr("builtins.input", lambda _: "")
+    assert prompt_splunk_config(False) is False
+    assert env.read_text() == original
+    output = capsys.readouterr().out
+    assert "old-secret" not in output
+    assert "interactive terminal" in output

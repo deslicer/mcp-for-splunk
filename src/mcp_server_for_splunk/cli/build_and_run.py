@@ -9,7 +9,6 @@ feature (local setup, Splunk config, server run, Docker mode, stop, etc.).
 from __future__ import annotations
 
 import argparse
-import getpass
 import os
 import shlex
 import shutil
@@ -20,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mcp_server_for_splunk.cli.paths import working_directory
+from mcp_server_for_splunk.cli.secure_input import read_hidden_input
 from mcp_server_for_splunk.cli.splunk_auth_configuration import SplunkAuthConfiguration
 from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host, prompt_splunk_host
 
@@ -434,13 +434,16 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
         final_user = prompt_value("Splunk username", cur_user, default="admin")
         try:
             while True:
-                final_pass = getpass.getpass("Enter Splunk password (hidden; Enter to keep current): ")
+                final_pass = read_hidden_input("Enter Splunk password (hidden; Enter to keep current): ")
                 if final_pass:
                     break
                 if cur_pass and input("Keep current password? (y/N): ").strip().lower() == "y":
                     final_pass = cur_pass
                     break
                 print_error("Splunk password is required.")
+        except ValueError as exc:
+            print_error(str(exc))
+            return False
         except KeyboardInterrupt:
             print()
             final_pass = cur_pass
