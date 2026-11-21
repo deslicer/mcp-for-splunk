@@ -31,6 +31,13 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.7.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.7.1...v0.7.2) (2026-11-21)
+
+
+### Bug Fixes
+
+* patch security dependencies, protect setup credentials and repair tracing ([#393](https://github.com/deslicer/mcp-for-splunk/issues/393)) ([8f0a376](https://github.com/deslicer/mcp-for-splunk/commit/8f0a376932bf6a6835c7d8da03c0f581989e4257))
+
 ## [0.7.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.7.0...v0.7.1) (2026-11-21)
 
 
