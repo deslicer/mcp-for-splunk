@@ -468,7 +468,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
 
     print()
     print("Final Splunk configuration:")
-    print(f"  Host: {final_host}")
+    print("  Host: set (hidden)")
     print(f"  Port: {final_port}")
     print(f"  Username: {final_user}")
     print("  Password: ***")

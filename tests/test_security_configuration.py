@@ -114,10 +114,12 @@ def test_password_is_saved_but_never_displayed(tmp_path, monkeypatch, capsys):
         monkeypatch.setenv(key, "")
     answers = iter(["", "", "y"])
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
-    hidden = iter(["", "new-secret"])
+    hidden = iter(["new-host.example.com", "new-secret"])
     monkeypatch.setattr("getpass.getpass", lambda _: next(hidden))
     assert prompt_splunk_config(False) is True
     output = capsys.readouterr().out
+    assert "new-host.example.com" not in output
+    assert "Host: set (hidden)" in output
     assert "new-secret" not in output
     assert "old-secret" not in output
     assert "new-secret" in env.read_text()
