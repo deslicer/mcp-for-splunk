@@ -21,7 +21,7 @@ from pathlib import Path
 
 from mcp_server_for_splunk.cli.paths import working_directory
 from mcp_server_for_splunk.cli.splunk_auth_configuration import SplunkAuthConfiguration
-from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host
+from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host, prompt_splunk_host
 
 # ANSI colors
 COLOR_RED = "\033[0;31m"
@@ -426,7 +426,7 @@ def prompt_splunk_config(is_docker_mode: bool) -> bool:
                 return value
 
         try:
-            final_host = normalize_splunk_host(prompt_value("Splunk host/URL", cur_host))
+            final_host = prompt_splunk_host(cur_host)
         except ValueError as exc:
             print_error(str(exc))
             return False

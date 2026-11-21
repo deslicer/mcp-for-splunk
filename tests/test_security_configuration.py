@@ -1,5 +1,7 @@
 """Regression coverage for credential-safe setup and late Sentry initialization."""
 
+import getpass
+import warnings
 from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -7,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from mcp_server_for_splunk.cli.build_and_run import prompt_splunk_config
-from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host
+from mcp_server_for_splunk.cli.splunk_host_input import normalize_splunk_host, prompt_splunk_host
 from mcp_server_for_splunk.core.sentry import (
     config,
     context,
@@ -57,7 +59,8 @@ def test_setup_never_displays_or_saves_url_credentials(tmp_path, monkeypatch, ca
     env = tmp_path / ".env"
     original = f"SPLUNK_HOST={'host' if not from_env else bad_host}\nSPLUNK_PASSWORD=other-secret\n"
     env.write_text(original)
-    monkeypatch.setattr("builtins.input", lambda _: bad_host)
+    monkeypatch.setattr("getpass.getpass", lambda _: bad_host)
+    monkeypatch.setattr("builtins.input", Mock(side_effect=AssertionError("must not echo host")))
     assert prompt_splunk_config(False) is False
     assert "unique-secret" not in capsys.readouterr().out
     assert env.read_text() == original
@@ -109,11 +112,22 @@ def test_password_is_saved_but_never_displayed(tmp_path, monkeypatch, capsys):
     env.write_text("SPLUNK_HOST=host\nSPLUNK_USERNAME=admin\nSPLUNK_PASSWORD=old-secret\n")
     for key in ("SPLUNK_HOST", "SPLUNK_PORT", "SPLUNK_USERNAME", "SPLUNK_PASSWORD"):
         monkeypatch.setenv(key, "")
-    answers = iter(["", "", "", "y"])
+    answers = iter(["", "", "y"])
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
-    monkeypatch.setattr("getpass.getpass", lambda _: "new-secret")
+    hidden = iter(["", "new-secret"])
+    monkeypatch.setattr("getpass.getpass", lambda _: next(hidden))
     assert prompt_splunk_config(False) is True
     output = capsys.readouterr().out
     assert "new-secret" not in output
     assert "old-secret" not in output
     assert "new-secret" in env.read_text()
+
+
+def test_host_input_fails_closed_without_hidden_terminal(monkeypatch):
+    def fallback(prompt):
+        warnings.warn("Cannot hide input", getpass.GetPassWarning, stacklevel=2)
+        pytest.fail("must not fall back to echoed input")
+
+    monkeypatch.setattr("getpass.getpass", fallback)
+    with pytest.raises(ValueError, match="interactive terminal"):
+        prompt_splunk_host("host")
