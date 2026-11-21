@@ -255,3 +255,15 @@ CEF:0|MCP-Splunk|MCP-Server|1.0|injection_attempt|Subsearch detected|8|src=192.1
 **Status**: ✅ COMPLETE
 
 
+
+## Local dependency isolation
+
+The server requires Python 3.11.5 or newer. Install the `security` extra for
+Bandit. Run Semgrep in its own environment so its MCP SDK constraints do not
+force older server dependencies:
+
+```bash
+uvx semgrep scan --config p/security-audit .
+```
+
+CI also installs Semgrep in a separate job.

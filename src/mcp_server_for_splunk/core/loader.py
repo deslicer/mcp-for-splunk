@@ -301,9 +301,6 @@ class ResourceLoader:
             # First, register documentation resources
             self._register_documentation_resources()
 
-            # Core Splunk config resources are now registered automatically
-            # through the resources __init__.py registration system
-            pass
 
         except ImportError as e:
             self.logger.warning(f"Could not import Splunk resources: {e}")

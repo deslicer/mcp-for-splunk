@@ -6,10 +6,10 @@ Install with: pip install mcp-server-for-splunk[sentry]
 """
 
 from .config import (
-    _sentry_initialized,
     _sentry_sdk_available,
     init_sentry,
     is_sentry_enabled,
+    is_sentry_initialized,
     mcp_request_id,
     mcp_session_id,
     mcp_tool_name,
@@ -33,7 +33,7 @@ from .mcp_middleware import SentryMCPMiddleware, create_sentry_middlewares
 __all__ = [
     # Config
     "_sentry_sdk_available",
-    "_sentry_initialized",
+    "is_sentry_initialized",
     "init_sentry",
     "is_sentry_enabled",
     "mcp_session_id",
