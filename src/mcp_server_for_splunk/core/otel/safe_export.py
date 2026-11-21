@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 from opentelemetry.sdk.trace import ReadableSpan
@@ -48,7 +48,9 @@ class _SpanView:
         payload["status"].pop("description", None)
         for original, event in zip(payload["events"], self.events, strict=True):
             if event.name == "exception":
-                original["attributes"] = dict(event.attributes)
+                # AnyValue is a recursive alias; mypy 2.4 rejects dict() on it.
+                raw_attributes = cast(Mapping[str, Any], event.attributes or {})
+                original["attributes"] = dict(raw_attributes)
         return json.dumps(payload, indent=indent)
 
 

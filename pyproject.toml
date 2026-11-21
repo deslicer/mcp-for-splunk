@@ -49,9 +49,9 @@ mcp-server = "mcp_server_for_splunk.cli.entrypoint:main"
 [project.optional-dependencies]
 dev = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1",
+"pytest-asyncio>=1.4.1.post1",
 "black>=26.10.1",
-"mypy>=2.4.0",
+"mypy>=2.4.1",
 "ruff>=0.17.3",
 "pre-commit>=4.7.0"
 ]
@@ -62,7 +62,7 @@ itsi = [
 ]
 test = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1",
+"pytest-asyncio>=1.4.1.post1",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
 ]
@@ -85,10 +85,10 @@ sentry = [
 otel = [
 "opentelemetry-api>=1.45.1",
 "opentelemetry-sdk>=1.45.2",
-"opentelemetry-exporter-otlp-proto-http>=1.45.1",
-"opentelemetry-instrumentation-starlette>=0.66b1",
+"opentelemetry-exporter-otlp-proto-http>=1.45.2",
+"opentelemetry-instrumentation-starlette>=0.66b2",
 "opentelemetry-instrumentation-httpx>=0.66b2",
-"opentelemetry-instrumentation-logging>=0.66b1",
+"opentelemetry-instrumentation-logging>=0.66b2",
 ]
 
 [build-system]
@@ -133,11 +133,11 @@ constraint-dependencies = [
 ]
 dev-dependencies = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1",
+"pytest-asyncio>=1.4.1.post1",
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
 "ruff>=0.17.3",
-"mypy>=2.4.0",
+"mypy>=2.4.1",
 "pre-commit>=4.7.0",
 "watchdog>=6.0.0",
 "asgi-lifespan>=2.1.0",
