@@ -2,10 +2,12 @@
 Tool for checking Splunk connection health.
 """
 
+import asyncio
 from typing import Any
 
 from fastmcp import Context
 
+from mcp_server_for_splunk.client.splunk_client import get_splunk_service
 from mcp_server_for_splunk.core.base import BaseTool, ToolMetadata
 from mcp_server_for_splunk.core.utils import log_tool_execution
 
@@ -36,7 +38,7 @@ class GetSplunkHealth(BaseTool):
             "    splunk_verify_ssl (bool, optional): Whether to verify SSL certificates\\n\\n"
             "Note: If connection parameters are not provided, uses the server's configured connection.\\n\\n"
             "Response Format:\\n"
-            "Returns dictionary with 'status', 'version', 'server_name', and 'connection_source' fields. "
+            "Returns 'status', 'version', 'server_name' (Splunk serverName), 'hostname' (OS host), 'instance_guid', and 'connection_source'. "
             "Status can be 'connected' or 'error'."
         ),
         category="health",
@@ -83,51 +85,35 @@ class GetSplunkHealth(BaseTool):
         kwargs = locals().copy()
         kwargs.pop("self")
         kwargs.pop("ctx")
-        client_config = self.extract_client_config(kwargs)
+        client_config = self.extract_client_config(kwargs) or await self.get_client_config_from_context(ctx)
 
         try:
             # Try to get Splunk service with client config or fallback to server default
-            service = await self.get_splunk_service(ctx, client_config)
+            # A health probe must never identify a different default server when
+            # the explicitly selected client connection fails.
+            service = (
+                await asyncio.to_thread(get_splunk_service, client_config)
+                if client_config
+                else await self.get_splunk_service(ctx)
+            )
 
             # If we got here, we have a working connection
+            server_info = await asyncio.to_thread(lambda: service.info)
             info = {
                 "status": "connected",
-                "version": service.info["version"],
-                "server_name": service.info.get("host", "unknown"),
+                "version": server_info["version"],
+                "server_name": server_info.get("serverName") or server_info.get("host", "unknown"),
+                "hostname": server_info.get("host"),
+                "instance_guid": server_info.get("guid"),
                 "connection_source": "client_config" if client_config else "server_config",
             }
-
-            # splunklib.client.Service.get is synchronous and returns a Record object
-            host_wide = service.get("/services/server/status/resource-usage/hostwide")
-            self.logger.info("Host wide: %s", host_wide)
 
             await ctx.info(f"Health check successful: {info}")
             self.logger.info("Health check successful: %s", info)
             return info
 
         except Exception as e:
-            # If client config fails, also try server default if we haven't already
-            if client_config:
-                self.logger.info("Client config failed, trying server default...")
-                try:
-                    # Check server default connection
-                    splunk_ctx = ctx.request_context.lifespan_context
-                    if splunk_ctx.is_connected and splunk_ctx.service:
-                        service = splunk_ctx.service
-                        info = {
-                            "status": "connected",
-                            "version": service.info["version"],
-                            "server_name": service.info.get("host", "unknown"),
-                            "connection_source": "server_config",
-                            "note": "Client config failed, using server default",
-                        }
-                        await ctx.info(f"Health check successful with server config: {info}")
-                        self.logger.info("Health check successful with server config: %s", info)
-                        return info
-                except Exception as fallback_error:
-                    self.logger.error("Both client and server configs failed: %s", fallback_error)
-
-            # Both attempts failed
+            # Report failure for the selected connection; do not change targets.
             self.logger.error("Health check failed: %s", str(e))
             await ctx.error(f"Health check failed: {str(e)}")
             return {
