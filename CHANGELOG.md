@@ -31,6 +31,22 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.7.1](https://github.com/deslicer/mcp-for-splunk/compare/v0.7.0...v0.7.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* expose selected Splunk instance identity in health checks ([#391](https://github.com/deslicer/mcp-for-splunk/issues/391)) ([59ec6e5](https://github.com/deslicer/mcp-for-splunk/commit/59ec6e56004a667fea8d3c4bfa0bd2e0b12c33c4))
+
+
+### Dependencies
+
+* **deps-dev:** update opentelemetry-instrumentation-httpx requirement from &gt;=0.66b1 to &gt;=0.66b2 ([#377](https://github.com/deslicer/mcp-for-splunk/issues/377)) ([b677fef](https://github.com/deslicer/mcp-for-splunk/commit/b677fefd56988488c7b19efbbd0224698278b344))
+* **deps-dev:** update opentelemetry-sdk requirement from &gt;=1.45.1 to &gt;=1.45.2 ([#380](https://github.com/deslicer/mcp-for-splunk/issues/380)) ([aff8a3a](https://github.com/deslicer/mcp-for-splunk/commit/aff8a3a843abbfd882417428a690cfb43f9f6dce))
+* **deps-dev:** update pytest requirement from &gt;=9.1.1 to &gt;=9.2.0 ([#376](https://github.com/deslicer/mcp-for-splunk/issues/376)) ([e5ef711](https://github.com/deslicer/mcp-for-splunk/commit/e5ef7110b348d21872a4c99470d58c652c5fecf3))
+* **deps-dev:** update ruff requirement from &gt;=0.17.2 to &gt;=0.17.3 ([#379](https://github.com/deslicer/mcp-for-splunk/issues/379)) ([05c2d69](https://github.com/deslicer/mcp-for-splunk/commit/05c2d69685e16cfef4fbb1258fef50a1132af7d2))
+* **deps:** bump fastmcp from 4.1.4 to 4.1.5 in the production-dependencies group ([#374](https://github.com/deslicer/mcp-for-splunk/issues/374)) ([041cdc2](https://github.com/deslicer/mcp-for-splunk/commit/041cdc2beae696d62e5532a9c989d6347a8aa012))
+
 ## [0.7.0](https://github.com/deslicer/mcp-for-splunk/compare/v0.6.13...v0.7.0) (2026-11-05)
 
 
