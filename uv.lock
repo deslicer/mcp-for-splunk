@@ -1289,7 +1289,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp-itsi-server", marker = "extra == 'itsi'", editable = "packaging/mcp-itsi-server" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.4.1" },
-    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.45.1" },
+    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.45.2" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'otel'", specifier = ">=1.45.2" },
     { name = "opentelemetry-instrumentation-httpx", marker = "extra == 'otel'", specifier = ">=0.66b2" },
     { name = "opentelemetry-instrumentation-logging", marker = "extra == 'otel'", specifier = ">=0.66b2" },
