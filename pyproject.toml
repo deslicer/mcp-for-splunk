@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
 # FastMCP 4 builds on MCP Python SDK v2 (protocol 2026-07-28). Keep the full
 # and slim distributions on the same release to avoid incompatible resolution.
-"fastmcp==4.1.5",
+"fastmcp==4.2.0",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.4",
 "httpx>=0.28.1",
@@ -124,7 +124,7 @@ mcp-itsi-server = { workspace = true }
 # does not regress them while they are still inside the cooldown window.
 exclude-newer = "7 days"
 constraint-dependencies = [
-    "fastmcp-slim==4.1.5",
+    "fastmcp-slim==4.2.0",
     # Patched floors for the dependency alerts reported by Trivy.
     "dnspython>=2.9.2",
     "joserfc>=1.7.6",
