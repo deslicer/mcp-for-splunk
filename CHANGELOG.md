@@ -31,6 +31,26 @@
 * Pass explicit PyPI secrets to release reusable workflows (no `secrets: inherit`)
 * Harden Cursor CLI install steps (download + shebang check instead of `curl | bash`)
 
+## [0.7.3](https://github.com/deslicer/mcp-for-splunk/compare/v0.7.2...v0.7.3) (2026-11-26)
+
+
+### Bug Fixes
+
+* **deps:** align FastMCP distributions and synchronize lockfile ([fab0ae7](https://github.com/deslicer/mcp-for-splunk/commit/fab0ae79dd10dfb10785382eca63df95347826cb))
+* **deps:** synchronize lockfile with dependency floor ([fd7b7a1](https://github.com/deslicer/mcp-for-splunk/commit/fd7b7a15d8126c9ad01f2a66ed0dfdd4108e08f9))
+* **deps:** synchronize lockfile with dependency floor ([94df292](https://github.com/deslicer/mcp-for-splunk/commit/94df292603d1b8dce4af06eabe6cc70e189a066f))
+* **deps:** synchronize lockfile with dependency floor ([0148791](https://github.com/deslicer/mcp-for-splunk/commit/01487910359913806cd2ebde9c8f914c021392a3))
+* **deps:** synchronize Ruff lockfile with dependency floor ([657510a](https://github.com/deslicer/mcp-for-splunk/commit/657510a4f7b56f7ff971f88dc4ffebeb3a46268d))
+
+
+### Dependencies
+
+* **deps-dev:** update opentelemetry-api requirement ([b46d78b](https://github.com/deslicer/mcp-for-splunk/commit/b46d78b9e4a793f74cd4e8c2c2c85f421b51aa70))
+* **deps-dev:** update pytest-asyncio requirement ([6a009f3](https://github.com/deslicer/mcp-for-splunk/commit/6a009f3309acbf970e5e6a8fbed2232de92b96b4))
+* **deps-dev:** update ruff requirement from &gt;=0.17.3 to &gt;=0.17.5 ([00b2375](https://github.com/deslicer/mcp-for-splunk/commit/00b2375446f6e8d8d00fc87a516005625c241757))
+* **deps-dev:** update sentry-sdk requirement from &gt;=2.73.0 to &gt;=2.75.0 ([77e96fe](https://github.com/deslicer/mcp-for-splunk/commit/77e96fe798207c1915c2ff23a43c73917e45dde7))
+* **deps:** bump fastmcp ([2e1dcae](https://github.com/deslicer/mcp-for-splunk/commit/2e1dcae9617f83cca702d6d66df830e3219a517d))
+
 ## [0.7.2](https://github.com/deslicer/mcp-for-splunk/compare/v0.7.1...v0.7.2) (2026-11-21)
 
 
