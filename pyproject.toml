@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
 # FastMCP 4 builds on MCP Python SDK v2 (protocol 2026-07-28). Keep the full
 # and slim distributions on the same release to avoid incompatible resolution.
-"fastmcp==4.1.5",
+"fastmcp==4.2.0",
 "splunk-sdk>=2.1.1",
 "python-dotenv>=1.2.4",
 "httpx>=0.28.1",
@@ -49,10 +49,10 @@ mcp-server = "mcp_server_for_splunk.cli.entrypoint:main"
 [project.optional-dependencies]
 dev = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1.post1",
+"pytest-asyncio>=1.5.0",
 "black>=26.10.1",
 "mypy>=2.4.1",
-"ruff>=0.17.3",
+"ruff>=0.17.5",
 "pre-commit>=4.7.0"
 ]
 # Pull in the ITSI MCP server alongside the core mcp-server-for-splunk
@@ -62,7 +62,7 @@ itsi = [
 ]
 test = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1.post1",
+"pytest-asyncio>=1.5.0",
 "pytest-cov>=7.1.0",
 "asgi-lifespan>=2.1.0"
 ]
@@ -81,7 +81,7 @@ sentry = [
 # Optional OpenTelemetry distributed tracing.
 # Enabled at runtime only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 otel = [
-"opentelemetry-api>=1.45.1",
+"opentelemetry-api>=1.45.2",
 "opentelemetry-sdk>=1.45.2",
 "opentelemetry-exporter-otlp-proto-http>=1.45.2",
 "opentelemetry-instrumentation-starlette>=0.66b2",
@@ -124,7 +124,7 @@ mcp-itsi-server = { workspace = true }
 # does not regress them while they are still inside the cooldown window.
 exclude-newer = "7 days"
 constraint-dependencies = [
-    "fastmcp-slim==4.1.5",
+    "fastmcp-slim==4.2.0",
     # Patched floors for the dependency alerts reported by Trivy.
     "dnspython>=2.9.2",
     "joserfc>=1.7.6",
@@ -133,10 +133,10 @@ constraint-dependencies = [
 ]
 dev-dependencies = [
 "pytest>=9.2.0",
-"pytest-asyncio>=1.4.1.post1",
+"pytest-asyncio>=1.5.0",
 "pytest-cov>=7.1.0",
 "black>=26.10.1",
-"ruff>=0.17.3",
+"ruff>=0.17.5",
 "mypy>=2.4.1",
 "pre-commit>=4.7.0",
 "watchdog>=6.0.0",
